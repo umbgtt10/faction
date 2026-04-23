@@ -1,0 +1,12 @@
+[package]
+name = "faction"
+version = "0.1.0"
+edition = "2024"
+description = "A Rust crate named faction."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-org/faction"
+readme = "README.md"
+keywords = ["faction"]
+categories = ["command-line-utilities"]
+
+[dependencies]
