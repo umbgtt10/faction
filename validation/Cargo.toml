@@ -1,0 +1,31 @@
+[package]
+name = "faction-validation"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+authors = ["Umberto Gotti <umberto.gotti@umbertogotti.dev>"]
+license = "Apache-2.0"
+description = "A no_std + alloc validation support crate for deterministic scenario testing of protocol-independent cluster readiness coordination"
+repository = "https://github.com/umbgtt10/etheram-ibft"
+homepage = "https://github.com/umbgtt10/etheram-ibft"
+documentation = "https://docs.rs/cluster-readiness-validation"
+readme = "../README.md"
+keywords = ["cluster", "readiness", "validation", "no-std", "testing"]
+categories = ["no-std", "development-tools::testing"]
+autotests = false
+publish = false
+
+[dependencies]
+faction = { path = "../core", version = "0.1.0" }
+
+[dev-dependencies]
+proptest.workspace = true
+rstest.workspace = true
+
+[lib]
+name = "faction_validation"
+path = "src/lib.rs"
+
+[[test]]
+name = "all_tests"
+path = "tests/all_tests.rs"
