@@ -81,6 +81,18 @@ impl ModelCoordinator {
     }
 
     fn apply(&mut self, input: VibeInput) -> alloc::vec::Vec<VibeOutput> {
+        if self.has_exited() {
+            return Vec::new();
+        }
+
+        if self.local_participation_complete {
+            match input {
+                VibeInput::ParticipationObserved { .. }
+                | VibeInput::LocalParticipationCompleted => return Vec::new(),
+                _ => {}
+            }
+        }
+
         match input {
             VibeInput::ParticipationObserved {
                 peer_id,

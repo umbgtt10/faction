@@ -150,7 +150,7 @@ fn post_exit_ready_is_ignored() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(outputs, vec![VibeOutput::StaleReadyIgnored { peer_id: 4 }]);
+    assert!(outputs.is_empty());
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());

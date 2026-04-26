@@ -268,8 +268,13 @@ fn valid_transition(
     #[case] expected_outputs: &[VibeOutput],
     #[case] asserts: &[Assert],
 ) {
+    // Arrange
     let mut m = build(init);
+
+    // Act
     let batch = m.apply(input);
+
+    // Assert
     assert_eq!(batch.as_slice(), expected_outputs, "output mismatch");
     verify(&m, asserts);
 }

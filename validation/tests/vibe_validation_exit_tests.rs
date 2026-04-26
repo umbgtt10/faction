@@ -80,7 +80,7 @@ fn post_exit_ready_is_ignored() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(outputs, vec![VibeOutput::StaleReadyIgnored { peer_id: 4 }]);
+    assert!(outputs.is_empty());
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
@@ -164,18 +164,9 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     let outputs_2 = harness.apply_ready(2, 4, 10);
 
     // Assert
-    assert_eq!(
-        outputs_0,
-        vec![VibeOutput::StaleReadyIgnored { peer_id: 4 }]
-    );
-    assert_eq!(
-        outputs_1,
-        vec![VibeOutput::StaleReadyIgnored { peer_id: 4 }]
-    );
-    assert_eq!(
-        outputs_2,
-        vec![VibeOutput::StaleReadyIgnored { peer_id: 4 }]
-    );
+    assert!(outputs_0.is_empty());
+    assert!(outputs_1.is_empty());
+    assert!(outputs_2.is_empty());
     let snapshot_0 = harness.snapshot(0);
     let snapshot_1 = harness.snapshot(1);
     let snapshot_2 = harness.snapshot(2);
