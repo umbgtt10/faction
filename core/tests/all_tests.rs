@@ -5,4 +5,5 @@
 pub mod freshness_policy_tests;
 pub mod property_tests;
 pub mod state_transition_matrix_tests;
+pub mod states;
 pub mod vibe_observer_tests;
