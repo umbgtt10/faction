@@ -116,14 +116,10 @@ impl VibeState for Phase1 {
                 phase1_confirmed[index] = true;
                 phase1_confirmed_count += 1;
 
-                let outputs = match classification {
-                    FreshnessClassification::Timely => {
-                        vec![VibeOutput::ParticipationAccepted { peer_id }]
-                    }
-                    FreshnessClassification::DelayedWithinMargin => {
-                        vec![VibeOutput::DelayedParticipationAccepted { peer_id }]
-                    }
-                    FreshnessClassification::Stale => Vec::new(),
+                let outputs = if matches!(classification, FreshnessClassification::Timely) {
+                    vec![VibeOutput::ParticipationAccepted { peer_id }]
+                } else {
+                    vec![VibeOutput::DelayedParticipationAccepted { peer_id }]
                 };
 
                 (
@@ -197,14 +193,10 @@ impl VibeState for Phase1 {
                 phase2_confirmed[index] = true;
                 phase2_confirmed_count += 1;
 
-                let outputs = match classification {
-                    FreshnessClassification::Timely => {
-                        vec![VibeOutput::ReadyAccepted { peer_id }]
-                    }
-                    FreshnessClassification::DelayedWithinMargin => {
-                        vec![VibeOutput::DelayedReadyAccepted { peer_id }]
-                    }
-                    FreshnessClassification::Stale => Vec::new(),
+                let outputs = if matches!(classification, FreshnessClassification::Timely) {
+                    vec![VibeOutput::ReadyAccepted { peer_id }]
+                } else {
+                    vec![VibeOutput::DelayedReadyAccepted { peer_id }]
                 };
 
                 (

@@ -39,93 +39,22 @@ impl VibeState for Phase2 {
         config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
         let Self {
-            mut phase1_confirmed,
+            phase1_confirmed,
             mut phase2_confirmed,
-            mut phase1_confirmed_count,
+            phase1_confirmed_count,
             mut phase2_confirmed_count,
         } = *self;
 
         match input {
-            VibeInput::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            } => {
-                if !config.is_member(peer_id) {
-                    return (
-                        vec![VibeOutput::NonMemberIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                }
-
-                let classification = config
-                    .freshness_policy()
-                    .classify(current_marker, freshness);
-
-                if classification == FreshnessClassification::Stale {
-                    return (
-                        vec![VibeOutput::StaleParticipationIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                }
-
-                let Some(index) = config.peer_index(peer_id) else {
-                    return (
-                        vec![VibeOutput::NonMemberIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                };
-
-                if phase1_confirmed[index] {
-                    return (
-                        vec![VibeOutput::DuplicateParticipationIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                }
-
-                phase1_confirmed[index] = true;
-                phase1_confirmed_count += 1;
-
-                let outputs = match classification {
-                    FreshnessClassification::Timely => {
-                        vec![VibeOutput::ParticipationAccepted { peer_id }]
-                    }
-                    FreshnessClassification::DelayedWithinMargin => {
-                        vec![VibeOutput::DelayedParticipationAccepted { peer_id }]
-                    }
-                    FreshnessClassification::Stale => Vec::new(),
-                };
-
-                (
-                    outputs,
-                    Box::new(Self {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    }),
-                )
-            }
+            VibeInput::ParticipationObserved { .. } => (
+                Vec::new(),
+                Box::new(Self {
+                    phase1_confirmed,
+                    phase2_confirmed,
+                    phase1_confirmed_count,
+                    phase2_confirmed_count,
+                }),
+            ),
 
             VibeInput::ReadyObserved {
                 peer_id,
@@ -187,22 +116,10 @@ impl VibeState for Phase2 {
                 phase2_confirmed[index] = true;
                 phase2_confirmed_count += 1;
 
-                let accepted_output = match classification {
-                    FreshnessClassification::Timely => VibeOutput::ReadyAccepted { peer_id },
-                    FreshnessClassification::DelayedWithinMargin => {
-                        VibeOutput::DelayedReadyAccepted { peer_id }
-                    }
-                    FreshnessClassification::Stale => {
-                        return (
-                            Vec::new(),
-                            Box::new(Self {
-                                phase1_confirmed,
-                                phase2_confirmed,
-                                phase1_confirmed_count,
-                                phase2_confirmed_count,
-                            }),
-                        );
-                    }
+                let accepted_output = if matches!(classification, FreshnessClassification::Timely) {
+                    VibeOutput::ReadyAccepted { peer_id }
+                } else {
+                    VibeOutput::DelayedReadyAccepted { peer_id }
                 };
 
                 if phase2_confirmed_count >= config.quorum_threshold() {
