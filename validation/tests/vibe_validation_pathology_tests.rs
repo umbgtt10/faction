@@ -6,15 +6,15 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::cluster_readiness_output::ClusterReadinessOutput;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::cluster_readiness_scenario_harness::ClusterReadinessScenarioHarness;
+use faction::vibe_output::VibeOutput;
+use faction_validation::vibe_scenario_harness::VibeScenarioHarness;
 
 #[test]
 fn stale_signals_do_not_perturb_active_multi_node_state() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -24,10 +24,7 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id: 2 }]
-    );
+    assert_eq!(outputs, vec![VibeOutput::StaleReadyIgnored { peer_id: 2 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -39,7 +36,7 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
 #[test]
 fn duplicate_signals_across_nodes_remain_idempotent() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -51,7 +48,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
     // Assert
     assert_eq!(
         outputs,
-        vec![ClusterReadinessOutput::DuplicateReadyIgnored { peer_id: 1 }]
+        vec![VibeOutput::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
@@ -64,7 +61,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
 #[test]
 fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -78,15 +75,15 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
     // Assert
     assert_eq!(
         delayed_outputs,
-        vec![ClusterReadinessOutput::DelayedReadyAccepted { peer_id: 2 }]
+        vec![VibeOutput::DelayedReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
         stale_outputs,
-        vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id: 3 }]
+        vec![VibeOutput::StaleReadyIgnored { peer_id: 3 }]
     );
     assert_eq!(
         duplicate_outputs,
-        vec![ClusterReadinessOutput::DuplicateReadyIgnored { peer_id: 1 }]
+        vec![VibeOutput::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase2_confirmed_count(), 3);
     assert_eq!(
@@ -99,7 +96,7 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
 #[test]
 fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -111,28 +108,19 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
     let step5 = harness.apply_ready(0, 3, 10);
 
     // Assert
-    assert_eq!(
-        step1,
-        vec![ClusterReadinessOutput::ReadyAccepted { peer_id: 1 }]
-    );
-    assert_eq!(
-        step2,
-        vec![ClusterReadinessOutput::DelayedReadyAccepted { peer_id: 2 }]
-    );
-    assert_eq!(
-        step3,
-        vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id: 3 }]
-    );
+    assert_eq!(step1, vec![VibeOutput::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(step2, vec![VibeOutput::DelayedReadyAccepted { peer_id: 2 }]);
+    assert_eq!(step3, vec![VibeOutput::StaleReadyIgnored { peer_id: 3 }]);
     assert_eq!(
         step4,
-        vec![ClusterReadinessOutput::DuplicateReadyIgnored { peer_id: 1 }]
+        vec![VibeOutput::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(
         step5,
         vec![
-            ClusterReadinessOutput::ReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -145,7 +133,7 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
 #[test]
 fn non_member_signal_does_not_perturb_multi_node_state() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -155,10 +143,7 @@ fn non_member_signal_does_not_perturb_multi_node_state() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![ClusterReadinessOutput::NonMemberIgnored { peer_id: 99 }]
-    );
+    assert_eq!(outputs, vec![VibeOutput::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),

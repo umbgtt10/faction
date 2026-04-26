@@ -7,15 +7,15 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_readiness::ClusterReadiness;
-use faction::cluster_readiness_config::ClusterReadinessConfig;
-use faction::cluster_readiness_input::ClusterReadinessInput;
-use faction::cluster_readiness_output::ClusterReadinessOutput;
-use faction::cluster_readiness_output::ClusterReadinessOutput::*;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_cluster_readiness_observer::NoOpClusterReadinessObserver;
+use faction::no_op_vibe_observer::NoOpVibeObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::vibe::Vibe;
+use faction::vibe_config::VibeConfig;
+use faction::vibe_input::VibeInput;
+use faction::vibe_output::VibeOutput;
+use faction::vibe_output::VibeOutput::*;
 use faction::Freshness;
 use faction::PeerId;
 use rstest::rstest;
@@ -45,20 +45,20 @@ enum Init {
     Phase2AlmostQuorum,
 }
 
-fn build(init: Init) -> ClusterReadiness {
-    let mut m = ClusterReadiness::new(
-        ClusterReadinessConfig::new(
+fn build(init: Init) -> Vibe {
+    let mut m = Vibe::new(
+        VibeConfig::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(THRESHOLD),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpClusterReadinessObserver),
+        Box::new(NoOpVibeObserver),
     );
     match init {
         Init::Fresh => {}
         Init::Phase1Peer1Confirmed => {
-            let _ = m.apply(ClusterReadinessInput::ParticipationObserved {
+            let _ = m.apply(VibeInput::ParticipationObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
@@ -66,7 +66,7 @@ fn build(init: Init) -> ClusterReadiness {
         }
         Init::Phase1P2Threshold => {
             for peer in 0..5 {
-                let _ = m.apply(ClusterReadinessInput::ReadyObserved {
+                let _ = m.apply(VibeInput::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -74,20 +74,20 @@ fn build(init: Init) -> ClusterReadiness {
             }
         }
         Init::Phase2NoReadiness => {
-            let _ = m.apply(ClusterReadinessInput::LocalParticipationCompleted);
+            let _ = m.apply(VibeInput::LocalParticipationCompleted);
         }
         Init::Phase2Peer1Confirmed => {
-            let _ = m.apply(ClusterReadinessInput::LocalParticipationCompleted);
-            let _ = m.apply(ClusterReadinessInput::ReadyObserved {
+            let _ = m.apply(VibeInput::LocalParticipationCompleted);
+            let _ = m.apply(VibeInput::ReadyObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
             });
         }
         Init::Phase2AlmostQuorum => {
-            let _ = m.apply(ClusterReadinessInput::LocalParticipationCompleted);
+            let _ = m.apply(VibeInput::LocalParticipationCompleted);
             for peer in 1..4 {
-                let _ = m.apply(ClusterReadinessInput::ReadyObserved {
+                let _ = m.apply(VibeInput::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -113,7 +113,7 @@ enum Assert {
     NotLocalComplete,
 }
 
-fn verify(m: &ClusterReadiness, checks: &[Assert]) {
+fn verify(m: &Vibe, checks: &[Assert]) {
     let s = m.snapshot();
     for check in checks {
         match *check {
@@ -132,16 +132,16 @@ fn verify(m: &ClusterReadiness, checks: &[Assert]) {
 // Input helpers
 // ---------------------------------------------------------------------------
 
-fn participation(peer_id: PeerId, freshness: Freshness) -> ClusterReadinessInput {
-    ClusterReadinessInput::ParticipationObserved {
+fn participation(peer_id: PeerId, freshness: Freshness) -> VibeInput {
+    VibeInput::ParticipationObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
     }
 }
 
-fn ready(peer_id: PeerId, freshness: Freshness) -> ClusterReadinessInput {
-    ClusterReadinessInput::ReadyObserved {
+fn ready(peer_id: PeerId, freshness: Freshness) -> VibeInput {
+    VibeInput::ReadyObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
@@ -235,13 +235,13 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> ClusterReadinessInput {
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,
-    ClusterReadinessInput::LocalParticipationCompleted,
+    VibeInput::LocalParticipationCompleted,
     &[LocalParticipationCompleted, BroadcastLocalReady],
     &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::local_completion_with_preloaded_quorum(
     Init::Phase1P2Threshold,
-    ClusterReadinessInput::LocalParticipationCompleted,
+    VibeInput::LocalParticipationCompleted,
     &[
         LocalParticipationCompleted,
         BroadcastLocalReady,
@@ -252,20 +252,20 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> ClusterReadinessInput {
 )]
 #[case::local_completion_redundant(
     Init::Phase2NoReadiness,
-    ClusterReadinessInput::LocalParticipationCompleted,
+    VibeInput::LocalParticipationCompleted,
     &[],
     &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::deadline_expired(
     Init::Fresh,
-    ClusterReadinessInput::DeadlineExpired,
+    VibeInput::DeadlineExpired,
     &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
     &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
 )]
 fn valid_transition(
     #[case] init: Init,
-    #[case] input: ClusterReadinessInput,
-    #[case] expected_outputs: &[ClusterReadinessOutput],
+    #[case] input: VibeInput,
+    #[case] expected_outputs: &[VibeOutput],
     #[case] asserts: &[Assert],
 ) {
     let mut m = build(init);

@@ -7,17 +7,17 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_readiness::ClusterReadiness;
-use faction::cluster_readiness_config::ClusterReadinessConfig;
-use faction::cluster_readiness_input::ClusterReadinessInput;
-use faction::cluster_readiness_snapshot::ClusterReadinessSnapshot;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_cluster_readiness_observer::NoOpClusterReadinessObserver;
+use faction::no_op_vibe_observer::NoOpVibeObserver;
 use faction::quorum_policy::QuorumPolicy;
+use faction::vibe::Vibe;
+use faction::vibe_config::VibeConfig;
+use faction::vibe_input::VibeInput;
+use faction::vibe_snapshot::VibeSnapshot;
 use proptest::prelude::*;
 
-fn test_config() -> ClusterReadinessConfig {
-    ClusterReadinessConfig::new(
+fn test_config() -> VibeConfig {
+    VibeConfig::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
@@ -25,14 +25,14 @@ fn test_config() -> ClusterReadinessConfig {
     )
 }
 
-fn coordinator() -> ClusterReadiness {
-    ClusterReadiness::new(test_config(), Box::new(NoOpClusterReadinessObserver))
+fn coordinator() -> Vibe {
+    Vibe::new(test_config(), Box::new(NoOpVibeObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = ClusterReadinessInput> {
+fn input_strategy() -> impl Strategy<Value = VibeInput> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            ClusterReadinessInput::ParticipationObserved {
+            VibeInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -40,7 +40,7 @@ fn input_strategy() -> impl Strategy<Value = ClusterReadinessInput> {
         });
     let ready =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            ClusterReadinessInput::ReadyObserved {
+            VibeInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -50,14 +50,14 @@ fn input_strategy() -> impl Strategy<Value = ClusterReadinessInput> {
     prop_oneof![
         participation,
         ready,
-        Just(ClusterReadinessInput::LocalParticipationCompleted),
-        Just(ClusterReadinessInput::DeadlineExpired),
+        Just(VibeInput::LocalParticipationCompleted),
+        Just(VibeInput::DeadlineExpired),
     ]
 }
 
 fn assert_post_exit_inputs_do_not_change_any_field(
-    previous: ClusterReadinessSnapshot,
-    current: ClusterReadinessSnapshot,
+    previous: VibeSnapshot,
+    current: VibeSnapshot,
 ) -> Result<(), TestCaseError> {
     if previous.readiness_exited() {
         prop_assert_eq!(current, previous);
@@ -110,9 +110,9 @@ proptest! {
         }
 
         let previous = coordinator.snapshot();
-        let first_outputs = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
+        let first_outputs = coordinator.apply(VibeInput::LocalParticipationCompleted);
         let after_first = coordinator.snapshot();
-        let second_outputs = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
+        let second_outputs = coordinator.apply(VibeInput::LocalParticipationCompleted);
         let after_second = coordinator.snapshot();
 
         // Assert

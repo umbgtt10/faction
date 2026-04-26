@@ -6,21 +6,21 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::cluster_readiness_config::ClusterReadinessConfig;
-use crate::cluster_readiness_input::ClusterReadinessInput;
-use crate::cluster_readiness_observer::ClusterReadinessObserver;
-use crate::cluster_readiness_output::ClusterReadinessOutput;
-use crate::cluster_readiness_snapshot::ClusterReadinessSnapshot;
-use crate::cluster_readiness_transition::ClusterReadinessTransition;
 use crate::freshness_classification::FreshnessClassification;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::vibe_config::VibeConfig;
+use crate::vibe_input::VibeInput;
+use crate::vibe_observer::VibeObserver;
+use crate::vibe_output::VibeOutput;
+use crate::vibe_snapshot::VibeSnapshot;
+use crate::vibe_transition::VibeTransition;
 use crate::Freshness;
 use crate::PeerId;
 
-pub struct ClusterReadiness {
-    config: ClusterReadinessConfig,
-    observer: Box<dyn ClusterReadinessObserver>,
+pub struct Vibe {
+    config: VibeConfig,
+    observer: Box<dyn VibeObserver>,
     lifecycle_state: ReadinessLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
@@ -30,12 +30,9 @@ pub struct ClusterReadiness {
     phase2_confirmed_count: usize,
 }
 
-impl ClusterReadiness {
+impl Vibe {
     #[must_use]
-    pub fn new(
-        config: ClusterReadinessConfig,
-        observer: Box<dyn ClusterReadinessObserver>,
-    ) -> Self {
+    pub fn new(config: VibeConfig, observer: Box<dyn VibeObserver>) -> Self {
         let peer_count = config.peer_count();
 
         Self {
@@ -52,12 +49,11 @@ impl ClusterReadiness {
     }
 
     #[must_use]
-    pub fn apply(&mut self, input: ClusterReadinessInput) -> Vec<ClusterReadinessOutput> {
+    pub fn apply(&mut self, input: VibeInput) -> Vec<VibeOutput> {
         let previous_state = self.snapshot();
         let outputs = self.apply_without_observer(input);
         let new_state = self.snapshot();
-        let transition =
-            ClusterReadinessTransition::new(previous_state, outputs.clone(), new_state);
+        let transition = VibeTransition::new(previous_state, outputs.clone(), new_state);
 
         self.observer.observe(input, transition);
 
@@ -65,8 +61,8 @@ impl ClusterReadiness {
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> ClusterReadinessSnapshot {
-        ClusterReadinessSnapshot::new(
+    pub fn snapshot(&self) -> VibeSnapshot {
+        VibeSnapshot::new(
             self.lifecycle_state,
             self.exit_mode,
             self.local_participation_complete,
@@ -78,29 +74,24 @@ impl ClusterReadiness {
     }
 
     #[must_use]
-    pub fn config(&self) -> &ClusterReadinessConfig {
+    pub fn config(&self) -> &VibeConfig {
         &self.config
     }
 
-    fn apply_without_observer(
-        &mut self,
-        input: ClusterReadinessInput,
-    ) -> Vec<ClusterReadinessOutput> {
+    fn apply_without_observer(&mut self, input: VibeInput) -> Vec<VibeOutput> {
         match input {
-            ClusterReadinessInput::ParticipationObserved {
+            VibeInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
             } => self.apply_participation_observed(peer_id, freshness, current_marker),
-            ClusterReadinessInput::ReadyObserved {
+            VibeInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
             } => self.apply_ready_observed(peer_id, freshness, current_marker),
-            ClusterReadinessInput::LocalParticipationCompleted => {
-                self.apply_local_participation_completed()
-            }
-            ClusterReadinessInput::DeadlineExpired => self.apply_deadline_expired(),
+            VibeInput::LocalParticipationCompleted => self.apply_local_participation_completed(),
+            VibeInput::DeadlineExpired => self.apply_deadline_expired(),
         }
     }
 
@@ -109,13 +100,13 @@ impl ClusterReadiness {
         peer_id: PeerId,
         freshness: Freshness,
         current_marker: Freshness,
-    ) -> Vec<ClusterReadinessOutput> {
+    ) -> Vec<VibeOutput> {
         if self.has_exited() {
-            return vec![ClusterReadinessOutput::StaleParticipationIgnored { peer_id }];
+            return vec![VibeOutput::StaleParticipationIgnored { peer_id }];
         }
 
         if !self.config.is_member(peer_id) {
-            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
+            return vec![VibeOutput::NonMemberIgnored { peer_id }];
         }
 
         let classification = self
@@ -124,15 +115,15 @@ impl ClusterReadiness {
             .classify(current_marker, freshness);
 
         if classification == FreshnessClassification::Stale {
-            return vec![ClusterReadinessOutput::StaleParticipationIgnored { peer_id }];
+            return vec![VibeOutput::StaleParticipationIgnored { peer_id }];
         }
 
         let Some(index) = self.config.peer_index(peer_id) else {
-            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
+            return vec![VibeOutput::NonMemberIgnored { peer_id }];
         };
 
         if self.phase1_confirmed[index] {
-            return vec![ClusterReadinessOutput::DuplicateParticipationIgnored { peer_id }];
+            return vec![VibeOutput::DuplicateParticipationIgnored { peer_id }];
         }
 
         self.phase1_confirmed[index] = true;
@@ -140,10 +131,10 @@ impl ClusterReadiness {
 
         match classification {
             FreshnessClassification::Timely => {
-                vec![ClusterReadinessOutput::ParticipationAccepted { peer_id }]
+                vec![VibeOutput::ParticipationAccepted { peer_id }]
             }
             FreshnessClassification::DelayedWithinMargin => {
-                vec![ClusterReadinessOutput::DelayedParticipationAccepted { peer_id }]
+                vec![VibeOutput::DelayedParticipationAccepted { peer_id }]
             }
             FreshnessClassification::Stale => Vec::new(),
         }
@@ -154,13 +145,13 @@ impl ClusterReadiness {
         peer_id: PeerId,
         freshness: Freshness,
         current_marker: Freshness,
-    ) -> Vec<ClusterReadinessOutput> {
+    ) -> Vec<VibeOutput> {
         if self.has_exited() {
-            return vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id }];
+            return vec![VibeOutput::StaleReadyIgnored { peer_id }];
         }
 
         if !self.config.is_member(peer_id) {
-            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
+            return vec![VibeOutput::NonMemberIgnored { peer_id }];
         }
 
         let classification = self
@@ -169,24 +160,24 @@ impl ClusterReadiness {
             .classify(current_marker, freshness);
 
         if classification == FreshnessClassification::Stale {
-            return vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id }];
+            return vec![VibeOutput::StaleReadyIgnored { peer_id }];
         }
 
         let Some(index) = self.config.peer_index(peer_id) else {
-            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
+            return vec![VibeOutput::NonMemberIgnored { peer_id }];
         };
 
         if self.phase2_confirmed[index] {
-            return vec![ClusterReadinessOutput::DuplicateReadyIgnored { peer_id }];
+            return vec![VibeOutput::DuplicateReadyIgnored { peer_id }];
         }
 
         self.phase2_confirmed[index] = true;
         self.phase2_confirmed_count += 1;
 
         let accepted_output = match classification {
-            FreshnessClassification::Timely => ClusterReadinessOutput::ReadyAccepted { peer_id },
+            FreshnessClassification::Timely => VibeOutput::ReadyAccepted { peer_id },
             FreshnessClassification::DelayedWithinMargin => {
-                ClusterReadinessOutput::DelayedReadyAccepted { peer_id }
+                VibeOutput::DelayedReadyAccepted { peer_id }
             }
             FreshnessClassification::Stale => {
                 return Vec::new();
@@ -202,7 +193,7 @@ impl ClusterReadiness {
         }
     }
 
-    fn apply_local_participation_completed(&mut self) -> Vec<ClusterReadinessOutput> {
+    fn apply_local_participation_completed(&mut self) -> Vec<VibeOutput> {
         if self.has_exited() || self.local_participation_complete {
             return Vec::new();
         }
@@ -218,8 +209,8 @@ impl ClusterReadiness {
         }
 
         let outputs = vec![
-            ClusterReadinessOutput::LocalParticipationCompleted,
-            ClusterReadinessOutput::BroadcastLocalReady,
+            VibeOutput::LocalParticipationCompleted,
+            VibeOutput::BroadcastLocalReady,
         ];
 
         if self.phase2_confirmed_count >= self.config.quorum_threshold() {
@@ -229,7 +220,7 @@ impl ClusterReadiness {
         }
     }
 
-    fn apply_deadline_expired(&mut self) -> Vec<ClusterReadinessOutput> {
+    fn apply_deadline_expired(&mut self) -> Vec<VibeOutput> {
         if self.has_exited() {
             return Vec::new();
         }
@@ -237,37 +228,31 @@ impl ClusterReadiness {
         self.exit_mode = Some(ReadinessExitMode::Deadline);
         self.lifecycle_state = ReadinessLifecycleState::ReadyByDeadline;
 
-        vec![ClusterReadinessOutput::ReadinessExited {
+        vec![VibeOutput::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     }
 
-    fn exit_by_quorum_with_prefix(
-        &mut self,
-        first: ClusterReadinessOutput,
-    ) -> Vec<ClusterReadinessOutput> {
+    fn exit_by_quorum_with_prefix(&mut self, first: VibeOutput) -> Vec<VibeOutput> {
         self.exit_mode = Some(ReadinessExitMode::Quorum);
         self.lifecycle_state = ReadinessLifecycleState::ReadyByQuorum;
 
         vec![
             first,
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
     }
 
-    fn exit_by_quorum_with_batch(
-        &mut self,
-        outputs: Vec<ClusterReadinessOutput>,
-    ) -> Vec<ClusterReadinessOutput> {
+    fn exit_by_quorum_with_batch(&mut self, outputs: Vec<VibeOutput>) -> Vec<VibeOutput> {
         self.exit_mode = Some(ReadinessExitMode::Quorum);
         self.lifecycle_state = ReadinessLifecycleState::ReadyByQuorum;
 
         let mut emitted_outputs = outputs;
-        emitted_outputs.push(ClusterReadinessOutput::ReadyQuorumReached);
-        emitted_outputs.push(ClusterReadinessOutput::ReadinessExited {
+        emitted_outputs.push(VibeOutput::ReadyQuorumReached);
+        emitted_outputs.push(VibeOutput::ReadinessExited {
             mode: ReadinessExitMode::Quorum,
         });
 

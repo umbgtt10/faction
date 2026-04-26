@@ -10,36 +10,36 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
-use faction::cluster_readiness::ClusterReadiness;
-use faction::cluster_readiness_config::ClusterReadinessConfig;
-use faction::cluster_readiness_input::ClusterReadinessInput;
-use faction::cluster_readiness_observer::ClusterReadinessObserver;
-use faction::cluster_readiness_output::ClusterReadinessOutput;
-use faction::cluster_readiness_transition::ClusterReadinessTransition;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::vibe::Vibe;
+use faction::vibe_config::VibeConfig;
+use faction::vibe_input::VibeInput;
+use faction::vibe_observer::VibeObserver;
+use faction::vibe_output::VibeOutput;
+use faction::vibe_transition::VibeTransition;
 
-type Observations = Rc<RefCell<Vec<(ClusterReadinessInput, ClusterReadinessTransition)>>>;
+type Observations = Rc<RefCell<Vec<(VibeInput, VibeTransition)>>>;
 
-struct RecordingClusterReadinessObserver {
+struct RecordingVibeObserver {
     observations: Observations,
 }
 
-impl ClusterReadinessObserver for RecordingClusterReadinessObserver {
-    fn observe(&mut self, input: ClusterReadinessInput, transition: ClusterReadinessTransition) {
+impl VibeObserver for RecordingVibeObserver {
+    fn observe(&mut self, input: VibeInput, transition: VibeTransition) {
         self.observations.borrow_mut().push((input, transition));
     }
 }
 
-fn recording_coordinator() -> (ClusterReadiness, Observations) {
+fn recording_coordinator() -> (Vibe, Observations) {
     let observations: Observations = Rc::new(RefCell::new(Vec::new()));
-    let observer = RecordingClusterReadinessObserver {
+    let observer = RecordingVibeObserver {
         observations: Rc::clone(&observations),
     };
-    let coordinator = ClusterReadiness::new(
-        ClusterReadinessConfig::new(
+    let coordinator = Vibe::new(
+        VibeConfig::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(4),
@@ -54,7 +54,7 @@ fn recording_coordinator() -> (ClusterReadiness, Observations) {
 fn apply_observes_local_participation_completion_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let input = ClusterReadinessInput::LocalParticipationCompleted;
+    let input = VibeInput::LocalParticipationCompleted;
 
     // Act
     let outputs = coordinator.apply(input);
@@ -81,8 +81,8 @@ fn apply_observes_local_participation_completion_transition() {
     assert_eq!(
         transition.outputs(),
         &[
-            ClusterReadinessOutput::LocalParticipationCompleted,
-            ClusterReadinessOutput::BroadcastLocalReady,
+            VibeOutput::LocalParticipationCompleted,
+            VibeOutput::BroadcastLocalReady,
         ]
     );
 }
@@ -91,12 +91,12 @@ fn apply_observes_local_participation_completion_transition() {
 fn apply_observes_duplicate_participation_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(ClusterReadinessInput::ParticipationObserved {
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = ClusterReadinessInput::ParticipationObserved {
+    let input = VibeInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -113,7 +113,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[ClusterReadinessOutput::DuplicateParticipationIgnored { peer_id: 1 }]
+        &[VibeOutput::DuplicateParticipationIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase1_confirmed_count(), 1);
@@ -127,8 +127,8 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
 fn apply_observes_stale_ready_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
-    let input = ClusterReadinessInput::ReadyObserved {
+    let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let input = VibeInput::ReadyObserved {
         peer_id: 1,
         freshness: 7,
         current_marker: 10,
@@ -145,7 +145,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[ClusterReadinessOutput::StaleReadyIgnored { peer_id: 1 }]
+        &[VibeOutput::StaleReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(
@@ -160,18 +160,18 @@ fn apply_observes_stale_ready_transition_without_state_change() {
 fn apply_observes_quorum_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
-    let _ = coordinator.apply(ClusterReadinessInput::ReadyObserved {
+    let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(ClusterReadinessInput::ReadyObserved {
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let input = ClusterReadinessInput::ReadyObserved {
+    let input = VibeInput::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
@@ -205,9 +205,9 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(
         transition.outputs(),
         &[
-            ClusterReadinessOutput::ReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum
             },
         ]
@@ -218,8 +218,8 @@ fn apply_observes_quorum_exit_transition() {
 fn apply_observes_deadline_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
-    let input = ClusterReadinessInput::DeadlineExpired;
+    let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let input = VibeInput::DeadlineExpired;
 
     // Act
     let outputs = coordinator.apply(input);
@@ -246,7 +246,7 @@ fn apply_observes_deadline_exit_transition() {
     assert!(transition.new_state().readiness_exited());
     assert_eq!(
         transition.outputs(),
-        &[ClusterReadinessOutput::ReadinessExited {
+        &[VibeOutput::ReadinessExited {
             mode: ReadinessExitMode::Deadline
         }]
     );
@@ -258,13 +258,13 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let batch0 = coordinator.apply(ClusterReadinessInput::ParticipationObserved {
+    let batch0 = coordinator.apply(VibeInput::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
         current_marker: 10,
     });
-    let batch1 = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
-    let batch2 = coordinator.apply(ClusterReadinessInput::ReadyObserved {
+    let batch1 = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let batch2 = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 2,
         freshness: 8,
         current_marker: 10,
@@ -277,7 +277,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (_, transition0) = &obs[0];
     assert_eq!(
         transition0.outputs(),
-        &[ClusterReadinessOutput::DelayedParticipationAccepted { peer_id: 1 }]
+        &[VibeOutput::DelayedParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(&batch0, transition0.outputs());
 
@@ -285,8 +285,8 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     assert_eq!(
         transition1.outputs(),
         &[
-            ClusterReadinessOutput::LocalParticipationCompleted,
-            ClusterReadinessOutput::BroadcastLocalReady,
+            VibeOutput::LocalParticipationCompleted,
+            VibeOutput::BroadcastLocalReady,
         ]
     );
     assert_eq!(&batch1, transition1.outputs());
@@ -294,7 +294,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
-        &[ClusterReadinessOutput::DelayedReadyAccepted { peer_id: 2 }]
+        &[VibeOutput::DelayedReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(&batch2, transition2.outputs());
 }
@@ -305,23 +305,23 @@ fn state_transition_outputs_are_fully_observable() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let batch0 = coordinator.apply(ClusterReadinessInput::ParticipationObserved {
+    let batch0 = coordinator.apply(VibeInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let batch1 = coordinator.apply(ClusterReadinessInput::LocalParticipationCompleted);
-    let batch2 = coordinator.apply(ClusterReadinessInput::ReadyObserved {
+    let batch1 = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let batch2 = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let batch3 = coordinator.apply(ClusterReadinessInput::ReadyObserved {
+    let batch3 = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let batch4 = coordinator.apply(ClusterReadinessInput::ReadyObserved {
+    let batch4 = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
@@ -334,7 +334,7 @@ fn state_transition_outputs_are_fully_observable() {
     let (_, transition0) = &obs[0];
     assert_eq!(
         transition0.outputs(),
-        &[ClusterReadinessOutput::ParticipationAccepted { peer_id: 1 }]
+        &[VibeOutput::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(&batch0, transition0.outputs());
 
@@ -342,8 +342,8 @@ fn state_transition_outputs_are_fully_observable() {
     assert_eq!(
         transition1.outputs(),
         &[
-            ClusterReadinessOutput::LocalParticipationCompleted,
-            ClusterReadinessOutput::BroadcastLocalReady,
+            VibeOutput::LocalParticipationCompleted,
+            VibeOutput::BroadcastLocalReady,
         ]
     );
     assert_eq!(&batch1, transition1.outputs());
@@ -351,14 +351,14 @@ fn state_transition_outputs_are_fully_observable() {
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
-        &[ClusterReadinessOutput::ReadyAccepted { peer_id: 1 }]
+        &[VibeOutput::ReadyAccepted { peer_id: 1 }]
     );
     assert_eq!(&batch2, transition2.outputs());
 
     let (_, transition3) = &obs[3];
     assert_eq!(
         transition3.outputs(),
-        &[ClusterReadinessOutput::ReadyAccepted { peer_id: 2 }]
+        &[VibeOutput::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(&batch3, transition3.outputs());
 
@@ -366,9 +366,9 @@ fn state_transition_outputs_are_fully_observable() {
     assert_eq!(
         transition4.outputs(),
         &[
-            ClusterReadinessOutput::ReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]

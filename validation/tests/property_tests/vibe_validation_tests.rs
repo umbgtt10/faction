@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::cluster_readiness_output::ClusterReadinessOutput;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::cluster_readiness_scenario_harness::ClusterReadinessScenarioHarness;
+use faction::vibe_output::VibeOutput;
+use faction_validation::vibe_scenario_harness::VibeScenarioHarness;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -64,34 +64,33 @@ fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
     ]
 }
 
-fn harness() -> ClusterReadinessScenarioHarness {
-    ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
+fn harness() -> VibeScenarioHarness {
+    VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
 }
 
-fn outputs_contain_duplicate(outputs: &[ClusterReadinessOutput]) -> bool {
+fn outputs_contain_duplicate(outputs: &[VibeOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            ClusterReadinessOutput::DuplicateParticipationIgnored { .. }
-                | ClusterReadinessOutput::DuplicateReadyIgnored { .. }
+            VibeOutput::DuplicateParticipationIgnored { .. }
+                | VibeOutput::DuplicateReadyIgnored { .. }
         )
     })
 }
 
-fn outputs_contain_stale(outputs: &[ClusterReadinessOutput]) -> bool {
+fn outputs_contain_stale(outputs: &[VibeOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            ClusterReadinessOutput::StaleParticipationIgnored { .. }
-                | ClusterReadinessOutput::StaleReadyIgnored { .. }
+            VibeOutput::StaleParticipationIgnored { .. } | VibeOutput::StaleReadyIgnored { .. }
         )
     })
 }
 
 fn apply_operation(
-    harness: &mut ClusterReadinessScenarioHarness,
+    harness: &mut VibeScenarioHarness,
     operation: ScenarioOperation,
-) -> Option<(usize, Vec<ClusterReadinessOutput>)> {
+) -> Option<(usize, Vec<VibeOutput>)> {
     match operation {
         ScenarioOperation::Participation {
             coordinator_index,

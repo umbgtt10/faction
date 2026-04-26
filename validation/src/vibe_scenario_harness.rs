@@ -7,34 +7,34 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::cluster_readiness::ClusterReadiness;
-use faction::cluster_readiness_config::ClusterReadinessConfig;
-use faction::cluster_readiness_input::ClusterReadinessInput;
-use faction::cluster_readiness_output::ClusterReadinessOutput;
-use faction::cluster_readiness_snapshot::ClusterReadinessSnapshot;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_cluster_readiness_observer::NoOpClusterReadinessObserver;
+use faction::no_op_vibe_observer::NoOpVibeObserver;
 use faction::quorum_policy::QuorumPolicy;
+use faction::vibe::Vibe;
+use faction::vibe_config::VibeConfig;
+use faction::vibe_input::VibeInput;
+use faction::vibe_output::VibeOutput;
+use faction::vibe_snapshot::VibeSnapshot;
 use faction::PeerId;
 
-pub struct ClusterReadinessScenarioHarness {
-    coordinators: Vec<ClusterReadiness>,
+pub struct VibeScenarioHarness {
+    coordinators: Vec<Vibe>,
     current_marker: u64,
 }
 
-impl ClusterReadinessScenarioHarness {
+impl VibeScenarioHarness {
     pub fn new(peer_set: Vec<PeerId>, quorum_threshold: usize, max_delay: u64) -> Self {
         let mut coordinators = Vec::new();
 
         for peer_id in peer_set.iter().copied() {
-            coordinators.push(ClusterReadiness::new(
-                ClusterReadinessConfig::new(
+            coordinators.push(Vibe::new(
+                VibeConfig::new(
                     peer_id,
                     peer_set.clone(),
                     QuorumPolicy::new(quorum_threshold),
                     FreshnessPolicy::new(max_delay),
                 ),
-                Box::new(NoOpClusterReadinessObserver),
+                Box::new(NoOpVibeObserver),
             ));
         }
 
@@ -60,7 +60,7 @@ impl ClusterReadinessScenarioHarness {
         self.coordinators.len()
     }
 
-    pub fn snapshot(&self, coordinator_index: usize) -> ClusterReadinessSnapshot {
+    pub fn snapshot(&self, coordinator_index: usize) -> VibeSnapshot {
         self.coordinators[coordinator_index].snapshot()
     }
 
@@ -69,8 +69,8 @@ impl ClusterReadinessScenarioHarness {
         coordinator_index: usize,
         peer_id: PeerId,
         freshness: u64,
-    ) -> Vec<ClusterReadinessOutput> {
-        self.coordinators[coordinator_index].apply(ClusterReadinessInput::ParticipationObserved {
+    ) -> Vec<VibeOutput> {
+        self.coordinators[coordinator_index].apply(VibeInput::ParticipationObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
@@ -82,23 +82,19 @@ impl ClusterReadinessScenarioHarness {
         coordinator_index: usize,
         peer_id: PeerId,
         freshness: u64,
-    ) -> Vec<ClusterReadinessOutput> {
-        self.coordinators[coordinator_index].apply(ClusterReadinessInput::ReadyObserved {
+    ) -> Vec<VibeOutput> {
+        self.coordinators[coordinator_index].apply(VibeInput::ReadyObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
         })
     }
 
-    pub fn complete_local_participation(
-        &mut self,
-        coordinator_index: usize,
-    ) -> Vec<ClusterReadinessOutput> {
-        self.coordinators[coordinator_index]
-            .apply(ClusterReadinessInput::LocalParticipationCompleted)
+    pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<VibeOutput> {
+        self.coordinators[coordinator_index].apply(VibeInput::LocalParticipationCompleted)
     }
 
-    pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<ClusterReadinessOutput> {
-        self.coordinators[coordinator_index].apply(ClusterReadinessInput::DeadlineExpired)
+    pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<VibeOutput> {
+        self.coordinators[coordinator_index].apply(VibeInput::DeadlineExpired)
     }
 }

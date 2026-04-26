@@ -6,15 +6,15 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::cluster_readiness_output::ClusterReadinessOutput;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::cluster_readiness_scenario_harness::ClusterReadinessScenarioHarness;
+use faction::vibe_output::VibeOutput;
+use faction_validation::vibe_scenario_harness::VibeScenarioHarness;
 
 #[test]
 fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -23,10 +23,7 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![ClusterReadinessOutput::ReadyAccepted { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![VibeOutput::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -38,7 +35,7 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
 #[test]
 fn apply_ready_accepts_delayed_member_observation_within_margin() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -49,7 +46,7 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
     // Assert
     assert_eq!(
         outputs,
-        vec![ClusterReadinessOutput::DelayedReadyAccepted { peer_id: 1 }]
+        vec![VibeOutput::DelayedReadyAccepted { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert!(!snapshot.readiness_exited());
@@ -58,7 +55,7 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
 #[test]
 fn apply_ready_rejects_stale_member_observation() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -67,10 +64,7 @@ fn apply_ready_rejects_stale_member_observation() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![VibeOutput::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 1);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -82,7 +76,7 @@ fn apply_ready_rejects_stale_member_observation() {
 #[test]
 fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -96,9 +90,9 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     assert_eq!(
         outputs,
         vec![
-            ClusterReadinessOutput::ReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -115,7 +109,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
 #[test]
 fn delayed_signals_within_margin_still_allow_quorum_exit() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 8);
@@ -129,9 +123,9 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
     assert_eq!(
         outputs,
         vec![
-            ClusterReadinessOutput::DelayedReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::DelayedReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -144,7 +138,7 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
 #[test]
 fn post_exit_ready_is_ignored() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -156,10 +150,7 @@ fn post_exit_ready_is_ignored() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id: 4 }]
-    );
+    assert_eq!(outputs, vec![VibeOutput::StaleReadyIgnored { peer_id: 4 }]);
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
@@ -168,7 +159,7 @@ fn post_exit_ready_is_ignored() {
 #[test]
 fn five_node_asymmetric_startup_reaches_quorum_exit() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(5);
     let _ = harness.complete_local_participation(2);
     let _ = harness.complete_local_participation(3);
@@ -190,9 +181,9 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     assert_eq!(
         outputs_0,
         vec![
-            ClusterReadinessOutput::ReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -200,9 +191,9 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     assert_eq!(
         outputs_1,
         vec![
-            ClusterReadinessOutput::ReadyAccepted { peer_id: 3 },
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::ReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -226,7 +217,7 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
 #[test]
 fn early_ready_signals_accumulate_before_local_participation_completion() {
     // Arrange
-    let mut harness = ClusterReadinessScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let outputs_peer_1 = harness.apply_ready(0, 1, 10);
     let outputs_peer_2 = harness.apply_ready(0, 2, 10);
@@ -239,15 +230,15 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     // Assert
     assert_eq!(
         outputs_peer_1,
-        vec![ClusterReadinessOutput::ReadyAccepted { peer_id: 1 }]
+        vec![VibeOutput::ReadyAccepted { peer_id: 1 }]
     );
     assert_eq!(
         outputs_peer_2,
-        vec![ClusterReadinessOutput::ReadyAccepted { peer_id: 2 }]
+        vec![VibeOutput::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
         outputs_peer_3,
-        vec![ClusterReadinessOutput::ReadyAccepted { peer_id: 3 }]
+        vec![VibeOutput::ReadyAccepted { peer_id: 3 }]
     );
     assert_eq!(intermediate_snapshot.phase2_confirmed_count(), 3);
     assert_eq!(
@@ -259,10 +250,10 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     assert_eq!(
         outputs,
         vec![
-            ClusterReadinessOutput::LocalParticipationCompleted,
-            ClusterReadinessOutput::BroadcastLocalReady,
-            ClusterReadinessOutput::ReadyQuorumReached,
-            ClusterReadinessOutput::ReadinessExited {
+            VibeOutput::LocalParticipationCompleted,
+            VibeOutput::BroadcastLocalReady,
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]

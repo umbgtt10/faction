@@ -7,20 +7,20 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_readiness::ClusterReadiness;
-use faction::cluster_readiness_config::ClusterReadinessConfig;
-use faction::cluster_readiness_input::ClusterReadinessInput;
-use faction::cluster_readiness_output::ClusterReadinessOutput;
-use faction::cluster_readiness_snapshot::ClusterReadinessSnapshot;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_cluster_readiness_observer::NoOpClusterReadinessObserver;
+use faction::no_op_vibe_observer::NoOpVibeObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::vibe::Vibe;
+use faction::vibe_config::VibeConfig;
+use faction::vibe_input::VibeInput;
+use faction::vibe_output::VibeOutput;
+use faction::vibe_snapshot::VibeSnapshot;
 use proptest::prelude::*;
 
-fn test_config() -> ClusterReadinessConfig {
-    ClusterReadinessConfig::new(
+fn test_config() -> VibeConfig {
+    VibeConfig::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
@@ -28,14 +28,14 @@ fn test_config() -> ClusterReadinessConfig {
     )
 }
 
-fn coordinator() -> ClusterReadiness {
-    ClusterReadiness::new(test_config(), Box::new(NoOpClusterReadinessObserver))
+fn coordinator() -> Vibe {
+    Vibe::new(test_config(), Box::new(NoOpVibeObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = ClusterReadinessInput> {
+fn input_strategy() -> impl Strategy<Value = VibeInput> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            ClusterReadinessInput::ParticipationObserved {
+            VibeInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -43,7 +43,7 @@ fn input_strategy() -> impl Strategy<Value = ClusterReadinessInput> {
         });
     let ready =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            ClusterReadinessInput::ReadyObserved {
+            VibeInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -53,40 +53,39 @@ fn input_strategy() -> impl Strategy<Value = ClusterReadinessInput> {
     prop_oneof![
         participation,
         ready,
-        Just(ClusterReadinessInput::LocalParticipationCompleted),
-        Just(ClusterReadinessInput::DeadlineExpired),
+        Just(VibeInput::LocalParticipationCompleted),
+        Just(VibeInput::DeadlineExpired),
     ]
 }
 
-fn outputs_contain_stale(outputs: &[ClusterReadinessOutput]) -> bool {
+fn outputs_contain_stale(outputs: &[VibeOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            ClusterReadinessOutput::StaleParticipationIgnored { .. }
-                | ClusterReadinessOutput::StaleReadyIgnored { .. }
+            VibeOutput::StaleParticipationIgnored { .. } | VibeOutput::StaleReadyIgnored { .. }
         )
     })
 }
 
-fn outputs_contain_non_member(outputs: &[ClusterReadinessOutput]) -> bool {
+fn outputs_contain_non_member(outputs: &[VibeOutput]) -> bool {
     outputs
         .iter()
-        .any(|output| matches!(output, ClusterReadinessOutput::NonMemberIgnored { .. }))
+        .any(|output| matches!(output, VibeOutput::NonMemberIgnored { .. }))
 }
 
-fn outputs_contain_duplicate(outputs: &[ClusterReadinessOutput]) -> bool {
+fn outputs_contain_duplicate(outputs: &[VibeOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            ClusterReadinessOutput::DuplicateParticipationIgnored { .. }
-                | ClusterReadinessOutput::DuplicateReadyIgnored { .. }
+            VibeOutput::DuplicateParticipationIgnored { .. }
+                | VibeOutput::DuplicateReadyIgnored { .. }
         )
     })
 }
 
 fn assert_counts_do_not_decrease(
-    previous: ClusterReadinessSnapshot,
-    current: ClusterReadinessSnapshot,
+    previous: VibeSnapshot,
+    current: VibeSnapshot,
 ) -> Result<(), TestCaseError> {
     prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
     prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
@@ -94,9 +93,9 @@ fn assert_counts_do_not_decrease(
 }
 
 fn assert_stale_outputs_do_not_mutate_state(
-    previous: ClusterReadinessSnapshot,
-    current: ClusterReadinessSnapshot,
-    outputs: &[ClusterReadinessOutput],
+    previous: VibeSnapshot,
+    current: VibeSnapshot,
+    outputs: &[VibeOutput],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_stale(outputs) {
         prop_assert_eq!(
@@ -119,9 +118,9 @@ fn assert_stale_outputs_do_not_mutate_state(
 }
 
 fn assert_non_member_outputs_do_not_mutate_state(
-    previous: ClusterReadinessSnapshot,
-    current: ClusterReadinessSnapshot,
-    outputs: &[ClusterReadinessOutput],
+    previous: VibeSnapshot,
+    current: VibeSnapshot,
+    outputs: &[VibeOutput],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_non_member(outputs) {
         prop_assert_eq!(
@@ -144,9 +143,9 @@ fn assert_non_member_outputs_do_not_mutate_state(
 }
 
 fn assert_duplicate_outputs_do_not_mutate_counts(
-    previous: ClusterReadinessSnapshot,
-    current: ClusterReadinessSnapshot,
-    outputs: &[ClusterReadinessOutput],
+    previous: VibeSnapshot,
+    current: VibeSnapshot,
+    outputs: &[VibeOutput],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_duplicate(outputs) {
         prop_assert_eq!(

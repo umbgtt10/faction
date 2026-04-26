@@ -2,6 +2,6 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-pub mod cluster_readiness_invariant_tests;
-pub mod cluster_readiness_model_tests;
-pub mod cluster_readiness_safety_tests;
+pub mod vibe_invariant_tests;
+pub mod vibe_model_tests;
+pub mod vibe_safety_tests;

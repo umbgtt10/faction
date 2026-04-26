@@ -6,19 +6,19 @@
 
 extern crate alloc;
 
-pub mod cluster_readiness;
-pub mod cluster_readiness_config;
-pub mod cluster_readiness_input;
-pub mod cluster_readiness_observer;
-pub mod cluster_readiness_output;
-pub mod cluster_readiness_snapshot;
-pub mod cluster_readiness_transition;
 pub mod freshness_classification;
 pub mod freshness_policy;
-pub mod no_op_cluster_readiness_observer;
+pub mod no_op_vibe_observer;
 pub mod quorum_policy;
 pub mod readiness_exit_mode;
 pub mod readiness_lifecycle_state;
+pub mod vibe;
+pub mod vibe_config;
+pub mod vibe_input;
+pub mod vibe_observer;
+pub mod vibe_output;
+pub mod vibe_snapshot;
+pub mod vibe_transition;
 
 pub type PeerId = u64;
 pub type Freshness = u64;
