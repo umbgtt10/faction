@@ -16,7 +16,6 @@ pub mod cluster_readiness_transition;
 pub mod freshness_classification;
 pub mod freshness_policy;
 pub mod no_op_cluster_readiness_observer;
-pub mod output_batch;
 pub mod quorum_policy;
 pub mod readiness_exit_mode;
 pub mod readiness_lifecycle_state;

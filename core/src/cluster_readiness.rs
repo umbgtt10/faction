@@ -13,7 +13,6 @@ use crate::cluster_readiness_output::ClusterReadinessOutput;
 use crate::cluster_readiness_snapshot::ClusterReadinessSnapshot;
 use crate::cluster_readiness_transition::ClusterReadinessTransition;
 use crate::freshness_classification::FreshnessClassification;
-use crate::output_batch::OutputBatch;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::Freshness;
@@ -53,12 +52,12 @@ impl ClusterReadiness {
     }
 
     #[must_use]
-    pub fn apply(&mut self, input: ClusterReadinessInput) -> OutputBatch {
+    pub fn apply(&mut self, input: ClusterReadinessInput) -> Vec<ClusterReadinessOutput> {
         let previous_state = self.snapshot();
         let outputs = self.apply_without_observer(input);
         let new_state = self.snapshot();
         let transition =
-            ClusterReadinessTransition::new(previous_state, outputs.outputs().to_vec(), new_state);
+            ClusterReadinessTransition::new(previous_state, outputs.clone(), new_state);
 
         self.observer.observe(input, transition);
 
@@ -83,7 +82,10 @@ impl ClusterReadiness {
         &self.config
     }
 
-    fn apply_without_observer(&mut self, input: ClusterReadinessInput) -> OutputBatch {
+    fn apply_without_observer(
+        &mut self,
+        input: ClusterReadinessInput,
+    ) -> Vec<ClusterReadinessOutput> {
         match input {
             ClusterReadinessInput::ParticipationObserved {
                 peer_id,
@@ -107,15 +109,13 @@ impl ClusterReadiness {
         peer_id: PeerId,
         freshness: Freshness,
         current_marker: Freshness,
-    ) -> OutputBatch {
+    ) -> Vec<ClusterReadinessOutput> {
         if self.has_exited() {
-            return OutputBatch::from(vec![ClusterReadinessOutput::StaleParticipationIgnored {
-                peer_id,
-            }]);
+            return vec![ClusterReadinessOutput::StaleParticipationIgnored { peer_id }];
         }
 
         if !self.config.is_member(peer_id) {
-            return OutputBatch::from(vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }]);
+            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
         }
 
         let classification = self
@@ -124,19 +124,15 @@ impl ClusterReadiness {
             .classify(current_marker, freshness);
 
         if classification == FreshnessClassification::Stale {
-            return OutputBatch::from(vec![ClusterReadinessOutput::StaleParticipationIgnored {
-                peer_id,
-            }]);
+            return vec![ClusterReadinessOutput::StaleParticipationIgnored { peer_id }];
         }
 
         let Some(index) = self.config.peer_index(peer_id) else {
-            return OutputBatch::from(vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }]);
+            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
         };
 
         if self.phase1_confirmed[index] {
-            return OutputBatch::from(vec![
-                ClusterReadinessOutput::DuplicateParticipationIgnored { peer_id },
-            ]);
+            return vec![ClusterReadinessOutput::DuplicateParticipationIgnored { peer_id }];
         }
 
         self.phase1_confirmed[index] = true;
@@ -144,16 +140,12 @@ impl ClusterReadiness {
 
         match classification {
             FreshnessClassification::Timely => {
-                OutputBatch::from(vec![ClusterReadinessOutput::ParticipationAccepted {
-                    peer_id,
-                }])
+                vec![ClusterReadinessOutput::ParticipationAccepted { peer_id }]
             }
             FreshnessClassification::DelayedWithinMargin => {
-                OutputBatch::from(vec![ClusterReadinessOutput::DelayedParticipationAccepted {
-                    peer_id,
-                }])
+                vec![ClusterReadinessOutput::DelayedParticipationAccepted { peer_id }]
             }
-            FreshnessClassification::Stale => OutputBatch::new(),
+            FreshnessClassification::Stale => Vec::new(),
         }
     }
 
@@ -162,13 +154,13 @@ impl ClusterReadiness {
         peer_id: PeerId,
         freshness: Freshness,
         current_marker: Freshness,
-    ) -> OutputBatch {
+    ) -> Vec<ClusterReadinessOutput> {
         if self.has_exited() {
-            return OutputBatch::from(vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id }]);
+            return vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id }];
         }
 
         if !self.config.is_member(peer_id) {
-            return OutputBatch::from(vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }]);
+            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
         }
 
         let classification = self
@@ -177,17 +169,15 @@ impl ClusterReadiness {
             .classify(current_marker, freshness);
 
         if classification == FreshnessClassification::Stale {
-            return OutputBatch::from(vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id }]);
+            return vec![ClusterReadinessOutput::StaleReadyIgnored { peer_id }];
         }
 
         let Some(index) = self.config.peer_index(peer_id) else {
-            return OutputBatch::from(vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }]);
+            return vec![ClusterReadinessOutput::NonMemberIgnored { peer_id }];
         };
 
         if self.phase2_confirmed[index] {
-            return OutputBatch::from(vec![ClusterReadinessOutput::DuplicateReadyIgnored {
-                peer_id,
-            }]);
+            return vec![ClusterReadinessOutput::DuplicateReadyIgnored { peer_id }];
         }
 
         self.phase2_confirmed[index] = true;
@@ -199,7 +189,7 @@ impl ClusterReadiness {
                 ClusterReadinessOutput::DelayedReadyAccepted { peer_id }
             }
             FreshnessClassification::Stale => {
-                return OutputBatch::new();
+                return Vec::new();
             }
         };
 
@@ -208,13 +198,13 @@ impl ClusterReadiness {
         {
             self.exit_by_quorum_with_prefix(accepted_output)
         } else {
-            OutputBatch::from(vec![accepted_output])
+            vec![accepted_output]
         }
     }
 
-    fn apply_local_participation_completed(&mut self) -> OutputBatch {
+    fn apply_local_participation_completed(&mut self) -> Vec<ClusterReadinessOutput> {
         if self.has_exited() || self.local_participation_complete {
-            return OutputBatch::new();
+            return Vec::new();
         }
 
         self.local_participation_complete = true;
@@ -227,10 +217,10 @@ impl ClusterReadiness {
             }
         }
 
-        let outputs = OutputBatch::from(vec![
+        let outputs = vec![
             ClusterReadinessOutput::LocalParticipationCompleted,
             ClusterReadinessOutput::BroadcastLocalReady,
-        ]);
+        ];
 
         if self.phase2_confirmed_count >= self.config.quorum_threshold() {
             self.exit_by_quorum_with_batch(outputs)
@@ -239,43 +229,49 @@ impl ClusterReadiness {
         }
     }
 
-    fn apply_deadline_expired(&mut self) -> OutputBatch {
+    fn apply_deadline_expired(&mut self) -> Vec<ClusterReadinessOutput> {
         if self.has_exited() {
-            return OutputBatch::new();
+            return Vec::new();
         }
 
         self.exit_mode = Some(ReadinessExitMode::Deadline);
         self.lifecycle_state = ReadinessLifecycleState::ReadyByDeadline;
 
-        OutputBatch::from(vec![ClusterReadinessOutput::ReadinessExited {
+        vec![ClusterReadinessOutput::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
-        }])
+        }]
     }
 
-    fn exit_by_quorum_with_prefix(&mut self, first: ClusterReadinessOutput) -> OutputBatch {
+    fn exit_by_quorum_with_prefix(
+        &mut self,
+        first: ClusterReadinessOutput,
+    ) -> Vec<ClusterReadinessOutput> {
         self.exit_mode = Some(ReadinessExitMode::Quorum);
         self.lifecycle_state = ReadinessLifecycleState::ReadyByQuorum;
 
-        OutputBatch::from(vec![
+        vec![
             first,
             ClusterReadinessOutput::ReadyQuorumReached,
             ClusterReadinessOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
-        ])
+        ]
     }
 
-    fn exit_by_quorum_with_batch(&mut self, outputs: OutputBatch) -> OutputBatch {
+    fn exit_by_quorum_with_batch(
+        &mut self,
+        outputs: Vec<ClusterReadinessOutput>,
+    ) -> Vec<ClusterReadinessOutput> {
         self.exit_mode = Some(ReadinessExitMode::Quorum);
         self.lifecycle_state = ReadinessLifecycleState::ReadyByQuorum;
 
-        let mut emitted_outputs = outputs.outputs().to_vec();
+        let mut emitted_outputs = outputs;
         emitted_outputs.push(ClusterReadinessOutput::ReadyQuorumReached);
         emitted_outputs.push(ClusterReadinessOutput::ReadinessExited {
             mode: ReadinessExitMode::Quorum,
         });
 
-        OutputBatch::from(emitted_outputs)
+        emitted_outputs
     }
 
     const fn has_exited(&self) -> bool {

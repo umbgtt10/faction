@@ -117,10 +117,10 @@ proptest! {
 
         // Assert
         if previous.local_participation_complete() || previous.readiness_exited() {
-            prop_assert!(first_outputs.outputs().is_empty());
+            prop_assert!(first_outputs.is_empty());
             prop_assert_eq!(after_first, previous);
         }
-        prop_assert!(second_outputs.outputs().is_empty());
+        prop_assert!(second_outputs.is_empty());
         prop_assert_eq!(after_second, after_first);
     }
 

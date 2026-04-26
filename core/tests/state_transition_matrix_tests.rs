@@ -270,6 +270,6 @@ fn valid_transition(
 ) {
     let mut m = build(init);
     let batch = m.apply(input);
-    assert_eq!(batch.outputs(), expected_outputs, "output mismatch");
+    assert_eq!(batch.as_slice(), expected_outputs, "output mismatch");
     verify(&m, asserts);
 }

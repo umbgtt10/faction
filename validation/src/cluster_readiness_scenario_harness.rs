@@ -70,15 +70,11 @@ impl ClusterReadinessScenarioHarness {
         peer_id: PeerId,
         freshness: u64,
     ) -> Vec<ClusterReadinessOutput> {
-        let batch = self.coordinators[coordinator_index].apply(
-            ClusterReadinessInput::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker: self.current_marker,
-            },
-        );
-
-        batch.outputs().to_vec()
+        self.coordinators[coordinator_index].apply(ClusterReadinessInput::ParticipationObserved {
+            peer_id,
+            freshness,
+            current_marker: self.current_marker,
+        })
     }
 
     pub fn apply_ready(
@@ -87,30 +83,22 @@ impl ClusterReadinessScenarioHarness {
         peer_id: PeerId,
         freshness: u64,
     ) -> Vec<ClusterReadinessOutput> {
-        let batch =
-            self.coordinators[coordinator_index].apply(ClusterReadinessInput::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker: self.current_marker,
-            });
-
-        batch.outputs().to_vec()
+        self.coordinators[coordinator_index].apply(ClusterReadinessInput::ReadyObserved {
+            peer_id,
+            freshness,
+            current_marker: self.current_marker,
+        })
     }
 
     pub fn complete_local_participation(
         &mut self,
         coordinator_index: usize,
     ) -> Vec<ClusterReadinessOutput> {
-        let batch = self.coordinators[coordinator_index]
-            .apply(ClusterReadinessInput::LocalParticipationCompleted);
-
-        batch.outputs().to_vec()
+        self.coordinators[coordinator_index]
+            .apply(ClusterReadinessInput::LocalParticipationCompleted)
     }
 
     pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<ClusterReadinessOutput> {
-        let batch =
-            self.coordinators[coordinator_index].apply(ClusterReadinessInput::DeadlineExpired);
-
-        batch.outputs().to_vec()
+        self.coordinators[coordinator_index].apply(ClusterReadinessInput::DeadlineExpired)
     }
 }

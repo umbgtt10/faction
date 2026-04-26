@@ -64,7 +64,7 @@ fn apply_observes_local_participation_completion_transition() {
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
-    assert_eq!(outputs.outputs(), transition.outputs());
+    assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -110,7 +110,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(outputs.outputs(), transition.outputs());
+    assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[ClusterReadinessOutput::DuplicateParticipationIgnored { peer_id: 1 }]
@@ -142,7 +142,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(outputs.outputs(), transition.outputs());
+    assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[ClusterReadinessOutput::StaleReadyIgnored { peer_id: 1 }]
@@ -185,7 +185,7 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
-    assert_eq!(outputs.outputs(), transition.outputs());
+    assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -229,7 +229,7 @@ fn apply_observes_deadline_exit_transition() {
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(outputs.outputs(), transition.outputs());
+    assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -279,7 +279,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
         transition0.outputs(),
         &[ClusterReadinessOutput::DelayedParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(batch0.outputs(), transition0.outputs());
+    assert_eq!(&batch0, transition0.outputs());
 
     let (_, transition1) = &obs[1];
     assert_eq!(
@@ -289,14 +289,14 @@ fn accepted_delayed_input_is_observable_as_delayed() {
             ClusterReadinessOutput::BroadcastLocalReady,
         ]
     );
-    assert_eq!(batch1.outputs(), transition1.outputs());
+    assert_eq!(&batch1, transition1.outputs());
 
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
         &[ClusterReadinessOutput::DelayedReadyAccepted { peer_id: 2 }]
     );
-    assert_eq!(batch2.outputs(), transition2.outputs());
+    assert_eq!(&batch2, transition2.outputs());
 }
 
 #[test]
@@ -336,7 +336,7 @@ fn state_transition_outputs_are_fully_observable() {
         transition0.outputs(),
         &[ClusterReadinessOutput::ParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(batch0.outputs(), transition0.outputs());
+    assert_eq!(&batch0, transition0.outputs());
 
     let (_, transition1) = &obs[1];
     assert_eq!(
@@ -346,21 +346,21 @@ fn state_transition_outputs_are_fully_observable() {
             ClusterReadinessOutput::BroadcastLocalReady,
         ]
     );
-    assert_eq!(batch1.outputs(), transition1.outputs());
+    assert_eq!(&batch1, transition1.outputs());
 
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
         &[ClusterReadinessOutput::ReadyAccepted { peer_id: 1 }]
     );
-    assert_eq!(batch2.outputs(), transition2.outputs());
+    assert_eq!(&batch2, transition2.outputs());
 
     let (_, transition3) = &obs[3];
     assert_eq!(
         transition3.outputs(),
         &[ClusterReadinessOutput::ReadyAccepted { peer_id: 2 }]
     );
-    assert_eq!(batch3.outputs(), transition3.outputs());
+    assert_eq!(&batch3, transition3.outputs());
 
     let (_, transition4) = &obs[4];
     assert_eq!(
@@ -373,6 +373,6 @@ fn state_transition_outputs_are_fully_observable() {
             },
         ]
     );
-    assert_eq!(batch4.outputs(), transition4.outputs());
+    assert_eq!(&batch4, transition4.outputs());
     assert!(transition4.new_state().readiness_exited());
 }

@@ -320,7 +320,7 @@ proptest! {
             let expected_snapshot = model.snapshot();
 
             // Assert
-            prop_assert_eq!(actual_outputs.outputs(), expected_outputs.as_slice());
+            prop_assert_eq!(actual_outputs.as_slice(), expected_outputs.as_slice());
             prop_assert_eq!(model_snapshot(actual_snapshot), expected_snapshot);
         }
     }

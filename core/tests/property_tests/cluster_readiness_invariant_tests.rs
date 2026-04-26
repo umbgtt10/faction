@@ -266,7 +266,7 @@ proptest! {
 
             // Assert
             assert_counts_do_not_decrease(previous, current)?;
-            assert_stale_outputs_do_not_mutate_state(previous, current, batch.outputs())?;
+            assert_stale_outputs_do_not_mutate_state(previous, current, &batch)?;
         }
     }
 
@@ -283,7 +283,7 @@ proptest! {
 
             // Assert
             assert_counts_do_not_decrease(previous, current)?;
-            assert_non_member_outputs_do_not_mutate_state(previous, current, batch.outputs())?;
+            assert_non_member_outputs_do_not_mutate_state(previous, current, &batch)?;
         }
     }
 
@@ -325,7 +325,7 @@ proptest! {
 
             // Assert
             assert_counts_do_not_decrease(previous, current)?;
-            assert_duplicate_outputs_do_not_mutate_counts(previous, current, batch.outputs())?;
+            assert_duplicate_outputs_do_not_mutate_counts(previous, current, &batch)?;
         }
     }
 

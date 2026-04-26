@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use faction::cluster_readiness::ClusterReadiness;
 use faction::cluster_readiness_config::ClusterReadinessConfig;
@@ -10,7 +11,6 @@ use faction::cluster_readiness_observer::ClusterReadinessObserver;
 use faction::cluster_readiness_output::ClusterReadinessOutput;
 use faction::cluster_readiness_snapshot::ClusterReadinessSnapshot;
 use faction::no_op_cluster_readiness_observer::NoOpClusterReadinessObserver;
-use faction::output_batch::OutputBatch;
 use faction::PeerId;
 
 pub struct ClusterReadinessScenarioNode {
@@ -58,7 +58,7 @@ impl ClusterReadinessScenarioNode {
     pub fn apply(
         self,
         input: faction::cluster_readiness_input::ClusterReadinessInput,
-    ) -> (Self, OutputBatch) {
+    ) -> (Self, Vec<ClusterReadinessOutput>) {
         let mut readiness = self.readiness;
         let outputs = readiness.apply(input);
 
@@ -69,10 +69,5 @@ impl ClusterReadinessScenarioNode {
             },
             outputs,
         )
-    }
-
-    #[must_use]
-    pub fn outputs<'a>(&self, batch: &'a OutputBatch) -> &'a [ClusterReadinessOutput] {
-        batch.outputs()
     }
 }
