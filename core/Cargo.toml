@@ -22,6 +22,7 @@ alloc = []
 
 [dev-dependencies]
 proptest.workspace = true
+rstest.workspace = true
 
 [lib]
 name = "faction"

@@ -3,8 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod cluster_readiness_observer_tests;
-pub mod cluster_readiness_snapshot_tests;
-pub mod cluster_readiness_tests;
 pub mod freshness_policy_tests;
 pub mod output_batch_tests;
 pub mod property_tests;
+pub mod state_transition_matrix_tests;
