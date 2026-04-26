@@ -18,14 +18,14 @@ use crate::vibe_state::VibeState;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
-pub struct Phase2 {
+pub struct Collecting {
     pub(super) phase1_confirmed: Vec<bool>,
     pub(super) phase2_confirmed: Vec<bool>,
     pub(super) phase1_confirmed_count: usize,
     pub(super) phase2_confirmed_count: usize,
 }
 
-impl VibeState for Phase2 {
+impl VibeState for Collecting {
     fn deal(&self, input: &VibeInput) -> bool {
         matches!(
             input,

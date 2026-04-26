@@ -15,18 +15,18 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
-use super::phase2::Phase2;
+use super::collecting::Collecting;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
-pub struct Phase1 {
+pub struct Pinging {
     phase1_confirmed: Vec<bool>,
     phase2_confirmed: Vec<bool>,
     phase1_confirmed_count: usize,
     phase2_confirmed_count: usize,
 }
 
-impl Phase1 {
+impl Pinging {
     #[must_use]
     pub fn new(peer_count: usize) -> Self {
         Self {
@@ -38,7 +38,7 @@ impl Phase1 {
     }
 }
 
-impl VibeState for Phase1 {
+impl VibeState for Pinging {
     fn deal(&self, _input: &VibeInput) -> bool {
         true
     }
@@ -243,7 +243,7 @@ impl VibeState for Phase1 {
                 } else {
                     (
                         outputs,
-                        Box::new(Phase2 {
+                        Box::new(Collecting {
                             phase1_confirmed,
                             phase2_confirmed,
                             phase1_confirmed_count,

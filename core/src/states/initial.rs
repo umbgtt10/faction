@@ -6,7 +6,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::states::phase1::Phase1;
+use crate::states::pinging::Pinging;
 use crate::vibe_config::VibeConfig;
 use crate::vibe_input::VibeInput;
 use crate::vibe_output::VibeOutput;
@@ -21,7 +21,7 @@ impl VibeState for Initial {
         input: VibeInput,
         config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        Box::new(Phase1::new(config.peer_count())).punch(input, config)
+        Box::new(Pinging::new(config.peer_count())).punch(input, config)
     }
 
     fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
