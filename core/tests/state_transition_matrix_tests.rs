@@ -55,6 +55,11 @@ fn build(init: Init) -> Vibe {
         ),
         Box::new(NoOpVibeObserver),
     );
+    let _ = m.apply(VibeInput::ParticipationObserved {
+        peer_id: 99,
+        freshness: MARKER,
+        current_marker: MARKER,
+    });
     match init {
         Init::Fresh => {}
         Init::Phase1Peer1Confirmed => {

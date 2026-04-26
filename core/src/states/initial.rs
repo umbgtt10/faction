@@ -16,15 +16,15 @@ use crate::vibe_state::VibeState;
 pub struct Initial;
 
 impl VibeState for Initial {
-    fn apply(
+    fn punch(
         self: Box<Self>,
         input: VibeInput,
         config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        Box::new(Phase1::new(config.peer_count())).apply(input, config)
+        Box::new(Phase1::new(config.peer_count())).punch(input, config)
     }
 
-    fn snapshot(&self, quorum_threshold: usize) -> VibeSnapshot {
+    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
         VibeSnapshot::new(
             ReadinessLifecycleState::Phase1Active,
             None,
@@ -36,7 +36,10 @@ impl VibeState for Initial {
         )
     }
 
-    fn accepts(&self, _input: &VibeInput) -> bool {
-        true
+    fn deal(&self, input: &VibeInput) -> bool {
+        matches!(
+            input,
+            VibeInput::ParticipationObserved { .. } | VibeInput::ReadyObserved { .. }
+        )
     }
 }

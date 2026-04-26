@@ -39,11 +39,11 @@ impl Phase1 {
 }
 
 impl VibeState for Phase1 {
-    fn accepts(&self, _input: &VibeInput) -> bool {
+    fn deal(&self, _input: &VibeInput) -> bool {
         true
     }
 
-    fn apply(
+    fn punch(
         self: Box<Self>,
         input: VibeInput,
         config: &VibeConfig,
@@ -276,7 +276,7 @@ impl VibeState for Phase1 {
         }
     }
 
-    fn snapshot(&self, quorum_threshold: usize) -> VibeSnapshot {
+    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
         VibeSnapshot::new(
             ReadinessLifecycleState::Phase1Active,
             None,

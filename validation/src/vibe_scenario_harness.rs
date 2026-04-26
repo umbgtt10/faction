@@ -27,7 +27,7 @@ impl VibeScenarioHarness {
         let mut coordinators = Vec::new();
 
         for peer_id in peer_set.iter().copied() {
-            coordinators.push(Vibe::new(
+            let mut vibe = Vibe::new(
                 VibeConfig::new(
                     peer_id,
                     peer_set.clone(),
@@ -35,7 +35,13 @@ impl VibeScenarioHarness {
                     FreshnessPolicy::new(max_delay),
                 ),
                 Box::new(NoOpVibeObserver),
-            ));
+            );
+            let _ = vibe.apply(VibeInput::ParticipationObserved {
+                peer_id: PeerId::MAX,
+                freshness: 0,
+                current_marker: 0,
+            });
+            coordinators.push(vibe);
         }
 
         Self {

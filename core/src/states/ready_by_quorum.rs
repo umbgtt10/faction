@@ -22,7 +22,7 @@ pub struct ReadyByQuorum {
 }
 
 impl VibeState for ReadyByQuorum {
-    fn apply(
+    fn punch(
         self: Box<Self>,
         input: VibeInput,
         _config: &VibeConfig,
@@ -56,7 +56,7 @@ impl VibeState for ReadyByQuorum {
         )
     }
 
-    fn snapshot(&self, quorum_threshold: usize) -> VibeSnapshot {
+    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
         VibeSnapshot::new(
             ReadinessLifecycleState::ReadyByQuorum,
             Some(ReadinessExitMode::Quorum),
@@ -68,7 +68,7 @@ impl VibeState for ReadyByQuorum {
         )
     }
 
-    fn accepts(&self, _input: &VibeInput) -> bool {
+    fn deal(&self, _input: &VibeInput) -> bool {
         false
     }
 }

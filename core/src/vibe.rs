@@ -32,13 +32,13 @@ impl Vibe {
 
     #[must_use]
     pub fn apply(&mut self, input: VibeInput) -> Vec<VibeOutput> {
-        if !self.state.accepts(&input) {
+        if !self.state.deal(&input) {
             return Vec::new();
         }
 
         let previous_snapshot = self.snapshot();
         let old_state = core::mem::replace(&mut self.state, Box::new(Initial));
-        let (outputs, new_state) = old_state.apply(input, &self.config);
+        let (outputs, new_state) = old_state.punch(input, &self.config);
         self.state = new_state;
         let new_snapshot = self.snapshot();
         let transition = VibeTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
@@ -48,7 +48,7 @@ impl Vibe {
 
     #[must_use]
     pub fn snapshot(&self) -> VibeSnapshot {
-        self.state.snapshot(self.config.quorum_threshold())
+        self.state.vibe_check(self.config.quorum_threshold())
     }
 
     #[must_use]

@@ -11,13 +11,13 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 
 pub trait VibeState {
-    fn apply(
+    fn punch(
         self: Box<Self>,
         input: VibeInput,
         config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>);
 
-    fn snapshot(&self, quorum_threshold: usize) -> VibeSnapshot;
+    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot;
 
-    fn accepts(&self, input: &VibeInput) -> bool;
+    fn deal(&self, input: &VibeInput) -> bool;
 }

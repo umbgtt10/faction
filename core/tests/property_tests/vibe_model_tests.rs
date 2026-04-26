@@ -42,6 +42,7 @@ struct ModelCoordinator {
     peer_set: [u64; 5],
     quorum_threshold: usize,
     max_delay: u64,
+    initial: bool,
     lifecycle_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
@@ -58,6 +59,7 @@ impl ModelCoordinator {
             peer_set: [0, 1, 2, 3, 4],
             quorum_threshold: 4,
             max_delay: 2,
+            initial: true,
             lifecycle_state: ModelLifecycleState::Phase1Active,
             exit_mode: None,
             local_participation_complete: false,
@@ -81,6 +83,15 @@ impl ModelCoordinator {
     }
 
     fn apply(&mut self, input: VibeInput) -> alloc::vec::Vec<VibeOutput> {
+        if self.initial {
+            match input {
+                VibeInput::ParticipationObserved { .. } | VibeInput::ReadyObserved { .. } => {
+                    self.initial = false;
+                }
+                _ => return Vec::new(),
+            }
+        }
+
         if self.has_exited() {
             return Vec::new();
         }

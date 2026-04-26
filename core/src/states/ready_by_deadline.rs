@@ -23,7 +23,7 @@ pub struct ReadyByDeadline {
 }
 
 impl VibeState for ReadyByDeadline {
-    fn apply(
+    fn punch(
         self: Box<Self>,
         input: VibeInput,
         _config: &VibeConfig,
@@ -59,7 +59,7 @@ impl VibeState for ReadyByDeadline {
         )
     }
 
-    fn snapshot(&self, quorum_threshold: usize) -> VibeSnapshot {
+    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
         VibeSnapshot::new(
             ReadinessLifecycleState::ReadyByDeadline,
             Some(ReadinessExitMode::Deadline),
@@ -71,7 +71,7 @@ impl VibeState for ReadyByDeadline {
         )
     }
 
-    fn accepts(&self, _input: &VibeInput) -> bool {
+    fn deal(&self, _input: &VibeInput) -> bool {
         false
     }
 }

@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc c595857aef7efc5483ff64db6b67ea99151493247c44b91b2cee6a13e14ce174 # shrinks to inputs = [LocalParticipationCompleted, ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }]
+cc 9fc55d8a3cfb0d576da34d0c2a2854ccfbfe3f3eb52440b2549618c0cec118bb # shrinks to inputs = [LocalParticipationCompleted, LocalParticipationCompleted]

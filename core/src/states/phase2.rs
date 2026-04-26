@@ -26,14 +26,14 @@ pub struct Phase2 {
 }
 
 impl VibeState for Phase2 {
-    fn accepts(&self, input: &VibeInput) -> bool {
+    fn deal(&self, input: &VibeInput) -> bool {
         matches!(
             input,
             VibeInput::ReadyObserved { .. } | VibeInput::DeadlineExpired
         )
     }
 
-    fn apply(
+    fn punch(
         self: Box<Self>,
         input: VibeInput,
         config: &VibeConfig,
@@ -259,7 +259,7 @@ impl VibeState for Phase2 {
         }
     }
 
-    fn snapshot(&self, quorum_threshold: usize) -> VibeSnapshot {
+    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
         VibeSnapshot::new(
             ReadinessLifecycleState::Phase2Active,
             None,

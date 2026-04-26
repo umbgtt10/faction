@@ -54,6 +54,11 @@ fn recording_coordinator() -> (Vibe, Observations) {
 fn apply_observes_local_participation_completion_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
     let input = VibeInput::LocalParticipationCompleted;
 
     // Act
@@ -61,8 +66,8 @@ fn apply_observes_local_participation_completion_transition() {
 
     // Assert
     let obs = observations.borrow();
-    assert_eq!(obs.len(), 1);
-    let (observed_input, transition) = &obs[0];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
@@ -127,6 +132,11 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
 fn apply_observes_stale_ready_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
     let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
     let input = VibeInput::ReadyObserved {
         peer_id: 1,
@@ -139,8 +149,8 @@ fn apply_observes_stale_ready_transition_without_state_change() {
 
     // Assert
     let obs = observations.borrow();
-    assert_eq!(obs.len(), 2);
-    let (observed_input, transition) = &obs[1];
+    assert_eq!(obs.len(), 3);
+    let (observed_input, transition) = &obs[2];
     assert_eq!(*observed_input, input);
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
@@ -160,6 +170,11 @@ fn apply_observes_stale_ready_transition_without_state_change() {
 fn apply_observes_quorum_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
     let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
     let _ = coordinator.apply(VibeInput::ReadyObserved {
         peer_id: 1,
@@ -182,8 +197,8 @@ fn apply_observes_quorum_exit_transition() {
 
     // Assert
     let obs = observations.borrow();
-    assert_eq!(obs.len(), 4);
-    let (observed_input, transition) = &obs[3];
+    assert_eq!(obs.len(), 5);
+    let (observed_input, transition) = &obs[4];
     assert_eq!(*observed_input, input);
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
@@ -218,6 +233,11 @@ fn apply_observes_quorum_exit_transition() {
 fn apply_observes_deadline_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
     let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
     let input = VibeInput::DeadlineExpired;
 
@@ -226,8 +246,8 @@ fn apply_observes_deadline_exit_transition() {
 
     // Assert
     let obs = observations.borrow();
-    assert_eq!(obs.len(), 2);
-    let (observed_input, transition) = &obs[1];
+    assert_eq!(obs.len(), 3);
+    let (observed_input, transition) = &obs[2];
     assert_eq!(*observed_input, input);
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
