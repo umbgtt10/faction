@@ -6,7 +6,6 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::freshness_classification::FreshnessClassification;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::vibe_config::VibeConfig;
@@ -15,15 +14,15 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
-use super::helpers::compute_output;
+use super::helpers::compute_output::ObservedKind;
+use super::helpers::compute_output::ObservedOutput;
+use super::helpers::confirmed_set::ConfirmedSet;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
 pub struct Collecting {
-    pub(super) phase1_confirmed: Vec<bool>,
-    pub(super) phase2_confirmed: Vec<bool>,
-    pub(super) phase1_confirmed_count: usize,
-    pub(super) phase2_confirmed_count: usize,
+    pub phase1: ConfirmedSet,
+    pub phase2: ConfirmedSet,
 }
 
 impl VibeState for Collecting {
@@ -39,23 +38,12 @@ impl VibeState for Collecting {
         input: VibeInput,
         config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        let Self {
-            phase1_confirmed,
-            mut phase2_confirmed,
-            phase1_confirmed_count,
-            mut phase2_confirmed_count,
-        } = *self;
+        let Self { phase1, phase2 } = *self;
 
         match input {
-            VibeInput::ParticipationObserved { .. } => (
-                Vec::new(),
-                Box::new(Self {
-                    phase1_confirmed,
-                    phase2_confirmed,
-                    phase1_confirmed_count,
-                    phase2_confirmed_count,
-                }),
-            ),
+            VibeInput::ParticipationObserved { .. } => {
+                (Vec::new(), Box::new(Self { phase1, phase2 }))
+            }
 
             VibeInput::ReadyObserved {
                 peer_id,
@@ -68,30 +56,17 @@ impl VibeState for Collecting {
                         .freshness_policy()
                         .classify(current_marker, freshness)
                 });
-                let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
+                let is_dup = index.is_some_and(|i| phase2.is_confirmed(i));
 
-                let calc = compute_output::ObservedOutput::new(
-                    compute_output::ObservedKind::Ready,
-                    peer_id,
+                let outputs = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
+                    index,
+                    classification,
+                    is_dup,
                 );
-                let outputs = calc.compute_output(index, classification, is_dup);
 
-                let (confirmed_new, new_phase2_confirmed, new_phase2_confirmed_count) =
-                    match (index, is_dup, classification) {
-                        (Some(i), false, Some(c)) if c != FreshnessClassification::Stale => (
-                            true,
-                            phase2_confirmed
-                                .iter()
-                                .enumerate()
-                                .map(|(idx, &v)| if idx == i { true } else { v })
-                                .collect(),
-                            phase2_confirmed_count + 1,
-                        ),
-                        _ => (false, phase2_confirmed, phase2_confirmed_count),
-                    };
+                let (phase2, confirmed_new) = phase2.try_confirm(index, is_dup, classification);
 
-                let quorum =
-                    confirmed_new && new_phase2_confirmed_count >= config.quorum_threshold();
+                let quorum = confirmed_new && phase2.count() >= config.quorum_threshold();
                 let outputs = if quorum {
                     vec![
                         outputs[0],
@@ -104,46 +79,25 @@ impl VibeState for Collecting {
                     outputs
                 };
 
-                phase2_confirmed = new_phase2_confirmed;
-                phase2_confirmed_count = new_phase2_confirmed_count;
-
                 let new_state: Box<dyn VibeState> = if quorum {
-                    Box::new(ReadyByQuorum {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    })
+                    Box::new(ReadyByQuorum { phase1, phase2 })
                 } else {
-                    Box::new(Self {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    })
+                    Box::new(Self { phase1, phase2 })
                 };
                 (outputs, new_state)
             }
 
-            VibeInput::LocalParticipationCompleted => (
-                Vec::new(),
-                Box::new(Self {
-                    phase1_confirmed,
-                    phase2_confirmed,
-                    phase1_confirmed_count,
-                    phase2_confirmed_count,
-                }),
-            ),
+            VibeInput::LocalParticipationCompleted => {
+                (Vec::new(), Box::new(Self { phase1, phase2 }))
+            }
 
             VibeInput::DeadlineExpired => (
                 vec![VibeOutput::ReadinessExited {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
-                    phase1_confirmed,
-                    phase2_confirmed,
-                    phase1_confirmed_count,
-                    phase2_confirmed_count,
+                    phase1,
+                    phase2,
                     local_participation_complete: true,
                 }),
             ),
@@ -156,8 +110,8 @@ impl VibeState for Collecting {
             None,
             true,
             false,
-            self.phase1_confirmed_count,
-            self.phase2_confirmed_count,
+            self.phase1.count(),
+            self.phase2.count(),
             quorum_threshold,
         )
     }

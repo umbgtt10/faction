@@ -14,11 +14,11 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
+use super::helpers::confirmed_set::ConfirmedSet;
+
 pub struct ReadyByDeadline {
-    pub phase1_confirmed: Vec<bool>,
-    pub phase2_confirmed: Vec<bool>,
-    pub phase1_confirmed_count: usize,
-    pub phase2_confirmed_count: usize,
+    pub phase1: ConfirmedSet,
+    pub phase2: ConfirmedSet,
     pub local_participation_complete: bool,
 }
 
@@ -29,10 +29,8 @@ impl VibeState for ReadyByDeadline {
         _config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
         let Self {
-            phase1_confirmed,
-            phase2_confirmed,
-            phase1_confirmed_count,
-            phase2_confirmed_count,
+            phase1,
+            phase2,
             local_participation_complete,
         } = *self;
 
@@ -50,10 +48,8 @@ impl VibeState for ReadyByDeadline {
         (
             output,
             Box::new(Self {
-                phase1_confirmed,
-                phase2_confirmed,
-                phase1_confirmed_count,
-                phase2_confirmed_count,
+                phase1,
+                phase2,
                 local_participation_complete,
             }),
         )
@@ -65,8 +61,8 @@ impl VibeState for ReadyByDeadline {
             Some(ReadinessExitMode::Deadline),
             self.local_participation_complete,
             true,
-            self.phase1_confirmed_count,
-            self.phase2_confirmed_count,
+            self.phase1.count(),
+            self.phase2.count(),
             quorum_threshold,
         )
     }

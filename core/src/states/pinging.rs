@@ -6,7 +6,6 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::freshness_classification::FreshnessClassification;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::vibe_config::VibeConfig;
@@ -16,25 +15,23 @@ use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
 use super::collecting::Collecting;
-use super::helpers::compute_output;
+use super::helpers::compute_output::ObservedKind;
+use super::helpers::compute_output::ObservedOutput;
+use super::helpers::confirmed_set::ConfirmedSet;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
 pub struct Pinging {
-    phase1_confirmed: Vec<bool>,
-    phase2_confirmed: Vec<bool>,
-    phase1_confirmed_count: usize,
-    phase2_confirmed_count: usize,
+    phase1: ConfirmedSet,
+    phase2: ConfirmedSet,
 }
 
 impl Pinging {
     #[must_use]
     pub fn new(peer_count: usize) -> Self {
         Self {
-            phase1_confirmed: vec![false; peer_count],
-            phase2_confirmed: vec![false; peer_count],
-            phase1_confirmed_count: 0,
-            phase2_confirmed_count: 0,
+            phase1: ConfirmedSet::new(peer_count),
+            phase2: ConfirmedSet::new(peer_count),
         }
     }
 }
@@ -49,12 +46,7 @@ impl VibeState for Pinging {
         input: VibeInput,
         config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        let Self {
-            mut phase1_confirmed,
-            mut phase2_confirmed,
-            mut phase1_confirmed_count,
-            mut phase2_confirmed_count,
-        } = *self;
+        let Self { phase1, phase2 } = *self;
 
         match input {
             VibeInput::ParticipationObserved {
@@ -68,38 +60,13 @@ impl VibeState for Pinging {
                         .freshness_policy()
                         .classify(current_marker, freshness)
                 });
-                let is_dup = index.is_some_and(|i| phase1_confirmed[i]);
+                let is_dup = index.is_some_and(|i| phase1.is_confirmed(i));
 
-                let calc = compute_output::ObservedOutput::new(
-                    compute_output::ObservedKind::Participation,
-                    peer_id,
-                );
-                let outputs = calc.compute_output(index, classification, is_dup);
+                let outputs = ObservedOutput::new(ObservedKind::Participation, peer_id)
+                    .compute_output(index, classification, is_dup);
+                let (phase1, _) = phase1.try_confirm(index, is_dup, classification);
 
-                let (new_phase1_confirmed, new_phase1_confirmed_count) =
-                    match (index, is_dup, classification) {
-                        (Some(i), false, Some(c)) if c != FreshnessClassification::Stale => (
-                            phase1_confirmed
-                                .iter()
-                                .enumerate()
-                                .map(|(j, &val)| j == i || val)
-                                .collect(),
-                            phase1_confirmed_count + 1,
-                        ),
-                        _ => (phase1_confirmed, phase1_confirmed_count),
-                    };
-                phase1_confirmed = new_phase1_confirmed;
-                phase1_confirmed_count = new_phase1_confirmed_count;
-
-                (
-                    outputs,
-                    Box::new(Self {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    }),
-                )
+                (outputs, Box::new(Self { phase1, phase2 }))
             }
 
             VibeInput::ReadyObserved {
@@ -113,94 +80,41 @@ impl VibeState for Pinging {
                         .freshness_policy()
                         .classify(current_marker, freshness)
                 });
-                let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
+                let is_dup = index.is_some_and(|i| phase2.is_confirmed(i));
 
-                let calc = compute_output::ObservedOutput::new(
-                    compute_output::ObservedKind::Ready,
-                    peer_id,
+                let outputs = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
+                    index,
+                    classification,
+                    is_dup,
                 );
-                let outputs = calc.compute_output(index, classification, is_dup);
+                let (phase2, _) = phase2.try_confirm(index, is_dup, classification);
 
-                let (new_phase2_confirmed, new_phase2_confirmed_count) =
-                    match (index, is_dup, classification) {
-                        (Some(i), false, Some(c)) if c != FreshnessClassification::Stale => (
-                            phase2_confirmed
-                                .iter()
-                                .enumerate()
-                                .map(|(j, &val)| j == i || val)
-                                .collect(),
-                            phase2_confirmed_count + 1,
-                        ),
-                        _ => (phase2_confirmed, phase2_confirmed_count),
-                    };
-
-                phase2_confirmed = new_phase2_confirmed;
-                phase2_confirmed_count = new_phase2_confirmed_count;
-
-                (
-                    outputs,
-                    Box::new(Self {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    }),
-                )
+                (outputs, Box::new(Self { phase1, phase2 }))
             }
 
             VibeInput::LocalParticipationCompleted => {
                 let local_index = config
                     .peer_index(config.local_peer_id())
                     .expect("local peer must be in peer set");
-                let already_confirmed = phase2_confirmed[local_index];
+                let (phase2, _) = phase2.confirm(local_index);
 
-                let (new_phase2_confirmed, new_phase2_confirmed_count) = if already_confirmed {
-                    (phase2_confirmed, phase2_confirmed_count)
-                } else {
-                    (
-                        phase2_confirmed
-                            .iter()
-                            .enumerate()
-                            .map(|(i, &v)| i == local_index || v)
-                            .collect(),
-                        phase2_confirmed_count + 1,
-                    )
-                };
-
-                let outputs = vec![
+                let mut outputs = vec![
                     VibeOutput::LocalParticipationCompleted,
                     VibeOutput::BroadcastLocalReady,
                 ];
 
-                let quorum = new_phase2_confirmed_count >= config.quorum_threshold();
-                let outputs = if quorum {
-                    let mut extended = outputs;
-                    extended.push(VibeOutput::ReadyQuorumReached);
-                    extended.push(VibeOutput::ReadinessExited {
+                let quorum = phase2.count() >= config.quorum_threshold();
+                if quorum {
+                    outputs.push(VibeOutput::ReadyQuorumReached);
+                    outputs.push(VibeOutput::ReadinessExited {
                         mode: ReadinessExitMode::Quorum,
                     });
-                    extended
-                } else {
-                    outputs
-                };
-
-                phase2_confirmed = new_phase2_confirmed;
-                phase2_confirmed_count = new_phase2_confirmed_count;
+                }
 
                 let new_state: Box<dyn VibeState> = if quorum {
-                    Box::new(ReadyByQuorum {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    })
+                    Box::new(ReadyByQuorum { phase1, phase2 })
                 } else {
-                    Box::new(Collecting {
-                        phase1_confirmed,
-                        phase2_confirmed,
-                        phase1_confirmed_count,
-                        phase2_confirmed_count,
-                    })
+                    Box::new(Collecting { phase1, phase2 })
                 };
                 (outputs, new_state)
             }
@@ -210,10 +124,8 @@ impl VibeState for Pinging {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
-                    phase1_confirmed,
-                    phase2_confirmed,
-                    phase1_confirmed_count,
-                    phase2_confirmed_count,
+                    phase1,
+                    phase2,
                     local_participation_complete: false,
                 }),
             ),
@@ -226,8 +138,8 @@ impl VibeState for Pinging {
             None,
             false,
             false,
-            self.phase1_confirmed_count,
-            self.phase2_confirmed_count,
+            self.phase1.count(),
+            self.phase2.count(),
             quorum_threshold,
         )
     }

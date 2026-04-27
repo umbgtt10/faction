@@ -14,11 +14,11 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
+use super::helpers::confirmed_set::ConfirmedSet;
+
 pub struct ReadyByQuorum {
-    pub(super) phase1_confirmed: Vec<bool>,
-    pub(super) phase2_confirmed: Vec<bool>,
-    pub(super) phase1_confirmed_count: usize,
-    pub(super) phase2_confirmed_count: usize,
+    pub phase1: ConfirmedSet,
+    pub phase2: ConfirmedSet,
 }
 
 impl VibeState for ReadyByQuorum {
@@ -27,12 +27,7 @@ impl VibeState for ReadyByQuorum {
         input: VibeInput,
         _config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        let Self {
-            phase1_confirmed,
-            phase2_confirmed,
-            phase1_confirmed_count,
-            phase2_confirmed_count,
-        } = *self;
+        let Self { phase1, phase2 } = *self;
 
         let output = match input {
             VibeInput::ParticipationObserved { peer_id, .. } => {
@@ -45,15 +40,7 @@ impl VibeState for ReadyByQuorum {
             VibeInput::DeadlineExpired => Vec::new(),
         };
 
-        (
-            output,
-            Box::new(Self {
-                phase1_confirmed,
-                phase2_confirmed,
-                phase1_confirmed_count,
-                phase2_confirmed_count,
-            }),
-        )
+        (output, Box::new(Self { phase1, phase2 }))
     }
 
     fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
@@ -62,8 +49,8 @@ impl VibeState for ReadyByQuorum {
             Some(ReadinessExitMode::Quorum),
             true,
             true,
-            self.phase1_confirmed_count,
-            self.phase2_confirmed_count,
+            self.phase1.count(),
+            self.phase2.count(),
             quorum_threshold,
         )
     }

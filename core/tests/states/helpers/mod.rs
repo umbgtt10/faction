@@ -3,3 +3,4 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod compute_output_tests;
+pub mod confirmed_set_tests;
