@@ -1,6 +1,6 @@
 [package]
 name = "faction-validation"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.81"
 authors = ["Umberto Gotti <umberto.gotti@umbertogotti.dev>"]
@@ -16,7 +16,7 @@ autotests = false
 publish = false
 
 [dependencies]
-faction = { path = "../core", version = "0.1.0" }
+faction = { path = "../core", version = "0.2.0" }
 
 [dev-dependencies]
 proptest.workspace = true
