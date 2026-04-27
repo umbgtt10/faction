@@ -6,13 +6,14 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::machine_config::MachineConfig;
 use crate::machine_input::MachineInput;
 use crate::machine_output::MachineOutput;
 use crate::machine_snapshot::MachineSnapshot;
 use crate::machine_state::MachineState;
+use crate::readiness_exit_mode::ReadinessExitMode;
+use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::state_snapshot::StateSnapshot;
 
 use super::collecting::Collecting;
 use super::helpers::compute_output::ObservedKind;
@@ -33,6 +34,15 @@ impl Pinging {
             phase1: ConfirmedSet::new(peer_count),
             phase2: ConfirmedSet::new(peer_count),
         }
+    }
+}
+
+impl StateSnapshot for Pinging {
+    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
+        previous
+            .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
+            .with_phase1_count(self.phase1.count())
+            .with_phase2_count(self.phase2.count())
     }
 }
 
@@ -108,9 +118,15 @@ impl MachineState for Pinging {
                 }
 
                 let new_state: Box<dyn MachineState> = if quorum {
-                    Box::new(ReadyByQuorum { phase1, phase2 })
+                    Box::new(ReadyByQuorum {
+                        phase1_count: phase1.count(),
+                        phase2_count: phase2.count(),
+                    })
                 } else {
-                    Box::new(Collecting { phase1, phase2 })
+                    Box::new(Collecting {
+                        phase2,
+                        phase1_count: phase1.count(),
+                    })
                 };
                 (outputs, new_state)
             }
@@ -120,23 +136,10 @@ impl MachineState for Pinging {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
-                    phase1,
-                    phase2,
-                    local_participation_complete: false,
+                    phase1_count: phase1.count(),
+                    phase2_count: phase2.count(),
                 }),
             ),
         }
-    }
-
-    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
-        MachineSnapshot::new(
-            ReadinessLifecycleState::Phase1Active,
-            None,
-            false,
-            false,
-            self.phase1.count(),
-            self.phase2.count(),
-            quorum_threshold,
-        )
     }
 }

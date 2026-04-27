@@ -8,15 +8,15 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
 use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
 
-fn Machine() -> Machine {
+fn make_machine() -> Machine {
     Machine::new(
         MachineConfig::new(
             0,
@@ -29,7 +29,7 @@ fn Machine() -> Machine {
 }
 
 fn reach_deadline_from_phase1() -> Machine {
-    let mut m = Machine();
+    let mut m = make_machine();
     let _ = m.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
@@ -40,7 +40,7 @@ fn reach_deadline_from_phase1() -> Machine {
 }
 
 fn reach_deadline_from_phase2() -> Machine {
-    let mut m = Machine();
+    let mut m = make_machine();
     let _ = m.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,

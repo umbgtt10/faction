@@ -72,4 +72,40 @@ impl MachineSnapshot {
     pub const fn quorum_threshold(&self) -> usize {
         self.quorum_threshold
     }
+
+    #[must_use]
+    pub const fn with_lifecycle_state(mut self, state: ReadinessLifecycleState) -> Self {
+        self.lifecycle_state = state;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_exit_mode(mut self, mode: Option<ReadinessExitMode>) -> Self {
+        self.exit_mode = mode;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_local_participation_complete(mut self, val: bool) -> Self {
+        self.local_participation_complete = val;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_readiness_exited(mut self, val: bool) -> Self {
+        self.readiness_exited = val;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_phase1_count(mut self, count: usize) -> Self {
+        self.phase1_confirmed_count = count;
+        self
+    }
+
+    #[must_use]
+    pub const fn with_phase2_count(mut self, count: usize) -> Self {
+        self.phase2_confirmed_count = count;
+        self
+    }
 }

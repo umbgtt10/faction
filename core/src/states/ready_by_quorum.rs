@@ -5,19 +5,30 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::machine_config::MachineConfig;
 use crate::machine_input::MachineInput;
 use crate::machine_output::MachineOutput;
 use crate::machine_snapshot::MachineSnapshot;
 use crate::machine_state::MachineState;
-
-use super::helpers::confirmed_set::ConfirmedSet;
+use crate::readiness_exit_mode::ReadinessExitMode;
+use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::state_snapshot::StateSnapshot;
 
 pub struct ReadyByQuorum {
-    pub phase1: ConfirmedSet,
-    pub phase2: ConfirmedSet,
+    pub phase1_count: usize,
+    pub phase2_count: usize,
+}
+
+impl StateSnapshot for ReadyByQuorum {
+    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
+        previous
+            .with_lifecycle_state(ReadinessLifecycleState::ReadyByQuorum)
+            .with_exit_mode(Some(ReadinessExitMode::Quorum))
+            .with_local_participation_complete(true)
+            .with_readiness_exited(true)
+            .with_phase1_count(self.phase1_count)
+            .with_phase2_count(self.phase2_count)
+    }
 }
 
 impl MachineState for ReadyByQuorum {
@@ -27,18 +38,6 @@ impl MachineState for ReadyByQuorum {
         _config: &MachineConfig,
     ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
         unreachable!("accept() rejects all inputs for this state")
-    }
-
-    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
-        MachineSnapshot::new(
-            ReadinessLifecycleState::ReadyByQuorum,
-            Some(ReadinessExitMode::Quorum),
-            true,
-            true,
-            self.phase1.count(),
-            self.phase2.count(),
-            quorum_threshold,
-        )
     }
 
     fn accept(&self, _input: &MachineInput) -> bool {

@@ -6,7 +6,6 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::Cell;
 
-use crate::states::initial::Initial;
 use crate::machine_config::MachineConfig;
 use crate::machine_input::MachineInput;
 use crate::machine_observer::MachineObserver;
@@ -14,6 +13,8 @@ use crate::machine_output::MachineOutput;
 use crate::machine_snapshot::MachineSnapshot;
 use crate::machine_state::MachineState;
 use crate::machine_transition::MachineTransition;
+use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::states::initial::Initial;
 
 pub struct Machine {
     config: MachineConfig,
@@ -33,6 +34,25 @@ impl Machine {
         }
     }
 
+    fn base_snapshot(&self) -> MachineSnapshot {
+        MachineSnapshot::new(
+            ReadinessLifecycleState::Phase1Active,
+            None,
+            false,
+            false,
+            0,
+            0,
+            self.config.quorum_threshold(),
+        )
+    }
+
+    fn compute_snapshot(&self) -> MachineSnapshot {
+        let base = self.base_snapshot();
+        let snap = self.state.as_ref().unwrap().state_snapshot(&base);
+        self.cached_snapshot.set(Some(snap));
+        snap
+    }
+
     #[must_use]
     pub fn apply(&mut self, input: MachineInput) -> Vec<MachineOutput> {
         if !self.state.as_ref().unwrap().accept(&input) {
@@ -41,15 +61,7 @@ impl Machine {
 
         let previous_snapshot = match self.cached_snapshot.get() {
             Some(snap) => snap,
-            None => {
-                let snap = self
-                    .state
-                    .as_ref()
-                    .unwrap()
-                    .snapshot(self.config.quorum_threshold());
-                self.cached_snapshot.set(Some(snap));
-                snap
-            }
+            None => self.compute_snapshot(),
         };
 
         let old_state = self.state.take().unwrap();
@@ -60,7 +72,7 @@ impl Machine {
             .state
             .as_ref()
             .unwrap()
-            .snapshot(self.config.quorum_threshold());
+            .state_snapshot(&previous_snapshot);
         self.cached_snapshot.set(Some(new_snapshot));
 
         let transition = MachineTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
@@ -72,15 +84,7 @@ impl Machine {
     pub fn snapshot(&self) -> MachineSnapshot {
         match self.cached_snapshot.get() {
             Some(snap) => snap,
-            None => {
-                let snap = self
-                    .state
-                    .as_ref()
-                    .unwrap()
-                    .snapshot(self.config.quorum_threshold());
-                self.cached_snapshot.set(Some(snap));
-                snap
-            }
+            None => self.compute_snapshot(),
         }
     }
 

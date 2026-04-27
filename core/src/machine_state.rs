@@ -8,16 +8,14 @@ use alloc::vec::Vec;
 use crate::machine_config::MachineConfig;
 use crate::machine_input::MachineInput;
 use crate::machine_output::MachineOutput;
-use crate::machine_snapshot::MachineSnapshot;
+use crate::state_snapshot::StateSnapshot;
 
-pub trait MachineState {
+pub trait MachineState: StateSnapshot {
     fn step(
         self: Box<Self>,
         input: MachineInput,
         config: &MachineConfig,
     ) -> (Vec<MachineOutput>, Box<dyn MachineState>);
-
-    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot;
 
     fn accept(&self, _input: &MachineInput) -> bool {
         true

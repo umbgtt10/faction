@@ -6,13 +6,14 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::machine_config::MachineConfig;
 use crate::machine_input::MachineInput;
 use crate::machine_output::MachineOutput;
 use crate::machine_snapshot::MachineSnapshot;
 use crate::machine_state::MachineState;
+use crate::readiness_exit_mode::ReadinessExitMode;
+use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::state_snapshot::StateSnapshot;
 
 use super::helpers::compute_output::ObservedKind;
 use super::helpers::compute_output::ObservedOutput;
@@ -21,8 +22,8 @@ use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
 pub struct Collecting {
-    pub phase1: ConfirmedSet,
     pub phase2: ConfirmedSet,
+    pub phase1_count: usize,
 }
 
 impl MachineState for Collecting {
@@ -38,7 +39,10 @@ impl MachineState for Collecting {
         input: MachineInput,
         config: &MachineConfig,
     ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
-        let Self { phase1, phase2 } = *self;
+        let Self {
+            phase2,
+            phase1_count,
+        } = *self;
 
         match input {
             MachineInput::ParticipationObserved { .. } => {
@@ -80,9 +84,15 @@ impl MachineState for Collecting {
                 };
 
                 let new_state: Box<dyn MachineState> = if quorum {
-                    Box::new(ReadyByQuorum { phase1, phase2 })
+                    Box::new(ReadyByQuorum {
+                        phase1_count,
+                        phase2_count: phase2.count(),
+                    })
                 } else {
-                    Box::new(Self { phase1, phase2 })
+                    Box::new(Self {
+                        phase2,
+                        phase1_count,
+                    })
                 };
                 (outputs, new_state)
             }
@@ -96,23 +106,20 @@ impl MachineState for Collecting {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
-                    phase1,
-                    phase2,
-                    local_participation_complete: true,
+                    phase1_count,
+                    phase2_count: phase2.count(),
                 }),
             ),
         }
     }
+}
 
-    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
-        MachineSnapshot::new(
-            ReadinessLifecycleState::Phase2Active,
-            None,
-            true,
-            false,
-            self.phase1.count(),
-            self.phase2.count(),
-            quorum_threshold,
-        )
+impl StateSnapshot for Collecting {
+    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
+        previous
+            .with_lifecycle_state(ReadinessLifecycleState::Phase2Active)
+            .with_local_participation_complete(true)
+            .with_phase1_count(self.phase1_count)
+            .with_phase2_count(self.phase2.count())
     }
 }
