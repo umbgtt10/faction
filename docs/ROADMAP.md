@@ -60,7 +60,7 @@ with `Deadline`.
 ## Roadmap
 
 ### Phase 0 — Harden what exists
-**Status:** Active  
+**Status:** Complete  
 **Target:** 1–2 weeks  
 
 Before extending, make the existing machine bulletproof.
@@ -72,6 +72,12 @@ Before extending, make the existing machine bulletproof.
 - `faction-validation` harness extended to cover deadline races explicitly
 
 **Gate:** 100% `(state, input)` coverage. Nothing advances until this is green.
+
+**Results:**
+- 164 core tests + 31 validation tests — all passing, clippy clean
+- `Machine` redesign: `StateSnapshot` trait with `state_snapshot(&self, previous)` — states own only their active data, frozen fields inherited from previous snapshot
+- Terminal states (`ReadyByQuorum`, `ReadyByDeadline`) carry `usize` counts instead of full `ConfirmedSet` — unit-struct design ready for Phase 2+
+- `Collecting` dropped frozen phase1 — only tracks active phase2
 
 ---
 
