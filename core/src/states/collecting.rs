@@ -58,7 +58,7 @@ impl VibeState for Collecting {
                 });
                 let is_dup = index.is_some_and(|i| phase2.is_confirmed(i));
 
-                let outputs = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
+                let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
                     index,
                     classification,
                     is_dup,
@@ -69,14 +69,14 @@ impl VibeState for Collecting {
                 let quorum = confirmed_new && phase2.count() >= config.quorum_threshold();
                 let outputs = if quorum {
                     vec![
-                        outputs[0],
+                        output,
                         VibeOutput::ReadyQuorumReached,
                         VibeOutput::ReadinessExited {
                             mode: ReadinessExitMode::Quorum,
                         },
                     ]
                 } else {
-                    outputs
+                    vec![output]
                 };
 
                 let new_state: Box<dyn VibeState> = if quorum {

@@ -62,11 +62,11 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase1.is_confirmed(i));
 
-                let outputs = ObservedOutput::new(ObservedKind::Participation, peer_id)
+                let output = ObservedOutput::new(ObservedKind::Participation, peer_id)
                     .compute_output(index, classification, is_dup);
                 let (phase1, _) = phase1.try_confirm(index, is_dup, classification);
 
-                (outputs, Box::new(Self { phase1, phase2 }))
+                (vec![output], Box::new(Self { phase1, phase2 }))
             }
 
             VibeInput::ReadyObserved {
@@ -82,14 +82,14 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase2.is_confirmed(i));
 
-                let outputs = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
+                let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
                     index,
                     classification,
                     is_dup,
                 );
                 let (phase2, _) = phase2.try_confirm(index, is_dup, classification);
 
-                (outputs, Box::new(Self { phase1, phase2 }))
+                (vec![output], Box::new(Self { phase1, phase2 }))
             }
 
             VibeInput::LocalParticipationCompleted => {

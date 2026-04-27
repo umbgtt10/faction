@@ -28,6 +28,15 @@ fn is_confirmed_returns_false_for_unconfirmed_index() {
 }
 
 #[test]
+fn is_confirmed_out_of_bounds_returns_false() {
+    // Arrange
+    let set = ConfirmedSet::new(5);
+
+    // Act & Assert
+    assert!(!set.is_confirmed(99));
+}
+
+#[test]
 fn is_confirmed_returns_true_after_confirm() {
     // Arrange
     let set = ConfirmedSet::new(5);
@@ -43,12 +52,11 @@ fn try_confirm_non_member_returns_no_change() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) =
+    let (set, was_newly_confirmed) =
         set.try_confirm(None, false, Some(FreshnessClassification::Timely));
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 0);
     assert_eq!(set.count(), 0);
 }
 
@@ -58,12 +66,12 @@ fn try_confirm_duplicate_returns_no_change() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) =
+    let (set, was_newly_confirmed) =
         set.try_confirm(Some(0), true, Some(FreshnessClassification::Timely));
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 0);
+    assert_eq!(set.count(), 0);
 }
 
 #[test]
@@ -72,12 +80,12 @@ fn try_confirm_stale_returns_no_change() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) =
+    let (set, was_newly_confirmed) =
         set.try_confirm(Some(0), false, Some(FreshnessClassification::Stale));
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 0);
+    assert_eq!(set.count(), 0);
 }
 
 #[test]
@@ -86,11 +94,25 @@ fn try_confirm_classification_none_returns_no_change() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) = set.try_confirm(Some(0), false, None);
+    let (set, was_newly_confirmed) = set.try_confirm(Some(0), false, None);
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 0);
+    assert_eq!(set.count(), 0);
+}
+
+#[test]
+fn try_confirm_out_of_bounds_returns_no_change() {
+    // Arrange
+    let set = ConfirmedSet::new(5);
+
+    // Act
+    let (set, was_newly_confirmed) =
+        set.try_confirm(Some(99), false, Some(FreshnessClassification::Timely));
+
+    // Assert
+    assert!(!was_newly_confirmed);
+    assert_eq!(set.count(), 0);
 }
 
 #[test]
@@ -101,12 +123,12 @@ fn try_confirm_already_confirmed_returns_no_change() {
     assert_eq!(set.count(), 1);
 
     // Act
-    let (new_set, was_newly_confirmed) =
+    let (set, was_newly_confirmed) =
         set.try_confirm(Some(0), true, Some(FreshnessClassification::Timely));
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 1);
+    assert_eq!(set.count(), 1);
 }
 
 #[test]
@@ -115,13 +137,13 @@ fn try_confirm_timely_confirms() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) =
+    let (set, was_newly_confirmed) =
         set.try_confirm(Some(2), false, Some(FreshnessClassification::Timely));
 
     // Assert
     assert!(was_newly_confirmed);
-    assert!(new_set.is_confirmed(2));
-    assert_eq!(new_set.count(), 1);
+    assert!(set.is_confirmed(2));
+    assert_eq!(set.count(), 1);
 }
 
 #[test]
@@ -130,7 +152,7 @@ fn try_confirm_delayed_confirms() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) = set.try_confirm(
+    let (set, was_newly_confirmed) = set.try_confirm(
         Some(3),
         false,
         Some(FreshnessClassification::DelayedWithinMargin),
@@ -138,8 +160,8 @@ fn try_confirm_delayed_confirms() {
 
     // Assert
     assert!(was_newly_confirmed);
-    assert!(new_set.is_confirmed(3));
-    assert_eq!(new_set.count(), 1);
+    assert!(set.is_confirmed(3));
+    assert_eq!(set.count(), 1);
 }
 
 #[test]
@@ -161,16 +183,18 @@ fn try_confirm_multiple_distinct_indices_increment_count() {
 }
 
 #[test]
-fn try_confirm_does_not_mutate_original() {
+fn try_confirm_returns_new_value_without_mutating_input() {
     // Arrange
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (_new_set, _) = set.try_confirm(Some(0), false, Some(FreshnessClassification::Timely));
+    let (new_set, was_newly_confirmed) =
+        set.try_confirm(Some(0), false, Some(FreshnessClassification::Timely));
 
-    // Assert — original unchanged
-    assert_eq!(set.count(), 0);
-    assert!(!set.is_confirmed(0));
+    // Assert — input value consumed and returned as new_set
+    assert!(was_newly_confirmed);
+    assert!(new_set.is_confirmed(0));
+    assert_eq!(new_set.count(), 1);
 }
 
 #[test]
@@ -179,41 +203,55 @@ fn confirm_new_index_confirms() {
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (new_set, was_newly_confirmed) = set.confirm(1);
+    let (set, was_newly_confirmed) = set.confirm(1);
 
     // Assert
     assert!(was_newly_confirmed);
-    assert!(new_set.is_confirmed(1));
-    assert_eq!(new_set.count(), 1);
+    assert!(set.is_confirmed(1));
+    assert_eq!(set.count(), 1);
 }
 
 #[test]
-fn confirm_existing_index_returns_false() {
+fn confirm_existing_index_returns_no_change() {
     // Arrange
     let set = ConfirmedSet::new(5);
     let (set, _) = set.confirm(1);
     assert_eq!(set.count(), 1);
 
     // Act
-    let (new_set, was_newly_confirmed) = set.confirm(1);
+    let (set, was_newly_confirmed) = set.confirm(1);
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert!(new_set.is_confirmed(1));
-    assert_eq!(new_set.count(), 1);
+    assert!(set.is_confirmed(1));
+    assert_eq!(set.count(), 1);
 }
 
 #[test]
-fn confirm_does_not_mutate_original() {
+fn confirm_out_of_bounds_returns_no_change() {
     // Arrange
     let set = ConfirmedSet::new(5);
 
     // Act
-    let (_new_set, _) = set.confirm(1);
+    let (set, was_newly_confirmed) = set.confirm(99);
 
-    // Assert — original unchanged
+    // Assert
+    assert!(!was_newly_confirmed);
     assert_eq!(set.count(), 0);
-    assert!(!set.is_confirmed(1));
+}
+
+#[test]
+fn confirm_returns_new_value_without_mutating_input() {
+    // Arrange
+    let set = ConfirmedSet::new(5);
+
+    // Act
+    let (new_set, was_newly_confirmed) = set.confirm(1);
+
+    // Assert — input value consumed and returned as new_set
+    assert!(was_newly_confirmed);
+    assert!(new_set.is_confirmed(1));
+    assert_eq!(new_set.count(), 1);
 }
 
 #[test]
@@ -224,27 +262,27 @@ fn confirm_then_try_confirm_duplicate_returns_no_change() {
     assert_eq!(set.count(), 1);
 
     // Act
-    let (new_set, was_newly_confirmed) =
+    let (set, was_newly_confirmed) =
         set.try_confirm(Some(2), true, Some(FreshnessClassification::Timely));
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 1);
+    assert_eq!(set.count(), 1);
 }
 
 #[test]
-fn try_confirm_then_confirm_same_index_returns_false() {
+fn try_confirm_then_confirm_same_index_returns_no_change() {
     // Arrange
     let set = ConfirmedSet::new(5);
     let (set, _) = set.try_confirm(Some(0), false, Some(FreshnessClassification::Timely));
     assert_eq!(set.count(), 1);
 
     // Act
-    let (new_set, was_newly_confirmed) = set.confirm(0);
+    let (set, was_newly_confirmed) = set.confirm(0);
 
     // Assert
     assert!(!was_newly_confirmed);
-    assert_eq!(new_set.count(), 1);
+    assert_eq!(set.count(), 1);
 }
 
 #[test]

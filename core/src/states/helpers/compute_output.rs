@@ -2,9 +2,6 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use alloc::vec;
-use alloc::vec::Vec;
-
 use crate::freshness_classification::FreshnessClassification;
 use crate::vibe_output::VibeOutput;
 use crate::PeerId;
@@ -32,19 +29,20 @@ impl ObservedOutput {
         index: Option<usize>,
         classification: Option<FreshnessClassification>,
         is_dup: bool,
-    ) -> Vec<VibeOutput> {
+    ) -> VibeOutput {
         if index.is_none() {
-            vec![VibeOutput::NonMemberIgnored {
+            return VibeOutput::NonMemberIgnored {
                 peer_id: self.peer_id,
-            }]
-        } else if matches!(classification, Some(FreshnessClassification::Stale)) {
-            vec![self.stale_output()]
-        } else if is_dup {
-            vec![self.duplicate_output()]
-        } else {
-            let timely = matches!(classification, Some(FreshnessClassification::Timely));
-            vec![self.accepted_output(timely)]
+            };
         }
+        if matches!(classification, Some(FreshnessClassification::Stale)) {
+            return self.stale_output();
+        }
+        if is_dup {
+            return self.duplicate_output();
+        }
+        let timely = matches!(classification, Some(FreshnessClassification::Timely));
+        self.accepted_output(timely)
     }
 
     #[must_use]

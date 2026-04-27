@@ -17,7 +17,7 @@ use crate::vibe_transition::VibeTransition;
 pub struct Vibe {
     config: VibeConfig,
     observer: Box<dyn VibeObserver>,
-    state: Box<dyn VibeState>,
+    state: Option<Box<dyn VibeState>>,
 }
 
 impl Vibe {
@@ -26,20 +26,20 @@ impl Vibe {
         Self {
             config,
             observer,
-            state: Box::new(Initial),
+            state: Some(Box::new(Initial)),
         }
     }
 
     #[must_use]
     pub fn apply(&mut self, input: VibeInput) -> Vec<VibeOutput> {
-        if !self.state.deal(&input) {
+        if !self.state.as_ref().unwrap().deal(&input) {
             return Vec::new();
         }
 
         let previous_snapshot = self.snapshot();
-        let old_state = core::mem::replace(&mut self.state, Box::new(Initial));
+        let old_state = self.state.take().unwrap();
         let (outputs, new_state) = old_state.punch(input, &self.config);
-        self.state = new_state;
+        self.state = Some(new_state);
         let new_snapshot = self.snapshot();
         let transition = VibeTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(input, transition);
@@ -48,7 +48,10 @@ impl Vibe {
 
     #[must_use]
     pub fn snapshot(&self) -> VibeSnapshot {
-        self.state.vibe_check(self.config.quorum_threshold())
+        self.state
+            .as_ref()
+            .unwrap()
+            .vibe_check(self.config.quorum_threshold())
     }
 
     #[must_use]
