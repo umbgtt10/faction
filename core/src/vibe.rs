@@ -4,6 +4,7 @@
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::cell::Cell;
 
 use crate::states::initial::Initial;
 use crate::vibe_config::VibeConfig;
@@ -18,6 +19,7 @@ pub struct Vibe {
     config: VibeConfig,
     observer: Box<dyn VibeObserver>,
     state: Option<Box<dyn VibeState>>,
+    cached_snapshot: Cell<Option<VibeSnapshot>>,
 }
 
 impl Vibe {
@@ -27,6 +29,7 @@ impl Vibe {
             config,
             observer,
             state: Some(Box::new(Initial)),
+            cached_snapshot: Cell::new(None),
         }
     }
 
@@ -36,11 +39,30 @@ impl Vibe {
             return Vec::new();
         }
 
-        let previous_snapshot = self.snapshot();
+        let previous_snapshot = match self.cached_snapshot.get() {
+            Some(snap) => snap,
+            None => {
+                let snap = self
+                    .state
+                    .as_ref()
+                    .unwrap()
+                    .vibe_check(self.config.quorum_threshold());
+                self.cached_snapshot.set(Some(snap));
+                snap
+            }
+        };
+
         let old_state = self.state.take().unwrap();
         let (outputs, new_state) = old_state.punch(input, &self.config);
         self.state = Some(new_state);
-        let new_snapshot = self.snapshot();
+
+        let new_snapshot = self
+            .state
+            .as_ref()
+            .unwrap()
+            .vibe_check(self.config.quorum_threshold());
+        self.cached_snapshot.set(Some(new_snapshot));
+
         let transition = VibeTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(input, transition);
         outputs
@@ -48,10 +70,18 @@ impl Vibe {
 
     #[must_use]
     pub fn snapshot(&self) -> VibeSnapshot {
-        self.state
-            .as_ref()
-            .unwrap()
-            .vibe_check(self.config.quorum_threshold())
+        match self.cached_snapshot.get() {
+            Some(snap) => snap,
+            None => {
+                let snap = self
+                    .state
+                    .as_ref()
+                    .unwrap()
+                    .vibe_check(self.config.quorum_threshold());
+                self.cached_snapshot.set(Some(snap));
+                snap
+            }
+        }
     }
 
     #[must_use]
