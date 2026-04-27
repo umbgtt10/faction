@@ -396,3 +396,408 @@ fn state_transition_outputs_are_fully_observable() {
     assert_eq!(&batch4, transition4.outputs());
     assert!(transition4.new_state().readiness_exited());
 }
+
+#[test]
+fn apply_observes_stale_participation_from_initial() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let input = VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 7,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 1);
+    let (observed_input, transition) = &obs[0];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::StaleParticipationIgnored { peer_id: 1 }]
+    );
+    assert_eq!(transition.previous_state(), transition.new_state());
+    assert_eq!(transition.new_state().phase1_confirmed_count(), 0);
+    assert!(!transition.new_state().readiness_exited());
+}
+
+#[test]
+fn apply_observes_non_member_participation_from_initial() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let input = VibeInput::ParticipationObserved {
+        peer_id: 99,
+        freshness: 10,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 1);
+    let (observed_input, transition) = &obs[0];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::NonMemberIgnored { peer_id: 99 }]
+    );
+    assert_eq!(transition.previous_state(), transition.new_state());
+    assert_eq!(transition.new_state().phase1_confirmed_count(), 0);
+    assert!(!transition.new_state().readiness_exited());
+}
+
+#[test]
+fn apply_observes_stale_ready_from_initial() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let input = VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 7,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 1);
+    let (observed_input, transition) = &obs[0];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::StaleReadyIgnored { peer_id: 1 }]
+    );
+    assert_eq!(transition.previous_state(), transition.new_state());
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 0);
+    assert!(!transition.new_state().readiness_exited());
+}
+
+#[test]
+fn apply_observes_non_member_ready_from_initial() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let input = VibeInput::ReadyObserved {
+        peer_id: 99,
+        freshness: 10,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 1);
+    let (observed_input, transition) = &obs[0];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::NonMemberIgnored { peer_id: 99 }]
+    );
+    assert_eq!(transition.previous_state(), transition.new_state());
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 0);
+    assert!(!transition.new_state().readiness_exited());
+}
+
+#[test]
+fn apply_observes_duplicate_ready_from_pinging() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let input = VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 2);
+    let (observed_input, transition) = &obs[1];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::DuplicateReadyIgnored { peer_id: 1 }]
+    );
+    assert_eq!(transition.previous_state(), transition.new_state());
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 1);
+    assert_eq!(
+        transition.new_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase1Active
+    );
+}
+
+#[test]
+fn apply_observes_quorum_exit_from_pinging() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 2,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 3,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let input = VibeInput::LocalParticipationCompleted;
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 4);
+    let (observed_input, transition) = &obs[3];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[
+            VibeOutput::LocalParticipationCompleted,
+            VibeOutput::BroadcastLocalReady,
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
+                mode: ReadinessExitMode::Quorum,
+            },
+        ]
+    );
+    assert_eq!(
+        transition.previous_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase1Active
+    );
+    assert!(!transition.previous_state().local_participation_complete());
+    assert!(!transition.previous_state().readiness_exited());
+    assert_eq!(
+        transition.new_state().lifecycle_state(),
+        ReadinessLifecycleState::ReadyByQuorum
+    );
+    assert_eq!(
+        transition.new_state().exit_mode(),
+        Some(ReadinessExitMode::Quorum)
+    );
+    assert!(transition.new_state().readiness_exited());
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 4);
+}
+
+#[test]
+fn apply_observes_deadline_exit_from_pinging() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let input = VibeInput::DeadlineExpired;
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 2);
+    let (observed_input, transition) = &obs[1];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.previous_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase1Active
+    );
+    assert!(!transition.previous_state().local_participation_complete());
+    assert!(!transition.previous_state().readiness_exited());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::ReadinessExited {
+            mode: ReadinessExitMode::Deadline
+        }]
+    );
+    assert_eq!(
+        transition.new_state().lifecycle_state(),
+        ReadinessLifecycleState::ReadyByDeadline
+    );
+    assert_eq!(
+        transition.new_state().exit_mode(),
+        Some(ReadinessExitMode::Deadline)
+    );
+    assert!(transition.new_state().readiness_exited());
+    assert!(!transition.new_state().local_participation_complete());
+}
+
+#[test]
+fn apply_observes_timely_ready_from_collecting_no_quorum() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let input = VibeInput::ReadyObserved {
+        peer_id: 2,
+        freshness: 10,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 4);
+    let (observed_input, transition) = &obs[3];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::ReadyAccepted { peer_id: 2 }]
+    );
+    assert_eq!(
+        transition.previous_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase2Active
+    );
+    assert_eq!(transition.previous_state().phase2_confirmed_count(), 2);
+    assert!(!transition.previous_state().readiness_exited());
+    assert_eq!(
+        transition.new_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase2Active
+    );
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 3);
+    assert!(!transition.new_state().readiness_exited());
+}
+
+#[test]
+fn apply_observes_duplicate_ready_from_collecting() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let input = VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 4);
+    let (observed_input, transition) = &obs[3];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[VibeOutput::DuplicateReadyIgnored { peer_id: 1 }]
+    );
+    assert_eq!(transition.previous_state(), transition.new_state());
+    assert_eq!(
+        transition.new_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase2Active
+    );
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 2);
+    assert!(!transition.new_state().readiness_exited());
+}
+
+#[test]
+fn apply_observes_delayed_quorum_exit_from_collecting() {
+    // Arrange
+    let (mut coordinator, observations) = recording_coordinator();
+    let _ = coordinator.apply(VibeInput::ParticipationObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let _ = coordinator.apply(VibeInput::LocalParticipationCompleted);
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 1,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let _ = coordinator.apply(VibeInput::ReadyObserved {
+        peer_id: 2,
+        freshness: 10,
+        current_marker: 10,
+    });
+    let input = VibeInput::ReadyObserved {
+        peer_id: 3,
+        freshness: 8,
+        current_marker: 10,
+    };
+
+    // Act
+    let outputs = coordinator.apply(input);
+
+    // Assert
+    let obs = observations.borrow();
+    assert_eq!(obs.len(), 5);
+    let (observed_input, transition) = &obs[4];
+    assert_eq!(*observed_input, input);
+    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(
+        transition.outputs(),
+        &[
+            VibeOutput::DelayedReadyAccepted { peer_id: 3 },
+            VibeOutput::ReadyQuorumReached,
+            VibeOutput::ReadinessExited {
+                mode: ReadinessExitMode::Quorum,
+            },
+        ]
+    );
+    assert_eq!(
+        transition.previous_state().lifecycle_state(),
+        ReadinessLifecycleState::Phase2Active
+    );
+    assert_eq!(transition.previous_state().phase2_confirmed_count(), 3);
+    assert!(!transition.previous_state().readiness_exited());
+    assert_eq!(
+        transition.new_state().lifecycle_state(),
+        ReadinessLifecycleState::ReadyByQuorum
+    );
+    assert_eq!(
+        transition.new_state().exit_mode(),
+        Some(ReadinessExitMode::Quorum)
+    );
+    assert!(transition.new_state().readiness_exited());
+    assert_eq!(transition.new_state().phase2_confirmed_count(), 4);
+}

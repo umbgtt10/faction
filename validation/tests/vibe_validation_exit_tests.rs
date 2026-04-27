@@ -177,3 +177,53 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     assert_eq!(snapshot_2.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(snapshot_2.readiness_exited());
 }
+
+#[test]
+fn deadline_from_phase1() {
+    // Arrange
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    harness.advance_to(10);
+    let _ = harness.apply_participation(0, 1, 10);
+
+    // Act
+    let outputs = harness.expire_deadline(0);
+    let snapshot = harness.snapshot(0);
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![VibeOutput::ReadinessExited {
+            mode: ReadinessExitMode::Deadline,
+        }]
+    );
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(
+        snapshot.lifecycle_state(),
+        ReadinessLifecycleState::ReadyByDeadline
+    );
+    assert!(snapshot.readiness_exited());
+    assert!(!snapshot.local_participation_complete());
+    assert_eq!(snapshot.phase1_confirmed_count(), 1);
+    assert_eq!(snapshot.phase2_confirmed_count(), 0);
+}
+
+#[test]
+fn deadline_from_ready_by_quorum_is_noop() {
+    // Arrange
+    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    harness.advance_to(10);
+    let _ = harness.complete_local_participation(0);
+    let _ = harness.apply_ready(0, 1, 10);
+    let _ = harness.apply_ready(0, 2, 10);
+    let _ = harness.apply_ready(0, 3, 10);
+
+    // Act
+    let outputs = harness.expire_deadline(0);
+    let snapshot = harness.snapshot(0);
+
+    // Assert
+    assert!(outputs.is_empty());
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.phase2_confirmed_count(), 4);
+    assert!(snapshot.readiness_exited());
+}
