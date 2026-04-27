@@ -11,10 +11,13 @@ use faction::freshness_policy::FreshnessPolicy;
 use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_input::MachineInput;
+use faction::machine_snapshot::MachineSnapshot;
 use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::state_snapshot::StateSnapshot;
+use faction::states::ready_by_deadline::ReadyByDeadline;
 
 fn make_machine() -> Machine {
     Machine::new(
@@ -154,4 +157,60 @@ fn post_deadline_inputs_leave_state_unchanged() {
     let _ = m.apply(MachineInput::DeadlineExpired);
 
     assert_eq!(m.snapshot(), snapshot_before);
+}
+
+#[test]
+fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
+    let rbd = ReadyByDeadline {
+        phase1_count: 3,
+        phase2_count: 1,
+    };
+    let prev = MachineSnapshot::new(
+        ReadinessLifecycleState::Phase1Active,
+        Some(ReadinessExitMode::Deadline),
+        false,
+        false,
+        99,
+        99,
+        4,
+    );
+    let result = rbd.state_snapshot(&prev);
+    assert_eq!(
+        result.lifecycle_state(),
+        ReadinessLifecycleState::ReadyByDeadline
+    );
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert!(result.readiness_exited());
+    assert!(!result.local_participation_complete());
+    assert_eq!(result.phase1_confirmed_count(), 3);
+    assert_eq!(result.phase2_confirmed_count(), 1);
+    assert_eq!(result.quorum_threshold(), 4);
+}
+
+#[test]
+fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase2() {
+    let rbd = ReadyByDeadline {
+        phase1_count: 2,
+        phase2_count: 4,
+    };
+    let prev = MachineSnapshot::new(
+        ReadinessLifecycleState::Phase2Active,
+        Some(ReadinessExitMode::Deadline),
+        true,
+        false,
+        99,
+        99,
+        4,
+    );
+    let result = rbd.state_snapshot(&prev);
+    assert_eq!(
+        result.lifecycle_state(),
+        ReadinessLifecycleState::ReadyByDeadline
+    );
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert!(result.readiness_exited());
+    assert!(result.local_participation_complete());
+    assert_eq!(result.phase1_confirmed_count(), 2);
+    assert_eq!(result.phase2_confirmed_count(), 4);
+    assert_eq!(result.quorum_threshold(), 4);
 }

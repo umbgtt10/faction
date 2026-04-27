@@ -12,10 +12,13 @@ use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_input::MachineInput;
 use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
 use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::state_snapshot::StateSnapshot;
+use faction::states::pinging::Pinging;
 
 const PEER_SET: &[u64] = &[0, 1, 2, 3, 4];
 const THRESHOLD: usize = 4;
@@ -376,4 +379,33 @@ fn vibe_check_in_phase1() {
     assert_eq!(snap.phase1_confirmed_count(), 1);
     assert_eq!(snap.phase2_confirmed_count(), 0);
     assert_eq!(snap.quorum_threshold(), THRESHOLD);
+}
+
+#[test]
+fn pinging_state_snapshot_inherits_correctly() {
+    // Arrange
+    let pinging = Pinging::new(5);
+    let prev = MachineSnapshot::new(
+        ReadinessLifecycleState::Phase2Active,
+        Some(ReadinessExitMode::Deadline),
+        true,
+        true,
+        99,
+        99,
+        4,
+    );
+
+    // Act
+    let result = pinging.state_snapshot(&prev);
+
+    // Assert
+    assert_eq!(
+        result.lifecycle_state(),
+        ReadinessLifecycleState::Phase1Active
+    );
+    assert_eq!(result.phase1_confirmed_count(), 0);
+    assert_eq!(result.phase2_confirmed_count(), 0);
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert!(result.local_participation_complete());
+    assert!(result.readiness_exited());
 }

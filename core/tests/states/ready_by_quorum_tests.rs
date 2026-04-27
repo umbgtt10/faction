@@ -11,10 +11,13 @@ use faction::freshness_policy::FreshnessPolicy;
 use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_input::MachineInput;
+use faction::machine_snapshot::MachineSnapshot;
 use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::state_snapshot::StateSnapshot;
+use faction::states::ready_by_quorum::ReadyByQuorum;
 
 fn reach_ready_by_quorum() -> Machine {
     let mut machine = Machine::new(
@@ -111,4 +114,32 @@ fn vibe_check_returns_correct_snapshot() {
     assert_eq!(snapshot.phase1_confirmed_count(), 1);
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert_eq!(snapshot.quorum_threshold(), 4);
+}
+
+#[test]
+fn ready_by_quorum_state_snapshot_overrides_all_fields() {
+    let rq = ReadyByQuorum {
+        phase1_count: 2,
+        phase2_count: 5,
+    };
+    let prev = MachineSnapshot::new(
+        ReadinessLifecycleState::Phase1Active,
+        None,
+        false,
+        false,
+        99,
+        99,
+        4,
+    );
+    let result = rq.state_snapshot(&prev);
+    assert_eq!(
+        result.lifecycle_state(),
+        ReadinessLifecycleState::ReadyByQuorum
+    );
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert!(result.local_participation_complete());
+    assert!(result.readiness_exited());
+    assert_eq!(result.phase1_confirmed_count(), 2);
+    assert_eq!(result.phase2_confirmed_count(), 5);
+    assert_eq!(result.quorum_threshold(), 4);
 }

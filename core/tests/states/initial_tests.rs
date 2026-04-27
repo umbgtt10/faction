@@ -11,11 +11,15 @@ use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_input::MachineInput;
 use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
+use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::state_snapshot::StateSnapshot;
+use faction::states::initial::Initial;
 
 fn test_machine() -> Machine {
     Machine::new(
@@ -140,7 +144,10 @@ fn punch_participation_non_member_from_initial() {
         current_marker: 10,
     });
     let snap = machine.snapshot();
-    assert_eq!(outputs, vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(
+        outputs,
+        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
+    );
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(
         snap.lifecycle_state(),
@@ -173,7 +180,10 @@ fn punch_ready_non_member_from_initial() {
         current_marker: 10,
     });
     let snap = machine.snapshot();
-    assert_eq!(outputs, vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(
+        outputs,
+        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
+    );
     assert_eq!(snap.phase2_confirmed_count(), 0);
 }
 
@@ -191,4 +201,27 @@ fn vibe_check_returns_phase1_active_with_zeros() {
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(snap.phase2_confirmed_count(), 0);
     assert_eq!(snap.quorum_threshold(), 4);
+}
+
+#[test]
+fn initial_state_snapshot_inherits_correctly() {
+    let prev = MachineSnapshot::new(
+        ReadinessLifecycleState::Phase2Active,
+        Some(ReadinessExitMode::Deadline),
+        true,
+        true,
+        99,
+        99,
+        4,
+    );
+    let result = Initial.state_snapshot(&prev);
+    assert_eq!(
+        result.lifecycle_state(),
+        ReadinessLifecycleState::Phase1Active
+    );
+    assert_eq!(result.phase1_confirmed_count(), 0);
+    assert_eq!(result.phase2_confirmed_count(), 0);
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert!(result.local_participation_complete());
+    assert!(result.readiness_exited());
 }

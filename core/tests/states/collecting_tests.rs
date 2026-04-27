@@ -8,14 +8,18 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_machine_observer::NoOpMachineObserver;
-use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_input::MachineInput;
 use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
+use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::quorum_policy::QuorumPolicy;
+use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::state_snapshot::StateSnapshot;
+use faction::states::collecting::Collecting;
+use faction::states::helpers::confirmed_set::ConfirmedSet;
 use faction::Freshness;
 use faction::PeerId;
 
@@ -171,7 +175,10 @@ fn ready_non_member_rejected() {
     let outputs = v.apply(ready(99, TIMELY));
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(
+        outputs,
+        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
+    );
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -185,7 +192,10 @@ fn ready_stale_rejected() {
     let outputs = v.apply(ready(1, STALE));
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::StaleReadyIgnored { peer_id: 1 }]);
+    assert_eq!(
+        outputs,
+        vec![MachineOutput::StaleReadyIgnored { peer_id: 1 }]
+    );
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -326,7 +336,9 @@ fn local_completion_in_phase2_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v.apply(MachineInput::LocalParticipationCompleted).is_empty());
+    assert!(v
+        .apply(MachineInput::LocalParticipationCompleted)
+        .is_empty());
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -379,4 +391,34 @@ fn vibe_check_returns_correct_snapshot() {
     assert_eq!(snap.phase1_confirmed_count(), 1);
     assert_eq!(snap.phase2_confirmed_count(), 1);
     assert_eq!(snap.quorum_threshold(), 4);
+}
+
+#[test]
+fn collecting_state_snapshot_inherits_correctly() {
+    let phase2 = ConfirmedSet::new(5);
+    let (phase2, _) = phase2.confirm(1);
+    let (phase2, _) = phase2.confirm(3);
+    let collecting = Collecting {
+        phase2,
+        phase1_count: 2,
+    };
+    let prev = MachineSnapshot::new(
+        ReadinessLifecycleState::Phase1Active,
+        Some(ReadinessExitMode::Deadline),
+        false,
+        true,
+        99,
+        99,
+        4,
+    );
+    let result = collecting.state_snapshot(&prev);
+    assert_eq!(
+        result.lifecycle_state(),
+        ReadinessLifecycleState::Phase2Active
+    );
+    assert!(result.local_participation_complete());
+    assert_eq!(result.phase1_confirmed_count(), 2);
+    assert_eq!(result.phase2_confirmed_count(), 2);
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert!(result.readiness_exited());
 }
