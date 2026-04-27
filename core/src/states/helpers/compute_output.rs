@@ -27,7 +27,7 @@ impl ObservedOutput {
     }
 
     #[must_use]
-    pub fn compute(
+    pub fn compute_output(
         &self,
         index: Option<usize>,
         classification: Option<FreshnessClassification>,

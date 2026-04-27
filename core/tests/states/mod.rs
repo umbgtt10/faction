@@ -1,4 +1,5 @@
 pub mod collecting_tests;
+pub mod helpers;
 pub mod initial_tests;
 pub mod pinging_tests;
 pub mod ready_by_deadline_tests;

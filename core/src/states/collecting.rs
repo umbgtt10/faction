@@ -15,7 +15,7 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
-use super::compute;
+use super::helpers::compute_output;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
@@ -70,8 +70,11 @@ impl VibeState for Collecting {
                 });
                 let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let calc = compute::ObservedOutput::new(compute::ObservedKind::Ready, peer_id);
-                let outputs = calc.compute(index, classification, is_dup);
+                let calc = compute_output::ObservedOutput::new(
+                    compute_output::ObservedKind::Ready,
+                    peer_id,
+                );
+                let outputs = calc.compute_output(index, classification, is_dup);
 
                 let (confirmed_new, new_phase2_confirmed, new_phase2_confirmed_count) =
                     match (index, is_dup, classification) {
