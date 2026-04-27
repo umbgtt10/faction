@@ -70,13 +70,9 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase1_confirmed[i]);
 
-                let outputs = compute::observed_output(
-                    compute::ObservedKind::Participation,
-                    peer_id,
-                    index,
-                    classification,
-                    is_dup,
-                );
+                let calc =
+                    compute::ObservedOutput::new(compute::ObservedKind::Participation, peer_id);
+                let outputs = calc.compute(index, classification, is_dup);
 
                 let (new_phase1_confirmed, new_phase1_confirmed_count) =
                     match (index, is_dup, classification) {
@@ -117,13 +113,8 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let outputs = compute::observed_output(
-                    compute::ObservedKind::Ready,
-                    peer_id,
-                    index,
-                    classification,
-                    is_dup,
-                );
+                let calc = compute::ObservedOutput::new(compute::ObservedKind::Ready, peer_id);
+                let outputs = calc.compute(index, classification, is_dup);
 
                 let (new_phase2_confirmed, new_phase2_confirmed_count) =
                     match (index, is_dup, classification) {
@@ -170,15 +161,13 @@ impl VibeState for Pinging {
                         phase2_confirmed_count + 1,
                     )
                 };
-                phase2_confirmed = new_phase2_confirmed;
-                phase2_confirmed_count = new_phase2_confirmed_count;
 
                 let outputs = vec![
                     VibeOutput::LocalParticipationCompleted,
                     VibeOutput::BroadcastLocalReady,
                 ];
 
-                let quorum = phase2_confirmed_count >= config.quorum_threshold();
+                let quorum = new_phase2_confirmed_count >= config.quorum_threshold();
                 let outputs = if quorum {
                     let mut extended = outputs;
                     extended.push(VibeOutput::ReadyQuorumReached);
@@ -189,6 +178,10 @@ impl VibeState for Pinging {
                 } else {
                     outputs
                 };
+
+                phase2_confirmed = new_phase2_confirmed;
+                phase2_confirmed_count = new_phase2_confirmed_count;
+
                 let new_state: Box<dyn VibeState> = if quorum {
                     Box::new(ReadyByQuorum {
                         phase1_confirmed,

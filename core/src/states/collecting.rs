@@ -70,13 +70,8 @@ impl VibeState for Collecting {
                 });
                 let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let outputs = compute::observed_output(
-                    compute::ObservedKind::Ready,
-                    peer_id,
-                    index,
-                    classification,
-                    is_dup,
-                );
+                let calc = compute::ObservedOutput::new(compute::ObservedKind::Ready, peer_id);
+                let outputs = calc.compute(index, classification, is_dup);
 
                 let (confirmed_new, new_phase2_confirmed, new_phase2_confirmed_count) =
                     match (index, is_dup, classification) {
