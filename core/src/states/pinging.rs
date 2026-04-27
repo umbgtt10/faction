@@ -16,6 +16,7 @@ use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
 use super::collecting::Collecting;
+use super::compute;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
@@ -69,8 +70,8 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase1_confirmed[i]);
 
-                let outputs = super::compute::observed_output(
-                    super::compute::ObservedKind::Participation,
+                let outputs = compute::observed_output(
+                    compute::ObservedKind::Participation,
                     peer_id,
                     index,
                     classification,
@@ -108,8 +109,8 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let outputs = super::compute::observed_output(
-                    super::compute::ObservedKind::Ready,
+                let outputs = compute::observed_output(
+                    compute::ObservedKind::Ready,
                     peer_id,
                     index,
                     classification,
