@@ -37,10 +37,6 @@ impl Pinging {
 }
 
 impl VibeState for Pinging {
-    fn deal(&self, _input: &VibeInput) -> bool {
-        true
-    }
-
     fn punch(
         self: Box<Self>,
         input: VibeInput,

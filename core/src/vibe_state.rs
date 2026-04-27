@@ -19,5 +19,7 @@ pub trait VibeState {
 
     fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot;
 
-    fn deal(&self, input: &VibeInput) -> bool;
+    fn deal(&self, _input: &VibeInput) -> bool {
+        true
+    }
 }

@@ -42,7 +42,7 @@ impl VibeState for Collecting {
 
         match input {
             VibeInput::ParticipationObserved { .. } => {
-                (Vec::new(), Box::new(Self { phase1, phase2 }))
+                unreachable!("deal() rejects this input for Collecting")
             }
 
             VibeInput::ReadyObserved {
@@ -88,7 +88,7 @@ impl VibeState for Collecting {
             }
 
             VibeInput::LocalParticipationCompleted => {
-                (Vec::new(), Box::new(Self { phase1, phase2 }))
+                unreachable!("deal() rejects this input for Collecting")
             }
 
             VibeInput::DeadlineExpired => (

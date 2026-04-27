@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
-use alloc::vec;
+
 use alloc::vec::Vec;
 
 use crate::readiness_exit_mode::ReadinessExitMode;
@@ -25,34 +25,10 @@ pub struct ReadyByDeadline {
 impl VibeState for ReadyByDeadline {
     fn punch(
         self: Box<Self>,
-        input: VibeInput,
+        _input: VibeInput,
         _config: &VibeConfig,
     ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        let Self {
-            phase1,
-            phase2,
-            local_participation_complete,
-        } = *self;
-
-        let output = match input {
-            VibeInput::ParticipationObserved { peer_id, .. } => {
-                vec![VibeOutput::StaleParticipationIgnored { peer_id }]
-            }
-            VibeInput::ReadyObserved { peer_id, .. } => {
-                vec![VibeOutput::StaleReadyIgnored { peer_id }]
-            }
-            VibeInput::LocalParticipationCompleted => Vec::new(),
-            VibeInput::DeadlineExpired => Vec::new(),
-        };
-
-        (
-            output,
-            Box::new(Self {
-                phase1,
-                phase2,
-                local_participation_complete,
-            }),
-        )
+        unreachable!("deal() rejects all inputs for this state")
     }
 
     fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {

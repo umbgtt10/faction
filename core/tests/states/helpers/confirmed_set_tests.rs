@@ -183,7 +183,7 @@ fn try_confirm_multiple_distinct_indices_increment_count() {
 }
 
 #[test]
-fn try_confirm_returns_new_value_without_mutating_input() {
+fn try_confirm_does_not_mutate_original() {
     // Arrange
     let set = ConfirmedSet::new(5);
 
@@ -191,10 +191,12 @@ fn try_confirm_returns_new_value_without_mutating_input() {
     let (new_set, was_newly_confirmed) =
         set.try_confirm(Some(0), false, Some(FreshnessClassification::Timely));
 
-    // Assert — input value consumed and returned as new_set
+    // Assert — original unchanged
     assert!(was_newly_confirmed);
     assert!(new_set.is_confirmed(0));
     assert_eq!(new_set.count(), 1);
+    assert_eq!(set.count(), 0);
+    assert!(!set.is_confirmed(0));
 }
 
 #[test]
@@ -241,17 +243,19 @@ fn confirm_out_of_bounds_returns_no_change() {
 }
 
 #[test]
-fn confirm_returns_new_value_without_mutating_input() {
+fn confirm_does_not_mutate_original() {
     // Arrange
     let set = ConfirmedSet::new(5);
 
     // Act
     let (new_set, was_newly_confirmed) = set.confirm(1);
 
-    // Assert — input value consumed and returned as new_set
+    // Assert — original unchanged
     assert!(was_newly_confirmed);
     assert!(new_set.is_confirmed(1));
     assert_eq!(new_set.count(), 1);
+    assert_eq!(set.count(), 0);
+    assert!(!set.is_confirmed(1));
 }
 
 #[test]

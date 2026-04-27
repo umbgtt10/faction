@@ -33,13 +33,12 @@ impl ConfirmedSet {
 
     #[must_use]
     pub fn try_confirm(
-        self,
+        &self,
         index: Option<usize>,
         is_dup: bool,
         classification: Option<FreshnessClassification>,
     ) -> (Self, bool) {
         match (index, is_dup, classification) {
-            (None, _, _) => (self, false),
             (Some(i), false, Some(c))
                 if c != FreshnessClassification::Stale && i < self.flags.len() =>
             {
@@ -53,14 +52,14 @@ impl ConfirmedSet {
                     true,
                 )
             }
-            _ => (self, false),
+            _ => (self.clone(), false),
         }
     }
 
     #[must_use]
-    pub fn confirm(self, index: usize) -> (Self, bool) {
+    pub fn confirm(&self, index: usize) -> (Self, bool) {
         match self.flags.get(index) {
-            None | Some(true) => (self, false),
+            None | Some(true) => (self.clone(), false),
             Some(false) => {
                 let mut new_flags = self.flags.clone();
                 new_flags[index] = true;
