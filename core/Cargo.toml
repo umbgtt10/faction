@@ -7,11 +7,11 @@ license = "Apache-2.0"
 description = "A no_std + alloc, protocol-independent cluster readiness state machine for startup coordination and readiness quorum tracking."
 repository = "https://github.com/umbgtt10/etheram-ibft"
 homepage = "https://github.com/umbgtt10/etheram-ibft"
-documentation = "https://docs.rs/cluster-readiness"
+documentation = "https://docs.rs/faction"
 readme = "../README.md"
 keywords = ["cluster", "readiness", "distributed", "consensus", "no-std"]
 categories = ["no-std", "algorithms", "network-programming"]
-publish = false
+
 autotests = false
 
 [features]
