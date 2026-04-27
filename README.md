@@ -1,6 +1,6 @@
 # faction
 
-**A `no_std`, 0-unsafe Mealy machine for distributed systems bootstrapping.**
+**A `no_std`, 0-unsafe Mealy machine for two-phase cluster readiness coordination.**
 
 faction is a protocol-agnostic state machine primitive that answers one question:  
 *"When is the cluster ready to proceed?"*
@@ -87,6 +87,13 @@ let outputs = machine.apply(MachineInput::ParticipationObserved {
     current_marker: 10,
 });
 ```
+
+---
+
+## Roadmap
+
+The project is building toward full dynamic membership across five phases.
+See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
 
 ---
 
