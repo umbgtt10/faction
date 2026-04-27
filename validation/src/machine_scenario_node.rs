@@ -5,20 +5,20 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_observer::MachineObserver;
 use faction::machine_output::MachineOutput;
 use faction::machine_snapshot::MachineSnapshot;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::PeerId;
 
-pub struct VibeScenarioNode {
+pub struct MachineScenarioNode {
     peer_id: PeerId,
     readiness: Machine,
 }
 
-impl VibeScenarioNode {
+impl MachineScenarioNode {
     #[must_use]
     pub fn new(peer_id: PeerId, config: MachineConfig) -> Self {
         Self {

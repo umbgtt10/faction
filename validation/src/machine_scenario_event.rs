@@ -6,7 +6,7 @@ use faction::Freshness;
 use faction::PeerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VibeScenarioEvent {
+pub enum MachineScenarioEvent {
     ParticipationObserved {
         target_peer_id: PeerId,
         source_peer_id: PeerId,
