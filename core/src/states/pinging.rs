@@ -152,43 +152,45 @@ impl VibeState for Pinging {
                 let local_index = config
                     .peer_index(config.local_peer_id())
                     .expect("local peer must be in peer set");
-
-                if !phase2_confirmed[local_index] {
-                    phase2_confirmed[local_index] = true;
-                    phase2_confirmed_count += 1;
-                }
+                let already_confirmed = phase2_confirmed[local_index];
 
                 let outputs = vec![
                     VibeOutput::LocalParticipationCompleted,
                     VibeOutput::BroadcastLocalReady,
                 ];
 
-                if phase2_confirmed_count >= config.quorum_threshold() {
-                    let mut emitted = outputs;
-                    emitted.push(VibeOutput::ReadyQuorumReached);
-                    emitted.push(VibeOutput::ReadinessExited {
+                if !already_confirmed {
+                    phase2_confirmed[local_index] = true;
+                    phase2_confirmed_count += 1;
+                }
+
+                let quorum = phase2_confirmed_count >= config.quorum_threshold();
+                let outputs = if quorum {
+                    let mut extended = outputs;
+                    extended.push(VibeOutput::ReadyQuorumReached);
+                    extended.push(VibeOutput::ReadinessExited {
                         mode: ReadinessExitMode::Quorum,
                     });
-                    (
-                        emitted,
-                        Box::new(ReadyByQuorum {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    )
+                    extended
                 } else {
-                    (
-                        outputs,
-                        Box::new(Collecting {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    )
-                }
+                    outputs
+                };
+                let new_state: Box<dyn VibeState> = if quorum {
+                    Box::new(ReadyByQuorum {
+                        phase1_confirmed,
+                        phase2_confirmed,
+                        phase1_confirmed_count,
+                        phase2_confirmed_count,
+                    })
+                } else {
+                    Box::new(Collecting {
+                        phase1_confirmed,
+                        phase2_confirmed,
+                        phase1_confirmed_count,
+                        phase2_confirmed_count,
+                    })
+                };
+                (outputs, new_state)
             }
 
             VibeInput::DeadlineExpired => (
