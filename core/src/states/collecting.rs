@@ -61,94 +61,69 @@ impl VibeState for Collecting {
                 freshness,
                 current_marker,
             } => {
-                if !config.is_member(peer_id) {
-                    return (
-                        vec![VibeOutput::NonMemberIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                }
+                let index = config.peer_index(peer_id);
+                let classification = index.map(|_| {
+                    config
+                        .freshness_policy()
+                        .classify(current_marker, freshness)
+                });
+                let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let classification = config
-                    .freshness_policy()
-                    .classify(current_marker, freshness);
-
-                if classification == FreshnessClassification::Stale {
-                    return (
-                        vec![VibeOutput::StaleReadyIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                }
-
-                let Some(index) = config.peer_index(peer_id) else {
-                    return (
-                        vec![VibeOutput::NonMemberIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
+                let outputs = if index.is_none() {
+                    vec![VibeOutput::NonMemberIgnored { peer_id }]
+                } else if matches!(classification, Some(FreshnessClassification::Stale)) {
+                    vec![VibeOutput::StaleReadyIgnored { peer_id }]
+                } else if is_dup {
+                    vec![VibeOutput::DuplicateReadyIgnored { peer_id }]
+                } else {
+                    let timely = matches!(classification, Some(FreshnessClassification::Timely));
+                    vec![if timely {
+                        VibeOutput::ReadyAccepted { peer_id }
+                    } else {
+                        VibeOutput::DelayedReadyAccepted { peer_id }
+                    }]
                 };
 
-                if phase2_confirmed[index] {
-                    return (
-                        vec![VibeOutput::DuplicateReadyIgnored { peer_id }],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    );
-                }
-
-                phase2_confirmed[index] = true;
-                phase2_confirmed_count += 1;
-
-                let accepted_output = if matches!(classification, FreshnessClassification::Timely) {
-                    VibeOutput::ReadyAccepted { peer_id }
+                let confirmed_new = if let Some(i) = index {
+                    if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {
+                        phase2_confirmed[i] = true;
+                        phase2_confirmed_count += 1;
+                        true
+                    } else {
+                        false
+                    }
                 } else {
-                    VibeOutput::DelayedReadyAccepted { peer_id }
+                    false
                 };
 
-                if phase2_confirmed_count >= config.quorum_threshold() {
-                    (
-                        vec![
-                            accepted_output,
-                            VibeOutput::ReadyQuorumReached,
-                            VibeOutput::ReadinessExited {
-                                mode: ReadinessExitMode::Quorum,
-                            },
-                        ],
-                        Box::new(ReadyByQuorum {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    )
+                let quorum = confirmed_new && phase2_confirmed_count >= config.quorum_threshold();
+                let outputs = if quorum {
+                    vec![
+                        outputs[0],
+                        VibeOutput::ReadyQuorumReached,
+                        VibeOutput::ReadinessExited {
+                            mode: ReadinessExitMode::Quorum,
+                        },
+                    ]
                 } else {
-                    (
-                        vec![accepted_output],
-                        Box::new(Self {
-                            phase1_confirmed,
-                            phase2_confirmed,
-                            phase1_confirmed_count,
-                            phase2_confirmed_count,
-                        }),
-                    )
-                }
+                    outputs
+                };
+                let new_state: Box<dyn VibeState> = if quorum {
+                    Box::new(ReadyByQuorum {
+                        phase1_confirmed,
+                        phase2_confirmed,
+                        phase1_confirmed_count,
+                        phase2_confirmed_count,
+                    })
+                } else {
+                    Box::new(Self {
+                        phase1_confirmed,
+                        phase2_confirmed,
+                        phase1_confirmed_count,
+                        phase2_confirmed_count,
+                    })
+                };
+                (outputs, new_state)
             }
 
             VibeInput::LocalParticipationCompleted => (
