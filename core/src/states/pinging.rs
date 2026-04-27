@@ -158,15 +158,25 @@ impl VibeState for Pinging {
                     .expect("local peer must be in peer set");
                 let already_confirmed = phase2_confirmed[local_index];
 
+                let (new_phase2_confirmed, new_phase2_confirmed_count) = if already_confirmed {
+                    (phase2_confirmed, phase2_confirmed_count)
+                } else {
+                    (
+                        phase2_confirmed
+                            .iter()
+                            .enumerate()
+                            .map(|(i, &v)| i == local_index || v)
+                            .collect(),
+                        phase2_confirmed_count + 1,
+                    )
+                };
+                phase2_confirmed = new_phase2_confirmed;
+                phase2_confirmed_count = new_phase2_confirmed_count;
+
                 let outputs = vec![
                     VibeOutput::LocalParticipationCompleted,
                     VibeOutput::BroadcastLocalReady,
                 ];
-
-                if !already_confirmed {
-                    phase2_confirmed[local_index] = true;
-                    phase2_confirmed_count += 1;
-                }
 
                 let quorum = phase2_confirmed_count >= config.quorum_threshold();
                 let outputs = if quorum {

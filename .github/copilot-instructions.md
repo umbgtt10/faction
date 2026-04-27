@@ -53,3 +53,15 @@ Specifically:
 - use `// Arrange & Act` if there is no separate `Arrange`
 - use `// Act & Assert` if there is no separate `Act`
 - add the repository copyright and license header to every Rust source file
+
+### State transition model
+
+Every `punch` arm MUST follow this exact pipeline in order:
+
+1. **predicates** — pre-compute all branch-determining values (e.g. `index`, `classification`, `is_dup`)
+2. **outputs** — compute the output vector via a pure function (`compute::observed_output(...)`) or equivalent
+3. **new_state** — compute the new state values via a pure `match` expression that returns a tuple, with NO mutation inside the match arms (use `iter().enumerate().map().collect()` instead of `let mut v = ...; v[i] = true`)
+4. **mutation** — assign the computed values back to the working variables (e.g. `phase1_confirmed = new_phase1_confirmed;`)
+5. **single return** — exactly one `(outputs, Box::new(Self { ... }))` expression per arm
+
+Violations of this model (early returns, mutation inside match arms, multiple exit points) are not acceptable.
