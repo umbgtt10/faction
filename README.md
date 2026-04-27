@@ -135,4 +135,5 @@ Licensed under the MIT License. See [LICENSE](./LICENSE).
 
 - [CHANGELOG](./CHANGELOG.md) — project history
 - [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) — community guidelines
+- [DONATE](./DONATE.md) — support the project
 - [ROADMAP](./docs/ROADMAP.md) — future plans

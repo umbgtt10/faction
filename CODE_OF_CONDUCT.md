@@ -1,4 +1,4 @@
-# EtheRAM Code of Conduct
+# Faction Code of Conduct
 
 ## Purpose
 
