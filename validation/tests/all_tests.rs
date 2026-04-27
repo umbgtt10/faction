@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+pub mod convergence_tests;
 pub mod machine_validation_exit_tests;
 pub mod machine_validation_harness_tests;
 pub mod machine_validation_participation_tests;

@@ -1,0 +1,58 @@
+// Copyright 2025 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the Apache License, Version 2.0
+// http://www.apache.org/licenses/LICENSE-2.0
+
+extern crate alloc;
+
+use faction::readiness_exit_mode::ReadinessExitMode;
+use faction_validation::cluster_simulation::ClusterSimulation;
+
+#[test]
+fn five_nodes_converge_on_quorum() {
+    let mut sim = ClusterSimulation::new(5, 4, 2);
+    sim.advance_to(10);
+
+    for peer in 1..5 {
+        sim.inject_participation(peer, 10);
+    }
+
+    for peer in 0..5 {
+        sim.complete_local(peer);
+    }
+
+    assert!(sim.all_exited_with(ReadinessExitMode::Quorum));
+}
+
+#[test]
+fn not_enough_signals_triggers_deadline() {
+    let mut sim = ClusterSimulation::new(5, 4, 2);
+    sim.advance_to(10);
+
+    sim.inject_participation(1, 10);
+    sim.complete_local(0);
+    sim.inject_ready(1, 10);
+
+    for peer in 0..5 {
+        sim.expire_deadline(peer);
+    }
+
+    assert!(sim.all_exited_with(ReadinessExitMode::Deadline));
+}
+
+#[test]
+fn duplicate_signals_dont_disrupt_convergence() {
+    let mut sim = ClusterSimulation::new(5, 4, 2);
+    sim.advance_to(10);
+
+    for peer in 1..5 {
+        sim.inject_participation(peer, 10);
+        sim.inject_participation(peer, 10);
+    }
+
+    for peer in 0..5 {
+        sim.complete_local(peer);
+    }
+
+    assert!(sim.pending_count() == 0);
+    assert!(sim.all_exited_with(ReadinessExitMode::Quorum));
+}
