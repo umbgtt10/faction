@@ -15,6 +15,7 @@ use crate::vibe_output::VibeOutput;
 use crate::vibe_snapshot::VibeSnapshot;
 use crate::vibe_state::VibeState;
 
+use super::compute;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 
@@ -69,20 +70,13 @@ impl VibeState for Collecting {
                 });
                 let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let outputs = if index.is_none() {
-                    vec![VibeOutput::NonMemberIgnored { peer_id }]
-                } else if matches!(classification, Some(FreshnessClassification::Stale)) {
-                    vec![VibeOutput::StaleReadyIgnored { peer_id }]
-                } else if is_dup {
-                    vec![VibeOutput::DuplicateReadyIgnored { peer_id }]
-                } else {
-                    let timely = matches!(classification, Some(FreshnessClassification::Timely));
-                    vec![if timely {
-                        VibeOutput::ReadyAccepted { peer_id }
-                    } else {
-                        VibeOutput::DelayedReadyAccepted { peer_id }
-                    }]
-                };
+                let outputs = compute::observed_output(
+                    compute::ObservedKind::Ready,
+                    peer_id,
+                    index,
+                    classification,
+                    is_dup,
+                );
 
                 let confirmed_new = if let Some(i) = index {
                     if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {

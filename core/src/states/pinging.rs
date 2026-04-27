@@ -69,20 +69,13 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase1_confirmed[i]);
 
-                let outputs = if index.is_none() {
-                    vec![VibeOutput::NonMemberIgnored { peer_id }]
-                } else if matches!(classification, Some(FreshnessClassification::Stale)) {
-                    vec![VibeOutput::StaleParticipationIgnored { peer_id }]
-                } else if is_dup {
-                    vec![VibeOutput::DuplicateParticipationIgnored { peer_id }]
-                } else {
-                    let timely = matches!(classification, Some(FreshnessClassification::Timely));
-                    vec![if timely {
-                        VibeOutput::ParticipationAccepted { peer_id }
-                    } else {
-                        VibeOutput::DelayedParticipationAccepted { peer_id }
-                    }]
-                };
+                let outputs = super::compute::observed_output(
+                    super::compute::ObservedKind::Participation,
+                    peer_id,
+                    index,
+                    classification,
+                    is_dup,
+                );
 
                 if let Some(i) = index {
                     if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {
@@ -115,20 +108,13 @@ impl VibeState for Pinging {
                 });
                 let is_dup = index.is_some_and(|i| phase2_confirmed[i]);
 
-                let outputs = if index.is_none() {
-                    vec![VibeOutput::NonMemberIgnored { peer_id }]
-                } else if matches!(classification, Some(FreshnessClassification::Stale)) {
-                    vec![VibeOutput::StaleReadyIgnored { peer_id }]
-                } else if is_dup {
-                    vec![VibeOutput::DuplicateReadyIgnored { peer_id }]
-                } else {
-                    let timely = matches!(classification, Some(FreshnessClassification::Timely));
-                    vec![if timely {
-                        VibeOutput::ReadyAccepted { peer_id }
-                    } else {
-                        VibeOutput::DelayedReadyAccepted { peer_id }
-                    }]
-                };
+                let outputs = super::compute::observed_output(
+                    super::compute::ObservedKind::Ready,
+                    peer_id,
+                    index,
+                    classification,
+                    is_dup,
+                );
 
                 if let Some(i) = index {
                     if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {
