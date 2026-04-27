@@ -78,19 +78,22 @@ impl VibeState for Collecting {
                     is_dup,
                 );
 
-                let confirmed_new = if let Some(i) = index {
-                    if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {
-                        phase2_confirmed[i] = true;
-                        phase2_confirmed_count += 1;
-                        true
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                };
+                let (confirmed_new, new_phase2_confirmed, new_phase2_confirmed_count) =
+                    match (index, is_dup, classification) {
+                        (Some(i), false, Some(c)) if c != FreshnessClassification::Stale => (
+                            true,
+                            phase2_confirmed
+                                .iter()
+                                .enumerate()
+                                .map(|(idx, &v)| if idx == i { true } else { v })
+                                .collect(),
+                            phase2_confirmed_count + 1,
+                        ),
+                        _ => (false, phase2_confirmed, phase2_confirmed_count),
+                    };
 
-                let quorum = confirmed_new && phase2_confirmed_count >= config.quorum_threshold();
+                let quorum =
+                    confirmed_new && new_phase2_confirmed_count >= config.quorum_threshold();
                 let outputs = if quorum {
                     vec![
                         outputs[0],
@@ -102,6 +105,10 @@ impl VibeState for Collecting {
                 } else {
                     outputs
                 };
+
+                phase2_confirmed = new_phase2_confirmed;
+                phase2_confirmed_count = new_phase2_confirmed_count;
+
                 let new_state: Box<dyn VibeState> = if quorum {
                     Box::new(ReadyByQuorum {
                         phase1_confirmed,

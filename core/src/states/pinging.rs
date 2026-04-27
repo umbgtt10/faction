@@ -78,12 +78,20 @@ impl VibeState for Pinging {
                     is_dup,
                 );
 
-                if let Some(i) = index {
-                    if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {
-                        phase1_confirmed[i] = true;
-                        phase1_confirmed_count += 1;
-                    }
-                }
+                let (new_phase1_confirmed, new_phase1_confirmed_count) =
+                    match (index, is_dup, classification) {
+                        (Some(i), false, Some(c)) if c != FreshnessClassification::Stale => (
+                            phase1_confirmed
+                                .iter()
+                                .enumerate()
+                                .map(|(j, &val)| j == i || val)
+                                .collect(),
+                            phase1_confirmed_count + 1,
+                        ),
+                        _ => (phase1_confirmed, phase1_confirmed_count),
+                    };
+                phase1_confirmed = new_phase1_confirmed;
+                phase1_confirmed_count = new_phase1_confirmed_count;
 
                 (
                     outputs,
@@ -117,12 +125,21 @@ impl VibeState for Pinging {
                     is_dup,
                 );
 
-                if let Some(i) = index {
-                    if !is_dup && !matches!(classification, Some(FreshnessClassification::Stale)) {
-                        phase2_confirmed[i] = true;
-                        phase2_confirmed_count += 1;
-                    }
-                }
+                let (new_phase2_confirmed, new_phase2_confirmed_count) =
+                    match (index, is_dup, classification) {
+                        (Some(i), false, Some(c)) if c != FreshnessClassification::Stale => (
+                            phase2_confirmed
+                                .iter()
+                                .enumerate()
+                                .map(|(j, &val)| j == i || val)
+                                .collect(),
+                            phase2_confirmed_count + 1,
+                        ),
+                        _ => (phase2_confirmed, phase2_confirmed_count),
+                    };
+
+                phase2_confirmed = new_phase2_confirmed;
+                phase2_confirmed_count = new_phase2_confirmed_count;
 
                 (
                     outputs,
