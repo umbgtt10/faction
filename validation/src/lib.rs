@@ -6,7 +6,7 @@
 
 extern crate alloc;
 
-pub mod vibe_scenario_event;
-pub mod vibe_scenario_harness;
-pub mod vibe_scenario_node;
-pub mod vibe_scenario_trace_entry;
+pub mod machine_scenario_event;
+pub mod machine_scenario_harness;
+pub mod machine_scenario_node;
+pub mod machine_scenario_trace_entry;

@@ -8,19 +8,19 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
-use faction::vibe_snapshot::VibeSnapshot;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
 use proptest::prelude::*;
 
-fn test_config() -> VibeConfig {
-    VibeConfig::new(
+fn test_config() -> MachineConfig {
+    MachineConfig::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
@@ -28,14 +28,14 @@ fn test_config() -> VibeConfig {
     )
 }
 
-fn coordinator() -> Vibe {
-    Vibe::new(test_config(), Box::new(NoOpVibeObserver))
+fn coordinator() -> Machine {
+    Machine::new(test_config(), Box::new(NoOpMachineObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = VibeInput> {
+fn input_strategy() -> impl Strategy<Value = MachineInput> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            VibeInput::ParticipationObserved {
+            MachineInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -43,7 +43,7 @@ fn input_strategy() -> impl Strategy<Value = VibeInput> {
         });
     let ready =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            VibeInput::ReadyObserved {
+            MachineInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -53,39 +53,39 @@ fn input_strategy() -> impl Strategy<Value = VibeInput> {
     prop_oneof![
         participation,
         ready,
-        Just(VibeInput::LocalParticipationCompleted),
-        Just(VibeInput::DeadlineExpired),
+        Just(MachineInput::LocalParticipationCompleted),
+        Just(MachineInput::DeadlineExpired),
     ]
 }
 
-fn outputs_contain_stale(outputs: &[VibeOutput]) -> bool {
+fn outputs_contain_stale(outputs: &[MachineOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            VibeOutput::StaleParticipationIgnored { .. } | VibeOutput::StaleReadyIgnored { .. }
+            MachineOutput::StaleParticipationIgnored { .. } | MachineOutput::StaleReadyIgnored { .. }
         )
     })
 }
 
-fn outputs_contain_non_member(outputs: &[VibeOutput]) -> bool {
+fn outputs_contain_non_member(outputs: &[MachineOutput]) -> bool {
     outputs
         .iter()
-        .any(|output| matches!(output, VibeOutput::NonMemberIgnored { .. }))
+        .any(|output| matches!(output, MachineOutput::NonMemberIgnored { .. }))
 }
 
-fn outputs_contain_duplicate(outputs: &[VibeOutput]) -> bool {
+fn outputs_contain_duplicate(outputs: &[MachineOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            VibeOutput::DuplicateParticipationIgnored { .. }
-                | VibeOutput::DuplicateReadyIgnored { .. }
+            MachineOutput::DuplicateParticipationIgnored { .. }
+                | MachineOutput::DuplicateReadyIgnored { .. }
         )
     })
 }
 
 fn assert_counts_do_not_decrease(
-    previous: VibeSnapshot,
-    current: VibeSnapshot,
+    previous: MachineSnapshot,
+    current: MachineSnapshot,
 ) -> Result<(), TestCaseError> {
     prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
     prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
@@ -93,9 +93,9 @@ fn assert_counts_do_not_decrease(
 }
 
 fn assert_stale_outputs_do_not_mutate_state(
-    previous: VibeSnapshot,
-    current: VibeSnapshot,
-    outputs: &[VibeOutput],
+    previous: MachineSnapshot,
+    current: MachineSnapshot,
+    outputs: &[MachineOutput],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_stale(outputs) {
         prop_assert_eq!(
@@ -118,9 +118,9 @@ fn assert_stale_outputs_do_not_mutate_state(
 }
 
 fn assert_non_member_outputs_do_not_mutate_state(
-    previous: VibeSnapshot,
-    current: VibeSnapshot,
-    outputs: &[VibeOutput],
+    previous: MachineSnapshot,
+    current: MachineSnapshot,
+    outputs: &[MachineOutput],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_non_member(outputs) {
         prop_assert_eq!(
@@ -143,9 +143,9 @@ fn assert_non_member_outputs_do_not_mutate_state(
 }
 
 fn assert_duplicate_outputs_do_not_mutate_counts(
-    previous: VibeSnapshot,
-    current: VibeSnapshot,
-    outputs: &[VibeOutput],
+    previous: MachineSnapshot,
+    current: MachineSnapshot,
+    outputs: &[MachineOutput],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_duplicate(outputs) {
         prop_assert_eq!(

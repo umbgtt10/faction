@@ -5,37 +5,37 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::no_op_vibe_observer::NoOpVibeObserver;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_observer::VibeObserver;
-use faction::vibe_output::VibeOutput;
-use faction::vibe_snapshot::VibeSnapshot;
+use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_observer::MachineObserver;
+use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
 use faction::PeerId;
 
 pub struct VibeScenarioNode {
     peer_id: PeerId,
-    readiness: Vibe,
+    readiness: Machine,
 }
 
 impl VibeScenarioNode {
     #[must_use]
-    pub fn new(peer_id: PeerId, config: VibeConfig) -> Self {
+    pub fn new(peer_id: PeerId, config: MachineConfig) -> Self {
         Self {
             peer_id,
-            readiness: Vibe::new(config, Box::new(NoOpVibeObserver)),
+            readiness: Machine::new(config, Box::new(NoOpMachineObserver)),
         }
     }
 
     #[must_use]
     pub fn new_with_observer(
         peer_id: PeerId,
-        config: VibeConfig,
-        observer: Box<dyn VibeObserver>,
+        config: MachineConfig,
+        observer: Box<dyn MachineObserver>,
     ) -> Self {
         Self {
             peer_id,
-            readiness: Vibe::new(config, observer),
+            readiness: Machine::new(config, observer),
         }
     }
 
@@ -45,17 +45,17 @@ impl VibeScenarioNode {
     }
 
     #[must_use]
-    pub fn config(&self) -> &VibeConfig {
+    pub fn config(&self) -> &MachineConfig {
         self.readiness.config()
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> VibeSnapshot {
+    pub fn snapshot(&self) -> MachineSnapshot {
         self.readiness.snapshot()
     }
 
     #[must_use]
-    pub fn apply(self, input: faction::vibe_input::VibeInput) -> (Self, Vec<VibeOutput>) {
+    pub fn apply(self, input: faction::machine_input::MachineInput) -> (Self, Vec<MachineOutput>) {
         let mut readiness = self.readiness;
         let outputs = readiness.apply(input);
 

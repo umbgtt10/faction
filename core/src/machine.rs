@@ -7,24 +7,24 @@ use alloc::vec::Vec;
 use core::cell::Cell;
 
 use crate::states::initial::Initial;
-use crate::vibe_config::VibeConfig;
-use crate::vibe_input::VibeInput;
-use crate::vibe_observer::VibeObserver;
-use crate::vibe_output::VibeOutput;
-use crate::vibe_snapshot::VibeSnapshot;
-use crate::vibe_state::VibeState;
-use crate::vibe_transition::VibeTransition;
+use crate::machine_config::MachineConfig;
+use crate::machine_input::MachineInput;
+use crate::machine_observer::MachineObserver;
+use crate::machine_output::MachineOutput;
+use crate::machine_snapshot::MachineSnapshot;
+use crate::machine_state::MachineState;
+use crate::machine_transition::MachineTransition;
 
-pub struct Vibe {
-    config: VibeConfig,
-    observer: Box<dyn VibeObserver>,
-    state: Option<Box<dyn VibeState>>,
-    cached_snapshot: Cell<Option<VibeSnapshot>>,
+pub struct Machine {
+    config: MachineConfig,
+    observer: Box<dyn MachineObserver>,
+    state: Option<Box<dyn MachineState>>,
+    cached_snapshot: Cell<Option<MachineSnapshot>>,
 }
 
-impl Vibe {
+impl Machine {
     #[must_use]
-    pub fn new(config: VibeConfig, observer: Box<dyn VibeObserver>) -> Self {
+    pub fn new(config: MachineConfig, observer: Box<dyn MachineObserver>) -> Self {
         Self {
             config,
             observer,
@@ -34,8 +34,8 @@ impl Vibe {
     }
 
     #[must_use]
-    pub fn apply(&mut self, input: VibeInput) -> Vec<VibeOutput> {
-        if !self.state.as_ref().unwrap().deal(&input) {
+    pub fn apply(&mut self, input: MachineInput) -> Vec<MachineOutput> {
+        if !self.state.as_ref().unwrap().accept(&input) {
             return Vec::new();
         }
 
@@ -46,30 +46,30 @@ impl Vibe {
                     .state
                     .as_ref()
                     .unwrap()
-                    .vibe_check(self.config.quorum_threshold());
+                    .snapshot(self.config.quorum_threshold());
                 self.cached_snapshot.set(Some(snap));
                 snap
             }
         };
 
         let old_state = self.state.take().unwrap();
-        let (outputs, new_state) = old_state.punch(input, &self.config);
+        let (outputs, new_state) = old_state.step(input, &self.config);
         self.state = Some(new_state);
 
         let new_snapshot = self
             .state
             .as_ref()
             .unwrap()
-            .vibe_check(self.config.quorum_threshold());
+            .snapshot(self.config.quorum_threshold());
         self.cached_snapshot.set(Some(new_snapshot));
 
-        let transition = VibeTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
+        let transition = MachineTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(input, transition);
         outputs
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> VibeSnapshot {
+    pub fn snapshot(&self) -> MachineSnapshot {
         match self.cached_snapshot.get() {
             Some(snap) => snap,
             None => {
@@ -77,7 +77,7 @@ impl Vibe {
                     .state
                     .as_ref()
                     .unwrap()
-                    .vibe_check(self.config.quorum_threshold());
+                    .snapshot(self.config.quorum_threshold());
                 self.cached_snapshot.set(Some(snap));
                 snap
             }
@@ -85,7 +85,7 @@ impl Vibe {
     }
 
     #[must_use]
-    pub fn config(&self) -> &VibeConfig {
+    pub fn config(&self) -> &MachineConfig {
         &self.config
     }
 }

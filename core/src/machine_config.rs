@@ -8,14 +8,14 @@ use crate::freshness_policy::FreshnessPolicy;
 use crate::quorum_policy::QuorumPolicy;
 use crate::PeerId;
 
-pub struct VibeConfig {
+pub struct MachineConfig {
     local_peer_id: PeerId,
     peer_set: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
     freshness_policy: FreshnessPolicy,
 }
 
-impl VibeConfig {
+impl MachineConfig {
     #[must_use]
     pub fn new(
         local_peer_id: PeerId,

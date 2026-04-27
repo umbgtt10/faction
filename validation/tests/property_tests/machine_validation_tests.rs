@@ -7,8 +7,8 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe_output::VibeOutput;
-use faction_validation::vibe_scenario_harness::VibeScenarioHarness;
+use faction::machine_output::MachineOutput;
+use faction_validation::machine_scenario_harness::MachineScenarioHarness;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -64,33 +64,33 @@ fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
     ]
 }
 
-fn harness() -> VibeScenarioHarness {
-    VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
+fn harness() -> MachineScenarioHarness {
+    MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
 }
 
-fn outputs_contain_duplicate(outputs: &[VibeOutput]) -> bool {
+fn outputs_contain_duplicate(outputs: &[MachineOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            VibeOutput::DuplicateParticipationIgnored { .. }
-                | VibeOutput::DuplicateReadyIgnored { .. }
+            MachineOutput::DuplicateParticipationIgnored { .. }
+                | MachineOutput::DuplicateReadyIgnored { .. }
         )
     })
 }
 
-fn outputs_contain_stale(outputs: &[VibeOutput]) -> bool {
+fn outputs_contain_stale(outputs: &[MachineOutput]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            VibeOutput::StaleParticipationIgnored { .. } | VibeOutput::StaleReadyIgnored { .. }
+            MachineOutput::StaleParticipationIgnored { .. } | MachineOutput::StaleReadyIgnored { .. }
         )
     })
 }
 
 fn apply_operation(
-    harness: &mut VibeScenarioHarness,
+    harness: &mut MachineScenarioHarness,
     operation: ScenarioOperation,
-) -> Option<(usize, Vec<VibeOutput>)> {
+) -> Option<(usize, Vec<MachineOutput>)> {
     match operation {
         ScenarioOperation::Participation {
             coordinator_index,

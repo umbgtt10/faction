@@ -8,40 +8,40 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
-use faction::vibe_snapshot::VibeSnapshot;
 use faction::PeerId;
 
-pub struct VibeScenarioHarness {
-    coordinators: Vec<Vibe>,
+pub struct MachineScenarioHarness {
+    coordinators: Vec<Machine>,
     current_marker: u64,
 }
 
-impl VibeScenarioHarness {
+impl MachineScenarioHarness {
     pub fn new(peer_set: Vec<PeerId>, quorum_threshold: usize, max_delay: u64) -> Self {
         let mut coordinators = Vec::new();
 
         for peer_id in peer_set.iter().copied() {
-            let mut vibe = Vibe::new(
-                VibeConfig::new(
+            let mut machine = Machine::new(
+                MachineConfig::new(
                     peer_id,
                     peer_set.clone(),
                     QuorumPolicy::new(quorum_threshold),
                     FreshnessPolicy::new(max_delay),
                 ),
-                Box::new(NoOpVibeObserver),
+                Box::new(NoOpMachineObserver),
             );
-            let _ = vibe.apply(VibeInput::ParticipationObserved {
+            let _ = machine.apply(MachineInput::ParticipationObserved {
                 peer_id: PeerId::MAX,
                 freshness: 0,
                 current_marker: 0,
             });
-            coordinators.push(vibe);
+            coordinators.push(machine);
         }
 
         Self {
@@ -66,7 +66,7 @@ impl VibeScenarioHarness {
         self.coordinators.len()
     }
 
-    pub fn snapshot(&self, coordinator_index: usize) -> VibeSnapshot {
+    pub fn snapshot(&self, coordinator_index: usize) -> MachineSnapshot {
         self.coordinators[coordinator_index].snapshot()
     }
 
@@ -75,8 +75,8 @@ impl VibeScenarioHarness {
         coordinator_index: usize,
         peer_id: PeerId,
         freshness: u64,
-    ) -> Vec<VibeOutput> {
-        self.coordinators[coordinator_index].apply(VibeInput::ParticipationObserved {
+    ) -> Vec<MachineOutput> {
+        self.coordinators[coordinator_index].apply(MachineInput::ParticipationObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
@@ -88,19 +88,19 @@ impl VibeScenarioHarness {
         coordinator_index: usize,
         peer_id: PeerId,
         freshness: u64,
-    ) -> Vec<VibeOutput> {
-        self.coordinators[coordinator_index].apply(VibeInput::ReadyObserved {
+    ) -> Vec<MachineOutput> {
+        self.coordinators[coordinator_index].apply(MachineInput::ReadyObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
         })
     }
 
-    pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<VibeOutput> {
-        self.coordinators[coordinator_index].apply(VibeInput::LocalParticipationCompleted)
+    pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<MachineOutput> {
+        self.coordinators[coordinator_index].apply(MachineInput::LocalParticipationCompleted)
     }
 
-    pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<VibeOutput> {
-        self.coordinators[coordinator_index].apply(VibeInput::DeadlineExpired)
+    pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<MachineOutput> {
+        self.coordinators[coordinator_index].apply(MachineInput::DeadlineExpired)
     }
 }

@@ -7,25 +7,25 @@ use alloc::vec::Vec;
 
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::states::pinging::Pinging;
-use crate::vibe_config::VibeConfig;
-use crate::vibe_input::VibeInput;
-use crate::vibe_output::VibeOutput;
-use crate::vibe_snapshot::VibeSnapshot;
-use crate::vibe_state::VibeState;
+use crate::machine_config::MachineConfig;
+use crate::machine_input::MachineInput;
+use crate::machine_output::MachineOutput;
+use crate::machine_snapshot::MachineSnapshot;
+use crate::machine_state::MachineState;
 
 pub struct Initial;
 
-impl VibeState for Initial {
-    fn punch(
+impl MachineState for Initial {
+    fn step(
         self: Box<Self>,
-        input: VibeInput,
-        config: &VibeConfig,
-    ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        Box::new(Pinging::new(config.peer_count())).punch(input, config)
+        input: MachineInput,
+        config: &MachineConfig,
+    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
+        Box::new(Pinging::new(config.peer_count())).step(input, config)
     }
 
-    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
-        VibeSnapshot::new(
+    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
+        MachineSnapshot::new(
             ReadinessLifecycleState::Phase1Active,
             None,
             false,
@@ -36,10 +36,10 @@ impl VibeState for Initial {
         )
     }
 
-    fn deal(&self, input: &VibeInput) -> bool {
+    fn accept(&self, input: &MachineInput) -> bool {
         matches!(
             input,
-            VibeInput::ParticipationObserved { .. } | VibeInput::ReadyObserved { .. }
+            MachineInput::ParticipationObserved { .. } | MachineInput::ReadyObserved { .. }
         )
     }
 }

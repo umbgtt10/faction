@@ -2,26 +2,26 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
-use faction::vibe_snapshot::VibeSnapshot;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
 use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VibeScenarioTraceEntry {
     node_id: PeerId,
-    input: VibeInput,
-    outputs: alloc::vec::Vec<VibeOutput>,
-    snapshot: VibeSnapshot,
+    input: MachineInput,
+    outputs: alloc::vec::Vec<MachineOutput>,
+    snapshot: MachineSnapshot,
 }
 
 impl VibeScenarioTraceEntry {
     #[must_use]
     pub fn new(
         node_id: PeerId,
-        input: VibeInput,
-        outputs: alloc::vec::Vec<VibeOutput>,
-        snapshot: VibeSnapshot,
+        input: MachineInput,
+        outputs: alloc::vec::Vec<MachineOutput>,
+        snapshot: MachineSnapshot,
     ) -> Self {
         Self {
             node_id,
@@ -37,17 +37,17 @@ impl VibeScenarioTraceEntry {
     }
 
     #[must_use]
-    pub const fn input(&self) -> VibeInput {
+    pub const fn input(&self) -> MachineInput {
         self.input
     }
 
     #[must_use]
-    pub fn outputs(&self) -> &[VibeOutput] {
+    pub fn outputs(&self) -> &[MachineOutput] {
         &self.outputs
     }
 
     #[must_use]
-    pub const fn snapshot(&self) -> VibeSnapshot {
+    pub const fn snapshot(&self) -> MachineSnapshot {
         self.snapshot
     }
 }

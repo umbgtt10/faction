@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use crate::freshness_classification::FreshnessClassification;
-use crate::vibe_output::VibeOutput;
+use crate::machine_output::MachineOutput;
 use crate::PeerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,9 +29,9 @@ impl ObservedOutput {
         index: Option<usize>,
         classification: Option<FreshnessClassification>,
         is_dup: bool,
-    ) -> VibeOutput {
+    ) -> MachineOutput {
         if index.is_none() {
-            return VibeOutput::NonMemberIgnored {
+            return MachineOutput::NonMemberIgnored {
                 peer_id: self.peer_id,
             };
         }
@@ -46,42 +46,42 @@ impl ObservedOutput {
     }
 
     #[must_use]
-    fn stale_output(&self) -> VibeOutput {
+    fn stale_output(&self) -> MachineOutput {
         match self.kind {
-            ObservedKind::Participation => VibeOutput::StaleParticipationIgnored {
+            ObservedKind::Participation => MachineOutput::StaleParticipationIgnored {
                 peer_id: self.peer_id,
             },
-            ObservedKind::Ready => VibeOutput::StaleReadyIgnored {
+            ObservedKind::Ready => MachineOutput::StaleReadyIgnored {
                 peer_id: self.peer_id,
             },
         }
     }
 
     #[must_use]
-    fn duplicate_output(&self) -> VibeOutput {
+    fn duplicate_output(&self) -> MachineOutput {
         match self.kind {
-            ObservedKind::Participation => VibeOutput::DuplicateParticipationIgnored {
+            ObservedKind::Participation => MachineOutput::DuplicateParticipationIgnored {
                 peer_id: self.peer_id,
             },
-            ObservedKind::Ready => VibeOutput::DuplicateReadyIgnored {
+            ObservedKind::Ready => MachineOutput::DuplicateReadyIgnored {
                 peer_id: self.peer_id,
             },
         }
     }
 
     #[must_use]
-    fn accepted_output(&self, timely: bool) -> VibeOutput {
+    fn accepted_output(&self, timely: bool) -> MachineOutput {
         match (self.kind, timely) {
-            (ObservedKind::Participation, true) => VibeOutput::ParticipationAccepted {
+            (ObservedKind::Participation, true) => MachineOutput::ParticipationAccepted {
                 peer_id: self.peer_id,
             },
-            (ObservedKind::Participation, false) => VibeOutput::DelayedParticipationAccepted {
+            (ObservedKind::Participation, false) => MachineOutput::DelayedParticipationAccepted {
                 peer_id: self.peer_id,
             },
-            (ObservedKind::Ready, true) => VibeOutput::ReadyAccepted {
+            (ObservedKind::Ready, true) => MachineOutput::ReadyAccepted {
                 peer_id: self.peer_id,
             },
-            (ObservedKind::Ready, false) => VibeOutput::DelayedReadyAccepted {
+            (ObservedKind::Ready, false) => MachineOutput::DelayedReadyAccepted {
                 peer_id: self.peer_id,
             },
         }

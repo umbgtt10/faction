@@ -8,14 +8,14 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
 
 const PEER_SET: &[u64] = &[0, 1, 2, 3, 4];
 const THRESHOLD: usize = 4;
@@ -25,38 +25,38 @@ const TIMELY: u64 = 10;
 const DELAYED: u64 = 8;
 const STALE: u64 = 7;
 
-fn vibe_in_phase1() -> Vibe {
-    let mut vibe = Vibe::new(
-        VibeConfig::new(
+fn machine_in_phase1() -> Machine {
+    let mut machine = Machine::new(
+        MachineConfig::new(
             0,
             PEER_SET.to_vec(),
             QuorumPolicy::new(THRESHOLD),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpVibeObserver),
+        Box::new(NoOpMachineObserver),
     );
-    let _ = vibe.apply(VibeInput::ParticipationObserved {
+    let _ = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    vibe
+    machine
 }
 
-fn p1(vibe: &Vibe) -> usize {
-    vibe.snapshot().phase1_confirmed_count()
+fn p1(machine: &Machine) -> usize {
+    machine.snapshot().phase1_confirmed_count()
 }
-fn p2(vibe: &Vibe) -> usize {
-    vibe.snapshot().phase2_confirmed_count()
+fn p2(machine: &Machine) -> usize {
+    machine.snapshot().phase2_confirmed_count()
 }
 
 #[test]
 fn deal_accepts_participation_observed() {
     // Arrange
-    let mut vibe = vibe_in_phase1();
+    let mut machine = machine_in_phase1();
 
     // Act
-    let result = vibe.apply(VibeInput::ParticipationObserved {
+    let result = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
@@ -65,37 +65,37 @@ fn deal_accepts_participation_observed() {
     // Assert
     assert_eq!(
         result,
-        vec![VibeOutput::ParticipationAccepted { peer_id: 2 }]
+        vec![MachineOutput::ParticipationAccepted { peer_id: 2 }]
     );
 }
 
 #[test]
 fn deal_accepts_ready_observed() {
-    let mut vibe = vibe_in_phase1();
-    let result = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = machine_in_phase1();
+    let result = machine.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![VibeOutput::ReadyAccepted { peer_id: 2 }]);
+    assert_eq!(result, vec![MachineOutput::ReadyAccepted { peer_id: 2 }]);
 }
 
 #[test]
 fn deal_accepts_local_participation_completed() {
-    let mut vibe = vibe_in_phase1();
-    let result = vibe.apply(VibeInput::LocalParticipationCompleted);
+    let mut machine = machine_in_phase1();
+    let result = machine.apply(MachineInput::LocalParticipationCompleted);
     assert_eq!(result.len(), 2);
-    assert_eq!(result[0], VibeOutput::LocalParticipationCompleted);
-    assert_eq!(result[1], VibeOutput::BroadcastLocalReady);
+    assert_eq!(result[0], MachineOutput::LocalParticipationCompleted);
+    assert_eq!(result[1], MachineOutput::BroadcastLocalReady);
 }
 
 #[test]
 fn deal_accepts_deadline_expired() {
-    let mut vibe = vibe_in_phase1();
-    let result = vibe.apply(VibeInput::DeadlineExpired);
+    let mut machine = machine_in_phase1();
+    let result = machine.apply(MachineInput::DeadlineExpired);
     assert_eq!(
         result,
-        vec![VibeOutput::ReadinessExited {
+        vec![MachineOutput::ReadinessExited {
             mode: ReadinessExitMode::Deadline
         }]
     );
@@ -103,176 +103,185 @@ fn deal_accepts_deadline_expired() {
 
 #[test]
 fn participation_observed_non_member() {
-    let mut vibe = vibe_in_phase1();
-    let before = p1(&vibe);
-    let result = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = machine_in_phase1();
+    let before = p1(&machine);
+    let result = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 99,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![VibeOutput::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(p1(&vibe), before);
+    assert_eq!(
+        result,
+        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
+    );
+    assert_eq!(p1(&machine), before);
 }
 
 #[test]
 fn participation_observed_stale() {
-    let mut vibe = vibe_in_phase1();
-    let before = p1(&vibe);
-    let result = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = machine_in_phase1();
+    let before = p1(&machine);
+    let result = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 2,
         freshness: STALE,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![VibeOutput::StaleParticipationIgnored { peer_id: 2 }]
+        vec![MachineOutput::StaleParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&vibe), before);
+    assert_eq!(p1(&machine), before);
 }
 
 #[test]
 fn participation_observed_duplicate() {
-    let mut vibe = vibe_in_phase1();
-    let _ = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = machine_in_phase1();
+    let _ = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let before = p1(&vibe);
-    let result = vibe.apply(VibeInput::ParticipationObserved {
+    let before = p1(&machine);
+    let result = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![VibeOutput::DuplicateParticipationIgnored { peer_id: 2 }]
+        vec![MachineOutput::DuplicateParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&vibe), before);
+    assert_eq!(p1(&machine), before);
 }
 
 #[test]
 fn participation_observed_first_timely() {
-    let mut vibe = vibe_in_phase1();
-    let before = p1(&vibe);
-    let result = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = machine_in_phase1();
+    let before = p1(&machine);
+    let result = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![VibeOutput::ParticipationAccepted { peer_id: 3 }]
+        vec![MachineOutput::ParticipationAccepted { peer_id: 3 }]
     );
-    assert_eq!(p1(&vibe), before + 1);
+    assert_eq!(p1(&machine), before + 1);
 }
 
 #[test]
 fn participation_observed_first_delayed() {
-    let mut vibe = vibe_in_phase1();
-    let before = p1(&vibe);
-    let result = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = machine_in_phase1();
+    let before = p1(&machine);
+    let result = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 3,
         freshness: DELAYED,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![VibeOutput::DelayedParticipationAccepted { peer_id: 3 }]
+        vec![MachineOutput::DelayedParticipationAccepted { peer_id: 3 }]
     );
-    assert_eq!(p1(&vibe), before + 1);
+    assert_eq!(p1(&machine), before + 1);
 }
 
 #[test]
 fn ready_observed_non_member() {
-    let mut vibe = vibe_in_phase1();
-    let before = p2(&vibe);
-    let result = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = machine_in_phase1();
+    let before = p2(&machine);
+    let result = machine.apply(MachineInput::ReadyObserved {
         peer_id: 99,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![VibeOutput::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(p2(&vibe), before);
+    assert_eq!(
+        result,
+        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
+    );
+    assert_eq!(p2(&machine), before);
 }
 
 #[test]
 fn ready_observed_stale() {
-    let mut vibe = vibe_in_phase1();
-    let before = p2(&vibe);
-    let result = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = machine_in_phase1();
+    let before = p2(&machine);
+    let result = machine.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: STALE,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![VibeOutput::StaleReadyIgnored { peer_id: 2 }]);
-    assert_eq!(p2(&vibe), before);
+    assert_eq!(
+        result,
+        vec![MachineOutput::StaleReadyIgnored { peer_id: 2 }]
+    );
+    assert_eq!(p2(&machine), before);
 }
 
 #[test]
 fn ready_observed_duplicate() {
-    let mut vibe = vibe_in_phase1();
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = machine_in_phase1();
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let before = p2(&vibe);
-    let result = vibe.apply(VibeInput::ReadyObserved {
+    let before = p2(&machine);
+    let result = machine.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![VibeOutput::DuplicateReadyIgnored { peer_id: 2 }]
+        vec![MachineOutput::DuplicateReadyIgnored { peer_id: 2 }]
     );
-    assert_eq!(p2(&vibe), before);
+    assert_eq!(p2(&machine), before);
 }
 
 #[test]
 fn ready_observed_first_timely() {
-    let mut vibe = vibe_in_phase1();
-    let before = p2(&vibe);
-    let result = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = machine_in_phase1();
+    let before = p2(&machine);
+    let result = machine.apply(MachineInput::ReadyObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![VibeOutput::ReadyAccepted { peer_id: 3 }]);
-    assert_eq!(p2(&vibe), before + 1);
+    assert_eq!(result, vec![MachineOutput::ReadyAccepted { peer_id: 3 }]);
+    assert_eq!(p2(&machine), before + 1);
 }
 
 #[test]
 fn ready_observed_first_delayed() {
-    let mut vibe = vibe_in_phase1();
-    let before = p2(&vibe);
-    let result = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = machine_in_phase1();
+    let before = p2(&machine);
+    let result = machine.apply(MachineInput::ReadyObserved {
         peer_id: 3,
         freshness: DELAYED,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![VibeOutput::DelayedReadyAccepted { peer_id: 3 }]
+        vec![MachineOutput::DelayedReadyAccepted { peer_id: 3 }]
     );
-    assert_eq!(p2(&vibe), before + 1);
+    assert_eq!(p2(&machine), before + 1);
 }
 
 #[test]
 fn local_completion_no_quorum() {
-    let mut vibe = vibe_in_phase1();
-    let result = vibe.apply(VibeInput::LocalParticipationCompleted);
+    let mut machine = machine_in_phase1();
+    let result = machine.apply(MachineInput::LocalParticipationCompleted);
     // Arrange & Act
     assert_eq!(
         result,
         vec![
-            VibeOutput::LocalParticipationCompleted,
-            VibeOutput::BroadcastLocalReady,
+            MachineOutput::LocalParticipationCompleted,
+            MachineOutput::BroadcastLocalReady,
         ]
     );
     // Assert
-    let snap = vibe.snapshot();
+    let snap = machine.snapshot();
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -284,68 +293,68 @@ fn local_completion_no_quorum() {
 #[test]
 fn local_completion_triggers_quorum() {
     // Arrange
-    let mut vibe = Vibe::new(
-        VibeConfig::new(
+    let mut machine = Machine::new(
+        MachineConfig::new(
             0,
             PEER_SET.to_vec(),
             QuorumPolicy::new(4),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpVibeObserver),
+        Box::new(NoOpMachineObserver),
     );
-    let _ = vibe.apply(VibeInput::ParticipationObserved {
+    let _ = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
     });
 
     // Act
-    let result = vibe.apply(VibeInput::LocalParticipationCompleted);
+    let result = machine.apply(MachineInput::LocalParticipationCompleted);
 
     // Assert
     assert_eq!(
         result,
         vec![
-            VibeOutput::LocalParticipationCompleted,
-            VibeOutput::BroadcastLocalReady,
-            VibeOutput::ReadyQuorumReached,
-            VibeOutput::ReadinessExited {
+            MachineOutput::LocalParticipationCompleted,
+            MachineOutput::BroadcastLocalReady,
+            MachineOutput::ReadyQuorumReached,
+            MachineOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
     );
-    let snap = vibe.snapshot();
+    let snap = machine.snapshot();
     assert!(snap.readiness_exited());
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Quorum));
 }
 
 #[test]
 fn deadline_expired_in_phase1() {
-    let mut vibe = vibe_in_phase1();
+    let mut machine = machine_in_phase1();
     // Act & Assert
-    let result = vibe.apply(VibeInput::DeadlineExpired);
+    let result = machine.apply(MachineInput::DeadlineExpired);
     assert_eq!(
         result,
-        vec![VibeOutput::ReadinessExited {
+        vec![MachineOutput::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );
-    let snap = vibe.snapshot();
+    let snap = machine.snapshot();
     assert!(snap.readiness_exited());
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
 }
@@ -353,8 +362,8 @@ fn deadline_expired_in_phase1() {
 #[test]
 fn vibe_check_in_phase1() {
     // Arrange & Act
-    let vibe = vibe_in_phase1();
-    let snap = vibe.snapshot();
+    let machine = machine_in_phase1();
+    let snap = machine.snapshot();
 
     // Assert
     assert_eq!(

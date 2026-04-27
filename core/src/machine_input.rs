@@ -5,7 +5,7 @@
 use crate::{Freshness, PeerId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VibeInput {
+pub enum MachineInput {
     ParticipationObserved {
         peer_id: PeerId,
         freshness: Freshness,

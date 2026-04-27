@@ -8,39 +8,39 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
 
-fn test_vibe() -> Vibe {
-    Vibe::new(
-        VibeConfig::new(
+fn test_machine() -> Machine {
+    Machine::new(
+        MachineConfig::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(4),
             FreshnessPolicy::new(2),
         ),
-        Box::new(NoOpVibeObserver),
+        Box::new(NoOpMachineObserver),
     )
 }
 
 #[test]
 fn deal_accepts_participation_observed() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let snap = vibe.snapshot();
+    let snap = machine.snapshot();
     assert_eq!(
         outputs,
-        vec![VibeOutput::ParticipationAccepted { peer_id: 1 }]
+        vec![MachineOutput::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(
         snap.lifecycle_state(),
@@ -51,14 +51,14 @@ fn deal_accepts_participation_observed() {
 
 #[test]
 fn deal_accepts_ready_observed() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let snap = vibe.snapshot();
-    assert_eq!(outputs, vec![VibeOutput::ReadyAccepted { peer_id: 1 }]);
+    let snap = machine.snapshot();
+    assert_eq!(outputs, vec![MachineOutput::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -68,9 +68,9 @@ fn deal_accepts_ready_observed() {
 
 #[test]
 fn deal_rejects_local_participation_completed() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::LocalParticipationCompleted);
-    let snap = vibe.snapshot();
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::LocalParticipationCompleted);
+    let snap = machine.snapshot();
     assert!(outputs.is_empty());
     assert_eq!(
         snap.lifecycle_state(),
@@ -81,9 +81,9 @@ fn deal_rejects_local_participation_completed() {
 
 #[test]
 fn deal_rejects_deadline_expired() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::DeadlineExpired);
-    let snap = vibe.snapshot();
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::DeadlineExpired);
+    let snap = machine.snapshot();
     assert!(outputs.is_empty());
     assert_eq!(
         snap.lifecycle_state(),
@@ -94,29 +94,29 @@ fn deal_rejects_deadline_expired() {
 
 #[test]
 fn stays_in_initial_after_rejected_input() {
-    let mut vibe = test_vibe();
-    let first = vibe.apply(VibeInput::DeadlineExpired);
-    let second = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = test_machine();
+    let first = machine.apply(MachineInput::DeadlineExpired);
+    let second = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let snap = vibe.snapshot();
+    let snap = machine.snapshot();
     assert!(first.is_empty());
     assert_eq!(
         second,
-        vec![VibeOutput::ParticipationAccepted { peer_id: 1 }]
+        vec![MachineOutput::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(snap.phase1_confirmed_count(), 1);
 }
 
 #[test]
 fn multiple_rejected_inputs_keep_initial_unchanged() {
-    let mut vibe = test_vibe();
-    let r1 = vibe.apply(VibeInput::LocalParticipationCompleted);
-    let r2 = vibe.apply(VibeInput::DeadlineExpired);
-    let r3 = vibe.apply(VibeInput::LocalParticipationCompleted);
-    let snap = vibe.snapshot();
+    let mut machine = test_machine();
+    let r1 = machine.apply(MachineInput::LocalParticipationCompleted);
+    let r2 = machine.apply(MachineInput::DeadlineExpired);
+    let r3 = machine.apply(MachineInput::LocalParticipationCompleted);
+    let snap = machine.snapshot();
     assert!(r1.is_empty());
     assert!(r2.is_empty());
     assert!(r3.is_empty());
@@ -133,14 +133,14 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
 
 #[test]
 fn punch_participation_non_member_from_initial() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 99,
         freshness: 10,
         current_marker: 10,
     });
-    let snap = vibe.snapshot();
-    assert_eq!(outputs, vec![VibeOutput::NonMemberIgnored { peer_id: 99 }]);
+    let snap = machine.snapshot();
+    assert_eq!(outputs, vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(
         snap.lifecycle_state(),
@@ -150,37 +150,37 @@ fn punch_participation_non_member_from_initial() {
 
 #[test]
 fn punch_participation_delayed_from_initial() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::ParticipationObserved {
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
         current_marker: 10,
     });
-    let snap = vibe.snapshot();
+    let snap = machine.snapshot();
     assert_eq!(
         outputs,
-        vec![VibeOutput::DelayedParticipationAccepted { peer_id: 1 }]
+        vec![MachineOutput::DelayedParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(snap.phase1_confirmed_count(), 1);
 }
 
 #[test]
 fn punch_ready_non_member_from_initial() {
-    let mut vibe = test_vibe();
-    let outputs = vibe.apply(VibeInput::ReadyObserved {
+    let mut machine = test_machine();
+    let outputs = machine.apply(MachineInput::ReadyObserved {
         peer_id: 99,
         freshness: 10,
         current_marker: 10,
     });
-    let snap = vibe.snapshot();
-    assert_eq!(outputs, vec![VibeOutput::NonMemberIgnored { peer_id: 99 }]);
+    let snap = machine.snapshot();
+    assert_eq!(outputs, vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase2_confirmed_count(), 0);
 }
 
 #[test]
 fn vibe_check_returns_phase1_active_with_zeros() {
-    let vibe = test_vibe();
-    let snap = vibe.snapshot();
+    let machine = test_machine();
+    let snap = machine.snapshot();
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active

@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::vibe_config::VibeConfig;
-use crate::vibe_input::VibeInput;
-use crate::vibe_output::VibeOutput;
-use crate::vibe_snapshot::VibeSnapshot;
-use crate::vibe_state::VibeState;
+use crate::machine_config::MachineConfig;
+use crate::machine_input::MachineInput;
+use crate::machine_output::MachineOutput;
+use crate::machine_snapshot::MachineSnapshot;
+use crate::machine_state::MachineState;
 
 use super::collecting::Collecting;
 use super::helpers::compute_output::ObservedKind;
@@ -36,16 +36,16 @@ impl Pinging {
     }
 }
 
-impl VibeState for Pinging {
-    fn punch(
+impl MachineState for Pinging {
+    fn step(
         self: Box<Self>,
-        input: VibeInput,
-        config: &VibeConfig,
-    ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
+        input: MachineInput,
+        config: &MachineConfig,
+    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
         let Self { phase1, phase2 } = *self;
 
         match input {
-            VibeInput::ParticipationObserved {
+            MachineInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -65,7 +65,7 @@ impl VibeState for Pinging {
                 (vec![output], Box::new(Self { phase1, phase2 }))
             }
 
-            VibeInput::ReadyObserved {
+            MachineInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -88,26 +88,26 @@ impl VibeState for Pinging {
                 (vec![output], Box::new(Self { phase1, phase2 }))
             }
 
-            VibeInput::LocalParticipationCompleted => {
+            MachineInput::LocalParticipationCompleted => {
                 let local_index = config
                     .peer_index(config.local_peer_id())
                     .expect("local peer must be in peer set");
                 let (phase2, _) = phase2.confirm(local_index);
 
                 let mut outputs = vec![
-                    VibeOutput::LocalParticipationCompleted,
-                    VibeOutput::BroadcastLocalReady,
+                    MachineOutput::LocalParticipationCompleted,
+                    MachineOutput::BroadcastLocalReady,
                 ];
 
                 let quorum = phase2.count() >= config.quorum_threshold();
                 if quorum {
-                    outputs.push(VibeOutput::ReadyQuorumReached);
-                    outputs.push(VibeOutput::ReadinessExited {
+                    outputs.push(MachineOutput::ReadyQuorumReached);
+                    outputs.push(MachineOutput::ReadinessExited {
                         mode: ReadinessExitMode::Quorum,
                     });
                 }
 
-                let new_state: Box<dyn VibeState> = if quorum {
+                let new_state: Box<dyn MachineState> = if quorum {
                     Box::new(ReadyByQuorum { phase1, phase2 })
                 } else {
                     Box::new(Collecting { phase1, phase2 })
@@ -115,8 +115,8 @@ impl VibeState for Pinging {
                 (outputs, new_state)
             }
 
-            VibeInput::DeadlineExpired => (
-                vec![VibeOutput::ReadinessExited {
+            MachineInput::DeadlineExpired => (
+                vec![MachineOutput::ReadinessExited {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
@@ -128,8 +128,8 @@ impl VibeState for Pinging {
         }
     }
 
-    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
-        VibeSnapshot::new(
+    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
+        MachineSnapshot::new(
             ReadinessLifecycleState::Phase1Active,
             None,
             false,

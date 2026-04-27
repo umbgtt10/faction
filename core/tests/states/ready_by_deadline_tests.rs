@@ -8,46 +8,46 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
 
-fn vibe() -> Vibe {
-    Vibe::new(
-        VibeConfig::new(
+fn Machine() -> Machine {
+    Machine::new(
+        MachineConfig::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(4),
             FreshnessPolicy::new(2),
         ),
-        Box::new(NoOpVibeObserver),
+        Box::new(NoOpMachineObserver),
     )
 }
 
-fn reach_deadline_from_phase1() -> Vibe {
-    let mut m = vibe();
-    let _ = m.apply(VibeInput::ParticipationObserved {
+fn reach_deadline_from_phase1() -> Machine {
+    let mut m = Machine();
+    let _ = m.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = m.apply(VibeInput::DeadlineExpired);
+    let _ = m.apply(MachineInput::DeadlineExpired);
     m
 }
 
-fn reach_deadline_from_phase2() -> Vibe {
-    let mut m = vibe();
-    let _ = m.apply(VibeInput::ParticipationObserved {
+fn reach_deadline_from_phase2() -> Machine {
+    let mut m = Machine();
+    let _ = m.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = m.apply(VibeInput::LocalParticipationCompleted);
-    let _ = m.apply(VibeInput::DeadlineExpired);
+    let _ = m.apply(MachineInput::LocalParticipationCompleted);
+    let _ = m.apply(MachineInput::DeadlineExpired);
     m
 }
 
@@ -56,7 +56,7 @@ fn deal_rejects_participation_observed() {
     let mut m = reach_deadline_from_phase1();
     let snap_before = m.snapshot();
 
-    let outputs = m.apply(VibeInput::ParticipationObserved {
+    let outputs = m.apply(MachineInput::ParticipationObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
@@ -71,7 +71,7 @@ fn deal_rejects_ready_observed() {
     let mut m = reach_deadline_from_phase1();
     let snap_before = m.snapshot();
 
-    let outputs = m.apply(VibeInput::ReadyObserved {
+    let outputs = m.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
@@ -86,7 +86,7 @@ fn deal_rejects_local_participation_completed() {
     let mut m = reach_deadline_from_phase1();
     let snap_before = m.snapshot();
 
-    let outputs = m.apply(VibeInput::LocalParticipationCompleted);
+    let outputs = m.apply(MachineInput::LocalParticipationCompleted);
 
     assert!(outputs.is_empty());
     assert_eq!(m.snapshot(), snap_before);
@@ -97,7 +97,7 @@ fn deal_rejects_deadline_expired() {
     let mut m = reach_deadline_from_phase1();
     let snap_before = m.snapshot();
 
-    let outputs = m.apply(VibeInput::DeadlineExpired);
+    let outputs = m.apply(MachineInput::DeadlineExpired);
 
     assert!(outputs.is_empty());
     assert_eq!(m.snapshot(), snap_before);
@@ -140,18 +140,18 @@ fn post_deadline_inputs_leave_state_unchanged() {
     let mut m = reach_deadline_from_phase1();
     let snapshot_before = m.snapshot();
 
-    let _ = m.apply(VibeInput::ParticipationObserved {
+    let _ = m.apply(MachineInput::ParticipationObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = m.apply(VibeInput::ReadyObserved {
+    let _ = m.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = m.apply(VibeInput::LocalParticipationCompleted);
-    let _ = m.apply(VibeInput::DeadlineExpired);
+    let _ = m.apply(MachineInput::LocalParticipationCompleted);
+    let _ = m.apply(MachineInput::DeadlineExpired);
 
     assert_eq!(m.snapshot(), snapshot_before);
 }

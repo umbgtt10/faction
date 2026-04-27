@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::vibe_config::VibeConfig;
-use crate::vibe_input::VibeInput;
-use crate::vibe_output::VibeOutput;
-use crate::vibe_snapshot::VibeSnapshot;
-use crate::vibe_state::VibeState;
+use crate::machine_config::MachineConfig;
+use crate::machine_input::MachineInput;
+use crate::machine_output::MachineOutput;
+use crate::machine_snapshot::MachineSnapshot;
+use crate::machine_state::MachineState;
 
 use super::helpers::confirmed_set::ConfirmedSet;
 
@@ -22,17 +22,17 @@ pub struct ReadyByDeadline {
     pub local_participation_complete: bool,
 }
 
-impl VibeState for ReadyByDeadline {
-    fn punch(
+impl MachineState for ReadyByDeadline {
+    fn step(
         self: Box<Self>,
-        _input: VibeInput,
-        _config: &VibeConfig,
-    ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
-        unreachable!("deal() rejects all inputs for this state")
+        _input: MachineInput,
+        _config: &MachineConfig,
+    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
+        unreachable!("accept() rejects all inputs for this state")
     }
 
-    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
-        VibeSnapshot::new(
+    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
+        MachineSnapshot::new(
             ReadinessLifecycleState::ReadyByDeadline,
             Some(ReadinessExitMode::Deadline),
             self.local_participation_complete,
@@ -43,7 +43,7 @@ impl VibeState for ReadyByDeadline {
         )
     }
 
-    fn deal(&self, _input: &VibeInput) -> bool {
+    fn accept(&self, _input: &MachineInput) -> bool {
         false
     }
 }

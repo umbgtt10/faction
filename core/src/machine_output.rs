@@ -6,7 +6,7 @@ use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::PeerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VibeOutput {
+pub enum MachineOutput {
     ParticipationAccepted { peer_id: PeerId },
     ReadyAccepted { peer_id: PeerId },
     DelayedParticipationAccepted { peer_id: PeerId },

@@ -6,22 +6,22 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use crate::vibe_output::VibeOutput;
-use crate::vibe_snapshot::VibeSnapshot;
+use crate::machine_output::MachineOutput;
+use crate::machine_snapshot::MachineSnapshot;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VibeTransition {
-    previous_state: VibeSnapshot,
-    outputs: Vec<VibeOutput>,
-    new_state: VibeSnapshot,
+pub struct MachineTransition {
+    previous_state: MachineSnapshot,
+    outputs: Vec<MachineOutput>,
+    new_state: MachineSnapshot,
 }
 
-impl VibeTransition {
+impl MachineTransition {
     #[must_use]
     pub fn new(
-        previous_state: VibeSnapshot,
-        outputs: Vec<VibeOutput>,
-        new_state: VibeSnapshot,
+        previous_state: MachineSnapshot,
+        outputs: Vec<MachineOutput>,
+        new_state: MachineSnapshot,
     ) -> Self {
         Self {
             previous_state,
@@ -31,17 +31,17 @@ impl VibeTransition {
     }
 
     #[must_use]
-    pub const fn previous_state(&self) -> VibeSnapshot {
+    pub const fn previous_state(&self) -> MachineSnapshot {
         self.previous_state
     }
 
     #[must_use]
-    pub fn outputs(&self) -> &[VibeOutput] {
+    pub fn outputs(&self) -> &[MachineOutput] {
         &self.outputs
     }
 
     #[must_use]
-    pub const fn new_state(&self) -> VibeSnapshot {
+    pub const fn new_state(&self) -> MachineSnapshot {
         self.new_state
     }
 }

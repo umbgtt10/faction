@@ -8,53 +8,53 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
 
-fn reach_ready_by_quorum() -> Vibe {
-    let mut vibe = Vibe::new(
-        VibeConfig::new(
+fn reach_ready_by_quorum() -> Machine {
+    let mut machine = Machine::new(
+        MachineConfig::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(4),
             FreshnessPolicy::new(2),
         ),
-        Box::new(NoOpVibeObserver),
+        Box::new(NoOpMachineObserver),
     );
-    let _ = vibe.apply(VibeInput::ParticipationObserved {
+    let _ = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = vibe.apply(VibeInput::LocalParticipationCompleted);
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let _ = machine.apply(MachineInput::LocalParticipationCompleted);
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = vibe.apply(VibeInput::ReadyObserved {
+    let _ = machine.apply(MachineInput::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
     });
-    vibe
+    machine
 }
 
 #[test]
 fn deal_rejects_participation_observed() {
     // Arrange
-    let vibe = reach_ready_by_quorum();
-    let snapshot = vibe.snapshot();
+    let machine = reach_ready_by_quorum();
+    let snapshot = machine.snapshot();
 
     // Assert
     assert_eq!(
@@ -68,23 +68,23 @@ fn deal_rejects_participation_observed() {
 #[test]
 fn all_inputs_leave_state_unchanged() {
     // Arrange
-    let mut vibe = reach_ready_by_quorum();
-    let snapshot_before = vibe.snapshot();
+    let mut machine = reach_ready_by_quorum();
+    let snapshot_before = machine.snapshot();
 
     // Act
-    let r1 = vibe.apply(VibeInput::ParticipationObserved {
+    let r1 = machine.apply(MachineInput::ParticipationObserved {
         peer_id: 0,
         freshness: 10,
         current_marker: 10,
     });
-    let r2 = vibe.apply(VibeInput::ReadyObserved {
+    let r2 = machine.apply(MachineInput::ReadyObserved {
         peer_id: 4,
         freshness: 10,
         current_marker: 10,
     });
-    let r3 = vibe.apply(VibeInput::LocalParticipationCompleted);
-    let r4 = vibe.apply(VibeInput::DeadlineExpired);
-    let snapshot_after = vibe.snapshot();
+    let r3 = machine.apply(MachineInput::LocalParticipationCompleted);
+    let r4 = machine.apply(MachineInput::DeadlineExpired);
+    let snapshot_after = machine.snapshot();
 
     // Assert
     assert!(r1.is_empty());
@@ -97,8 +97,8 @@ fn all_inputs_leave_state_unchanged() {
 #[test]
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
-    let vibe = reach_ready_by_quorum();
-    let snapshot = vibe.snapshot();
+    let machine = reach_ready_by_quorum();
+    let snapshot = machine.snapshot();
 
     // Assert
     assert_eq!(

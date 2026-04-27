@@ -8,20 +8,20 @@ extern crate alloc;
 
 pub mod freshness_classification;
 pub mod freshness_policy;
-pub mod no_op_vibe_observer;
+pub mod no_op_machine_observer;
 
+pub mod machine;
+pub mod machine_config;
+pub mod machine_input;
+pub mod machine_observer;
+pub mod machine_output;
+pub mod machine_snapshot;
+pub mod machine_state;
+pub mod machine_transition;
 pub mod quorum_policy;
 pub mod readiness_exit_mode;
 pub mod readiness_lifecycle_state;
 pub mod states;
-pub mod vibe;
-pub mod vibe_config;
-pub mod vibe_input;
-pub mod vibe_observer;
-pub mod vibe_output;
-pub mod vibe_snapshot;
-pub mod vibe_state;
-pub mod vibe_transition;
 
 pub type PeerId = u64;
 pub type Freshness = u64;

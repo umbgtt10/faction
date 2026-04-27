@@ -6,13 +6,13 @@ extern crate alloc;
 
 use alloc::vec;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe_output::VibeOutput;
-use faction_validation::vibe_scenario_harness::VibeScenarioHarness;
+use faction::machine_output::MachineOutput;
+use faction_validation::machine_scenario_harness::MachineScenarioHarness;
 
 #[test]
 fn complete_local_participation_updates_snapshot_and_outputs() {
     // Arrange
-    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
 
     // Act
     let outputs = harness.complete_local_participation(0);
@@ -22,8 +22,8 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
     assert_eq!(
         outputs,
         vec![
-            VibeOutput::LocalParticipationCompleted,
-            VibeOutput::BroadcastLocalReady,
+            MachineOutput::LocalParticipationCompleted,
+            MachineOutput::BroadcastLocalReady,
         ]
     );
     assert!(snapshot.local_participation_complete());
@@ -38,7 +38,7 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
 #[test]
 fn apply_participation_accepts_timely_member_observation() {
     // Arrange
-    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
 
     // Act
@@ -48,7 +48,7 @@ fn apply_participation_accepts_timely_member_observation() {
     // Assert
     assert_eq!(
         outputs,
-        vec![VibeOutput::ParticipationAccepted { peer_id: 1 }]
+        vec![MachineOutput::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase1_confirmed_count(), 1);
     assert_eq!(
@@ -61,7 +61,7 @@ fn apply_participation_accepts_timely_member_observation() {
 #[test]
 fn apply_participation_accepts_delayed_member_observation_within_margin() {
     // Arrange
-    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
 
     // Act
@@ -71,7 +71,7 @@ fn apply_participation_accepts_delayed_member_observation_within_margin() {
     // Assert
     assert_eq!(
         outputs,
-        vec![VibeOutput::DelayedParticipationAccepted { peer_id: 1 }]
+        vec![MachineOutput::DelayedParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase1_confirmed_count(), 1);
     assert!(!snapshot.readiness_exited());
@@ -80,7 +80,7 @@ fn apply_participation_accepts_delayed_member_observation_within_margin() {
 #[test]
 fn apply_participation_rejects_stale_member_observation() {
     // Arrange
-    let mut harness = VibeScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
 
     // Act
@@ -90,7 +90,7 @@ fn apply_participation_rejects_stale_member_observation() {
     // Assert
     assert_eq!(
         outputs,
-        vec![VibeOutput::StaleParticipationIgnored { peer_id: 1 }]
+        vec![MachineOutput::StaleParticipationIgnored { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase1_confirmed_count(), 0);
     assert_eq!(snapshot.phase2_confirmed_count(), 0);

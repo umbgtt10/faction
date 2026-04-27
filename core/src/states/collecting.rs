@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::vibe_config::VibeConfig;
-use crate::vibe_input::VibeInput;
-use crate::vibe_output::VibeOutput;
-use crate::vibe_snapshot::VibeSnapshot;
-use crate::vibe_state::VibeState;
+use crate::machine_config::MachineConfig;
+use crate::machine_input::MachineInput;
+use crate::machine_output::MachineOutput;
+use crate::machine_snapshot::MachineSnapshot;
+use crate::machine_state::MachineState;
 
 use super::helpers::compute_output::ObservedKind;
 use super::helpers::compute_output::ObservedOutput;
@@ -25,27 +25,27 @@ pub struct Collecting {
     pub phase2: ConfirmedSet,
 }
 
-impl VibeState for Collecting {
-    fn deal(&self, input: &VibeInput) -> bool {
+impl MachineState for Collecting {
+    fn accept(&self, input: &MachineInput) -> bool {
         matches!(
             input,
-            VibeInput::ReadyObserved { .. } | VibeInput::DeadlineExpired
+            MachineInput::ReadyObserved { .. } | MachineInput::DeadlineExpired
         )
     }
 
-    fn punch(
+    fn step(
         self: Box<Self>,
-        input: VibeInput,
-        config: &VibeConfig,
-    ) -> (Vec<VibeOutput>, Box<dyn VibeState>) {
+        input: MachineInput,
+        config: &MachineConfig,
+    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
         let Self { phase1, phase2 } = *self;
 
         match input {
-            VibeInput::ParticipationObserved { .. } => {
-                unreachable!("deal() rejects this input for Collecting")
+            MachineInput::ParticipationObserved { .. } => {
+                unreachable!("accept() rejects this input for Collecting")
             }
 
-            VibeInput::ReadyObserved {
+            MachineInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -70,8 +70,8 @@ impl VibeState for Collecting {
                 let outputs = if quorum {
                     vec![
                         output,
-                        VibeOutput::ReadyQuorumReached,
-                        VibeOutput::ReadinessExited {
+                        MachineOutput::ReadyQuorumReached,
+                        MachineOutput::ReadinessExited {
                             mode: ReadinessExitMode::Quorum,
                         },
                     ]
@@ -79,7 +79,7 @@ impl VibeState for Collecting {
                     vec![output]
                 };
 
-                let new_state: Box<dyn VibeState> = if quorum {
+                let new_state: Box<dyn MachineState> = if quorum {
                     Box::new(ReadyByQuorum { phase1, phase2 })
                 } else {
                     Box::new(Self { phase1, phase2 })
@@ -87,12 +87,12 @@ impl VibeState for Collecting {
                 (outputs, new_state)
             }
 
-            VibeInput::LocalParticipationCompleted => {
-                unreachable!("deal() rejects this input for Collecting")
+            MachineInput::LocalParticipationCompleted => {
+                unreachable!("accept() rejects this input for Collecting")
             }
 
-            VibeInput::DeadlineExpired => (
-                vec![VibeOutput::ReadinessExited {
+            MachineInput::DeadlineExpired => (
+                vec![MachineOutput::ReadinessExited {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
@@ -104,8 +104,8 @@ impl VibeState for Collecting {
         }
     }
 
-    fn vibe_check(&self, quorum_threshold: usize) -> VibeSnapshot {
-        VibeSnapshot::new(
+    fn snapshot(&self, quorum_threshold: usize) -> MachineSnapshot {
+        MachineSnapshot::new(
             ReadinessLifecycleState::Phase2Active,
             None,
             true,

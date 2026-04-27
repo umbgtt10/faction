@@ -8,14 +8,14 @@ use alloc::boxed::Box;
 use alloc::vec;
 
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
-use faction::vibe_output::VibeOutput::*;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
+use faction::machine_output::MachineOutput::*;
 use faction::Freshness;
 use faction::PeerId;
 use rstest::rstest;
@@ -45,17 +45,17 @@ enum Init {
     Phase2AlmostQuorum,
 }
 
-fn build(init: Init) -> Vibe {
-    let mut m = Vibe::new(
-        VibeConfig::new(
+fn build(init: Init) -> Machine {
+    let mut m = Machine::new(
+        MachineConfig::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(THRESHOLD),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpVibeObserver),
+        Box::new(NoOpMachineObserver),
     );
-    let _ = m.apply(VibeInput::ParticipationObserved {
+    let _ = m.apply(MachineInput::ParticipationObserved {
         peer_id: 99,
         freshness: MARKER,
         current_marker: MARKER,
@@ -63,7 +63,7 @@ fn build(init: Init) -> Vibe {
     match init {
         Init::Fresh => {}
         Init::Phase1Peer1Confirmed => {
-            let _ = m.apply(VibeInput::ParticipationObserved {
+            let _ = m.apply(MachineInput::ParticipationObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
@@ -71,7 +71,7 @@ fn build(init: Init) -> Vibe {
         }
         Init::Phase1P2Threshold => {
             for peer in 0..5 {
-                let _ = m.apply(VibeInput::ReadyObserved {
+                let _ = m.apply(MachineInput::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -79,20 +79,20 @@ fn build(init: Init) -> Vibe {
             }
         }
         Init::Phase2NoReadiness => {
-            let _ = m.apply(VibeInput::LocalParticipationCompleted);
+            let _ = m.apply(MachineInput::LocalParticipationCompleted);
         }
         Init::Phase2Peer1Confirmed => {
-            let _ = m.apply(VibeInput::LocalParticipationCompleted);
-            let _ = m.apply(VibeInput::ReadyObserved {
+            let _ = m.apply(MachineInput::LocalParticipationCompleted);
+            let _ = m.apply(MachineInput::ReadyObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
             });
         }
         Init::Phase2AlmostQuorum => {
-            let _ = m.apply(VibeInput::LocalParticipationCompleted);
+            let _ = m.apply(MachineInput::LocalParticipationCompleted);
             for peer in 1..4 {
-                let _ = m.apply(VibeInput::ReadyObserved {
+                let _ = m.apply(MachineInput::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -118,7 +118,7 @@ enum Assert {
     NotLocalComplete,
 }
 
-fn verify(m: &Vibe, checks: &[Assert]) {
+fn verify(m: &Machine, checks: &[Assert]) {
     let s = m.snapshot();
     for check in checks {
         match *check {
@@ -137,16 +137,16 @@ fn verify(m: &Vibe, checks: &[Assert]) {
 // Input helpers
 // ---------------------------------------------------------------------------
 
-fn participation(peer_id: PeerId, freshness: Freshness) -> VibeInput {
-    VibeInput::ParticipationObserved {
+fn participation(peer_id: PeerId, freshness: Freshness) -> MachineInput {
+    MachineInput::ParticipationObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
     }
 }
 
-fn ready(peer_id: PeerId, freshness: Freshness) -> VibeInput {
-    VibeInput::ReadyObserved {
+fn ready(peer_id: PeerId, freshness: Freshness) -> MachineInput {
+    MachineInput::ReadyObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
@@ -240,13 +240,13 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> VibeInput {
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,
-    VibeInput::LocalParticipationCompleted,
+    MachineInput::LocalParticipationCompleted,
     &[LocalParticipationCompleted, BroadcastLocalReady],
     &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::local_completion_with_preloaded_quorum(
     Init::Phase1P2Threshold,
-    VibeInput::LocalParticipationCompleted,
+    MachineInput::LocalParticipationCompleted,
     &[
         LocalParticipationCompleted,
         BroadcastLocalReady,
@@ -257,20 +257,20 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> VibeInput {
 )]
 #[case::local_completion_redundant(
     Init::Phase2NoReadiness,
-    VibeInput::LocalParticipationCompleted,
+    MachineInput::LocalParticipationCompleted,
     &[],
     &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::deadline_expired(
     Init::Fresh,
-    VibeInput::DeadlineExpired,
+    MachineInput::DeadlineExpired,
     &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
     &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
 )]
 fn valid_transition(
     #[case] init: Init,
-    #[case] input: VibeInput,
-    #[case] expected_outputs: &[VibeOutput],
+    #[case] input: MachineInput,
+    #[case] expected_outputs: &[MachineOutput],
     #[case] asserts: &[Assert],
 ) {
     // Arrange

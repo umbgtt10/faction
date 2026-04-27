@@ -7,15 +7,15 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_vibe_observer::NoOpVibeObserver;
+use faction::no_op_machine_observer::NoOpMachineObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::vibe::Vibe;
-use faction::vibe_config::VibeConfig;
-use faction::vibe_input::VibeInput;
-use faction::vibe_output::VibeOutput;
-use faction::vibe_snapshot::VibeSnapshot;
+use faction::machine::Machine;
+use faction::machine_config::MachineConfig;
+use faction::machine_input::MachineInput;
+use faction::machine_output::MachineOutput;
+use faction::machine_snapshot::MachineSnapshot;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,10 +82,10 @@ impl ModelCoordinator {
         }
     }
 
-    fn apply(&mut self, input: VibeInput) -> alloc::vec::Vec<VibeOutput> {
+    fn apply(&mut self, input: MachineInput) -> alloc::vec::Vec<MachineOutput> {
         if self.initial {
             match input {
-                VibeInput::ParticipationObserved { .. } | VibeInput::ReadyObserved { .. } => {
+                MachineInput::ParticipationObserved { .. } | MachineInput::ReadyObserved { .. } => {
                     self.initial = false;
                 }
                 _ => return Vec::new(),
@@ -98,25 +98,25 @@ impl ModelCoordinator {
 
         if self.local_participation_complete {
             match input {
-                VibeInput::ParticipationObserved { .. }
-                | VibeInput::LocalParticipationCompleted => return Vec::new(),
+                MachineInput::ParticipationObserved { .. }
+                | MachineInput::LocalParticipationCompleted => return Vec::new(),
                 _ => {}
             }
         }
 
         match input {
-            VibeInput::ParticipationObserved {
+            MachineInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
             } => self.apply_participation_observed(peer_id, freshness, current_marker),
-            VibeInput::ReadyObserved {
+            MachineInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
             } => self.apply_ready_observed(peer_id, freshness, current_marker),
-            VibeInput::LocalParticipationCompleted => self.apply_local_participation_completed(),
-            VibeInput::DeadlineExpired => self.apply_deadline_expired(),
+            MachineInput::LocalParticipationCompleted => self.apply_local_participation_completed(),
+            MachineInput::DeadlineExpired => self.apply_deadline_expired(),
         }
     }
 
@@ -125,30 +125,30 @@ impl ModelCoordinator {
         peer_id: u64,
         freshness: u64,
         current_marker: u64,
-    ) -> alloc::vec::Vec<VibeOutput> {
+    ) -> alloc::vec::Vec<MachineOutput> {
         if self.has_exited() {
-            return vec![VibeOutput::StaleParticipationIgnored { peer_id }];
+            return vec![MachineOutput::StaleParticipationIgnored { peer_id }];
         }
 
         let Some(index) = self.peer_index(peer_id) else {
-            return vec![VibeOutput::NonMemberIgnored { peer_id }];
+            return vec![MachineOutput::NonMemberIgnored { peer_id }];
         };
 
         if self.is_stale(current_marker, freshness) {
-            return vec![VibeOutput::StaleParticipationIgnored { peer_id }];
+            return vec![MachineOutput::StaleParticipationIgnored { peer_id }];
         }
 
         if self.phase1_confirmed[index] {
-            return vec![VibeOutput::DuplicateParticipationIgnored { peer_id }];
+            return vec![MachineOutput::DuplicateParticipationIgnored { peer_id }];
         }
 
         self.phase1_confirmed[index] = true;
         self.phase1_confirmed_count += 1;
 
         if self.is_delayed(current_marker, freshness) {
-            vec![VibeOutput::DelayedParticipationAccepted { peer_id }]
+            vec![MachineOutput::DelayedParticipationAccepted { peer_id }]
         } else {
-            vec![VibeOutput::ParticipationAccepted { peer_id }]
+            vec![MachineOutput::ParticipationAccepted { peer_id }]
         }
     }
 
@@ -157,30 +157,30 @@ impl ModelCoordinator {
         peer_id: u64,
         freshness: u64,
         current_marker: u64,
-    ) -> alloc::vec::Vec<VibeOutput> {
+    ) -> alloc::vec::Vec<MachineOutput> {
         if self.has_exited() {
-            return vec![VibeOutput::StaleReadyIgnored { peer_id }];
+            return vec![MachineOutput::StaleReadyIgnored { peer_id }];
         }
 
         let Some(index) = self.peer_index(peer_id) else {
-            return vec![VibeOutput::NonMemberIgnored { peer_id }];
+            return vec![MachineOutput::NonMemberIgnored { peer_id }];
         };
 
         if self.is_stale(current_marker, freshness) {
-            return vec![VibeOutput::StaleReadyIgnored { peer_id }];
+            return vec![MachineOutput::StaleReadyIgnored { peer_id }];
         }
 
         if self.phase2_confirmed[index] {
-            return vec![VibeOutput::DuplicateReadyIgnored { peer_id }];
+            return vec![MachineOutput::DuplicateReadyIgnored { peer_id }];
         }
 
         self.phase2_confirmed[index] = true;
         self.phase2_confirmed_count += 1;
 
         let accepted_output = if self.is_delayed(current_marker, freshness) {
-            VibeOutput::DelayedReadyAccepted { peer_id }
+            MachineOutput::DelayedReadyAccepted { peer_id }
         } else {
-            VibeOutput::ReadyAccepted { peer_id }
+            MachineOutput::ReadyAccepted { peer_id }
         };
 
         if self.local_participation_complete && self.phase2_confirmed_count >= self.quorum_threshold
@@ -189,8 +189,8 @@ impl ModelCoordinator {
             self.lifecycle_state = ModelLifecycleState::ReadyByQuorum;
             vec![
                 accepted_output,
-                VibeOutput::ReadyQuorumReached,
-                VibeOutput::ReadinessExited {
+                MachineOutput::ReadyQuorumReached,
+                MachineOutput::ReadinessExited {
                     mode: ReadinessExitMode::Quorum,
                 },
             ]
@@ -199,7 +199,7 @@ impl ModelCoordinator {
         }
     }
 
-    fn apply_local_participation_completed(&mut self) -> alloc::vec::Vec<VibeOutput> {
+    fn apply_local_participation_completed(&mut self) -> alloc::vec::Vec<MachineOutput> {
         if self.has_exited() || self.local_participation_complete {
             return vec![];
         }
@@ -216,15 +216,15 @@ impl ModelCoordinator {
         }
 
         let mut outputs = vec![
-            VibeOutput::LocalParticipationCompleted,
-            VibeOutput::BroadcastLocalReady,
+            MachineOutput::LocalParticipationCompleted,
+            MachineOutput::BroadcastLocalReady,
         ];
 
         if self.phase2_confirmed_count >= self.quorum_threshold {
             self.exit_mode = Some(ReadinessExitMode::Quorum);
             self.lifecycle_state = ModelLifecycleState::ReadyByQuorum;
-            outputs.push(VibeOutput::ReadyQuorumReached);
-            outputs.push(VibeOutput::ReadinessExited {
+            outputs.push(MachineOutput::ReadyQuorumReached);
+            outputs.push(MachineOutput::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             });
         }
@@ -232,7 +232,7 @@ impl ModelCoordinator {
         outputs
     }
 
-    fn apply_deadline_expired(&mut self) -> alloc::vec::Vec<VibeOutput> {
+    fn apply_deadline_expired(&mut self) -> alloc::vec::Vec<MachineOutput> {
         if self.has_exited() {
             return vec![];
         }
@@ -240,7 +240,7 @@ impl ModelCoordinator {
         self.exit_mode = Some(ReadinessExitMode::Deadline);
         self.lifecycle_state = ModelLifecycleState::ReadyByDeadline;
 
-        vec![VibeOutput::ReadinessExited {
+        vec![MachineOutput::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     }
@@ -268,7 +268,7 @@ impl ModelCoordinator {
     }
 }
 
-fn model_snapshot(snapshot: VibeSnapshot) -> ModelSnapshot {
+fn model_snapshot(snapshot: MachineSnapshot) -> ModelSnapshot {
     ModelSnapshot {
         lifecycle_state: match snapshot.lifecycle_state() {
             ReadinessLifecycleState::Phase1Active => ModelLifecycleState::Phase1Active,
@@ -285,8 +285,8 @@ fn model_snapshot(snapshot: VibeSnapshot) -> ModelSnapshot {
     }
 }
 
-fn test_config() -> VibeConfig {
-    VibeConfig::new(
+fn test_config() -> MachineConfig {
+    MachineConfig::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
@@ -294,14 +294,14 @@ fn test_config() -> VibeConfig {
     )
 }
 
-fn coordinator() -> Vibe {
-    Vibe::new(test_config(), Box::new(NoOpVibeObserver))
+fn coordinator() -> Machine {
+    Machine::new(test_config(), Box::new(NoOpMachineObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = VibeInput> {
+fn input_strategy() -> impl Strategy<Value = MachineInput> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            VibeInput::ParticipationObserved {
+            MachineInput::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -309,7 +309,7 @@ fn input_strategy() -> impl Strategy<Value = VibeInput> {
         });
     let ready =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            VibeInput::ReadyObserved {
+            MachineInput::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -319,8 +319,8 @@ fn input_strategy() -> impl Strategy<Value = VibeInput> {
     prop_oneof![
         participation,
         ready,
-        Just(VibeInput::LocalParticipationCompleted),
-        Just(VibeInput::DeadlineExpired),
+        Just(MachineInput::LocalParticipationCompleted),
+        Just(MachineInput::DeadlineExpired),
     ]
 }
 
