@@ -128,3 +128,11 @@ powershell -File scripts\run_stage_2.ps1   # coverage and file risk analysis
 ## License
 
 Licensed under the MIT License. See [LICENSE](./LICENSE).
+
+---
+
+## Links
+
+- [CHANGELOG](./CHANGELOG.md) — project history
+- [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) — community guidelines
+- [ROADMAP](./docs/ROADMAP.md) — future plans
