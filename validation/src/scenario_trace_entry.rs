@@ -8,14 +8,14 @@ use faction::snapshot::Snapshot;
 use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MachineScenarioTraceEntry {
+pub struct ScenarioTraceEntry {
     node_id: PeerId,
     input: Command,
     outputs: alloc::vec::Vec<Outcome>,
     snapshot: Snapshot,
 }
 
-impl MachineScenarioTraceEntry {
+impl ScenarioTraceEntry {
     #[must_use]
     pub fn new(
         node_id: PeerId,
