@@ -18,4 +18,5 @@ pub enum MachineInput {
     },
     LocalParticipationCompleted,
     DeadlineExpired,
+    GetSnapshot,
 }

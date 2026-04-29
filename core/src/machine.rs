@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::Cell;
 
@@ -55,6 +56,10 @@ impl Machine {
 
     #[must_use]
     pub fn apply(&mut self, input: MachineInput) -> Vec<MachineOutput> {
+        if let MachineInput::GetSnapshot = input {
+            return vec![MachineOutput::SnapshotAvailable(self.snapshot())];
+        }
+
         if !self.state.as_ref().unwrap().accept(&input) {
             return Vec::new();
         }

@@ -7,15 +7,15 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_machine_observer::NoOpMachineObserver;
-use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::machine::Machine;
 use faction::machine_config::MachineConfig;
 use faction::machine_input::MachineInput;
 use faction::machine_output::MachineOutput;
 use faction::machine_snapshot::MachineSnapshot;
+use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::quorum_policy::QuorumPolicy;
+use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,6 +117,7 @@ impl ModelCoordinator {
             } => self.apply_ready_observed(peer_id, freshness, current_marker),
             MachineInput::LocalParticipationCompleted => self.apply_local_participation_completed(),
             MachineInput::DeadlineExpired => self.apply_deadline_expired(),
+            MachineInput::GetSnapshot => unreachable!("GetSnapshot handled in Machine::apply"),
         }
     }
 

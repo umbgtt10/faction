@@ -140,6 +140,8 @@ impl MachineState for Pinging {
                     phase2_count: phase2.count(),
                 }),
             ),
+
+            MachineInput::GetSnapshot => unreachable!("GetSnapshot handled in Machine::apply"),
         }
     }
 }

@@ -110,6 +110,10 @@ impl MachineState for Collecting {
                     phase2_count: phase2.count(),
                 }),
             ),
+
+            MachineInput::GetSnapshot => {
+                unreachable!("GetSnapshot handled in Machine::apply")
+            }
         }
     }
 }
