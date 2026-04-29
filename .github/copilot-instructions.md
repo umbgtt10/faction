@@ -44,7 +44,9 @@ Specifically:
 ### User coding standards
 
 - one struct per file
+- unit tests are not allowed. Only integration tests are
 - no unnecessary comments in code
+- consolidate scattered functions inside structs as appropriate
 - no `&mut` input parameters; prefer return values
 - only use `pub mod` in `mod.rs` and `lib.rs`
 - split test files so there is one test file per source file, named `<source file name>_tests.rs`
