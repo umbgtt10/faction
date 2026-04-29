@@ -8,7 +8,7 @@ use alloc::vec;
 
 use faction::outcome::Outcome;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::machine_scenario_harness::MachineScenarioHarness;
+use faction_validation::scenario_harness::ScenarioHarness;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -64,8 +64,8 @@ fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
     ]
 }
 
-fn harness() -> MachineScenarioHarness {
-    MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
+fn harness() -> ScenarioHarness {
+    ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
 }
 
 fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
@@ -87,7 +87,7 @@ fn outputs_contain_stale(outputs: &[Outcome]) -> bool {
 }
 
 fn apply_operation(
-    harness: &mut MachineScenarioHarness,
+    harness: &mut ScenarioHarness,
     operation: ScenarioOperation,
 ) -> Option<(usize, Vec<Outcome>)> {
     match operation {

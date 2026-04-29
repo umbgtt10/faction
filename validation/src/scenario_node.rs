@@ -13,12 +13,12 @@ use faction::outcome::Outcome;
 use faction::snapshot::Snapshot;
 use faction::PeerId;
 
-pub struct MachineScenarioNode {
+pub struct ScenarioNode {
     peer_id: PeerId,
     readiness: Faction,
 }
 
-impl MachineScenarioNode {
+impl ScenarioNode {
     #[must_use]
     pub fn new(peer_id: PeerId, config: Config) -> Self {
         Self {

@@ -7,12 +7,12 @@ extern crate alloc;
 use alloc::vec;
 use faction::outcome::Outcome;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::machine_scenario_harness::MachineScenarioHarness;
+use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn complete_local_participation_updates_snapshot_and_outputs() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
 
     // Act
     let outputs = harness.complete_local_participation(0);
@@ -38,7 +38,7 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
 #[test]
 fn apply_participation_accepts_timely_member_observation() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
 
     // Act
@@ -58,7 +58,7 @@ fn apply_participation_accepts_timely_member_observation() {
 #[test]
 fn apply_participation_accepts_delayed_member_observation_within_margin() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
 
     // Act
@@ -77,7 +77,7 @@ fn apply_participation_accepts_delayed_member_observation_within_margin() {
 #[test]
 fn apply_participation_rejects_stale_member_observation() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
 
     // Act

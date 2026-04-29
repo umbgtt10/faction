@@ -7,7 +7,7 @@
 extern crate alloc;
 
 pub mod cluster_simulation;
-pub mod machine_scenario_event;
-pub mod machine_scenario_harness;
-pub mod machine_scenario_node;
-pub mod machine_scenario_trace_entry;
+pub mod scenario_event;
+pub mod scenario_harness;
+pub mod scenario_node;
+pub mod scenario_trace_entry;

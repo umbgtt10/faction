@@ -9,12 +9,12 @@ use alloc::vec;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::machine_scenario_harness::MachineScenarioHarness;
+use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn stale_signals_do_not_perturb_active_multi_node_state() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -36,7 +36,7 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
 #[test]
 fn duplicate_signals_across_nodes_remain_idempotent() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -58,7 +58,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
 #[test]
 fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -93,7 +93,7 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
 #[test]
 fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -127,7 +127,7 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
 #[test]
 fn non_member_signal_does_not_perturb_multi_node_state() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);

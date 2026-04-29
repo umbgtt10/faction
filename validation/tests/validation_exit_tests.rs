@@ -9,12 +9,12 @@ use alloc::vec;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::machine_scenario_harness::MachineScenarioHarness;
+use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn slow_member_does_not_block_quorum_exit() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -43,7 +43,7 @@ fn slow_member_does_not_block_quorum_exit() {
 #[test]
 fn expire_deadline_exits_by_deadline() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     let _ = harness.complete_local_participation(0);
 
     // Act
@@ -68,7 +68,7 @@ fn expire_deadline_exits_by_deadline() {
 #[test]
 fn post_exit_ready_is_ignored() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -89,7 +89,7 @@ fn post_exit_ready_is_ignored() {
 #[test]
 fn repeated_deadline_expiry_remains_idempotent() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     let _ = harness.complete_local_participation(0);
     let _ = harness.expire_deadline(0);
 
@@ -110,7 +110,7 @@ fn repeated_deadline_expiry_remains_idempotent() {
 #[test]
 fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.complete_local_participation(1);
@@ -143,7 +143,7 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
 #[test]
 fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     for i in 0..5 {
         let _ = harness.complete_local_participation(i);
@@ -181,7 +181,7 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
 #[test]
 fn deadline_from_phase1() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.apply_participation(0, 1, 10);
 
@@ -210,7 +210,7 @@ fn deadline_from_phase1() {
 #[test]
 fn deadline_from_ready_by_quorum_is_noop() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);

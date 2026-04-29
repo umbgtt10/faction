@@ -6,12 +6,12 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction_validation::machine_scenario_harness::MachineScenarioHarness;
+use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn new_creates_one_coordinator_per_peer() {
     // Arrange & Act
-    let harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
 
     // Assert
     assert_eq!(harness.coordinator_count(), 5);
@@ -21,7 +21,7 @@ fn new_creates_one_coordinator_per_peer() {
 #[test]
 fn advance_to_sets_current_marker() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
 
     // Act
     harness.advance_to(10);
@@ -33,7 +33,7 @@ fn advance_to_sets_current_marker() {
 #[test]
 fn advance_by_increments_current_marker() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(3);
 
     // Act

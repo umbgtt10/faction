@@ -9,12 +9,12 @@ use alloc::vec;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction_validation::machine_scenario_harness::MachineScenarioHarness;
+use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -35,7 +35,7 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
 #[test]
 fn apply_ready_accepts_delayed_member_observation_within_margin() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -52,7 +52,7 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
 #[test]
 fn apply_ready_rejects_stale_member_observation() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
 
@@ -73,7 +73,7 @@ fn apply_ready_rejects_stale_member_observation() {
 #[test]
 fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -106,7 +106,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
 #[test]
 fn delayed_signals_within_margin_still_allow_quorum_exit() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 8);
@@ -135,7 +135,7 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
 #[test]
 fn post_exit_ready_is_ignored() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let _ = harness.complete_local_participation(0);
     let _ = harness.apply_ready(0, 1, 10);
@@ -156,7 +156,7 @@ fn post_exit_ready_is_ignored() {
 #[test]
 fn five_node_asymmetric_startup_reaches_quorum_exit() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(5);
     let _ = harness.complete_local_participation(2);
     let _ = harness.complete_local_participation(3);
@@ -214,7 +214,7 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
 #[test]
 fn early_ready_signals_accumulate_before_local_participation_completion() {
     // Arrange
-    let mut harness = MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
     let outputs_peer_1 = harness.apply_ready(0, 1, 10);
     let outputs_peer_2 = harness.apply_ready(0, 2, 10);

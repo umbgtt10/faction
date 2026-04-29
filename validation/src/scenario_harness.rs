@@ -17,12 +17,12 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::snapshot::Snapshot;
 use faction::PeerId;
 
-pub struct MachineScenarioHarness {
+pub struct ScenarioHarness {
     coordinators: Vec<Faction>,
     current_marker: u64,
 }
 
-impl MachineScenarioHarness {
+impl ScenarioHarness {
     pub fn new(peer_set: Vec<PeerId>, quorum_threshold: usize, max_delay: u64) -> Self {
         let mut coordinators = Vec::new();
 
