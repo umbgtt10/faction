@@ -5,9 +5,9 @@
 extern crate alloc;
 
 use faction::freshness_classification::FreshnessClassification;
+use faction::outcome::Outcome;
 use faction::states::helpers::compute_output::ObservedKind;
 use faction::states::helpers::compute_output::ObservedOutput;
-use faction::machine_output::MachineOutput;
 use faction::PeerId;
 
 const PEER_ID: PeerId = 42;
@@ -31,10 +31,7 @@ fn new_creates_observed_output_with_participation_kind() {
 
     // Assert
     let result = output.compute_output(Some(0), Some(FreshnessClassification::Timely), false);
-    assert_eq!(
-        result,
-        MachineOutput::ParticipationAccepted { peer_id: PEER_ID }
-    );
+    assert_eq!(result, Outcome::ParticipationAccepted { peer_id: PEER_ID });
 }
 
 #[test]
@@ -44,7 +41,7 @@ fn new_creates_observed_output_with_ready_kind() {
 
     // Assert
     let result = output.compute_output(Some(0), Some(FreshnessClassification::Timely), false);
-    assert_eq!(result, MachineOutput::ReadyAccepted { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::ReadyAccepted { peer_id: PEER_ID });
 }
 
 #[test]
@@ -56,7 +53,7 @@ fn compute_output_participation_non_member_returns_non_member_ignored() {
     let result = output.compute_output(None, None, false);
 
     // Assert
-    assert_eq!(result, MachineOutput::NonMemberIgnored { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -68,7 +65,7 @@ fn compute_output_ready_non_member_returns_non_member_ignored() {
     let result = output.compute_output(None, None, false);
 
     // Assert
-    assert_eq!(result, MachineOutput::NonMemberIgnored { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -80,7 +77,7 @@ fn compute_output_non_member_dominates_over_stale_classification() {
     let result = output.compute_output(None, Some(FreshnessClassification::Stale), false);
 
     // Assert
-    assert_eq!(result, MachineOutput::NonMemberIgnored { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -92,7 +89,7 @@ fn compute_output_non_member_dominates_over_duplicate() {
     let result = output.compute_output(None, None, true);
 
     // Assert
-    assert_eq!(result, MachineOutput::NonMemberIgnored { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -106,7 +103,7 @@ fn compute_output_participation_stale_returns_stale_participation_ignored() {
     // Assert
     assert_eq!(
         result,
-        MachineOutput::StaleParticipationIgnored { peer_id: PEER_ID }
+        Outcome::StaleParticipationIgnored { peer_id: PEER_ID }
     );
 }
 
@@ -119,7 +116,7 @@ fn compute_output_ready_stale_returns_stale_ready_ignored() {
     let result = output.compute_output(Some(0), Some(FreshnessClassification::Stale), false);
 
     // Assert
-    assert_eq!(result, MachineOutput::StaleReadyIgnored { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::StaleReadyIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -133,7 +130,7 @@ fn compute_output_stale_dominates_over_duplicate() {
     // Assert
     assert_eq!(
         result,
-        MachineOutput::StaleParticipationIgnored { peer_id: PEER_ID }
+        Outcome::StaleParticipationIgnored { peer_id: PEER_ID }
     );
 }
 
@@ -148,7 +145,7 @@ fn compute_output_participation_duplicate_returns_duplicate_participation_ignore
     // Assert
     assert_eq!(
         result,
-        MachineOutput::DuplicateParticipationIgnored { peer_id: PEER_ID }
+        Outcome::DuplicateParticipationIgnored { peer_id: PEER_ID }
     );
 }
 
@@ -161,10 +158,7 @@ fn compute_output_ready_duplicate_returns_duplicate_ready_ignored() {
     let result = output.compute_output(Some(0), Some(FreshnessClassification::Timely), true);
 
     // Assert
-    assert_eq!(
-        result,
-        MachineOutput::DuplicateReadyIgnored { peer_id: PEER_ID }
-    );
+    assert_eq!(result, Outcome::DuplicateReadyIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -180,10 +174,7 @@ fn compute_output_duplicate_with_delayed_classification_still_returns_duplicate(
     );
 
     // Assert
-    assert_eq!(
-        result,
-        MachineOutput::DuplicateReadyIgnored { peer_id: PEER_ID }
-    );
+    assert_eq!(result, Outcome::DuplicateReadyIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -195,10 +186,7 @@ fn compute_output_participation_timely_returns_participation_accepted() {
     let result = output.compute_output(Some(0), Some(FreshnessClassification::Timely), false);
 
     // Assert
-    assert_eq!(
-        result,
-        MachineOutput::ParticipationAccepted { peer_id: PEER_ID }
-    );
+    assert_eq!(result, Outcome::ParticipationAccepted { peer_id: PEER_ID });
 }
 
 #[test]
@@ -210,7 +198,7 @@ fn compute_output_ready_timely_returns_ready_accepted() {
     let result = output.compute_output(Some(0), Some(FreshnessClassification::Timely), false);
 
     // Assert
-    assert_eq!(result, MachineOutput::ReadyAccepted { peer_id: PEER_ID });
+    assert_eq!(result, Outcome::ReadyAccepted { peer_id: PEER_ID });
 }
 
 #[test]
@@ -228,7 +216,7 @@ fn compute_output_participation_delayed_returns_delayed_participation_accepted()
     // Assert
     assert_eq!(
         result,
-        MachineOutput::DelayedParticipationAccepted { peer_id: PEER_ID }
+        Outcome::DelayedParticipationAccepted { peer_id: PEER_ID }
     );
 }
 
@@ -245,10 +233,7 @@ fn compute_output_ready_delayed_returns_delayed_ready_accepted() {
     );
 
     // Assert
-    assert_eq!(
-        result,
-        MachineOutput::DelayedReadyAccepted { peer_id: PEER_ID }
-    );
+    assert_eq!(result, Outcome::DelayedReadyAccepted { peer_id: PEER_ID });
 }
 
 #[test]
@@ -262,7 +247,7 @@ fn compute_output_participation_classification_none_with_index_is_treated_as_del
     // Assert
     assert_eq!(
         result,
-        MachineOutput::DelayedParticipationAccepted { peer_id: PEER_ID }
+        Outcome::DelayedParticipationAccepted { peer_id: PEER_ID }
     );
 }
 
@@ -275,10 +260,7 @@ fn compute_output_ready_classification_none_with_index_is_treated_as_delayed() {
     let result = output.compute_output(Some(0), None, false);
 
     // Assert
-    assert_eq!(
-        result,
-        MachineOutput::DelayedReadyAccepted { peer_id: PEER_ID }
-    );
+    assert_eq!(result, Outcome::DelayedReadyAccepted { peer_id: PEER_ID });
 }
 
 #[test]
@@ -291,5 +273,5 @@ fn compute_output_preserves_peer_id_in_output() {
     let result = output.compute_output(Some(3), Some(FreshnessClassification::Timely), false);
 
     // Assert
-    assert_eq!(result, MachineOutput::ParticipationAccepted { peer_id: 99 });
+    assert_eq!(result, Outcome::ParticipationAccepted { peer_id: 99 });
 }

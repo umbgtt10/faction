@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec;
 
+use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine_output::MachineOutput;
 use faction_validation::machine_scenario_harness::MachineScenarioHarness;
 
 #[test]
@@ -23,7 +23,7 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -44,10 +44,7 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![MachineOutput::DelayedReadyAccepted { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert!(!snapshot.readiness_exited());
 }
@@ -64,7 +61,7 @@ fn apply_ready_rejects_stale_member_observation() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::StaleReadyIgnored { peer_id: 1 }]);
+    assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 1);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -90,9 +87,9 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     assert_eq!(
         outputs,
         vec![
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -123,9 +120,9 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
     assert_eq!(
         outputs,
         vec![
-            MachineOutput::DelayedReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::DelayedReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -181,9 +178,9 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     assert_eq!(
         outputs_0,
         vec![
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -191,9 +188,9 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     assert_eq!(
         outputs_1,
         vec![
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -228,18 +225,9 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     let outputs = harness.complete_local_participation(0);
 
     // Assert
-    assert_eq!(
-        outputs_peer_1,
-        vec![MachineOutput::ReadyAccepted { peer_id: 1 }]
-    );
-    assert_eq!(
-        outputs_peer_2,
-        vec![MachineOutput::ReadyAccepted { peer_id: 2 }]
-    );
-    assert_eq!(
-        outputs_peer_3,
-        vec![MachineOutput::ReadyAccepted { peer_id: 3 }]
-    );
+    assert_eq!(outputs_peer_1, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outputs_peer_2, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
+    assert_eq!(outputs_peer_3, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
     assert_eq!(intermediate_snapshot.phase2_confirmed_count(), 3);
     assert_eq!(
         intermediate_snapshot.lifecycle_state(),
@@ -250,10 +238,10 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     assert_eq!(
         outputs,
         vec![
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]

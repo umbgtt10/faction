@@ -7,34 +7,34 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 
 #[test]
 fn get_snapshot_returns_snapshot_available_with_initial_state() {
     // Arrange
-    let config = MachineConfig::new(
+    let config = Config::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let observer = Box::new(NoOpMachineObserver);
-    let mut machine = Machine::new(config, observer);
+    let observer = Box::new(NoOpObserver);
+    let mut faction = Faction::new(config, observer);
 
     // Act
-    let outputs = machine.apply(MachineInput::GetSnapshot);
+    let outputs = faction.apply(Command::GetSnapshot);
 
     // Assert
     assert_eq!(outputs.len(), 1);
     let snapshot = match &outputs[0] {
-        MachineOutput::SnapshotAvailable(snap) => *snap,
+        Outcome::SnapshotAvailable(snap) => *snap,
         other => panic!("expected SnapshotAvailable, got {other:?}"),
     };
     assert_eq!(
@@ -51,19 +51,19 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
 #[test]
 fn get_snapshot_does_not_mutate_state() {
     // Arrange
-    let config = MachineConfig::new(
+    let config = Config::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let observer = Box::new(NoOpMachineObserver);
-    let mut machine = Machine::new(config, observer);
+    let observer = Box::new(NoOpObserver);
+    let mut faction = Faction::new(config, observer);
 
     // Act
-    let first = machine.snapshot();
-    let _outputs = machine.apply(MachineInput::GetSnapshot);
-    let second = machine.snapshot();
+    let first = faction.snapshot();
+    let _outputs = faction.apply(Command::GetSnapshot);
+    let second = faction.snapshot();
 
     // Assert
     assert_eq!(first, second);
@@ -72,27 +72,27 @@ fn get_snapshot_does_not_mutate_state() {
 #[test]
 fn get_snapshot_works_after_valid_inputs() {
     // Arrange
-    let config = MachineConfig::new(
+    let config = Config::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let observer = Box::new(NoOpMachineObserver);
-    let mut machine = Machine::new(config, observer);
-    let _ = machine.apply(MachineInput::ParticipationObserved {
+    let observer = Box::new(NoOpObserver);
+    let mut faction = Faction::new(config, observer);
+    let _ = faction.apply(Command::ParticipationObserved {
         peer_id: 0,
         freshness: 5,
         current_marker: 5,
     });
 
     // Act
-    let outputs = machine.apply(MachineInput::GetSnapshot);
+    let outputs = faction.apply(Command::GetSnapshot);
 
     // Assert
     assert_eq!(outputs.len(), 1);
     let snapshot = match &outputs[0] {
-        MachineOutput::SnapshotAvailable(snap) => *snap,
+        Outcome::SnapshotAvailable(snap) => *snap,
         other => panic!("expected SnapshotAvailable, got {other:?}"),
     };
     assert_eq!(snapshot.phase1_confirmed_count(), 1);

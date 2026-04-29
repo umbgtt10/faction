@@ -2,8 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::snapshot::Snapshot;
+use crate::command::Command;
+use crate::transition::Transition;
 
-pub trait StateSnapshot {
-    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot;
+pub trait Observer {
+    fn observe(&mut self, input: Command, transition: Transition);
 }

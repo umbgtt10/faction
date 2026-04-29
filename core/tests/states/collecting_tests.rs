@@ -7,16 +7,16 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::snapshot::Snapshot;
 use faction::state_snapshot::StateSnapshot;
 use faction::states::collecting::Collecting;
 use faction::states::helpers::confirmed_set::ConfirmedSet;
@@ -30,35 +30,35 @@ const TIMELY: Freshness = 10;
 const DELAYED: Freshness = 8;
 const STALE: Freshness = 7;
 
-fn machine_in_phase2() -> Machine {
-    let mut v = Machine::new(
-        MachineConfig::new(
+fn machine_in_phase2() -> Faction {
+    let mut v = Faction::new(
+        Config::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(THRESHOLD),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpMachineObserver),
+        Box::new(NoOpObserver),
     );
-    let _ = v.apply(MachineInput::ParticipationObserved {
+    let _ = v.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = v.apply(MachineInput::LocalParticipationCompleted);
+    let _ = v.apply(Command::LocalParticipationCompleted);
     v
 }
 
-fn participation(peer_id: PeerId, freshness: Freshness) -> MachineInput {
-    MachineInput::ParticipationObserved {
+fn participation(peer_id: PeerId, freshness: Freshness) -> Command {
+    Command::ParticipationObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
     }
 }
 
-fn ready(peer_id: PeerId, freshness: Freshness) -> MachineInput {
-    MachineInput::ReadyObserved {
+fn ready(peer_id: PeerId, freshness: Freshness) -> Command {
+    Command::ReadyObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
@@ -72,20 +72,20 @@ fn deal_accepts_ready_observed() {
     let outputs = v.apply(ready(1, TIMELY));
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
 }
 
 #[test]
 fn deal_accepts_deadline_expired() {
     // Arrange & Act
     let mut v = machine_in_phase2();
-    let outputs = v.apply(MachineInput::DeadlineExpired);
+    let outputs = v.apply(Command::DeadlineExpired);
     let snap = v.snapshot();
 
     // Assert
     assert_eq!(
         outputs,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );
@@ -114,7 +114,7 @@ fn deal_rejects_local_participation_completed() {
     let snap_before = v.snapshot();
 
     // Act
-    let outputs = v.apply(MachineInput::LocalParticipationCompleted);
+    let outputs = v.apply(Command::LocalParticipationCompleted);
 
     // Assert
     assert!(outputs.is_empty());
@@ -175,10 +175,7 @@ fn ready_non_member_rejected() {
     let outputs = v.apply(ready(99, TIMELY));
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
-    );
+    assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -192,10 +189,7 @@ fn ready_stale_rejected() {
     let outputs = v.apply(ready(1, STALE));
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![MachineOutput::StaleReadyIgnored { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -210,10 +204,7 @@ fn ready_duplicate_rejected() {
     let outputs = v.apply(ready(1, TIMELY));
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![MachineOutput::DuplicateReadyIgnored { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -233,7 +224,7 @@ fn ready_first_timely_no_quorum() {
     let snap = v.snapshot();
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.phase2_confirmed_count(), 2);
     assert_eq!(
         snap.lifecycle_state(),
@@ -254,10 +245,7 @@ fn ready_first_delayed_no_quorum() {
     let snap = v.snapshot();
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![MachineOutput::DelayedReadyAccepted { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.phase2_confirmed_count(), 2);
     assert!(!snap.readiness_exited());
 }
@@ -280,9 +268,9 @@ fn ready_first_timely_triggers_quorum() {
     assert_eq!(
         outputs,
         vec![
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -314,9 +302,9 @@ fn ready_first_delayed_triggers_quorum() {
     assert_eq!(
         outputs,
         vec![
-            MachineOutput::DelayedReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::DelayedReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -336,9 +324,7 @@ fn local_completion_in_phase2_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v
-        .apply(MachineInput::LocalParticipationCompleted)
-        .is_empty());
+    assert!(v.apply(Command::LocalParticipationCompleted).is_empty());
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -355,13 +341,13 @@ fn deadline_expired_exits_in_phase2() {
     assert!(snap_before.local_participation_complete());
 
     // Act
-    let outputs = v.apply(MachineInput::DeadlineExpired);
+    let outputs = v.apply(Command::DeadlineExpired);
     let snap = v.snapshot();
 
     // Assert
     assert_eq!(
         outputs,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );
@@ -402,7 +388,7 @@ fn collecting_state_snapshot_inherits_correctly() {
         phase2,
         phase1_count: 2,
     };
-    let prev = MachineSnapshot::new(
+    let prev = Snapshot::new(
         ReadinessLifecycleState::Phase1Active,
         Some(ReadinessExitMode::Deadline),
         false,

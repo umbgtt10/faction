@@ -6,13 +6,13 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::machine_config::MachineConfig;
-use crate::machine_input::MachineInput;
-use crate::machine_output::MachineOutput;
-use crate::machine_snapshot::MachineSnapshot;
-use crate::machine_state::MachineState;
+use crate::command::Command;
+use crate::config::Config;
+use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::snapshot::Snapshot;
+use crate::state::State;
 use crate::state_snapshot::StateSnapshot;
 
 use super::helpers::compute_output::ObservedKind;
@@ -26,30 +26,26 @@ pub struct Collecting {
     pub phase1_count: usize,
 }
 
-impl MachineState for Collecting {
-    fn accept(&self, input: &MachineInput) -> bool {
+impl State for Collecting {
+    fn accept(&self, input: &Command) -> bool {
         matches!(
             input,
-            MachineInput::ReadyObserved { .. } | MachineInput::DeadlineExpired
+            Command::ReadyObserved { .. } | Command::DeadlineExpired
         )
     }
 
-    fn step(
-        self: Box<Self>,
-        input: MachineInput,
-        config: &MachineConfig,
-    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
+    fn step(self: Box<Self>, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let Self {
             phase2,
             phase1_count,
         } = *self;
 
         match input {
-            MachineInput::ParticipationObserved { .. } => {
+            Command::ParticipationObserved { .. } => {
                 unreachable!("accept() rejects this input for Collecting")
             }
 
-            MachineInput::ReadyObserved {
+            Command::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -74,8 +70,8 @@ impl MachineState for Collecting {
                 let outputs = if quorum {
                     vec![
                         output,
-                        MachineOutput::ReadyQuorumReached,
-                        MachineOutput::ReadinessExited {
+                        Outcome::ReadyQuorumReached,
+                        Outcome::ReadinessExited {
                             mode: ReadinessExitMode::Quorum,
                         },
                     ]
@@ -83,7 +79,7 @@ impl MachineState for Collecting {
                     vec![output]
                 };
 
-                let new_state: Box<dyn MachineState> = if quorum {
+                let new_state: Box<dyn State> = if quorum {
                     Box::new(ReadyByQuorum {
                         phase1_count,
                         phase2_count: phase2.count(),
@@ -97,12 +93,12 @@ impl MachineState for Collecting {
                 (outputs, new_state)
             }
 
-            MachineInput::LocalParticipationCompleted => {
+            Command::LocalParticipationCompleted => {
                 unreachable!("accept() rejects this input for Collecting")
             }
 
-            MachineInput::DeadlineExpired => (
-                vec![MachineOutput::ReadinessExited {
+            Command::DeadlineExpired => (
+                vec![Outcome::ReadinessExited {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
@@ -111,15 +107,15 @@ impl MachineState for Collecting {
                 }),
             ),
 
-            MachineInput::GetSnapshot => {
-                unreachable!("GetSnapshot handled in Machine::apply")
+            Command::GetSnapshot => {
+                unreachable!("GetSnapshot handled in Faction::apply")
             }
         }
     }
 }
 
 impl StateSnapshot for Collecting {
-    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
+    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase2Active)
             .with_local_participation_complete(true)

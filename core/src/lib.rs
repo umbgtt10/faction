@@ -8,21 +8,21 @@ extern crate alloc;
 
 pub mod freshness_classification;
 pub mod freshness_policy;
-pub mod no_op_machine_observer;
+pub mod no_op_observer;
 
-pub mod machine;
-pub mod machine_config;
-pub mod machine_input;
-pub mod machine_observer;
-pub mod machine_output;
-pub mod machine_snapshot;
-pub mod machine_state;
-pub mod machine_transition;
+pub mod command;
+pub mod config;
+pub mod faction;
+pub mod observer;
+pub mod outcome;
 pub mod quorum_policy;
 pub mod readiness_exit_mode;
 pub mod readiness_lifecycle_state;
+pub mod snapshot;
+pub mod state;
 pub mod state_snapshot;
 pub mod states;
+pub mod transition;
 
 pub type PeerId = u64;
 pub type Freshness = u64;

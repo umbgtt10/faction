@@ -8,22 +8,22 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::snapshot::Snapshot;
 use faction::PeerId;
 
 pub struct ClusterSimulation {
-    nodes: Vec<Machine>,
+    nodes: Vec<Faction>,
     peer_ids: Vec<PeerId>,
     current_marker: u64,
-    pending: VecDeque<(usize, MachineInput)>,
+    pending: VecDeque<(usize, Command)>,
 }
 
 impl ClusterSimulation {
@@ -33,14 +33,14 @@ impl ClusterSimulation {
         let nodes = peer_ids
             .iter()
             .map(|&peer_id| {
-                Machine::new(
-                    MachineConfig::new(
+                Faction::new(
+                    Config::new(
                         peer_id,
                         peer_ids.clone(),
                         QuorumPolicy::new(quorum_threshold),
                         FreshnessPolicy::new(max_delay),
                     ),
-                    Box::new(NoOpMachineObserver),
+                    Box::new(NoOpObserver),
                 )
             })
             .collect();
@@ -57,18 +57,18 @@ impl ClusterSimulation {
         self.current_marker = marker;
     }
 
-    fn apply_to(&mut self, index: usize, input: MachineInput) -> Vec<MachineOutput> {
+    fn apply_to(&mut self, index: usize, input: Command) -> Vec<Outcome> {
         self.nodes[index].apply(input)
     }
 
-    fn enqueue_broadcasts(&mut self, outputs: &[MachineOutput], source_index: usize) {
+    fn enqueue_broadcasts(&mut self, outputs: &[Outcome], source_index: usize) {
         for output in outputs {
-            if let MachineOutput::BroadcastLocalReady = output {
+            if let Outcome::BroadcastLocalReady = output {
                 for target in 0..self.nodes.len() {
                     if target != source_index {
                         self.pending.push_back((
                             target,
-                            MachineInput::ReadyObserved {
+                            Command::ReadyObserved {
                                 peer_id: self.peer_ids[source_index],
                                 freshness: self.current_marker,
                                 current_marker: self.current_marker,
@@ -87,7 +87,7 @@ impl ClusterSimulation {
         }
     }
 
-    fn apply_and_drain(&mut self, index: usize, input: MachineInput) {
+    fn apply_and_drain(&mut self, index: usize, input: Command) {
         let outputs = self.apply_to(index, input);
         self.enqueue_broadcasts(&outputs, index);
         self.drain_pending();
@@ -97,7 +97,7 @@ impl ClusterSimulation {
         for index in 0..self.nodes.len() {
             let outputs = self.apply_to(
                 index,
-                MachineInput::ParticipationObserved {
+                Command::ParticipationObserved {
                     peer_id,
                     freshness,
                     current_marker: self.current_marker,
@@ -112,7 +112,7 @@ impl ClusterSimulation {
         for index in 0..self.nodes.len() {
             let outputs = self.apply_to(
                 index,
-                MachineInput::ReadyObserved {
+                Command::ReadyObserved {
                     peer_id,
                     freshness,
                     current_marker: self.current_marker,
@@ -129,7 +129,7 @@ impl ClusterSimulation {
             .iter()
             .position(|p| *p == peer_id)
             .expect("peer is in the cluster");
-        self.apply_and_drain(index, MachineInput::LocalParticipationCompleted);
+        self.apply_and_drain(index, Command::LocalParticipationCompleted);
     }
 
     pub fn expire_deadline(&mut self, peer_id: PeerId) {
@@ -138,7 +138,7 @@ impl ClusterSimulation {
             .iter()
             .position(|p| *p == peer_id)
             .expect("peer is in the cluster");
-        self.apply_and_drain(index, MachineInput::DeadlineExpired);
+        self.apply_and_drain(index, Command::DeadlineExpired);
     }
 
     #[must_use]
@@ -159,7 +159,7 @@ impl ClusterSimulation {
     }
 
     #[must_use]
-    pub fn snapshot(&self, peer_id: PeerId) -> MachineSnapshot {
+    pub fn snapshot(&self, peer_id: PeerId) -> Snapshot {
         let index = self
             .peer_ids
             .iter()

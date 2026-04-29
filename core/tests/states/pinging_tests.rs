@@ -7,16 +7,16 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::snapshot::Snapshot;
 use faction::state_snapshot::StateSnapshot;
 use faction::states::pinging::Pinging;
 
@@ -28,77 +28,74 @@ const TIMELY: u64 = 10;
 const DELAYED: u64 = 8;
 const STALE: u64 = 7;
 
-fn machine_in_phase1() -> Machine {
-    let mut machine = Machine::new(
-        MachineConfig::new(
+fn machine_in_phase1() -> Faction {
+    let mut faction = Faction::new(
+        Config::new(
             0,
             PEER_SET.to_vec(),
             QuorumPolicy::new(THRESHOLD),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpMachineObserver),
+        Box::new(NoOpObserver),
     );
-    let _ = machine.apply(MachineInput::ParticipationObserved {
+    let _ = faction.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    machine
+    faction
 }
 
-fn p1(machine: &Machine) -> usize {
-    machine.snapshot().phase1_confirmed_count()
+fn p1(faction: &Faction) -> usize {
+    faction.snapshot().phase1_confirmed_count()
 }
-fn p2(machine: &Machine) -> usize {
-    machine.snapshot().phase2_confirmed_count()
+fn p2(faction: &Faction) -> usize {
+    faction.snapshot().phase2_confirmed_count()
 }
 
 #[test]
 fn deal_accepts_participation_observed() {
     // Arrange
-    let mut machine = machine_in_phase1();
+    let mut faction = machine_in_phase1();
 
     // Act
-    let result = machine.apply(MachineInput::ParticipationObserved {
+    let result = faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
 
     // Assert
-    assert_eq!(
-        result,
-        vec![MachineOutput::ParticipationAccepted { peer_id: 2 }]
-    );
+    assert_eq!(result, vec![Outcome::ParticipationAccepted { peer_id: 2 }]);
 }
 
 #[test]
 fn deal_accepts_ready_observed() {
-    let mut machine = machine_in_phase1();
-    let result = machine.apply(MachineInput::ReadyObserved {
+    let mut faction = machine_in_phase1();
+    let result = faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![MachineOutput::ReadyAccepted { peer_id: 2 }]);
+    assert_eq!(result, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
 }
 
 #[test]
 fn deal_accepts_local_participation_completed() {
-    let mut machine = machine_in_phase1();
-    let result = machine.apply(MachineInput::LocalParticipationCompleted);
+    let mut faction = machine_in_phase1();
+    let result = faction.apply(Command::LocalParticipationCompleted);
     assert_eq!(result.len(), 2);
-    assert_eq!(result[0], MachineOutput::LocalParticipationCompleted);
-    assert_eq!(result[1], MachineOutput::BroadcastLocalReady);
+    assert_eq!(result[0], Outcome::LocalParticipationCompleted);
+    assert_eq!(result[1], Outcome::BroadcastLocalReady);
 }
 
 #[test]
 fn deal_accepts_deadline_expired() {
-    let mut machine = machine_in_phase1();
-    let result = machine.apply(MachineInput::DeadlineExpired);
+    let mut faction = machine_in_phase1();
+    let result = faction.apply(Command::DeadlineExpired);
     assert_eq!(
         result,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline
         }]
     );
@@ -106,185 +103,167 @@ fn deal_accepts_deadline_expired() {
 
 #[test]
 fn participation_observed_non_member() {
-    let mut machine = machine_in_phase1();
-    let before = p1(&machine);
-    let result = machine.apply(MachineInput::ParticipationObserved {
+    let mut faction = machine_in_phase1();
+    let before = p1(&faction);
+    let result = faction.apply(Command::ParticipationObserved {
         peer_id: 99,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(
-        result,
-        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
-    );
-    assert_eq!(p1(&machine), before);
+    assert_eq!(result, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(p1(&faction), before);
 }
 
 #[test]
 fn participation_observed_stale() {
-    let mut machine = machine_in_phase1();
-    let before = p1(&machine);
-    let result = machine.apply(MachineInput::ParticipationObserved {
+    let mut faction = machine_in_phase1();
+    let before = p1(&faction);
+    let result = faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: STALE,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![MachineOutput::StaleParticipationIgnored { peer_id: 2 }]
+        vec![Outcome::StaleParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&machine), before);
+    assert_eq!(p1(&faction), before);
 }
 
 #[test]
 fn participation_observed_duplicate() {
-    let mut machine = machine_in_phase1();
-    let _ = machine.apply(MachineInput::ParticipationObserved {
+    let mut faction = machine_in_phase1();
+    let _ = faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let before = p1(&machine);
-    let result = machine.apply(MachineInput::ParticipationObserved {
+    let before = p1(&faction);
+    let result = faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![MachineOutput::DuplicateParticipationIgnored { peer_id: 2 }]
+        vec![Outcome::DuplicateParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&machine), before);
+    assert_eq!(p1(&faction), before);
 }
 
 #[test]
 fn participation_observed_first_timely() {
-    let mut machine = machine_in_phase1();
-    let before = p1(&machine);
-    let result = machine.apply(MachineInput::ParticipationObserved {
+    let mut faction = machine_in_phase1();
+    let before = p1(&faction);
+    let result = faction.apply(Command::ParticipationObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(
-        result,
-        vec![MachineOutput::ParticipationAccepted { peer_id: 3 }]
-    );
-    assert_eq!(p1(&machine), before + 1);
+    assert_eq!(result, vec![Outcome::ParticipationAccepted { peer_id: 3 }]);
+    assert_eq!(p1(&faction), before + 1);
 }
 
 #[test]
 fn participation_observed_first_delayed() {
-    let mut machine = machine_in_phase1();
-    let before = p1(&machine);
-    let result = machine.apply(MachineInput::ParticipationObserved {
+    let mut faction = machine_in_phase1();
+    let before = p1(&faction);
+    let result = faction.apply(Command::ParticipationObserved {
         peer_id: 3,
         freshness: DELAYED,
         current_marker: MARKER,
     });
     assert_eq!(
         result,
-        vec![MachineOutput::DelayedParticipationAccepted { peer_id: 3 }]
+        vec![Outcome::DelayedParticipationAccepted { peer_id: 3 }]
     );
-    assert_eq!(p1(&machine), before + 1);
+    assert_eq!(p1(&faction), before + 1);
 }
 
 #[test]
 fn ready_observed_non_member() {
-    let mut machine = machine_in_phase1();
-    let before = p2(&machine);
-    let result = machine.apply(MachineInput::ReadyObserved {
+    let mut faction = machine_in_phase1();
+    let before = p2(&faction);
+    let result = faction.apply(Command::ReadyObserved {
         peer_id: 99,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(
-        result,
-        vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]
-    );
-    assert_eq!(p2(&machine), before);
+    assert_eq!(result, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(p2(&faction), before);
 }
 
 #[test]
 fn ready_observed_stale() {
-    let mut machine = machine_in_phase1();
-    let before = p2(&machine);
-    let result = machine.apply(MachineInput::ReadyObserved {
+    let mut faction = machine_in_phase1();
+    let before = p2(&faction);
+    let result = faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: STALE,
         current_marker: MARKER,
     });
-    assert_eq!(
-        result,
-        vec![MachineOutput::StaleReadyIgnored { peer_id: 2 }]
-    );
-    assert_eq!(p2(&machine), before);
+    assert_eq!(result, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
+    assert_eq!(p2(&faction), before);
 }
 
 #[test]
 fn ready_observed_duplicate() {
-    let mut machine = machine_in_phase1();
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let mut faction = machine_in_phase1();
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let before = p2(&machine);
-    let result = machine.apply(MachineInput::ReadyObserved {
+    let before = p2(&faction);
+    let result = faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(
-        result,
-        vec![MachineOutput::DuplicateReadyIgnored { peer_id: 2 }]
-    );
-    assert_eq!(p2(&machine), before);
+    assert_eq!(result, vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]);
+    assert_eq!(p2(&faction), before);
 }
 
 #[test]
 fn ready_observed_first_timely() {
-    let mut machine = machine_in_phase1();
-    let before = p2(&machine);
-    let result = machine.apply(MachineInput::ReadyObserved {
+    let mut faction = machine_in_phase1();
+    let before = p2(&faction);
+    let result = faction.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    assert_eq!(result, vec![MachineOutput::ReadyAccepted { peer_id: 3 }]);
-    assert_eq!(p2(&machine), before + 1);
+    assert_eq!(result, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
+    assert_eq!(p2(&faction), before + 1);
 }
 
 #[test]
 fn ready_observed_first_delayed() {
-    let mut machine = machine_in_phase1();
-    let before = p2(&machine);
-    let result = machine.apply(MachineInput::ReadyObserved {
+    let mut faction = machine_in_phase1();
+    let before = p2(&faction);
+    let result = faction.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: DELAYED,
         current_marker: MARKER,
     });
-    assert_eq!(
-        result,
-        vec![MachineOutput::DelayedReadyAccepted { peer_id: 3 }]
-    );
-    assert_eq!(p2(&machine), before + 1);
+    assert_eq!(result, vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]);
+    assert_eq!(p2(&faction), before + 1);
 }
 
 #[test]
 fn local_completion_no_quorum() {
-    let mut machine = machine_in_phase1();
-    let result = machine.apply(MachineInput::LocalParticipationCompleted);
+    let mut faction = machine_in_phase1();
+    let result = faction.apply(Command::LocalParticipationCompleted);
     // Arrange & Act
     assert_eq!(
         result,
         vec![
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
         ]
     );
     // Assert
-    let snap = machine.snapshot();
+    let snap = faction.snapshot();
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -296,68 +275,68 @@ fn local_completion_no_quorum() {
 #[test]
 fn local_completion_triggers_quorum() {
     // Arrange
-    let mut machine = Machine::new(
-        MachineConfig::new(
+    let mut faction = Faction::new(
+        Config::new(
             0,
             PEER_SET.to_vec(),
             QuorumPolicy::new(4),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpMachineObserver),
+        Box::new(NoOpObserver),
     );
-    let _ = machine.apply(MachineInput::ParticipationObserved {
+    let _ = faction.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
     });
 
     // Act
-    let result = machine.apply(MachineInput::LocalParticipationCompleted);
+    let result = faction.apply(Command::LocalParticipationCompleted);
 
     // Assert
     assert_eq!(
         result,
         vec![
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
     );
-    let snap = machine.snapshot();
+    let snap = faction.snapshot();
     assert!(snap.readiness_exited());
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Quorum));
 }
 
 #[test]
 fn deadline_expired_in_phase1() {
-    let mut machine = machine_in_phase1();
+    let mut faction = machine_in_phase1();
     // Act & Assert
-    let result = machine.apply(MachineInput::DeadlineExpired);
+    let result = faction.apply(Command::DeadlineExpired);
     assert_eq!(
         result,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );
-    let snap = machine.snapshot();
+    let snap = faction.snapshot();
     assert!(snap.readiness_exited());
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
 }
@@ -365,8 +344,8 @@ fn deadline_expired_in_phase1() {
 #[test]
 fn vibe_check_in_phase1() {
     // Arrange & Act
-    let machine = machine_in_phase1();
-    let snap = machine.snapshot();
+    let faction = machine_in_phase1();
+    let snap = faction.snapshot();
 
     // Assert
     assert_eq!(
@@ -385,7 +364,7 @@ fn vibe_check_in_phase1() {
 fn pinging_state_snapshot_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new(5);
-    let prev = MachineSnapshot::new(
+    let prev = Snapshot::new(
         ReadinessLifecycleState::Phase2Active,
         Some(ReadinessExitMode::Deadline),
         true,

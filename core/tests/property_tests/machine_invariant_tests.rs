@@ -7,20 +7,20 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
+use faction::snapshot::Snapshot;
 use proptest::prelude::*;
 
-fn test_config() -> MachineConfig {
-    MachineConfig::new(
+fn test_config() -> Config {
+    Config::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
@@ -28,14 +28,14 @@ fn test_config() -> MachineConfig {
     )
 }
 
-fn coordinator() -> Machine {
-    Machine::new(test_config(), Box::new(NoOpMachineObserver))
+fn coordinator() -> Faction {
+    Faction::new(test_config(), Box::new(NoOpObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = MachineInput> {
+fn input_strategy() -> impl Strategy<Value = Command> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            MachineInput::ParticipationObserved {
+            Command::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -43,7 +43,7 @@ fn input_strategy() -> impl Strategy<Value = MachineInput> {
         });
     let ready =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            MachineInput::ReadyObserved {
+            Command::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -53,39 +53,38 @@ fn input_strategy() -> impl Strategy<Value = MachineInput> {
     prop_oneof![
         participation,
         ready,
-        Just(MachineInput::LocalParticipationCompleted),
-        Just(MachineInput::DeadlineExpired),
+        Just(Command::LocalParticipationCompleted),
+        Just(Command::DeadlineExpired),
     ]
 }
 
-fn outputs_contain_stale(outputs: &[MachineOutput]) -> bool {
+fn outputs_contain_stale(outputs: &[Outcome]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            MachineOutput::StaleParticipationIgnored { .. } | MachineOutput::StaleReadyIgnored { .. }
+            Outcome::StaleParticipationIgnored { .. } | Outcome::StaleReadyIgnored { .. }
         )
     })
 }
 
-fn outputs_contain_non_member(outputs: &[MachineOutput]) -> bool {
+fn outputs_contain_non_member(outputs: &[Outcome]) -> bool {
     outputs
         .iter()
-        .any(|output| matches!(output, MachineOutput::NonMemberIgnored { .. }))
+        .any(|output| matches!(output, Outcome::NonMemberIgnored { .. }))
 }
 
-fn outputs_contain_duplicate(outputs: &[MachineOutput]) -> bool {
+fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            MachineOutput::DuplicateParticipationIgnored { .. }
-                | MachineOutput::DuplicateReadyIgnored { .. }
+            Outcome::DuplicateParticipationIgnored { .. } | Outcome::DuplicateReadyIgnored { .. }
         )
     })
 }
 
 fn assert_counts_do_not_decrease(
-    previous: MachineSnapshot,
-    current: MachineSnapshot,
+    previous: Snapshot,
+    current: Snapshot,
 ) -> Result<(), TestCaseError> {
     prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
     prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
@@ -93,9 +92,9 @@ fn assert_counts_do_not_decrease(
 }
 
 fn assert_stale_outputs_do_not_mutate_state(
-    previous: MachineSnapshot,
-    current: MachineSnapshot,
-    outputs: &[MachineOutput],
+    previous: Snapshot,
+    current: Snapshot,
+    outputs: &[Outcome],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_stale(outputs) {
         prop_assert_eq!(
@@ -118,9 +117,9 @@ fn assert_stale_outputs_do_not_mutate_state(
 }
 
 fn assert_non_member_outputs_do_not_mutate_state(
-    previous: MachineSnapshot,
-    current: MachineSnapshot,
-    outputs: &[MachineOutput],
+    previous: Snapshot,
+    current: Snapshot,
+    outputs: &[Outcome],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_non_member(outputs) {
         prop_assert_eq!(
@@ -143,9 +142,9 @@ fn assert_non_member_outputs_do_not_mutate_state(
 }
 
 fn assert_duplicate_outputs_do_not_mutate_counts(
-    previous: MachineSnapshot,
-    current: MachineSnapshot,
-    outputs: &[MachineOutput],
+    previous: Snapshot,
+    current: Snapshot,
+    outputs: &[Outcome],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_duplicate(outputs) {
         prop_assert_eq!(

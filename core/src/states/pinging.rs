@@ -6,13 +6,13 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::machine_config::MachineConfig;
-use crate::machine_input::MachineInput;
-use crate::machine_output::MachineOutput;
-use crate::machine_snapshot::MachineSnapshot;
-use crate::machine_state::MachineState;
+use crate::command::Command;
+use crate::config::Config;
+use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::snapshot::Snapshot;
+use crate::state::State;
 use crate::state_snapshot::StateSnapshot;
 
 use super::collecting::Collecting;
@@ -38,7 +38,7 @@ impl Pinging {
 }
 
 impl StateSnapshot for Pinging {
-    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
+    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
             .with_phase1_count(self.phase1.count())
@@ -46,16 +46,12 @@ impl StateSnapshot for Pinging {
     }
 }
 
-impl MachineState for Pinging {
-    fn step(
-        self: Box<Self>,
-        input: MachineInput,
-        config: &MachineConfig,
-    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
+impl State for Pinging {
+    fn step(self: Box<Self>, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let Self { phase1, phase2 } = *self;
 
         match input {
-            MachineInput::ParticipationObserved {
+            Command::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -75,7 +71,7 @@ impl MachineState for Pinging {
                 (vec![output], Box::new(Self { phase1, phase2 }))
             }
 
-            MachineInput::ReadyObserved {
+            Command::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -98,26 +94,26 @@ impl MachineState for Pinging {
                 (vec![output], Box::new(Self { phase1, phase2 }))
             }
 
-            MachineInput::LocalParticipationCompleted => {
+            Command::LocalParticipationCompleted => {
                 let local_index = config
                     .peer_index(config.local_peer_id())
                     .expect("local peer must be in peer set");
                 let (phase2, _) = phase2.confirm(local_index);
 
                 let mut outputs = vec![
-                    MachineOutput::LocalParticipationCompleted,
-                    MachineOutput::BroadcastLocalReady,
+                    Outcome::LocalParticipationCompleted,
+                    Outcome::BroadcastLocalReady,
                 ];
 
                 let quorum = phase2.count() >= config.quorum_threshold();
                 if quorum {
-                    outputs.push(MachineOutput::ReadyQuorumReached);
-                    outputs.push(MachineOutput::ReadinessExited {
+                    outputs.push(Outcome::ReadyQuorumReached);
+                    outputs.push(Outcome::ReadinessExited {
                         mode: ReadinessExitMode::Quorum,
                     });
                 }
 
-                let new_state: Box<dyn MachineState> = if quorum {
+                let new_state: Box<dyn State> = if quorum {
                     Box::new(ReadyByQuorum {
                         phase1_count: phase1.count(),
                         phase2_count: phase2.count(),
@@ -131,8 +127,8 @@ impl MachineState for Pinging {
                 (outputs, new_state)
             }
 
-            MachineInput::DeadlineExpired => (
-                vec![MachineOutput::ReadinessExited {
+            Command::DeadlineExpired => (
+                vec![Outcome::ReadinessExited {
                     mode: ReadinessExitMode::Deadline,
                 }],
                 Box::new(ReadyByDeadline {
@@ -141,7 +137,7 @@ impl MachineState for Pinging {
                 }),
             ),
 
-            MachineInput::GetSnapshot => unreachable!("GetSnapshot handled in Machine::apply"),
+            Command::GetSnapshot => unreachable!("GetSnapshot handled in Faction::apply"),
         }
     }
 }

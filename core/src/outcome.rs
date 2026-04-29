@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::machine_snapshot::MachineSnapshot;
 use crate::readiness_exit_mode::ReadinessExitMode;
+use crate::snapshot::Snapshot;
 use crate::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MachineOutput {
+pub enum Outcome {
     ParticipationAccepted { peer_id: PeerId },
     ReadyAccepted { peer_id: PeerId },
     DelayedParticipationAccepted { peer_id: PeerId },
@@ -21,5 +21,5 @@ pub enum MachineOutput {
     BroadcastLocalReady,
     ReadyQuorumReached,
     ReadinessExited { mode: ReadinessExitMode },
-    SnapshotAvailable(MachineSnapshot),
+    SnapshotAvailable(Snapshot),
 }

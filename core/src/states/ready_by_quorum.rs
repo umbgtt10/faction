@@ -5,13 +5,13 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::machine_config::MachineConfig;
-use crate::machine_input::MachineInput;
-use crate::machine_output::MachineOutput;
-use crate::machine_snapshot::MachineSnapshot;
-use crate::machine_state::MachineState;
+use crate::command::Command;
+use crate::config::Config;
+use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::snapshot::Snapshot;
+use crate::state::State;
 use crate::state_snapshot::StateSnapshot;
 
 pub struct ReadyByQuorum {
@@ -20,7 +20,7 @@ pub struct ReadyByQuorum {
 }
 
 impl StateSnapshot for ReadyByQuorum {
-    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
+    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::ReadyByQuorum)
             .with_exit_mode(Some(ReadinessExitMode::Quorum))
@@ -31,16 +31,12 @@ impl StateSnapshot for ReadyByQuorum {
     }
 }
 
-impl MachineState for ReadyByQuorum {
-    fn step(
-        self: Box<Self>,
-        _input: MachineInput,
-        _config: &MachineConfig,
-    ) -> (Vec<MachineOutput>, Box<dyn MachineState>) {
+impl State for ReadyByQuorum {
+    fn step(self: Box<Self>, _input: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         unreachable!("accept() rejects all inputs for this state")
     }
 
-    fn accept(&self, _input: &MachineInput) -> bool {
+    fn accept(&self, _input: &Command) -> bool {
         false
     }
 }

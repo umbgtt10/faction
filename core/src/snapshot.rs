@@ -6,7 +6,7 @@ use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MachineSnapshot {
+pub struct Snapshot {
     lifecycle_state: ReadinessLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
@@ -16,7 +16,7 @@ pub struct MachineSnapshot {
     quorum_threshold: usize,
 }
 
-impl MachineSnapshot {
+impl Snapshot {
     #[must_use]
     pub const fn new(
         lifecycle_state: ReadinessLifecycleState,

@@ -2,26 +2,26 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
+use faction::command::Command;
+use faction::outcome::Outcome;
+use faction::snapshot::Snapshot;
 use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MachineScenarioTraceEntry {
     node_id: PeerId,
-    input: MachineInput,
-    outputs: alloc::vec::Vec<MachineOutput>,
-    snapshot: MachineSnapshot,
+    input: Command,
+    outputs: alloc::vec::Vec<Outcome>,
+    snapshot: Snapshot,
 }
 
 impl MachineScenarioTraceEntry {
     #[must_use]
     pub fn new(
         node_id: PeerId,
-        input: MachineInput,
-        outputs: alloc::vec::Vec<MachineOutput>,
-        snapshot: MachineSnapshot,
+        input: Command,
+        outputs: alloc::vec::Vec<Outcome>,
+        snapshot: Snapshot,
     ) -> Self {
         Self {
             node_id,
@@ -37,17 +37,17 @@ impl MachineScenarioTraceEntry {
     }
 
     #[must_use]
-    pub const fn input(&self) -> MachineInput {
+    pub const fn input(&self) -> Command {
         self.input
     }
 
     #[must_use]
-    pub fn outputs(&self) -> &[MachineOutput] {
+    pub fn outputs(&self) -> &[Outcome] {
         &self.outputs
     }
 
     #[must_use]
-    pub const fn snapshot(&self) -> MachineSnapshot {
+    pub const fn snapshot(&self) -> Snapshot {
         self.snapshot
     }
 }

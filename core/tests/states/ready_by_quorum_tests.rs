@@ -7,57 +7,57 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_snapshot::MachineSnapshot;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::snapshot::Snapshot;
 use faction::state_snapshot::StateSnapshot;
 use faction::states::ready_by_quorum::ReadyByQuorum;
 
-fn reach_ready_by_quorum() -> Machine {
-    let mut machine = Machine::new(
-        MachineConfig::new(
+fn reach_ready_by_quorum() -> Faction {
+    let mut faction = Faction::new(
+        Config::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(4),
             FreshnessPolicy::new(2),
         ),
-        Box::new(NoOpMachineObserver),
+        Box::new(NoOpObserver),
     );
-    let _ = machine.apply(MachineInput::ParticipationObserved {
+    let _ = faction.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = machine.apply(MachineInput::LocalParticipationCompleted);
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let _ = faction.apply(Command::LocalParticipationCompleted);
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = machine.apply(MachineInput::ReadyObserved {
+    let _ = faction.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
     });
-    machine
+    faction
 }
 
 #[test]
 fn deal_rejects_participation_observed() {
     // Arrange
-    let machine = reach_ready_by_quorum();
-    let snapshot = machine.snapshot();
+    let faction = reach_ready_by_quorum();
+    let snapshot = faction.snapshot();
 
     // Assert
     assert_eq!(
@@ -71,23 +71,23 @@ fn deal_rejects_participation_observed() {
 #[test]
 fn all_inputs_leave_state_unchanged() {
     // Arrange
-    let mut machine = reach_ready_by_quorum();
-    let snapshot_before = machine.snapshot();
+    let mut faction = reach_ready_by_quorum();
+    let snapshot_before = faction.snapshot();
 
     // Act
-    let r1 = machine.apply(MachineInput::ParticipationObserved {
+    let r1 = faction.apply(Command::ParticipationObserved {
         peer_id: 0,
         freshness: 10,
         current_marker: 10,
     });
-    let r2 = machine.apply(MachineInput::ReadyObserved {
+    let r2 = faction.apply(Command::ReadyObserved {
         peer_id: 4,
         freshness: 10,
         current_marker: 10,
     });
-    let r3 = machine.apply(MachineInput::LocalParticipationCompleted);
-    let r4 = machine.apply(MachineInput::DeadlineExpired);
-    let snapshot_after = machine.snapshot();
+    let r3 = faction.apply(Command::LocalParticipationCompleted);
+    let r4 = faction.apply(Command::DeadlineExpired);
+    let snapshot_after = faction.snapshot();
 
     // Assert
     assert!(r1.is_empty());
@@ -100,8 +100,8 @@ fn all_inputs_leave_state_unchanged() {
 #[test]
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
-    let machine = reach_ready_by_quorum();
-    let snapshot = machine.snapshot();
+    let faction = reach_ready_by_quorum();
+    let snapshot = faction.snapshot();
 
     // Assert
     assert_eq!(
@@ -122,7 +122,7 @@ fn ready_by_quorum_state_snapshot_overrides_all_fields() {
         phase1_count: 2,
         phase2_count: 5,
     };
-    let prev = MachineSnapshot::new(
+    let prev = Snapshot::new(
         ReadinessLifecycleState::Phase1Active,
         None,
         false,

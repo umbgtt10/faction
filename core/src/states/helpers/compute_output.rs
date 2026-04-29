@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use crate::freshness_classification::FreshnessClassification;
-use crate::machine_output::MachineOutput;
+use crate::outcome::Outcome;
 use crate::PeerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,9 +29,9 @@ impl ObservedOutput {
         index: Option<usize>,
         classification: Option<FreshnessClassification>,
         is_dup: bool,
-    ) -> MachineOutput {
+    ) -> Outcome {
         if index.is_none() {
-            return MachineOutput::NonMemberIgnored {
+            return Outcome::NonMemberIgnored {
                 peer_id: self.peer_id,
             };
         }
@@ -46,42 +46,42 @@ impl ObservedOutput {
     }
 
     #[must_use]
-    fn stale_output(&self) -> MachineOutput {
+    fn stale_output(&self) -> Outcome {
         match self.kind {
-            ObservedKind::Participation => MachineOutput::StaleParticipationIgnored {
+            ObservedKind::Participation => Outcome::StaleParticipationIgnored {
                 peer_id: self.peer_id,
             },
-            ObservedKind::Ready => MachineOutput::StaleReadyIgnored {
+            ObservedKind::Ready => Outcome::StaleReadyIgnored {
                 peer_id: self.peer_id,
             },
         }
     }
 
     #[must_use]
-    fn duplicate_output(&self) -> MachineOutput {
+    fn duplicate_output(&self) -> Outcome {
         match self.kind {
-            ObservedKind::Participation => MachineOutput::DuplicateParticipationIgnored {
+            ObservedKind::Participation => Outcome::DuplicateParticipationIgnored {
                 peer_id: self.peer_id,
             },
-            ObservedKind::Ready => MachineOutput::DuplicateReadyIgnored {
+            ObservedKind::Ready => Outcome::DuplicateReadyIgnored {
                 peer_id: self.peer_id,
             },
         }
     }
 
     #[must_use]
-    fn accepted_output(&self, timely: bool) -> MachineOutput {
+    fn accepted_output(&self, timely: bool) -> Outcome {
         match (self.kind, timely) {
-            (ObservedKind::Participation, true) => MachineOutput::ParticipationAccepted {
+            (ObservedKind::Participation, true) => Outcome::ParticipationAccepted {
                 peer_id: self.peer_id,
             },
-            (ObservedKind::Participation, false) => MachineOutput::DelayedParticipationAccepted {
+            (ObservedKind::Participation, false) => Outcome::DelayedParticipationAccepted {
                 peer_id: self.peer_id,
             },
-            (ObservedKind::Ready, true) => MachineOutput::ReadyAccepted {
+            (ObservedKind::Ready, true) => Outcome::ReadyAccepted {
                 peer_id: self.peer_id,
             },
-            (ObservedKind::Ready, false) => MachineOutput::DelayedReadyAccepted {
+            (ObservedKind::Ready, false) => Outcome::DelayedReadyAccepted {
                 peer_id: self.peer_id,
             },
         }

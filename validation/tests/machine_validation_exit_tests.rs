@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec;
 
+use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine_output::MachineOutput;
 use faction_validation::machine_scenario_harness::MachineScenarioHarness;
 
 #[test]
@@ -28,9 +28,9 @@ fn slow_member_does_not_block_quorum_exit() {
     assert_eq!(
         outputs,
         vec![
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -53,7 +53,7 @@ fn expire_deadline_exits_by_deadline() {
     // Assert
     assert_eq!(
         outputs,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );
@@ -126,7 +126,7 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     // Assert
     assert_eq!(
         outputs,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );
@@ -192,7 +192,7 @@ fn deadline_from_phase1() {
     // Assert
     assert_eq!(
         outputs,
-        vec![MachineOutput::ReadinessExited {
+        vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
     );

@@ -7,26 +7,26 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::Cell;
 
-use crate::machine_config::MachineConfig;
-use crate::machine_input::MachineInput;
-use crate::machine_observer::MachineObserver;
-use crate::machine_output::MachineOutput;
-use crate::machine_snapshot::MachineSnapshot;
-use crate::machine_state::MachineState;
-use crate::machine_transition::MachineTransition;
+use crate::command::Command;
+use crate::config::Config;
+use crate::observer::Observer;
+use crate::outcome::Outcome;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::snapshot::Snapshot;
+use crate::state::State;
 use crate::states::initial::Initial;
+use crate::transition::Transition;
 
-pub struct Machine {
-    config: MachineConfig,
-    observer: Box<dyn MachineObserver>,
-    state: Option<Box<dyn MachineState>>,
-    cached_snapshot: Cell<Option<MachineSnapshot>>,
+pub struct Faction {
+    config: Config,
+    observer: Box<dyn Observer>,
+    state: Option<Box<dyn State>>,
+    cached_snapshot: Cell<Option<Snapshot>>,
 }
 
-impl Machine {
+impl Faction {
     #[must_use]
-    pub fn new(config: MachineConfig, observer: Box<dyn MachineObserver>) -> Self {
+    pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         Self {
             config,
             observer,
@@ -35,8 +35,8 @@ impl Machine {
         }
     }
 
-    fn base_snapshot(&self) -> MachineSnapshot {
-        MachineSnapshot::new(
+    fn base_snapshot(&self) -> Snapshot {
+        Snapshot::new(
             ReadinessLifecycleState::Phase1Active,
             None,
             false,
@@ -47,7 +47,7 @@ impl Machine {
         )
     }
 
-    fn compute_snapshot(&self) -> MachineSnapshot {
+    fn compute_snapshot(&self) -> Snapshot {
         let base = self.base_snapshot();
         let snap = self.state.as_ref().unwrap().state_snapshot(&base);
         self.cached_snapshot.set(Some(snap));
@@ -55,9 +55,9 @@ impl Machine {
     }
 
     #[must_use]
-    pub fn apply(&mut self, input: MachineInput) -> Vec<MachineOutput> {
-        if let MachineInput::GetSnapshot = input {
-            return vec![MachineOutput::SnapshotAvailable(self.snapshot())];
+    pub fn apply(&mut self, input: Command) -> Vec<Outcome> {
+        if let Command::GetSnapshot = input {
+            return vec![Outcome::SnapshotAvailable(self.snapshot())];
         }
 
         if !self.state.as_ref().unwrap().accept(&input) {
@@ -80,13 +80,13 @@ impl Machine {
             .state_snapshot(&previous_snapshot);
         self.cached_snapshot.set(Some(new_snapshot));
 
-        let transition = MachineTransition::new(previous_snapshot, outputs.clone(), new_snapshot);
+        let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(input, transition);
         outputs
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> MachineSnapshot {
+    pub fn snapshot(&self) -> Snapshot {
         match self.cached_snapshot.get() {
             Some(snap) => snap,
             None => self.compute_snapshot(),
@@ -94,7 +94,7 @@ impl Machine {
     }
 
     #[must_use]
-    pub fn config(&self) -> &MachineConfig {
+    pub fn config(&self) -> &Config {
         &self.config
     }
 }

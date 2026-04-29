@@ -5,37 +5,33 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_observer::MachineObserver;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::config::Config;
+use faction::faction::Faction;
+use faction::no_op_observer::NoOpObserver;
+use faction::observer::Observer;
+use faction::outcome::Outcome;
+use faction::snapshot::Snapshot;
 use faction::PeerId;
 
 pub struct MachineScenarioNode {
     peer_id: PeerId,
-    readiness: Machine,
+    readiness: Faction,
 }
 
 impl MachineScenarioNode {
     #[must_use]
-    pub fn new(peer_id: PeerId, config: MachineConfig) -> Self {
+    pub fn new(peer_id: PeerId, config: Config) -> Self {
         Self {
             peer_id,
-            readiness: Machine::new(config, Box::new(NoOpMachineObserver)),
+            readiness: Faction::new(config, Box::new(NoOpObserver)),
         }
     }
 
     #[must_use]
-    pub fn new_with_observer(
-        peer_id: PeerId,
-        config: MachineConfig,
-        observer: Box<dyn MachineObserver>,
-    ) -> Self {
+    pub fn new_with_observer(peer_id: PeerId, config: Config, observer: Box<dyn Observer>) -> Self {
         Self {
             peer_id,
-            readiness: Machine::new(config, observer),
+            readiness: Faction::new(config, observer),
         }
     }
 
@@ -45,17 +41,17 @@ impl MachineScenarioNode {
     }
 
     #[must_use]
-    pub fn config(&self) -> &MachineConfig {
+    pub fn config(&self) -> &Config {
         self.readiness.config()
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> MachineSnapshot {
+    pub fn snapshot(&self) -> Snapshot {
         self.readiness.snapshot()
     }
 
     #[must_use]
-    pub fn apply(self, input: faction::machine_input::MachineInput) -> (Self, Vec<MachineOutput>) {
+    pub fn apply(self, input: faction::command::Command) -> (Self, Vec<Outcome>) {
         let mut readiness = self.readiness;
         let outputs = readiness.apply(input);
 

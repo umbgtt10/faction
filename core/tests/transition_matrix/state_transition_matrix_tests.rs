@@ -7,15 +7,15 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
+use faction::outcome::Outcome::*;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_output::MachineOutput::*;
 use faction::Freshness;
 use faction::PeerId;
 use rstest::rstest;
@@ -45,17 +45,17 @@ enum Init {
     Phase2AlmostQuorum,
 }
 
-fn build(init: Init) -> Machine {
-    let mut m = Machine::new(
-        MachineConfig::new(
+fn build(init: Init) -> Faction {
+    let mut m = Faction::new(
+        Config::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(THRESHOLD),
             FreshnessPolicy::new(MAX_DELAY),
         ),
-        Box::new(NoOpMachineObserver),
+        Box::new(NoOpObserver),
     );
-    let _ = m.apply(MachineInput::ParticipationObserved {
+    let _ = m.apply(Command::ParticipationObserved {
         peer_id: 99,
         freshness: MARKER,
         current_marker: MARKER,
@@ -63,7 +63,7 @@ fn build(init: Init) -> Machine {
     match init {
         Init::Fresh => {}
         Init::Phase1Peer1Confirmed => {
-            let _ = m.apply(MachineInput::ParticipationObserved {
+            let _ = m.apply(Command::ParticipationObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
@@ -71,7 +71,7 @@ fn build(init: Init) -> Machine {
         }
         Init::Phase1P2Threshold => {
             for peer in 0..5 {
-                let _ = m.apply(MachineInput::ReadyObserved {
+                let _ = m.apply(Command::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -79,20 +79,20 @@ fn build(init: Init) -> Machine {
             }
         }
         Init::Phase2NoReadiness => {
-            let _ = m.apply(MachineInput::LocalParticipationCompleted);
+            let _ = m.apply(Command::LocalParticipationCompleted);
         }
         Init::Phase2Peer1Confirmed => {
-            let _ = m.apply(MachineInput::LocalParticipationCompleted);
-            let _ = m.apply(MachineInput::ReadyObserved {
+            let _ = m.apply(Command::LocalParticipationCompleted);
+            let _ = m.apply(Command::ReadyObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
             });
         }
         Init::Phase2AlmostQuorum => {
-            let _ = m.apply(MachineInput::LocalParticipationCompleted);
+            let _ = m.apply(Command::LocalParticipationCompleted);
             for peer in 1..4 {
-                let _ = m.apply(MachineInput::ReadyObserved {
+                let _ = m.apply(Command::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -118,7 +118,7 @@ enum Assert {
     NotLocalComplete,
 }
 
-fn verify(m: &Machine, checks: &[Assert]) {
+fn verify(m: &Faction, checks: &[Assert]) {
     let s = m.snapshot();
     for check in checks {
         match *check {
@@ -137,16 +137,16 @@ fn verify(m: &Machine, checks: &[Assert]) {
 // Input helpers
 // ---------------------------------------------------------------------------
 
-fn participation(peer_id: PeerId, freshness: Freshness) -> MachineInput {
-    MachineInput::ParticipationObserved {
+fn participation(peer_id: PeerId, freshness: Freshness) -> Command {
+    Command::ParticipationObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
     }
 }
 
-fn ready(peer_id: PeerId, freshness: Freshness) -> MachineInput {
-    MachineInput::ReadyObserved {
+fn ready(peer_id: PeerId, freshness: Freshness) -> Command {
+    Command::ReadyObserved {
         peer_id,
         freshness,
         current_marker: MARKER,
@@ -240,13 +240,13 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> MachineInput {
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,
-    MachineInput::LocalParticipationCompleted,
+    Command::LocalParticipationCompleted,
     &[LocalParticipationCompleted, BroadcastLocalReady],
     &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::local_completion_with_preloaded_quorum(
     Init::Phase1P2Threshold,
-    MachineInput::LocalParticipationCompleted,
+    Command::LocalParticipationCompleted,
     &[
         LocalParticipationCompleted,
         BroadcastLocalReady,
@@ -257,20 +257,20 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> MachineInput {
 )]
 #[case::local_completion_redundant(
     Init::Phase2NoReadiness,
-    MachineInput::LocalParticipationCompleted,
+    Command::LocalParticipationCompleted,
     &[],
     &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::deadline_expired(
     Init::Fresh,
-    MachineInput::DeadlineExpired,
+    Command::DeadlineExpired,
     &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
     &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
 )]
 fn valid_transition(
     #[case] init: Init,
-    #[case] input: MachineInput,
-    #[case] expected_outputs: &[MachineOutput],
+    #[case] input: Command,
+    #[case] expected_outputs: &[Outcome],
     #[case] asserts: &[Assert],
 ) {
     // Arrange

@@ -7,17 +7,17 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_snapshot::MachineSnapshot;
+use faction::snapshot::Snapshot;
 use proptest::prelude::*;
 
-fn test_config() -> MachineConfig {
-    MachineConfig::new(
+fn test_config() -> Config {
+    Config::new(
         0,
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(4),
@@ -25,14 +25,14 @@ fn test_config() -> MachineConfig {
     )
 }
 
-fn coordinator() -> Machine {
-    Machine::new(test_config(), Box::new(NoOpMachineObserver))
+fn coordinator() -> Faction {
+    Faction::new(test_config(), Box::new(NoOpObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = MachineInput> {
+fn input_strategy() -> impl Strategy<Value = Command> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            MachineInput::ParticipationObserved {
+            Command::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -40,7 +40,7 @@ fn input_strategy() -> impl Strategy<Value = MachineInput> {
         });
     let ready =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            MachineInput::ReadyObserved {
+            Command::ReadyObserved {
                 peer_id,
                 freshness,
                 current_marker,
@@ -50,14 +50,14 @@ fn input_strategy() -> impl Strategy<Value = MachineInput> {
     prop_oneof![
         participation,
         ready,
-        Just(MachineInput::LocalParticipationCompleted),
-        Just(MachineInput::DeadlineExpired),
+        Just(Command::LocalParticipationCompleted),
+        Just(Command::DeadlineExpired),
     ]
 }
 
 fn assert_post_exit_inputs_do_not_change_any_field(
-    previous: MachineSnapshot,
-    current: MachineSnapshot,
+    previous: Snapshot,
+    current: Snapshot,
 ) -> Result<(), TestCaseError> {
     if previous.readiness_exited() {
         prop_assert_eq!(current, previous);
@@ -110,9 +110,9 @@ proptest! {
         }
 
         let previous = coordinator.snapshot();
-        let first_outputs = coordinator.apply(MachineInput::LocalParticipationCompleted);
+        let first_outputs = coordinator.apply(Command::LocalParticipationCompleted);
         let after_first = coordinator.snapshot();
-        let second_outputs = coordinator.apply(MachineInput::LocalParticipationCompleted);
+        let second_outputs = coordinator.apply(Command::LocalParticipationCompleted);
         let after_second = coordinator.snapshot();
 
         // Assert

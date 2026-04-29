@@ -4,11 +4,11 @@
 
 extern crate alloc;
 
-use faction::machine_snapshot::MachineSnapshot;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::snapshot::Snapshot;
 
-const BASE: MachineSnapshot = MachineSnapshot::new(
+const BASE: Snapshot = Snapshot::new(
     ReadinessLifecycleState::Phase2Active,
     Some(ReadinessExitMode::Deadline),
     true,

@@ -10,36 +10,36 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
+use faction::observer::Observer;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_observer::MachineObserver;
-use faction::machine_output::MachineOutput;
-use faction::machine_transition::MachineTransition;
+use faction::transition::Transition;
 
-type Observations = Rc<RefCell<Vec<(MachineInput, MachineTransition)>>>;
+type Observations = Rc<RefCell<Vec<(Command, Transition)>>>;
 
-struct RecordingMachineObserver {
+struct RecordingObserver {
     observations: Observations,
 }
 
-impl MachineObserver for RecordingMachineObserver {
-    fn observe(&mut self, input: MachineInput, transition: MachineTransition) {
+impl Observer for RecordingObserver {
+    fn observe(&mut self, input: Command, transition: Transition) {
         self.observations.borrow_mut().push((input, transition));
     }
 }
 
-fn recording_coordinator() -> (Machine, Observations) {
+fn recording_coordinator() -> (Faction, Observations) {
     let observations: Observations = Rc::new(RefCell::new(Vec::new()));
-    let observer = RecordingMachineObserver {
+    let observer = RecordingObserver {
         observations: Rc::clone(&observations),
     };
-    let coordinator = Machine::new(
-        MachineConfig::new(
+    let coordinator = Faction::new(
+        Config::new(
             0,
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(4),
@@ -54,12 +54,12 @@ fn recording_coordinator() -> (Machine, Observations) {
 fn apply_observes_local_participation_completion_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::LocalParticipationCompleted;
+    let input = Command::LocalParticipationCompleted;
 
     // Act
     let outputs = coordinator.apply(input);
@@ -86,8 +86,8 @@ fn apply_observes_local_participation_completion_transition() {
     assert_eq!(
         transition.outputs(),
         &[
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
         ]
     );
 }
@@ -96,12 +96,12 @@ fn apply_observes_local_participation_completion_transition() {
 fn apply_observes_duplicate_participation_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::ParticipationObserved {
+    let input = Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -118,7 +118,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::DuplicateParticipationIgnored { peer_id: 1 }]
+        &[Outcome::DuplicateParticipationIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase1_confirmed_count(), 1);
@@ -132,13 +132,13 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
 fn apply_observes_stale_ready_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let input = MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let input = Command::ReadyObserved {
         peer_id: 1,
         freshness: 7,
         current_marker: 10,
@@ -155,7 +155,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::StaleReadyIgnored { peer_id: 1 }]
+        &[Outcome::StaleReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(
@@ -170,23 +170,23 @@ fn apply_observes_stale_ready_transition_without_state_change() {
 fn apply_observes_quorum_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
@@ -220,9 +220,9 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(
         transition.outputs(),
         &[
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum
             },
         ]
@@ -233,13 +233,13 @@ fn apply_observes_quorum_exit_transition() {
 fn apply_observes_deadline_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let input = MachineInput::DeadlineExpired;
+    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let input = Command::DeadlineExpired;
 
     // Act
     let outputs = coordinator.apply(input);
@@ -266,7 +266,7 @@ fn apply_observes_deadline_exit_transition() {
     assert!(transition.new_state().readiness_exited());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::ReadinessExited {
+        &[Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline
         }]
     );
@@ -278,13 +278,13 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let batch0 = coordinator.apply(MachineInput::ParticipationObserved {
+    let batch0 = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
         current_marker: 10,
     });
-    let batch1 = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let batch2 = coordinator.apply(MachineInput::ReadyObserved {
+    let batch1 = coordinator.apply(Command::LocalParticipationCompleted);
+    let batch2 = coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 8,
         current_marker: 10,
@@ -297,7 +297,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (_, transition0) = &obs[0];
     assert_eq!(
         transition0.outputs(),
-        &[MachineOutput::DelayedParticipationAccepted { peer_id: 1 }]
+        &[Outcome::DelayedParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(&batch0, transition0.outputs());
 
@@ -305,8 +305,8 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     assert_eq!(
         transition1.outputs(),
         &[
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
         ]
     );
     assert_eq!(&batch1, transition1.outputs());
@@ -314,7 +314,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
-        &[MachineOutput::DelayedReadyAccepted { peer_id: 2 }]
+        &[Outcome::DelayedReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(&batch2, transition2.outputs());
 }
@@ -325,23 +325,23 @@ fn state_transition_outputs_are_fully_observable() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let batch0 = coordinator.apply(MachineInput::ParticipationObserved {
+    let batch0 = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let batch1 = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let batch2 = coordinator.apply(MachineInput::ReadyObserved {
+    let batch1 = coordinator.apply(Command::LocalParticipationCompleted);
+    let batch2 = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let batch3 = coordinator.apply(MachineInput::ReadyObserved {
+    let batch3 = coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let batch4 = coordinator.apply(MachineInput::ReadyObserved {
+    let batch4 = coordinator.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
@@ -354,7 +354,7 @@ fn state_transition_outputs_are_fully_observable() {
     let (_, transition0) = &obs[0];
     assert_eq!(
         transition0.outputs(),
-        &[MachineOutput::ParticipationAccepted { peer_id: 1 }]
+        &[Outcome::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(&batch0, transition0.outputs());
 
@@ -362,8 +362,8 @@ fn state_transition_outputs_are_fully_observable() {
     assert_eq!(
         transition1.outputs(),
         &[
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
         ]
     );
     assert_eq!(&batch1, transition1.outputs());
@@ -371,14 +371,14 @@ fn state_transition_outputs_are_fully_observable() {
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
-        &[MachineOutput::ReadyAccepted { peer_id: 1 }]
+        &[Outcome::ReadyAccepted { peer_id: 1 }]
     );
     assert_eq!(&batch2, transition2.outputs());
 
     let (_, transition3) = &obs[3];
     assert_eq!(
         transition3.outputs(),
-        &[MachineOutput::ReadyAccepted { peer_id: 2 }]
+        &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(&batch3, transition3.outputs());
 
@@ -386,9 +386,9 @@ fn state_transition_outputs_are_fully_observable() {
     assert_eq!(
         transition4.outputs(),
         &[
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -401,7 +401,7 @@ fn state_transition_outputs_are_fully_observable() {
 fn apply_observes_stale_participation_from_initial() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let input = MachineInput::ParticipationObserved {
+    let input = Command::ParticipationObserved {
         peer_id: 1,
         freshness: 7,
         current_marker: 10,
@@ -418,7 +418,7 @@ fn apply_observes_stale_participation_from_initial() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::StaleParticipationIgnored { peer_id: 1 }]
+        &[Outcome::StaleParticipationIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase1_confirmed_count(), 0);
@@ -429,7 +429,7 @@ fn apply_observes_stale_participation_from_initial() {
 fn apply_observes_non_member_participation_from_initial() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let input = MachineInput::ParticipationObserved {
+    let input = Command::ParticipationObserved {
         peer_id: 99,
         freshness: 10,
         current_marker: 10,
@@ -446,7 +446,7 @@ fn apply_observes_non_member_participation_from_initial() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::NonMemberIgnored { peer_id: 99 }]
+        &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase1_confirmed_count(), 0);
@@ -457,7 +457,7 @@ fn apply_observes_non_member_participation_from_initial() {
 fn apply_observes_stale_ready_from_initial() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 1,
         freshness: 7,
         current_marker: 10,
@@ -474,7 +474,7 @@ fn apply_observes_stale_ready_from_initial() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::StaleReadyIgnored { peer_id: 1 }]
+        &[Outcome::StaleReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 0);
@@ -485,7 +485,7 @@ fn apply_observes_stale_ready_from_initial() {
 fn apply_observes_non_member_ready_from_initial() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 99,
         freshness: 10,
         current_marker: 10,
@@ -502,7 +502,7 @@ fn apply_observes_non_member_ready_from_initial() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::NonMemberIgnored { peer_id: 99 }]
+        &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 0);
@@ -513,12 +513,12 @@ fn apply_observes_non_member_ready_from_initial() {
 fn apply_observes_duplicate_ready_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -535,7 +535,7 @@ fn apply_observes_duplicate_ready_from_pinging() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::DuplicateReadyIgnored { peer_id: 1 }]
+        &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 1);
@@ -549,22 +549,22 @@ fn apply_observes_duplicate_ready_from_pinging() {
 fn apply_observes_quorum_exit_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::LocalParticipationCompleted;
+    let input = Command::LocalParticipationCompleted;
 
     // Act
     let outputs = coordinator.apply(input);
@@ -578,10 +578,10 @@ fn apply_observes_quorum_exit_from_pinging() {
     assert_eq!(
         transition.outputs(),
         &[
-            MachineOutput::LocalParticipationCompleted,
-            MachineOutput::BroadcastLocalReady,
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -608,12 +608,12 @@ fn apply_observes_quorum_exit_from_pinging() {
 fn apply_observes_deadline_exit_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::DeadlineExpired;
+    let input = Command::DeadlineExpired;
 
     // Act
     let outputs = coordinator.apply(input);
@@ -632,7 +632,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::ReadinessExited {
+        &[Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline
         }]
     );
@@ -652,18 +652,18 @@ fn apply_observes_deadline_exit_from_pinging() {
 fn apply_observes_timely_ready_from_collecting_no_quorum() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
@@ -680,7 +680,7 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::ReadyAccepted { peer_id: 2 }]
+        &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
         transition.previous_state().lifecycle_state(),
@@ -700,18 +700,18 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
 fn apply_observes_duplicate_ready_from_collecting() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -728,7 +728,7 @@ fn apply_observes_duplicate_ready_from_collecting() {
     assert_eq!(&outputs, transition.outputs());
     assert_eq!(
         transition.outputs(),
-        &[MachineOutput::DuplicateReadyIgnored { peer_id: 1 }]
+        &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(
@@ -743,23 +743,23 @@ fn apply_observes_duplicate_ready_from_collecting() {
 fn apply_observes_delayed_quorum_exit_from_collecting() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(MachineInput::ParticipationObserved {
+    let _ = coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::LocalParticipationCompleted);
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(MachineInput::ReadyObserved {
+    let _ = coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let input = MachineInput::ReadyObserved {
+    let input = Command::ReadyObserved {
         peer_id: 3,
         freshness: 8,
         current_marker: 10,
@@ -777,9 +777,9 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     assert_eq!(
         transition.outputs(),
         &[
-            MachineOutput::DelayedReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::DelayedReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]

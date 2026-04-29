@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec;
 
+use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine_output::MachineOutput;
 use faction_validation::machine_scenario_harness::MachineScenarioHarness;
 
 #[test]
@@ -24,7 +24,7 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::StaleReadyIgnored { peer_id: 2 }]);
+    assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -46,10 +46,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(
-        outputs,
-        vec![MachineOutput::DuplicateReadyIgnored { peer_id: 1 }]
-    );
+    assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),
@@ -75,15 +72,15 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
     // Assert
     assert_eq!(
         delayed_outputs,
-        vec![MachineOutput::DelayedReadyAccepted { peer_id: 2 }]
+        vec![Outcome::DelayedReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
         stale_outputs,
-        vec![MachineOutput::StaleReadyIgnored { peer_id: 3 }]
+        vec![Outcome::StaleReadyIgnored { peer_id: 3 }]
     );
     assert_eq!(
         duplicate_outputs,
-        vec![MachineOutput::DuplicateReadyIgnored { peer_id: 1 }]
+        vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(snapshot.phase2_confirmed_count(), 3);
     assert_eq!(
@@ -108,19 +105,16 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
     let step5 = harness.apply_ready(0, 3, 10);
 
     // Assert
-    assert_eq!(step1, vec![MachineOutput::ReadyAccepted { peer_id: 1 }]);
-    assert_eq!(step2, vec![MachineOutput::DelayedReadyAccepted { peer_id: 2 }]);
-    assert_eq!(step3, vec![MachineOutput::StaleReadyIgnored { peer_id: 3 }]);
-    assert_eq!(
-        step4,
-        vec![MachineOutput::DuplicateReadyIgnored { peer_id: 1 }]
-    );
+    assert_eq!(step1, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(step2, vec![Outcome::DelayedReadyAccepted { peer_id: 2 }]);
+    assert_eq!(step3, vec![Outcome::StaleReadyIgnored { peer_id: 3 }]);
+    assert_eq!(step4, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
     assert_eq!(
         step5,
         vec![
-            MachineOutput::ReadyAccepted { peer_id: 3 },
-            MachineOutput::ReadyQuorumReached,
-            MachineOutput::ReadinessExited {
+            Outcome::ReadyAccepted { peer_id: 3 },
+            Outcome::ReadyQuorumReached,
+            Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
             },
         ]
@@ -143,7 +137,7 @@ fn non_member_signal_does_not_perturb_multi_node_state() {
     let snapshot = harness.snapshot(0);
 
     // Assert
-    assert_eq!(outputs, vec![MachineOutput::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snapshot.phase2_confirmed_count(), 2);
     assert_eq!(
         snapshot.lifecycle_state(),

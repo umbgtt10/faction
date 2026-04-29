@@ -7,18 +7,18 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::machine_output::MachineOutput;
-use faction::machine_snapshot::MachineSnapshot;
-use faction::no_op_machine_observer::NoOpMachineObserver;
+use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
+use faction::snapshot::Snapshot;
 use faction::PeerId;
 
 pub struct MachineScenarioHarness {
-    coordinators: Vec<Machine>,
+    coordinators: Vec<Faction>,
     current_marker: u64,
 }
 
@@ -27,16 +27,16 @@ impl MachineScenarioHarness {
         let mut coordinators = Vec::new();
 
         for peer_id in peer_set.iter().copied() {
-            let mut machine = Machine::new(
-                MachineConfig::new(
+            let mut machine = Faction::new(
+                Config::new(
                     peer_id,
                     peer_set.clone(),
                     QuorumPolicy::new(quorum_threshold),
                     FreshnessPolicy::new(max_delay),
                 ),
-                Box::new(NoOpMachineObserver),
+                Box::new(NoOpObserver),
             );
-            let _ = machine.apply(MachineInput::ParticipationObserved {
+            let _ = machine.apply(Command::ParticipationObserved {
                 peer_id: PeerId::MAX,
                 freshness: 0,
                 current_marker: 0,
@@ -66,7 +66,7 @@ impl MachineScenarioHarness {
         self.coordinators.len()
     }
 
-    pub fn snapshot(&self, coordinator_index: usize) -> MachineSnapshot {
+    pub fn snapshot(&self, coordinator_index: usize) -> Snapshot {
         self.coordinators[coordinator_index].snapshot()
     }
 
@@ -75,8 +75,8 @@ impl MachineScenarioHarness {
         coordinator_index: usize,
         peer_id: PeerId,
         freshness: u64,
-    ) -> Vec<MachineOutput> {
-        self.coordinators[coordinator_index].apply(MachineInput::ParticipationObserved {
+    ) -> Vec<Outcome> {
+        self.coordinators[coordinator_index].apply(Command::ParticipationObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
@@ -88,19 +88,19 @@ impl MachineScenarioHarness {
         coordinator_index: usize,
         peer_id: PeerId,
         freshness: u64,
-    ) -> Vec<MachineOutput> {
-        self.coordinators[coordinator_index].apply(MachineInput::ReadyObserved {
+    ) -> Vec<Outcome> {
+        self.coordinators[coordinator_index].apply(Command::ReadyObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
         })
     }
 
-    pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<MachineOutput> {
-        self.coordinators[coordinator_index].apply(MachineInput::LocalParticipationCompleted)
+    pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<Outcome> {
+        self.coordinators[coordinator_index].apply(Command::LocalParticipationCompleted)
     }
 
-    pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<MachineOutput> {
-        self.coordinators[coordinator_index].apply(MachineInput::DeadlineExpired)
+    pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<Outcome> {
+        self.coordinators[coordinator_index].apply(Command::DeadlineExpired)
     }
 }

@@ -6,8 +6,8 @@ extern crate alloc;
 
 use alloc::vec;
 
+use faction::outcome::Outcome;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::machine_output::MachineOutput;
 use faction_validation::machine_scenario_harness::MachineScenarioHarness;
 use proptest::prelude::*;
 
@@ -68,21 +68,20 @@ fn harness() -> MachineScenarioHarness {
     MachineScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
 }
 
-fn outputs_contain_duplicate(outputs: &[MachineOutput]) -> bool {
+fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            MachineOutput::DuplicateParticipationIgnored { .. }
-                | MachineOutput::DuplicateReadyIgnored { .. }
+            Outcome::DuplicateParticipationIgnored { .. } | Outcome::DuplicateReadyIgnored { .. }
         )
     })
 }
 
-fn outputs_contain_stale(outputs: &[MachineOutput]) -> bool {
+fn outputs_contain_stale(outputs: &[Outcome]) -> bool {
     outputs.iter().any(|output| {
         matches!(
             output,
-            MachineOutput::StaleParticipationIgnored { .. } | MachineOutput::StaleReadyIgnored { .. }
+            Outcome::StaleParticipationIgnored { .. } | Outcome::StaleReadyIgnored { .. }
         )
     })
 }
@@ -90,7 +89,7 @@ fn outputs_contain_stale(outputs: &[MachineOutput]) -> bool {
 fn apply_operation(
     harness: &mut MachineScenarioHarness,
     operation: ScenarioOperation,
-) -> Option<(usize, Vec<MachineOutput>)> {
+) -> Option<(usize, Vec<Outcome>)> {
     match operation {
         ScenarioOperation::Participation {
             coordinator_index,
