@@ -407,7 +407,7 @@ fn local_completion_no_quorum() {
     };
     assert_eq!(snap.peer_state(), PeerState::Collecting);
     assert!(snap.is_pinging_completed());
-    assert!(!snap.readiness_exited());
+    assert!(!snap.is_exited());
 }
 
 #[test]
@@ -466,7 +466,7 @@ fn local_completion_triggers_quorum() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert!(snap.readiness_exited());
+    assert!(snap.is_exited());
     assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
 }
 
@@ -491,7 +491,7 @@ fn deadline_expired_in_phase1() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert!(snap.readiness_exited());
+    assert!(snap.is_exited());
     assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
 }
 
@@ -506,7 +506,7 @@ fn vibe_check_in_phase1() {
 
     // Assert
     assert_eq!(snap.peer_state(), PeerState::Pinging);
-    assert!(!snap.readiness_exited());
+    assert!(!snap.is_exited());
     assert!(!snap.is_pinging_completed());
     assert_eq!(snap.exit_mode(), None);
     assert_eq!(snap.pinging_peers().len(), 1);
@@ -535,5 +535,5 @@ fn pinging_cluster_view_inherits_correctly() {
     assert_eq!(result.collecting_peers().len(), 0);
     assert_eq!(result.exit_mode(), None);
     assert!(result.is_pinging_completed());
-    assert!(!result.readiness_exited());
+    assert!(!result.is_exited());
 }

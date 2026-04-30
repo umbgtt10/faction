@@ -172,7 +172,7 @@ fn vibe_check_after_deadline_from_phase1() {
     // Assert
     assert_eq!(s.peer_state(), PeerState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ExitMode::TimedOut));
-    assert!(s.readiness_exited());
+    assert!(s.is_exited());
     assert!(!s.is_pinging_completed());
     assert_eq!(s.pinging_peers().len(), 1);
     assert_eq!(s.collecting_peers().len(), 0);
@@ -190,7 +190,7 @@ fn vibe_check_after_deadline_from_phase2() {
     // Assert
     assert_eq!(s.peer_state(), PeerState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ExitMode::TimedOut));
-    assert!(s.readiness_exited());
+    assert!(s.is_exited());
     assert!(s.is_pinging_completed());
     assert_eq!(s.pinging_peers().len(), 1);
     assert_eq!(s.collecting_peers().len(), 1);
@@ -250,7 +250,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ExitMode::TimedOut));
-    assert!(result.readiness_exited());
+    assert!(result.is_exited());
     assert!(!result.is_pinging_completed());
     assert_eq!(result.pinging_peers(), &[1, 2, 3]);
     assert_eq!(result.collecting_peers(), &[9]);
@@ -278,7 +278,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ExitMode::TimedOut));
-    assert!(result.readiness_exited());
+    assert!(result.is_exited());
     assert!(result.is_pinging_completed());
     assert_eq!(result.pinging_peers().len(), 2);
     assert_eq!(result.collecting_peers().len(), 4);

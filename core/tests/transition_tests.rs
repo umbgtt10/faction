@@ -106,7 +106,7 @@ fn previous_state_preserves_full_snapshot() {
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.readiness_exited());
+    assert!(result.is_exited());
     assert_eq!(result.pinging_peers().len(), 3);
     assert_eq!(result.collecting_peers().len(), 5);
 }
@@ -125,7 +125,7 @@ fn new_state_preserves_full_snapshot() {
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.readiness_exited());
+    assert!(result.is_exited());
     assert_eq!(result.pinging_peers().len(), 3);
     assert_eq!(result.collecting_peers().len(), 5);
 }

@@ -55,7 +55,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn readiness_exited(&self) -> bool {
+    pub fn is_exited(&self) -> bool {
         matches!(
             self.peer_state,
             PeerState::Bootstrapped | PeerState::TimedOut

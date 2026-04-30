@@ -65,18 +65,24 @@ impl Faction {
             };
         }
 
-        let previous_snapshot = self.cluster_view.clone();
+        let previous_cluster_view = self.cluster_view.clone();
 
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
-        let new_snapshot = self.state.cluster_view(&previous_snapshot, &self.config);
-        let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot.clone());
+        let new_cluster_view = self
+            .state
+            .cluster_view(&previous_cluster_view, &self.config);
+        let transition = Transition::new(
+            previous_cluster_view,
+            outputs.clone(),
+            new_cluster_view.clone(),
+        );
         self.observer.observe(command, transition);
-        self.cluster_view = new_snapshot.clone();
+        self.cluster_view = new_cluster_view.clone();
         ProcessResult::Accepted {
             outcomes: outputs,
-            cluster_view: new_snapshot,
+            cluster_view: new_cluster_view,
         }
     }
 

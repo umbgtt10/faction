@@ -103,7 +103,7 @@ fn deal_accepts_deadline_expired() {
         }]
     );
     assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
-    assert!(snap.readiness_exited());
+    assert!(snap.is_exited());
 }
 
 #[test]
@@ -357,7 +357,7 @@ fn ready_first_timely_no_quorum() {
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.collecting_peers().len(), 2);
     assert_eq!(snap.peer_state(), PeerState::Collecting);
-    assert!(!snap.readiness_exited());
+    assert!(!snap.is_exited());
 }
 
 #[test]
@@ -386,7 +386,7 @@ fn ready_first_delayed_no_quorum() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.collecting_peers().len(), 2);
-    assert!(!snap.readiness_exited());
+    assert!(!snap.is_exited());
 }
 
 #[test]
@@ -402,7 +402,7 @@ fn ready_first_timely_triggers_quorum() {
 
     // Act & Assert
     assert_eq!(snap_before.collecting_peers().len(), 3);
-    assert!(!snap_before.readiness_exited());
+    assert!(!snap_before.is_exited());
 
     // Act
     let outcomes = match v.process(ready(3, TIMELY)) {
@@ -429,7 +429,7 @@ fn ready_first_timely_triggers_quorum() {
     assert_eq!(snap.collecting_peers().len(), 3);
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
     assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert!(snap.readiness_exited());
+    assert!(snap.is_exited());
 }
 
 #[test]
@@ -445,7 +445,7 @@ fn ready_first_delayed_triggers_quorum() {
 
     // Act & Assert
     assert_eq!(snap_before.collecting_peers().len(), 3);
-    assert!(!snap_before.readiness_exited());
+    assert!(!snap_before.is_exited());
 
     // Act
     let outcomes = match v.process(ready(3, DELAYED)) {
@@ -471,7 +471,7 @@ fn ready_first_delayed_triggers_quorum() {
     );
     assert_eq!(snap.collecting_peers().len(), 3);
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
-    assert!(snap.readiness_exited());
+    assert!(snap.is_exited());
 }
 
 #[test]
@@ -508,7 +508,7 @@ fn deadline_expired_exits_in_phase2() {
 
     // Act & Assert
     assert_eq!(snap_before.peer_state(), PeerState::Collecting);
-    assert!(!snap_before.readiness_exited());
+    assert!(!snap_before.is_exited());
     assert!(snap_before.is_pinging_completed());
 
     // Act
@@ -531,7 +531,7 @@ fn deadline_expired_exits_in_phase2() {
     );
     assert_eq!(snap.peer_state(), PeerState::TimedOut);
     assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
-    assert!(snap.readiness_exited());
+    assert!(snap.is_exited());
     assert!(snap.is_pinging_completed());
 }
 
@@ -548,7 +548,7 @@ fn vibe_check_returns_correct_snapshot() {
     assert_eq!(snap.peer_state(), PeerState::Collecting);
     assert_eq!(snap.exit_mode(), None);
     assert!(snap.is_pinging_completed());
-    assert!(!snap.readiness_exited());
+    assert!(!snap.is_exited());
     assert_eq!(snap.pinging_peers().len(), 1);
     assert_eq!(snap.collecting_peers().len(), 1);
     assert_eq!(snap.required_count(), 4);
@@ -581,5 +581,5 @@ fn collecting_cluster_view_inherits_correctly() {
     assert_eq!(result.pinging_peers().len(), 0);
     assert_eq!(result.collecting_peers(), &[1, 3]);
     assert_eq!(result.exit_mode(), None);
-    assert!(!result.readiness_exited());
+    assert!(!result.is_exited());
 }

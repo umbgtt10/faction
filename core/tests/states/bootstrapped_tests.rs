@@ -67,7 +67,7 @@ fn deal_rejects_participation_observed() {
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn vibe_check_returns_correct_snapshot() {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(cluster_view.is_pinging_completed());
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 3);
     assert_eq!(cluster_view.required_count(), 4);
@@ -171,7 +171,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.readiness_exited());
+    assert!(result.is_exited());
     assert_eq!(result.pinging_peers(), &[1, 2]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.required_count(), 4);

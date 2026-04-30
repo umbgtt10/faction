@@ -27,7 +27,7 @@ fn stale_signals_do_not_perturb_active_multi_peer_state() {
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }
 
 #[test]
@@ -46,7 +46,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
     assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
     );
     assert_eq!(cluster_view.collecting_peers().len(), 3);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }
 
 #[test]
@@ -111,7 +111,7 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
         ]
     );
     let cluster_view = harness.cluster_view(0);
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
 }
 
@@ -131,5 +131,5 @@ fn non_member_signal_does_not_perturb_multi_peer_state() {
     assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }

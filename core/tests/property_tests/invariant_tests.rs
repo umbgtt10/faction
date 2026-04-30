@@ -111,7 +111,7 @@ fn assert_stale_outputs_do_not_mutate_state(
             current.is_pinging_completed(),
             previous.is_pinging_completed()
         );
-        prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
+        prop_assert_eq!(current.is_exited(), previous.is_exited());
     }
     Ok(())
 }
@@ -135,7 +135,7 @@ fn assert_non_member_outputs_do_not_mutate_state(
             current.is_pinging_completed(),
             previous.is_pinging_completed()
         );
-        prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
+        prop_assert_eq!(current.is_exited(), previous.is_exited());
     }
     Ok(())
 }
@@ -160,7 +160,7 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
             current.is_pinging_completed(),
             previous.is_pinging_completed()
         );
-        prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
+        prop_assert_eq!(current.is_exited(), previous.is_exited());
     }
     Ok(())
 }
@@ -204,7 +204,7 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.readiness_exited() {
+            if cluster_view.is_exited() {
                 has_exited = true;
                 prop_assert!(matches!(
                     cluster_view.peer_state(),
@@ -213,7 +213,7 @@ proptest! {
             }
 
             if has_exited {
-                prop_assert!(cluster_view.readiness_exited());
+                prop_assert!(cluster_view.is_exited());
                 prop_assert!(matches!(
                     cluster_view.peer_state(),
                     PeerState::Bootstrapped | PeerState::TimedOut
@@ -342,12 +342,12 @@ proptest! {
 
             // Assert
             if has_exited {
-                prop_assert!(current.readiness_exited());
+                prop_assert!(current.is_exited());
             }
-            if previous.readiness_exited() {
-                prop_assert!(current.readiness_exited());
+            if previous.is_exited() {
+                prop_assert!(current.is_exited());
             }
-            if current.readiness_exited() {
+            if current.is_exited() {
                 has_exited = true;
             }
         }
@@ -396,7 +396,7 @@ proptest! {
             // Assert
             if cluster_view.exit_mode() == Some(ExitMode::Bootstrapped) {
                 prop_assert!(cluster_view.is_pinging_completed());
-                prop_assert!(cluster_view.readiness_exited());
+                prop_assert!(cluster_view.is_exited());
                 prop_assert_eq!(
                     cluster_view.peer_state(),
                     PeerState::Bootstrapped
@@ -420,7 +420,7 @@ proptest! {
 
             // Assert
             if cluster_view.exit_mode() == Some(ExitMode::TimedOut) {
-                prop_assert!(cluster_view.readiness_exited());
+                prop_assert!(cluster_view.is_exited());
                 prop_assert_eq!(
                     cluster_view.peer_state(),
                     PeerState::TimedOut

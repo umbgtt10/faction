@@ -29,7 +29,7 @@ fn with_peer_state_updates_only_peer_state() {
     assert_eq!(result.peer_state(), PeerState::Pinging);
     assert_eq!(result.exit_mode(), None);
     assert!(result.is_pinging_completed());
-    assert!(!result.readiness_exited());
+    assert!(!result.is_exited());
     assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5, 6, 7]);
     assert_eq!(result.required_count(), 3);
@@ -44,7 +44,7 @@ fn with_collecting_peers_updates_only_collecting_peers() {
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.readiness_exited());
+    assert!(result.is_exited());
     assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.collecting_peers(), &[99]);
     assert_eq!(result.required_count(), 3);

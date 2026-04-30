@@ -26,7 +26,7 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
     // Assert
     assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn apply_ready_rejects_stale_member_observation() {
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 1);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.readiness_exited());
+    assert!(!cluster_view.is_exited());
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     );
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.collecting_peers().len(), 3);
 }
 
@@ -120,7 +120,7 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
     );
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 3);
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn post_exit_ready_is_ignored() {
     assert!(outputs.is_empty());
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 3);
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
 }
 
 #[test]
@@ -190,8 +190,8 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     let snapshot_1 = harness.cluster_view(1);
     assert_eq!(snapshot_0.exit_mode(), Some(ExitMode::Bootstrapped));
     assert_eq!(snapshot_1.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert!(snapshot_0.readiness_exited());
-    assert!(snapshot_1.readiness_exited());
+    assert!(snapshot_0.is_exited());
+    assert!(snapshot_1.is_exited());
     assert_eq!(snapshot_0.peer_state(), PeerState::Bootstrapped);
     assert_eq!(snapshot_1.peer_state(), PeerState::Bootstrapped);
 }
@@ -216,7 +216,7 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     assert_eq!(intermediate_snapshot.collecting_peers().len(), 3);
     assert_eq!(intermediate_snapshot.peer_state(), PeerState::Pinging);
     assert!(!intermediate_snapshot.is_pinging_completed());
-    assert!(!intermediate_snapshot.readiness_exited());
+    assert!(!intermediate_snapshot.is_exited());
     assert_eq!(
         outputs,
         vec![
@@ -230,6 +230,6 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     );
     let cluster_view = harness.cluster_view(0);
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert!(cluster_view.readiness_exited());
+    assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.collecting_peers().len(), 3);
 }

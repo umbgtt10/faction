@@ -288,7 +288,7 @@ fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
         },
         exit_mode: cluster_view.exit_mode(),
         is_pinging_completed: cluster_view.is_pinging_completed(),
-        readiness_exited: cluster_view.readiness_exited(),
+        readiness_exited: cluster_view.is_exited(),
         pinging_confirmed_count: cluster_view.pinging_peers().len(),
         collecting_confirmed_count: cluster_view.collecting_peers().len(),
         required_count: cluster_view.required_count(),
@@ -337,15 +337,15 @@ fn input_strategy() -> impl Strategy<Value = Command> {
 proptest! {
     #[test]
     fn model_matches_cluster_view_and_outputs_for_random_sequences(
-        inputs in prop::collection::vec(input_strategy(), 0..64)
+        commands in prop::collection::vec(input_strategy(), 0..64)
     ) {
         // Arrange
         let mut coordinator = coordinator();
         let mut model = ModelCoordinator::new();
 
         // Act
-        for input in inputs {
-            let actual_outputs = match coordinator.process(input) {
+        for command in commands {
+            let actual_outputs = match coordinator.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
@@ -354,7 +354,7 @@ proptest! {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let expected_outputs = model.process(input);
+            let expected_outputs = model.process(command);
             let expected_cluster_view = model.cluster_view();
 
             // Assert

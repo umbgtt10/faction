@@ -152,7 +152,7 @@ impl ClusterSimulation {
         self.peers
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
-                ProcessResult::Probed { cluster_view, .. } => cluster_view.readiness_exited(),
+                ProcessResult::Probed { cluster_view, .. } => cluster_view.is_exited(),
                 _ => unreachable!(),
             })
     }
