@@ -18,7 +18,7 @@ pub struct Faction {
     config: Config,
     observer: Box<dyn Observer>,
     state: Box<dyn State>,
-    cached_snapshot: Snapshot,
+    snapshot: Snapshot,
 }
 
 impl Faction {
@@ -39,7 +39,7 @@ impl Faction {
             config,
             observer,
             state,
-            cached_snapshot: snapshot,
+            snapshot,
         }
     }
 
@@ -47,25 +47,25 @@ impl Faction {
     pub fn process(&mut self, command: Command) -> ProcessResult {
         if let Command::Probe = command {
             return ProcessResult::Probed {
-                snapshot: self.cached_snapshot,
+                snapshot: self.snapshot,
                 admissible: self.state.admissible_commands(),
             };
         }
 
         if !self.state.accept(&command) {
             return ProcessResult::Rejected {
-                snapshot: self.cached_snapshot,
+                snapshot: self.snapshot,
                 admissible: self.state.admissible_commands(),
             };
         }
 
-        let previous_snapshot = self.cached_snapshot;
+        let previous_snapshot = self.snapshot;
 
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
         let new_snapshot = self.state.state_snapshot(&previous_snapshot);
-        self.cached_snapshot = new_snapshot;
+        self.snapshot = new_snapshot;
 
         let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(command, transition);
