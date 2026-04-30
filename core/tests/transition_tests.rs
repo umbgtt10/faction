@@ -7,19 +7,13 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
+use faction::node_state::NodeState;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use faction::transition::Transition;
 
 fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
-    ClusterView::new(
-        NodeState::Pinging,
-        false,
-        phase1,
-        phase2,
-        4,
-    )
+    ClusterView::new(NodeState::Pinging, false, phase1, phase2, 4)
 }
 
 fn snapshot_exited() -> ClusterView {
@@ -97,12 +91,9 @@ fn previous_state_preserves_full_snapshot() {
 
     // Assert
     let result = transition.previous_state();
-    assert_eq!(
-        result.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(result.node_state(), NodeState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert!(result.local_participation_complete());
+    assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_confirmed_count(), 3);
     assert_eq!(result.collecting_confirmed_count(), 5);
@@ -119,12 +110,9 @@ fn new_state_preserves_full_snapshot() {
 
     // Assert
     let result = transition.new_state();
-    assert_eq!(
-        result.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(result.node_state(), NodeState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert!(result.local_participation_complete());
+    assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_confirmed_count(), 3);
     assert_eq!(result.collecting_confirmed_count(), 5);

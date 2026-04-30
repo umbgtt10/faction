@@ -12,9 +12,9 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::node_state::NodeState;
 
 #[test]
 fn get_snapshot_returns_snapshot_available_with_initial_state() {
@@ -35,12 +35,9 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     };
 
     // Assert
-    assert_eq!(
-        cluster_view.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(cluster_view.node_state(), NodeState::Pinging);
     assert_eq!(cluster_view.exit_mode(), None);
-    assert!(!cluster_view.local_participation_complete());
+    assert!(!cluster_view.is_pinging_completed());
     assert!(!cluster_view.readiness_exited());
     assert_eq!(cluster_view.pinging_confirmed_count(), 0);
     assert_eq!(cluster_view.collecting_confirmed_count(), 0);

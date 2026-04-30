@@ -135,8 +135,8 @@ pub fn verify(m: &mut Faction, checks: &[Assert]) {
             Assert::Exited => assert!(s.readiness_exited()),
             Assert::NotExited => assert!(!s.readiness_exited()),
             Assert::ExitMode(mode) => assert_eq!(s.exit_mode(), Some(mode)),
-            Assert::LocalComplete => assert!(s.local_participation_complete()),
-            Assert::NotLocalComplete => assert!(!s.local_participation_complete()),
+            Assert::LocalComplete => assert!(s.is_pinging_completed()),
+            Assert::NotLocalComplete => assert!(!s.is_pinging_completed()),
         }
     }
 }

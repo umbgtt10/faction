@@ -13,11 +13,11 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
@@ -109,8 +109,8 @@ fn assert_stale_outputs_do_not_mutate_state(
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
-            current.local_participation_complete(),
-            previous.local_participation_complete()
+            current.is_pinging_completed(),
+            previous.is_pinging_completed()
         );
         prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
     }
@@ -134,8 +134,8 @@ fn assert_non_member_outputs_do_not_mutate_state(
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
-            current.local_participation_complete(),
-            previous.local_participation_complete()
+            current.is_pinging_completed(),
+            previous.is_pinging_completed()
         );
         prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
     }
@@ -159,8 +159,8 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
-            current.local_participation_complete(),
-            previous.local_participation_complete()
+            current.is_pinging_completed(),
+            previous.is_pinging_completed()
         );
         prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
     }
@@ -397,7 +397,7 @@ proptest! {
 
             // Assert
             if cluster_view.exit_mode() == Some(ReadinessExitMode::Bootstrapped) {
-                prop_assert!(cluster_view.local_participation_complete());
+                prop_assert!(cluster_view.is_pinging_completed());
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
                     cluster_view.node_state(),

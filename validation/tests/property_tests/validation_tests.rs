@@ -6,8 +6,8 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::outcome::Outcome;
 use faction::node_state::NodeState;
+use faction::outcome::Outcome;
 use faction_validation::scenario_harness::ScenarioHarness;
 use proptest::prelude::*;
 
@@ -157,8 +157,8 @@ proptest! {
                     prop_assert_eq!(current.node_state(), previous.node_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
                     prop_assert_eq!(
-                        current.local_participation_complete(),
-                        previous.local_participation_complete()
+                        current.is_pinging_completed(),
+                        previous.is_pinging_completed()
                     );
                     prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
                 }
@@ -196,8 +196,8 @@ proptest! {
                     prop_assert_eq!(current.node_state(), previous.node_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
                     prop_assert_eq!(
-                        current.local_participation_complete(),
-                        previous.local_participation_complete()
+                        current.is_pinging_completed(),
+                        previous.is_pinging_completed()
                     );
                     prop_assert_eq!(current.readiness_exited(), previous.readiness_exited());
                 }

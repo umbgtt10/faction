@@ -13,10 +13,10 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::timed_out::TimedOut;
@@ -113,7 +113,7 @@ fn deal_rejects_ready_observed() {
 }
 
 #[test]
-fn deal_rejects_local_participation_completed() {
+fn deal_rejects_is_pinging_completedd() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = match f.process(Command::Probe) {
@@ -173,7 +173,7 @@ fn vibe_check_after_deadline_from_phase1() {
     assert_eq!(s.node_state(), NodeState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
-    assert!(!s.local_participation_complete());
+    assert!(!s.is_pinging_completed());
     assert_eq!(s.pinging_confirmed_count(), 1);
     assert_eq!(s.collecting_confirmed_count(), 0);
 }
@@ -191,7 +191,7 @@ fn vibe_check_after_deadline_from_phase2() {
     assert_eq!(s.node_state(), NodeState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
-    assert!(s.local_participation_complete());
+    assert!(s.is_pinging_completed());
     assert_eq!(s.pinging_confirmed_count(), 1);
     assert_eq!(s.collecting_confirmed_count(), 1);
 }
@@ -245,7 +245,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
     assert_eq!(result.node_state(), NodeState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
-    assert!(!result.local_participation_complete());
+    assert!(!result.is_pinging_completed());
     assert_eq!(result.pinging_confirmed_count(), 3);
     assert_eq!(result.collecting_confirmed_count(), 1);
     assert_eq!(result.required_count(), 4);
@@ -267,7 +267,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
     assert_eq!(result.node_state(), NodeState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
-    assert!(result.local_participation_complete());
+    assert!(result.is_pinging_completed());
     assert_eq!(result.pinging_confirmed_count(), 2);
     assert_eq!(result.collecting_confirmed_count(), 4);
     assert_eq!(result.required_count(), 4);

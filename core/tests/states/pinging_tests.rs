@@ -13,11 +13,11 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::pinging::Pinging;
@@ -105,7 +105,7 @@ fn deal_accepts_ready_observed() {
 }
 
 #[test]
-fn deal_accepts_local_participation_completed() {
+fn deal_accepts_is_pinging_completedd() {
     // Arrange
     let mut faction = machine_in_phase1();
 
@@ -405,11 +405,8 @@ fn local_completion_no_quorum() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Collecting
-    );
-    assert!(snap.local_participation_complete());
+    assert_eq!(snap.node_state(), NodeState::Collecting);
+    assert!(snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
 }
 
@@ -508,12 +505,9 @@ fn vibe_check_in_phase1() {
     };
 
     // Assert
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert!(!snap.readiness_exited());
-    assert!(!snap.local_participation_complete());
+    assert!(!snap.is_pinging_completed());
     assert_eq!(snap.exit_mode(), None);
     assert_eq!(snap.pinging_confirmed_count(), 1);
     assert_eq!(snap.collecting_confirmed_count(), 0);
@@ -530,13 +524,10 @@ fn pinging_cluster_view_inherits_correctly() {
     let result = pinging.cluster_view(&prev);
 
     // Assert
-    assert_eq!(
-        result.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(result.node_state(), NodeState::Pinging);
     assert_eq!(result.pinging_confirmed_count(), 0);
     assert_eq!(result.collecting_confirmed_count(), 0);
     assert_eq!(result.exit_mode(), None);
-    assert!(result.local_participation_complete());
+    assert!(result.is_pinging_completed());
     assert!(!result.readiness_exited());
 }

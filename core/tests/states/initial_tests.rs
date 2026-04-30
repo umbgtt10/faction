@@ -13,10 +13,10 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::initial::Initial;
@@ -58,10 +58,7 @@ fn deal_accepts_participation_observed() {
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert_eq!(snap.pinging_confirmed_count(), 1);
 }
 
@@ -87,15 +84,12 @@ fn deal_accepts_ready_observed() {
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert_eq!(snap.collecting_confirmed_count(), 1);
 }
 
 #[test]
-fn deal_rejects_local_participation_completed() {
+fn deal_rejects_is_pinging_completedd() {
     // Arrange
     let mut faction = test_machine();
 
@@ -110,10 +104,7 @@ fn deal_rejects_local_participation_completed() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert_eq!(snap.collecting_confirmed_count(), 0);
 }
 
@@ -133,10 +124,7 @@ fn deal_rejects_deadline_expired() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert_eq!(snap.exit_mode(), None);
 }
 
@@ -198,15 +186,12 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert_eq!(snap.pinging_confirmed_count(), 0);
     assert_eq!(snap.collecting_confirmed_count(), 0);
     assert_eq!(snap.exit_mode(), None);
     assert!(!snap.readiness_exited());
-    assert!(!snap.local_participation_complete());
+    assert!(!snap.is_pinging_completed());
 }
 
 #[test]
@@ -232,10 +217,7 @@ fn punch_participation_non_member_from_initial() {
     };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.pinging_confirmed_count(), 0);
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
 }
 
 #[test]
@@ -301,12 +283,9 @@ fn vibe_check_returns_phase1_active_with_zeros() {
     };
 
     // Assert
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(snap.node_state(), NodeState::Pinging);
     assert_eq!(snap.exit_mode(), None);
-    assert!(!snap.local_participation_complete());
+    assert!(!snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
     assert_eq!(snap.pinging_confirmed_count(), 0);
     assert_eq!(snap.collecting_confirmed_count(), 0);
@@ -322,13 +301,10 @@ fn initial_cluster_view_inherits_correctly() {
     let result = Initial.cluster_view(&prev);
 
     // Assert
-    assert_eq!(
-        result.node_state(),
-        NodeState::Pinging
-    );
+    assert_eq!(result.node_state(), NodeState::Pinging);
     assert_eq!(result.pinging_confirmed_count(), 0);
     assert_eq!(result.collecting_confirmed_count(), 0);
     assert_eq!(result.exit_mode(), None);
-    assert!(result.local_participation_complete());
+    assert!(result.is_pinging_completed());
     assert!(!result.readiness_exited());
 }

@@ -13,11 +13,11 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::collecting::Collecting;
@@ -130,7 +130,7 @@ fn deal_rejects_participation_observed() {
 }
 
 #[test]
-fn deal_rejects_local_participation_completed() {
+fn deal_rejects_is_pinging_completedd() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
@@ -340,10 +340,7 @@ fn ready_first_timely_no_quorum() {
 
     // Act & Assert
     assert_eq!(snap_before.collecting_confirmed_count(), 1);
-    assert_eq!(
-        snap_before.node_state(),
-        NodeState::Collecting
-    );
+    assert_eq!(snap_before.node_state(), NodeState::Collecting);
 
     // Act
     let outcomes = match v.process(ready(1, TIMELY)) {
@@ -359,10 +356,7 @@ fn ready_first_timely_no_quorum() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.collecting_confirmed_count(), 2);
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Collecting
-    );
+    assert_eq!(snap.node_state(), NodeState::Collecting);
     assert!(!snap.readiness_exited());
 }
 
@@ -433,10 +427,7 @@ fn ready_first_timely_triggers_quorum() {
         ]
     );
     assert_eq!(snap.collecting_confirmed_count(), 4);
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(snap.node_state(), NodeState::Bootstrapped);
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snap.readiness_exited());
 }
@@ -479,10 +470,7 @@ fn ready_first_delayed_triggers_quorum() {
         ]
     );
     assert_eq!(snap.collecting_confirmed_count(), 4);
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(snap.node_state(), NodeState::Bootstrapped);
     assert!(snap.readiness_exited());
 }
 
@@ -519,12 +507,9 @@ fn deadline_expired_exits_in_phase2() {
     };
 
     // Act & Assert
-    assert_eq!(
-        snap_before.node_state(),
-        NodeState::Collecting
-    );
+    assert_eq!(snap_before.node_state(), NodeState::Collecting);
     assert!(!snap_before.readiness_exited());
-    assert!(snap_before.local_participation_complete());
+    assert!(snap_before.is_pinging_completed());
 
     // Act
     let outcomes = match v.process(Command::DeadlineExpired) {
@@ -547,7 +532,7 @@ fn deadline_expired_exits_in_phase2() {
     assert_eq!(snap.node_state(), NodeState::TimedOut);
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(snap.readiness_exited());
-    assert!(snap.local_participation_complete());
+    assert!(snap.is_pinging_completed());
 }
 
 #[test]
@@ -560,12 +545,9 @@ fn vibe_check_returns_correct_snapshot() {
     };
 
     // Assert
-    assert_eq!(
-        snap.node_state(),
-        NodeState::Collecting
-    );
+    assert_eq!(snap.node_state(), NodeState::Collecting);
     assert_eq!(snap.exit_mode(), None);
-    assert!(snap.local_participation_complete());
+    assert!(snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
     assert_eq!(snap.pinging_confirmed_count(), 1);
     assert_eq!(snap.collecting_confirmed_count(), 1);
@@ -588,11 +570,8 @@ fn collecting_cluster_view_inherits_correctly() {
     let result = collecting.cluster_view(&prev);
 
     // Assert
-    assert_eq!(
-        result.node_state(),
-        NodeState::Collecting
-    );
-    assert!(result.local_participation_complete());
+    assert_eq!(result.node_state(), NodeState::Collecting);
+    assert!(result.is_pinging_completed());
     assert_eq!(result.pinging_confirmed_count(), 2);
     assert_eq!(result.collecting_confirmed_count(), 2);
     assert_eq!(result.exit_mode(), None);

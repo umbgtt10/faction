@@ -46,7 +46,7 @@ use super::helpers::*;
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
     &[Command::Probe],
 )]
-#[case::rejects_local_participation_completed(
+#[case::rejects_is_pinging_completedd(
     Init::TimedOut,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],

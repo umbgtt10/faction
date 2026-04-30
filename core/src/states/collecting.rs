@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::node_state::NodeState;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::node_state::NodeState;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;
@@ -48,7 +48,7 @@ impl State for Collecting {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_node_state(NodeState::Collecting)
-            .with_local_participation_complete(true)
+            .with_is_pinging_completed(true)
             .with_pinging_count(self.pinging_count)
             .with_collecting_count(self.phase2.count())
     }

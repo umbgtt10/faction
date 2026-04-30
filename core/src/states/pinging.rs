@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::node_state::NodeState;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::node_state::NodeState;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;

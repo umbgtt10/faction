@@ -13,10 +13,10 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::bootstrapped::Bootstrapped;
@@ -65,10 +65,7 @@ fn deal_rejects_participation_observed() {
     };
 
     // Assert
-    assert_eq!(
-        cluster_view.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(cluster_view.node_state(), NodeState::Bootstrapped);
     assert_eq!(
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
@@ -137,15 +134,12 @@ fn vibe_check_returns_correct_snapshot() {
     };
 
     // Assert
-    assert_eq!(
-        cluster_view.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(cluster_view.node_state(), NodeState::Bootstrapped);
     assert_eq!(
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert!(cluster_view.local_participation_complete());
+    assert!(cluster_view.is_pinging_completed());
     assert!(cluster_view.readiness_exited());
     assert_eq!(cluster_view.pinging_confirmed_count(), 1);
     assert_eq!(cluster_view.collecting_confirmed_count(), 4);
@@ -165,12 +159,9 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
     let result = rq.cluster_view(&prev);
 
     // Assert
-    assert_eq!(
-        result.node_state(),
-        NodeState::Bootstrapped
-    );
+    assert_eq!(result.node_state(), NodeState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert!(result.local_participation_complete());
+    assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_confirmed_count(), 2);
     assert_eq!(result.collecting_confirmed_count(), 5);

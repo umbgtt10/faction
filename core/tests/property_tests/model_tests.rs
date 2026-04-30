@@ -12,11 +12,11 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::node_state::NodeState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::node_state::NodeState;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +31,7 @@ enum ModelLifecycleState {
 struct ModelClusterView {
     node_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
-    local_participation_complete: bool,
+    is_pinging_completed: bool,
     readiness_exited: bool,
     pinging_confirmed_count: usize,
     collecting_confirmed_count: usize,
@@ -46,7 +46,7 @@ struct ModelCoordinator {
     initial: bool,
     node_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
-    local_participation_complete: bool,
+    is_pinging_completed: bool,
     phase1_confirmed: [bool; 5],
     phase2_confirmed: [bool; 5],
     pinging_confirmed_count: usize,
@@ -63,7 +63,7 @@ impl ModelCoordinator {
             initial: true,
             node_state: ModelLifecycleState::Pinging,
             exit_mode: None,
-            local_participation_complete: false,
+            is_pinging_completed: false,
             phase1_confirmed: [false; 5],
             phase2_confirmed: [false; 5],
             pinging_confirmed_count: 0,
@@ -75,7 +75,7 @@ impl ModelCoordinator {
         ModelClusterView {
             node_state: self.node_state,
             exit_mode: self.exit_mode,
-            local_participation_complete: self.local_participation_complete,
+            is_pinging_completed: self.is_pinging_completed,
             readiness_exited: self.exit_mode.is_some(),
             pinging_confirmed_count: self.pinging_confirmed_count,
             collecting_confirmed_count: self.collecting_confirmed_count,
@@ -97,7 +97,7 @@ impl ModelCoordinator {
             return Vec::new();
         }
 
-        if self.local_participation_complete {
+        if self.is_pinging_completed {
             match input {
                 Command::ParticipationObserved { .. } | Command::LocalParticipationCompleted => {
                     return Vec::new()
@@ -117,7 +117,7 @@ impl ModelCoordinator {
                 freshness,
                 current_marker,
             } => self.apply_ready_observed(peer_id, freshness, current_marker),
-            Command::LocalParticipationCompleted => self.apply_local_participation_completed(),
+            Command::LocalParticipationCompleted => self.apply_is_pinging_completedd(),
             Command::DeadlineExpired => self.apply_deadline_expired(),
             Command::Probe => unreachable!("Probe handled in Faction::process"),
         }
@@ -186,7 +186,8 @@ impl ModelCoordinator {
             Outcome::ReadyAccepted { peer_id }
         };
 
-        if self.local_participation_complete && self.collecting_confirmed_count >= self.required_count
+        if self.is_pinging_completed
+            && self.collecting_confirmed_count >= self.required_count
         {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
@@ -202,12 +203,12 @@ impl ModelCoordinator {
         }
     }
 
-    fn apply_local_participation_completed(&mut self) -> alloc::vec::Vec<Outcome> {
-        if self.has_exited() || self.local_participation_complete {
+    fn apply_is_pinging_completedd(&mut self) -> alloc::vec::Vec<Outcome> {
+        if self.has_exited() || self.is_pinging_completed {
             return vec![];
         }
 
-        self.local_participation_complete = true;
+        self.is_pinging_completed = true;
         self.node_state = ModelLifecycleState::Collecting;
 
         let local_index = self
@@ -280,7 +281,7 @@ fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
             NodeState::TimedOut => ModelLifecycleState::TimedOut,
         },
         exit_mode: cluster_view.exit_mode(),
-        local_participation_complete: cluster_view.local_participation_complete(),
+        is_pinging_completed: cluster_view.is_pinging_completed(),
         readiness_exited: cluster_view.readiness_exited(),
         pinging_confirmed_count: cluster_view.pinging_confirmed_count(),
         collecting_confirmed_count: cluster_view.collecting_confirmed_count(),

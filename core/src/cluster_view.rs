@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::node_state::NodeState;
+use crate::readiness_exit_mode::ReadinessExitMode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClusterView {
     node_state: NodeState,
-    local_participation_complete: bool,
+    is_pinging_completed: bool,
     pinging_confirmed_count: usize,
     collecting_confirmed_count: usize,
     required_count: usize,
@@ -18,14 +18,14 @@ impl ClusterView {
     #[must_use]
     pub const fn new(
         node_state: NodeState,
-        local_participation_complete: bool,
+        is_pinging_completed: bool,
         pinging_confirmed_count: usize,
         collecting_confirmed_count: usize,
         required_count: usize,
     ) -> Self {
         Self {
             node_state,
-            local_participation_complete,
+            is_pinging_completed,
             pinging_confirmed_count,
             collecting_confirmed_count,
             required_count,
@@ -47,8 +47,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn local_participation_complete(&self) -> bool {
-        self.local_participation_complete
+    pub const fn is_pinging_completed(&self) -> bool {
+        self.is_pinging_completed
     }
 
     #[must_use]
@@ -81,8 +81,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn with_local_participation_complete(mut self, val: bool) -> Self {
-        self.local_participation_complete = val;
+    pub const fn with_is_pinging_completed(mut self, val: bool) -> Self {
+        self.is_pinging_completed = val;
         self
     }
 

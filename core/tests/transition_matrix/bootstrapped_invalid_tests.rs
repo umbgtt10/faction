@@ -46,7 +46,7 @@ use super::helpers::*;
     &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
-#[case::rejects_local_participation_completed(
+#[case::rejects_is_pinging_completedd(
     Init::Bootstrapped,
     Command::LocalParticipationCompleted,
     &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],

@@ -9,7 +9,7 @@ use rstest::rstest;
 use super::helpers::*;
 
 #[rstest]
-#[case::rejects_local_participation_completed(
+#[case::rejects_is_pinging_completedd(
     Init::Initial,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],

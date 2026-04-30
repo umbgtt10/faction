@@ -7,9 +7,9 @@ use alloc::boxed::Box;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::node_state::NodeState;
 use crate::observer::Observer;
 use crate::process_result::ProcessResult;
-use crate::node_state::NodeState;
 use crate::state::State;
 use crate::states::initial::Initial;
 use crate::transition::Transition;
@@ -25,13 +25,7 @@ impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
-        let base = ClusterView::new(
-            NodeState::Pinging,
-            false,
-            0,
-            0,
-            config.required_count(),
-        );
+        let base = ClusterView::new(NodeState::Pinging, false, 0, 0, config.required_count());
         let cluster_view = state.cluster_view(&base);
         Self {
             config,

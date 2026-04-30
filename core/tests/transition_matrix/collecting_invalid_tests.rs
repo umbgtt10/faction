@@ -21,13 +21,13 @@ use super::helpers::*;
     &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
-#[case::rejects_local_participation_completed(
+#[case::rejects_is_pinging_completedd(
     Init::Phase2NoReadiness,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
-#[case::rejects_local_participation_completed_after_ready(
+#[case::rejects_is_pinging_completedd_after_ready(
     Init::Phase2Peer1Confirmed,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],

@@ -9,8 +9,8 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::outcome::Outcome;
 use crate::node_state::NodeState;
+use crate::outcome::Outcome;
 use crate::state::State;
 
 pub struct Bootstrapped {
@@ -30,7 +30,7 @@ impl State for Bootstrapped {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_node_state(NodeState::Bootstrapped)
-            .with_local_participation_complete(true)
+            .with_is_pinging_completed(true)
             .with_pinging_count(self.pinging_count)
             .with_collecting_count(self.collecting_count)
     }

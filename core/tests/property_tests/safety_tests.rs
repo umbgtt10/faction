@@ -132,7 +132,7 @@ proptest! {
         };
 
         // Assert
-        if previous.local_participation_complete() || previous.readiness_exited() {
+        if previous.is_pinging_completed() || previous.readiness_exited() {
             let first_rejected = matches!(first_status, ProcessResult::Rejected { .. });
             prop_assert!(first_rejected);
             prop_assert_eq!(after_first, previous);
