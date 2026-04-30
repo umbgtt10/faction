@@ -6,21 +6,20 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateClusterView;
 
+use super::bootstrapped::Bootstrapped;
 use super::collecting::Collecting;
 use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
 use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
-use super::bootstrapped::Bootstrapped;
 
 pub struct Pinging {
     phase1: ConfirmedSet,
@@ -37,16 +36,14 @@ impl Pinging {
     }
 }
 
-impl StateClusterView for Pinging {
+impl State for Pinging {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
             .with_phase1_count(self.phase1.count())
             .with_phase2_count(self.phase2.count())
     }
-}
 
-impl State for Pinging {
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let phase1 = self.phase1.clone();
         let phase2 = self.phase2.clone();

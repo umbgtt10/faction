@@ -17,7 +17,8 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::cluster_view::ClusterView;
-use faction::state_snapshot::StateClusterView;
+use faction::state::State;
+
 use faction::states::timed_out::TimedOut;
 
 fn make_faction() -> Faction {

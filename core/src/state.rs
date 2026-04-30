@@ -6,13 +6,15 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
-use crate::state_snapshot::StateClusterView;
 
-pub trait State: StateClusterView {
+pub trait State {
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>);
+
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView;
 
     fn accept(&self, _input: &Command) -> bool {
         true

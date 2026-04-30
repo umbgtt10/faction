@@ -18,7 +18,8 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::cluster_view::ClusterView;
-use faction::state_snapshot::StateClusterView;
+use faction::state::State;
+
 use faction::states::collecting::Collecting;
 use faction::states::confirmed_set::ConfirmedSet;
 use faction::Freshness;

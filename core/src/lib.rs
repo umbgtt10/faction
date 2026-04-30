@@ -21,7 +21,6 @@ pub mod quorum_policy;
 pub mod readiness_exit_mode;
 pub mod readiness_lifecycle_state;
 pub mod state;
-pub mod state_snapshot;
 pub mod states;
 pub mod transition;
 

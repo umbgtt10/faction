@@ -6,20 +6,19 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateClusterView;
 
+use super::bootstrapped::Bootstrapped;
 use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
 use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
-use super::bootstrapped::Bootstrapped;
 
 pub struct Collecting {
     pub phase2: ConfirmedSet,
@@ -44,6 +43,14 @@ impl State for Collecting {
             Command::DeadlineExpired,
             Command::Probe,
         ]
+    }
+
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+        previous
+            .with_lifecycle_state(ReadinessLifecycleState::Phase2Active)
+            .with_local_participation_complete(true)
+            .with_phase1_count(self.phase1_count)
+            .with_phase2_count(self.phase2.count())
     }
 
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
@@ -121,15 +128,5 @@ impl State for Collecting {
                 unreachable!("Probe handled in Faction::process")
             }
         }
-    }
-}
-
-impl StateClusterView for Collecting {
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous
-            .with_lifecycle_state(ReadinessLifecycleState::Phase2Active)
-            .with_local_participation_complete(true)
-            .with_phase1_count(self.phase1_count)
-            .with_phase2_count(self.phase2.count())
     }
 }

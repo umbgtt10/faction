@@ -6,27 +6,24 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateClusterView;
 use crate::states::pinging::Pinging;
 
 pub struct Initial;
 
-impl StateClusterView for Initial {
+impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
             .with_phase1_count(0)
             .with_phase2_count(0)
     }
-}
 
-impl State for Initial {
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let pinging = Pinging::new(config.peer_count());
         pinging.step(input, config)

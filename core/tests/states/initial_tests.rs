@@ -17,7 +17,8 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::cluster_view::ClusterView;
-use faction::state_snapshot::StateClusterView;
+use faction::state::State;
+
 use faction::states::initial::Initial;
 
 fn test_machine() -> Faction {
