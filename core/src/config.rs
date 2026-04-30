@@ -10,7 +10,7 @@ use crate::PeerId;
 
 pub struct Config {
     local_peer_id: PeerId,
-    peer_set: Vec<PeerId>,
+    peers: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
     freshness_policy: FreshnessPolicy,
 }
@@ -19,13 +19,13 @@ impl Config {
     #[must_use]
     pub fn new(
         local_peer_id: PeerId,
-        peer_set: Vec<PeerId>,
+        peers: Vec<PeerId>,
         quorum_policy: QuorumPolicy,
         freshness_policy: FreshnessPolicy,
     ) -> Self {
         Self {
             local_peer_id,
-            peer_set,
+            peers,
             quorum_policy,
             freshness_policy,
         }
@@ -37,13 +37,13 @@ impl Config {
     }
 
     #[must_use]
-    pub fn peer_set(&self) -> &[PeerId] {
-        &self.peer_set
+    pub fn peers(&self) -> &[PeerId] {
+        &self.peers
     }
 
     #[must_use]
     pub fn peer_count(&self) -> usize {
-        self.peer_set.len()
+        self.peers.len()
     }
 
     #[must_use]
@@ -68,7 +68,7 @@ impl Config {
 
     #[must_use]
     pub fn peer_index(&self, peer_id: PeerId) -> Option<usize> {
-        self.peer_set
+        self.peers
             .iter()
             .position(|candidate| *candidate == peer_id)
     }

@@ -50,7 +50,7 @@ impl State for Collecting {
             .clone()
             .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
-            .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
+            .with_collecting_peers(self.phase2.confirmed_peers(config.peers()))
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {

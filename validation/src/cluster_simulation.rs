@@ -22,7 +22,7 @@ use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::PeerId;
 
 pub struct ClusterSimulation {
-    nodes: Vec<Faction>,
+    peers: Vec<Faction>,
     peer_ids: Vec<PeerId>,
     current_marker: u64,
     pending: VecDeque<(usize, Command)>,
@@ -32,7 +32,7 @@ impl ClusterSimulation {
     #[must_use]
     pub fn new(peer_count: usize, required_count: usize, max_delay: u64) -> Self {
         let peer_ids: Vec<PeerId> = (0..peer_count as PeerId).collect();
-        let nodes = peer_ids
+        let peers = peer_ids
             .iter()
             .map(|&peer_id| {
                 Faction::new(
@@ -48,7 +48,7 @@ impl ClusterSimulation {
             .collect();
 
         Self {
-            nodes,
+            peers,
             peer_ids,
             current_marker: 0,
             pending: VecDeque::new(),
@@ -60,7 +60,7 @@ impl ClusterSimulation {
     }
 
     fn apply_to(&mut self, index: usize, command: Command) -> Vec<Outcome> {
-        match self.nodes[index].process(command) {
+        match self.peers[index].process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
@@ -70,7 +70,7 @@ impl ClusterSimulation {
     fn enqueue_broadcasts(&mut self, outputs: &[Outcome], source_index: usize) {
         for output in outputs {
             if let Outcome::BroadcastLocalReady = output {
-                for target in 0..self.nodes.len() {
+                for target in 0..self.peers.len() {
                     if target != source_index {
                         self.pending.push_back((
                             target,
@@ -100,7 +100,7 @@ impl ClusterSimulation {
     }
 
     pub fn inject_participation(&mut self, peer_id: PeerId, freshness: u64) {
-        for index in 0..self.nodes.len() {
+        for index in 0..self.peers.len() {
             let outputs = self.apply_to(
                 index,
                 Command::ParticipationObserved {
@@ -115,7 +115,7 @@ impl ClusterSimulation {
     }
 
     pub fn inject_ready(&mut self, peer_id: PeerId, freshness: u64) {
-        for index in 0..self.nodes.len() {
+        for index in 0..self.peers.len() {
             let outputs = self.apply_to(
                 index,
                 Command::ReadyObserved {
@@ -149,7 +149,7 @@ impl ClusterSimulation {
 
     #[must_use]
     pub fn all_exited(&mut self) -> bool {
-        self.nodes
+        self.peers
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view.readiness_exited(),
@@ -159,7 +159,7 @@ impl ClusterSimulation {
 
     #[must_use]
     pub fn all_exited_with(&mut self, mode: ReadinessExitMode) -> bool {
-        self.nodes
+        self.peers
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => {
@@ -181,7 +181,7 @@ impl ClusterSimulation {
             .iter()
             .position(|p| *p == peer_id)
             .expect("peer is in the cluster");
-        match self.nodes[index].process(Command::Probe) {
+        match self.peers[index].process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         }

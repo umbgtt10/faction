@@ -8,8 +8,8 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::peer_state::PeerState;
 use crate::observer::Observer;
+use crate::peer_state::PeerState;
 use crate::process_result::ProcessResult;
 use crate::state::State;
 use crate::states::initial::Initial;
@@ -45,16 +45,23 @@ impl Faction {
     #[must_use]
     pub fn process(&mut self, command: Command) -> ProcessResult {
         if let Command::Probe = command {
+            let cluster_view = self.cluster_view.clone();
+            let admissible = self.state.admissible_commands();
+            self.observer.observe_query(command, cluster_view.clone());
             return ProcessResult::Probed {
-                cluster_view: self.cluster_view.clone(),
-                admissible: self.state.admissible_commands(),
+                cluster_view,
+                admissible,
             };
         }
 
         if !self.state.accept(&command) {
+            let cluster_view = self.cluster_view.clone();
+            let admissible = self.state.admissible_commands();
+            self.observer
+                .observe_rejection(command, cluster_view.clone(), admissible.clone());
             return ProcessResult::Rejected {
-                cluster_view: self.cluster_view.clone(),
-                admissible: self.state.admissible_commands(),
+                cluster_view,
+                admissible,
             };
         }
 

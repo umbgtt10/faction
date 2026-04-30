@@ -9,8 +9,8 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
+use crate::peer_state::PeerState;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::state::State;
 
@@ -41,8 +41,8 @@ impl State for Pinging {
         previous
             .clone()
             .with_peer_state(PeerState::Pinging)
-            .with_pinging_peers(self.phase1.confirmed_peers(config.peer_set()))
-            .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
+            .with_pinging_peers(self.phase1.confirmed_peers(config.peers()))
+            .with_collecting_peers(self.phase2.confirmed_peers(config.peers()))
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
