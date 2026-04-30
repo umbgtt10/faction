@@ -3,7 +3,6 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
-use core::cell::Cell;
 
 use crate::command::Command;
 use crate::config::Config;
@@ -19,7 +18,7 @@ pub struct Faction {
     config: Config,
     observer: Box<dyn Observer>,
     state: Box<dyn State>,
-    cached_snapshot: Cell<Snapshot>,
+    cached_snapshot: Snapshot,
 }
 
 impl Faction {
@@ -40,7 +39,7 @@ impl Faction {
             config,
             observer,
             state,
-            cached_snapshot: Cell::new(snapshot),
+            cached_snapshot: snapshot,
         }
     }
 
@@ -48,25 +47,25 @@ impl Faction {
     pub fn process(&mut self, command: Command) -> ProcessResult {
         if let Command::Probe = command {
             return ProcessResult::Probed {
-                snapshot: self.snapshot(),
+                snapshot: self.cached_snapshot,
                 admissible: self.state.admissible_commands(),
             };
         }
 
         if !self.state.accept(&command) {
             return ProcessResult::Rejected {
-                snapshot: self.snapshot(),
+                snapshot: self.cached_snapshot,
                 admissible: self.state.admissible_commands(),
             };
         }
 
-        let previous_snapshot = self.snapshot();
+        let previous_snapshot = self.cached_snapshot;
 
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
         let new_snapshot = self.state.state_snapshot(&previous_snapshot);
-        self.cached_snapshot.set(new_snapshot);
+        self.cached_snapshot = new_snapshot;
 
         let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(command, transition);
@@ -79,10 +78,5 @@ impl Faction {
     #[must_use]
     pub fn config(&self) -> &Config {
         &self.config
-    }
-
-    #[must_use]
-    fn snapshot(&self) -> Snapshot {
-        self.cached_snapshot.get()
     }
 }
