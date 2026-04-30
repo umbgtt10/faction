@@ -44,6 +44,8 @@ enum Init {
     Phase2NoReadiness,
     Phase2Peer1Confirmed,
     Phase2AlmostQuorum,
+    ReadyByQuorum,
+    ReadyByDeadline,
 }
 
 fn build(init: Init) -> Faction {
@@ -99,6 +101,19 @@ fn build(init: Init) -> Faction {
                     current_marker: MARKER,
                 });
             }
+        }
+        Init::ReadyByQuorum => {
+            let _ = m.apply(Command::LocalParticipationCompleted);
+            for peer in 1..5 {
+                let _ = m.apply(Command::ReadyObserved {
+                    peer_id: peer,
+                    freshness: TIMELY,
+                    current_marker: MARKER,
+                });
+            }
+        }
+        Init::ReadyByDeadline => {
+            let _ = m.apply(Command::DeadlineExpired);
         }
     }
     m
@@ -287,4 +302,78 @@ fn valid_transition(
     // Assert
     assert_eq!(outcomes.as_slice(), expected_outputs, "output mismatch");
     verify(&m, asserts);
+}
+
+// ---------------------------------------------------------------------------
+// Invalid transitions — commands rejected by the state machine
+// ---------------------------------------------------------------------------
+
+#[rstest]
+#[case::collecting_rejects_participation_observed(
+    Init::Phase2NoReadiness,
+    participation(1, TIMELY),
+    &[Assert::P1Count(0), Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
+)]
+#[case::collecting_rejects_local_participation_completed(
+    Init::Phase2Peer1Confirmed,
+    Command::LocalParticipationCompleted,
+    &[Assert::P1Count(0), Assert::P2Count(2), Assert::LocalComplete, Assert::NotExited],
+)]
+#[case::ready_by_quorum_rejects_participation_observed(
+    Init::ReadyByQuorum,
+    participation(1, TIMELY),
+    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+)]
+#[case::ready_by_quorum_rejects_ready_observed(
+    Init::ReadyByQuorum,
+    ready(1, TIMELY),
+    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+)]
+#[case::ready_by_quorum_rejects_local_participation_completed(
+    Init::ReadyByQuorum,
+    Command::LocalParticipationCompleted,
+    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+)]
+#[case::ready_by_quorum_rejects_deadline_expired(
+    Init::ReadyByQuorum,
+    Command::DeadlineExpired,
+    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+)]
+#[case::ready_by_deadline_rejects_participation_observed(
+    Init::ReadyByDeadline,
+    participation(1, TIMELY),
+    &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+)]
+#[case::ready_by_deadline_rejects_ready_observed(
+    Init::ReadyByDeadline,
+    ready(1, TIMELY),
+    &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+)]
+#[case::ready_by_deadline_rejects_local_participation_completed(
+    Init::ReadyByDeadline,
+    Command::LocalParticipationCompleted,
+    &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+)]
+#[case::ready_by_deadline_rejects_deadline_expired(
+    Init::ReadyByDeadline,
+    Command::DeadlineExpired,
+    &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+)]
+fn invalid_transition(#[case] init: Init, #[case] input: Command, #[case] asserts: &[Assert]) {
+    // Arrange
+    let mut m = build(init);
+
+    // Act
+    let (snapshot, admissible) = match m.apply(input) {
+        ApplyStatus::Rejected {
+            snapshot,
+            admissible,
+        } => (snapshot, admissible),
+        _ => panic!("expected Rejected"),
+    };
+
+    // Assert
+    verify(&m, asserts);
+    assert_eq!(snapshot, m.snapshot());
+    assert!(admissible.contains(&Command::GetSnapshot));
 }
