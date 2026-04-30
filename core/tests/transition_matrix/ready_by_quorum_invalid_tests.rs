@@ -4,15 +4,10 @@
 
 use faction::apply_status::ApplyStatus;
 use faction::command::Command;
+use faction::readiness_exit_mode::ReadinessExitMode;
 use rstest::rstest;
 
 use super::helpers::*;
-
-// ---------------------------------------------------------------------------
-// Invalid transitions for the ReadyByQuorum state
-//
-// ReadyByQuorum rejects all commands except GetSnapshot.
-// ---------------------------------------------------------------------------
 
 #[rstest]
 #[case::rejects_participation_observed(

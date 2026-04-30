@@ -13,7 +13,7 @@ use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
-pub use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::Freshness;
 use faction::PeerId;
 
@@ -26,6 +26,7 @@ pub const STALE: Freshness = 7;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Init {
+    Initial,
     Fresh,
     Phase1Peer1Confirmed,
     Phase1P2Threshold,
@@ -46,12 +47,15 @@ pub fn build(init: Init) -> Faction {
         ),
         Box::new(NoOpObserver),
     );
-    let _ = m.apply(Command::ParticipationObserved {
-        peer_id: 99,
-        freshness: MARKER,
-        current_marker: MARKER,
-    });
+    if !matches!(init, Init::Initial) {
+        let _ = m.apply(Command::ParticipationObserved {
+            peer_id: 99,
+            freshness: MARKER,
+            current_marker: MARKER,
+        });
+    }
     match init {
+        Init::Initial => {}
         Init::Fresh => {}
         Init::Phase1Peer1Confirmed => {
             let _ = m.apply(Command::ParticipationObserved {
