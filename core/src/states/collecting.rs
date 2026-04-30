@@ -42,7 +42,7 @@ impl State for Collecting {
                 current_marker: 0,
             },
             Command::DeadlineExpired,
-            Command::GetSnapshot,
+            Command::Probe,
         ]
     }
 
@@ -119,8 +119,8 @@ impl State for Collecting {
                 }),
             ),
 
-            Command::GetSnapshot => {
-                unreachable!("GetSnapshot handled in Faction::apply")
+            Command::Probe => {
+                unreachable!("Probe handled in Faction::process")
             }
         }
     }

@@ -29,9 +29,9 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     let mut faction = Faction::new(config, observer);
 
     // Act
-    let snapshot = match faction.process(Command::GetSnapshot) {
-        ProcessResult::Snapshot { snapshot } => snapshot,
-        _ => panic!("expected Snapshot"),
+    let snapshot = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot } => snapshot,
+        _ => panic!("expected Probed"),
     };
 
     // Assert
@@ -60,7 +60,7 @@ fn get_snapshot_does_not_mutate_state() {
 
     // Act
     let first = faction.snapshot();
-    let _ = faction.process(Command::GetSnapshot);
+    let _ = faction.process(Command::Probe);
     let second = faction.snapshot();
 
     // Assert
@@ -85,9 +85,9 @@ fn get_snapshot_works_after_valid_inputs() {
     });
 
     // Act
-    let snapshot = match faction.process(Command::GetSnapshot) {
-        ProcessResult::Snapshot { snapshot } => snapshot,
-        _ => panic!("expected Snapshot"),
+    let snapshot = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot } => snapshot,
+        _ => panic!("expected Probed"),
     };
 
     // Assert

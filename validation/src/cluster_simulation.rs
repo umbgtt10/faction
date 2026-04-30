@@ -62,7 +62,7 @@ impl ClusterSimulation {
     fn apply_to(&mut self, index: usize, input: Command) -> Vec<Outcome> {
         match self.nodes[index].process(input) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         }
     }

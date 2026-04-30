@@ -50,7 +50,7 @@ impl State for Initial {
                 freshness: 0,
                 current_marker: 0,
             },
-            Command::GetSnapshot,
+            Command::Probe,
         ]
     }
 }

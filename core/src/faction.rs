@@ -35,8 +35,8 @@ impl Faction {
 
     #[must_use]
     pub fn process(&mut self, command: Command) -> ProcessResult {
-        if let Command::GetSnapshot = command {
-            return ProcessResult::Snapshot {
+        if let Command::Probe = command {
+            return ProcessResult::Probed {
                 snapshot: self.snapshot(),
             };
         }

@@ -14,49 +14,49 @@ use super::helpers::*;
     Init::ReadyByDeadline,
     participation(1, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
     Init::ReadyByDeadline,
     participation(1, DELAYED),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::ReadyByDeadline,
     participation(99, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::ReadyByDeadline,
     ready(1, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
     Init::ReadyByDeadline,
     ready(1, DELAYED),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::ReadyByDeadline,
     ready(99, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_local_participation_completed(
     Init::ReadyByDeadline,
     Command::LocalParticipationCompleted,
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::ReadyByDeadline,
     Command::DeadlineExpired,
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 fn invalid_transition(
     #[case] init: Init,

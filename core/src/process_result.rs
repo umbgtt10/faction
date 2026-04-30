@@ -20,7 +20,7 @@ pub enum ProcessResult {
         snapshot: Snapshot,
         admissible: Vec<Command>,
     },
-    Snapshot {
+    Probed {
         snapshot: Snapshot,
     },
 }

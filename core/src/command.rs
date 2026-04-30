@@ -18,5 +18,5 @@ pub enum Command {
     },
     LocalParticipationCompleted,
     DeadlineExpired,
-    GetSnapshot,
+    Probe,
 }

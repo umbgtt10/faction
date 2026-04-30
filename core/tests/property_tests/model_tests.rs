@@ -119,7 +119,7 @@ impl ModelCoordinator {
             } => self.apply_ready_observed(peer_id, freshness, current_marker),
             Command::LocalParticipationCompleted => self.apply_local_participation_completed(),
             Command::DeadlineExpired => self.apply_deadline_expired(),
-            Command::GetSnapshot => unreachable!("GetSnapshot handled in Faction::apply"),
+            Command::Probe => unreachable!("Probe handled in Faction::process"),
         }
     }
 
@@ -340,7 +340,7 @@ proptest! {
         for input in inputs {
             let actual_outputs = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
-                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
             let actual_snapshot = coordinator.snapshot();

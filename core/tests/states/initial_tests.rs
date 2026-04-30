@@ -42,7 +42,7 @@ fn deal_accepts_participation_observed() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = faction.snapshot();
@@ -66,7 +66,7 @@ fn deal_accepts_ready_observed() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = faction.snapshot();
@@ -121,7 +121,7 @@ fn stays_in_initial_after_rejected_input() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = faction.snapshot();
@@ -168,7 +168,7 @@ fn punch_participation_non_member_from_initial() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = faction.snapshot();
@@ -189,7 +189,7 @@ fn punch_participation_delayed_from_initial() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = faction.snapshot();
@@ -209,7 +209,7 @@ fn punch_ready_non_member_from_initial() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = faction.snapshot();

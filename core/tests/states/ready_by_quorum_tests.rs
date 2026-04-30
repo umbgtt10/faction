@@ -82,7 +82,7 @@ fn all_inputs_leave_state_unchanged() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
     let r2 = match faction.process(Command::ReadyObserved {
@@ -91,17 +91,17 @@ fn all_inputs_leave_state_unchanged() {
         current_marker: 10,
     }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
     let r3 = match faction.process(Command::LocalParticipationCompleted) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
     let r4 = match faction.process(Command::DeadlineExpired) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
     let snapshot_after = faction.snapshot();

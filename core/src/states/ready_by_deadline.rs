@@ -41,6 +41,6 @@ impl State for ReadyByDeadline {
     }
 
     fn admissible_commands(&self) -> Vec<Command> {
-        vec![Command::GetSnapshot]
+        vec![Command::Probe]
     }
 }

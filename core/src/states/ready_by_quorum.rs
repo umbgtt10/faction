@@ -42,6 +42,6 @@ impl State for ReadyByQuorum {
     }
 
     fn admissible_commands(&self) -> alloc::vec::Vec<Command> {
-        vec![Command::GetSnapshot]
+        vec![Command::Probe]
     }
 }

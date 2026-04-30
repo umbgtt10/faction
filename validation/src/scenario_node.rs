@@ -56,7 +56,7 @@ impl ScenarioNode {
         let mut readiness = self.readiness;
         let outputs = match readiness.process(input) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         };
 

@@ -14,49 +14,49 @@ use super::helpers::*;
     Init::ReadyByQuorum,
     participation(1, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
     Init::ReadyByQuorum,
     participation(1, DELAYED),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::ReadyByQuorum,
     participation(99, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::ReadyByQuorum,
     ready(1, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
     Init::ReadyByQuorum,
     ready(1, DELAYED),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::ReadyByQuorum,
     ready(99, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_local_participation_completed(
     Init::ReadyByQuorum,
     Command::LocalParticipationCompleted,
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::ReadyByQuorum,
     Command::DeadlineExpired,
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
-    &[Command::GetSnapshot],
+    &[Command::Probe],
 )]
 fn invalid_transition(
     #[case] init: Init,

@@ -137,7 +137,7 @@ impl State for Pinging {
                 }),
             ),
 
-            Command::GetSnapshot => unreachable!("GetSnapshot handled in Faction::apply"),
+            Command::Probe => unreachable!("Probe handled in Faction::process"),
         }
     }
 }

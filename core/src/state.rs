@@ -32,7 +32,7 @@ pub trait State: StateSnapshot {
             },
             Command::LocalParticipationCompleted,
             Command::DeadlineExpired,
-            Command::GetSnapshot,
+            Command::Probe,
         ]
     }
 }

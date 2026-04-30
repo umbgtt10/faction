@@ -143,7 +143,7 @@ fn valid_transition(
     // Act
     let outcomes = match m.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
 

@@ -69,7 +69,7 @@ fn deal_rejects_participation_observed() {
     }) {
         ProcessResult::Rejected { .. } => {}
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -88,7 +88,7 @@ fn deal_rejects_ready_observed() {
     }) {
         ProcessResult::Rejected { .. } => {}
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -103,7 +103,7 @@ fn deal_rejects_local_participation_completed() {
     match f.process(Command::LocalParticipationCompleted) {
         ProcessResult::Rejected { .. } => {}
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -118,7 +118,7 @@ fn deal_rejects_deadline_expired() {
     match f.process(Command::DeadlineExpired) {
         ProcessResult::Rejected { .. } => {}
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
-        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Probed { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }

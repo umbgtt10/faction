@@ -262,7 +262,7 @@ proptest! {
             let previous = coordinator.snapshot();
             let batch = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
-                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
@@ -283,7 +283,7 @@ proptest! {
             let previous = coordinator.snapshot();
             let batch = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
-                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
@@ -329,7 +329,7 @@ proptest! {
             let previous = coordinator.snapshot();
             let batch = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
-                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();

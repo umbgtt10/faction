@@ -83,7 +83,7 @@ impl ScenarioHarness {
             current_marker: self.current_marker,
         }) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
@@ -100,7 +100,7 @@ impl ScenarioHarness {
             current_marker: self.current_marker,
         }) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
@@ -108,7 +108,7 @@ impl ScenarioHarness {
     pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<Outcome> {
         match self.coordinators[coordinator_index].process(Command::LocalParticipationCompleted) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
@@ -116,7 +116,7 @@ impl ScenarioHarness {
     pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<Outcome> {
         match self.coordinators[coordinator_index].process(Command::DeadlineExpired) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
