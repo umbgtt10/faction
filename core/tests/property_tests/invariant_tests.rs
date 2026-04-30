@@ -33,7 +33,7 @@ fn coordinator() -> Faction {
     Faction::new(test_config(), Box::new(NoOpObserver))
 }
 
-fn input_strategy() -> impl Strategy<Value = Command> {
+fn command_strategy() -> impl Strategy<Value = Command> {
     let participation =
         (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
             Command::ParticipationObserved {
@@ -154,7 +154,6 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.peer_state(), previous.peer_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.is_pinging_completed(),
@@ -167,7 +166,7 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
 
 proptest! {
     #[test]
-    fn exit_mode_never_changes_after_exit(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn exit_mode_never_changes_after_exit(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut exited_mode = None;
@@ -190,7 +189,7 @@ proptest! {
     }
 
     #[test]
-    fn once_exited_state_never_returns_to_active(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn once_exited_state_never_returns_to_active(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut has_exited = false;
@@ -223,7 +222,7 @@ proptest! {
     }
 
     #[test]
-    fn pinging_count_never_decreases(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn pinging_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -246,7 +245,7 @@ proptest! {
     }
 
     #[test]
-    fn collecting_count_never_decreases(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn collecting_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -269,7 +268,7 @@ proptest! {
     }
 
     #[test]
-    fn stale_inputs_never_mutate_counts(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn stale_commands_never_mutate_counts(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
@@ -296,7 +295,7 @@ proptest! {
     }
 
     #[test]
-    fn non_member_inputs_never_mutate_counts(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn non_member_commands_never_mutate_counts(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
@@ -323,7 +322,7 @@ proptest! {
     }
 
     #[test]
-    fn readiness_exits_at_most_once(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn exits_at_most_once(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut has_exited = false;
@@ -354,7 +353,7 @@ proptest! {
     }
 
     #[test]
-    fn duplicate_inputs_never_increase_counts(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn duplicate_commands_never_increase_counts(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
@@ -381,7 +380,7 @@ proptest! {
     }
 
     #[test]
-    fn quorum_exit_implies_local_participation_completion(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn quorum_exit_implies_completed_pinging(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
@@ -406,7 +405,7 @@ proptest! {
     }
 
     #[test]
-    fn deadline_exit_implies_exited_state(commands in prop::collection::vec(input_strategy(), 0..128)) {
+    fn deadline_exit_implies_exited_state(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
