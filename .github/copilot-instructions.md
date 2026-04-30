@@ -56,6 +56,23 @@ Specifically:
 - use `// Act & Assert` if there is no separate `Act`
 - add the repository copyright and license header to every Rust source file
 
+### State transition test coverage — invariant
+
+The transition matrix tests under `core/tests/transition_matrix/` provide **exhaustive** coverage of every (state × command) pair. This coverage MUST be maintained — no regression, no gaps.
+
+| State | `ParticipationObserved` | `ReadyObserved` | `LocalParticipationCompleted` | `DeadlineExpired` |
+|---|---|---|---|---|
+| Initial | valid (via Fresh) | valid (via Fresh) | **invalid** | **invalid** |
+| Pinging | valid (5 freshness variants) | valid (5 variants) | valid | valid |
+| Collecting | **invalid** | valid (quorum triggers, duplicate) | both valid & **invalid** | valid |
+| ReadyByQuorum | **invalid** | **invalid** | **invalid** | **invalid** |
+| ReadyByDeadline | **invalid** | **invalid** | **invalid** | **invalid** |
+
+- **valid** = present in `valid_transition` rstest, expects `ApplyStatus::Accepted`
+- **invalid** = present in per-state `*_invalid_tests.rs` rstest, expects `ApplyStatus::Rejected`
+- Any new state or command variant MUST add the corresponding valid/invalid cases to preserve exhaustive coverage.
+- Valid transitions live in `state_transition_matrix_tests.rs`. Invalid transitions live in per-state files (`initial_invalid_tests.rs`, `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`, `ready_by_quorum_invalid_tests.rs`, `ready_by_deadline_invalid_tests.rs`). Common helpers (`Init`, `Assert`, `build()`, `verify()` etc.) live in `helpers.rs`.
+
 ### State transition model
 
 Every `punch` arm MUST follow this exact pipeline in order:
