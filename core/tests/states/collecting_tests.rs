@@ -561,7 +561,7 @@ fn collecting_cluster_view_inherits_correctly() {
     let (phase2, _) = phase2.confirm(1);
     let (phase2, _) = phase2.confirm(3);
     let collecting = Collecting {
-        phase2,
+        collecting_count: phase2,
         pinging_count: 2,
     };
     let config = Config::new(

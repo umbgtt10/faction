@@ -21,7 +21,7 @@ use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
 
 pub struct Collecting {
-    pub phase2: ConfirmedSet,
+    pub collecting_count: ConfirmedSet,
     pub pinging_count: usize,
 }
 
@@ -50,11 +50,11 @@ impl State for Collecting {
             .clone()
             .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
-            .with_collecting_peers(self.phase2.confirmed_peers(config.peers()))
+            .with_collecting_peers(self.collecting_count.confirmed_peers(config.peers()))
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let phase2 = self.phase2.clone();
+        let collecting_count = self.collecting_count.clone();
         let pinging_count = self.pinging_count;
 
         match command {
@@ -73,7 +73,7 @@ impl State for Collecting {
                         .freshness_policy()
                         .classify(current_marker, freshness)
                 });
-                let is_dup = index.is_some_and(|i| phase2.is_confirmed(i));
+                let is_dup = index.is_some_and(|i| collecting_count.is_confirmed(i));
 
                 let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
                     index,
@@ -81,9 +81,11 @@ impl State for Collecting {
                     is_dup,
                 );
 
-                let (phase2, confirmed_new) = phase2.try_confirm(index, is_dup, classification);
+                let (new_collecting_count, confirmed_new) =
+                    collecting_count.try_confirm(index, is_dup, classification);
 
-                let quorum = confirmed_new && phase2.count() >= config.required_count();
+                let quorum =
+                    confirmed_new && new_collecting_count.count() >= config.required_count();
                 let outputs = if quorum {
                     vec![
                         output,
@@ -99,11 +101,11 @@ impl State for Collecting {
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
                         pinging_count,
-                        collecting_count: phase2.count(),
+                        collecting_count: new_collecting_count.count(),
                     })
                 } else {
                     Box::new(Self {
-                        phase2,
+                        collecting_count: new_collecting_count,
                         pinging_count,
                     })
                 };
@@ -120,7 +122,7 @@ impl State for Collecting {
                 }],
                 Box::new(TimedOut {
                     pinging_count,
-                    collecting_count: phase2.count(),
+                    collecting_count: collecting_count.count(),
                 }),
             ),
 

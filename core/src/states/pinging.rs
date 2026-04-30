@@ -22,16 +22,16 @@ use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
 
 pub struct Pinging {
-    phase1: ConfirmedSet,
-    phase2: ConfirmedSet,
+    pinging_count: ConfirmedSet,
+    collecting_count: ConfirmedSet,
 }
 
 impl Pinging {
     #[must_use]
     pub fn new(peer_count: usize) -> Self {
         Self {
-            phase1: ConfirmedSet::new(peer_count),
-            phase2: ConfirmedSet::new(peer_count),
+            pinging_count: ConfirmedSet::new(peer_count),
+            collecting_count: ConfirmedSet::new(peer_count),
         }
     }
 }
@@ -41,13 +41,13 @@ impl State for Pinging {
         previous
             .clone()
             .with_peer_state(PeerState::Pinging)
-            .with_pinging_peers(self.phase1.confirmed_peers(config.peers()))
-            .with_collecting_peers(self.phase2.confirmed_peers(config.peers()))
+            .with_pinging_peers(self.pinging_count.confirmed_peers(config.peers()))
+            .with_collecting_peers(self.collecting_count.confirmed_peers(config.peers()))
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let phase1 = self.phase1.clone();
-        let phase2 = self.phase2.clone();
+        let pinging_count = self.pinging_count.clone();
+        let collecting_count = self.collecting_count.clone();
 
         match command {
             Command::ParticipationObserved {
@@ -61,13 +61,13 @@ impl State for Pinging {
                         .freshness_policy()
                         .classify(current_marker, freshness)
                 });
-                let is_dup = index.is_some_and(|i| phase1.is_confirmed(i));
+                let is_dup = index.is_some_and(|i| pinging_count.is_confirmed(i));
 
                 let output = ObservedOutput::new(ObservedKind::Participation, peer_id)
                     .compute_output(index, classification, is_dup);
-                let (phase1, _) = phase1.try_confirm(index, is_dup, classification);
+                let (phase1, _) = pinging_count.try_confirm(index, is_dup, classification);
 
-                (vec![output], Box::new(Self { phase1, phase2 }))
+                (vec![output], Box::new(Self { pinging_count: phase1, collecting_count }))
             }
 
             Command::ReadyObserved {
@@ -81,30 +81,30 @@ impl State for Pinging {
                         .freshness_policy()
                         .classify(current_marker, freshness)
                 });
-                let is_dup = index.is_some_and(|i| phase2.is_confirmed(i));
+                let is_dup = index.is_some_and(|i| collecting_count.is_confirmed(i));
 
                 let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
                     index,
                     classification,
                     is_dup,
                 );
-                let (phase2, _) = phase2.try_confirm(index, is_dup, classification);
+                let (new_collecting_count, _) = collecting_count.try_confirm(index, is_dup, classification);
 
-                (vec![output], Box::new(Self { phase1, phase2 }))
+                (vec![output], Box::new(Self { pinging_count, collecting_count: new_collecting_count }))
             }
 
             Command::LocalParticipationCompleted => {
                 let local_index = config
                     .peer_index(config.local_peer_id())
                     .expect("local peer must be in peer set");
-                let (phase2, _) = phase2.confirm(local_index);
+                let (new_collecting_count, _) = collecting_count.confirm(local_index);
 
                 let mut outputs = vec![
                     Outcome::LocalParticipationCompleted,
                     Outcome::BroadcastLocalReady,
                 ];
 
-                let quorum = phase2.count() >= config.required_count();
+                let quorum = new_collecting_count.count() >= config.required_count();
                 if quorum {
                     outputs.push(Outcome::ReadyQuorumReached);
                     outputs.push(Outcome::Exited {
@@ -114,13 +114,13 @@ impl State for Pinging {
 
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
-                        pinging_count: phase1.count(),
-                        collecting_count: phase2.count(),
+                        pinging_count: pinging_count.count(),
+                        collecting_count: new_collecting_count.count(),
                     })
                 } else {
                     Box::new(Collecting {
-                        phase2,
-                        pinging_count: phase1.count(),
+                        collecting_count: new_collecting_count,
+                        pinging_count: pinging_count.count(),
                     })
                 };
                 (outputs, new_state)
@@ -131,8 +131,8 @@ impl State for Pinging {
                     mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
-                    pinging_count: phase1.count(),
-                    collecting_count: phase2.count(),
+                    pinging_count: pinging_count.count(),
+                    collecting_count: collecting_count.count(),
                 }),
             ),
 
