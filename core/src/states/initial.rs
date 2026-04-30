@@ -20,7 +20,8 @@ impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous
             .clone()
-            .with_peer_state(PeerState::Pinging)
+            .with_peer_state(PeerState::Fresh)
+            .with_is_pinging_completed(false)
             .with_pinging_peers(Vec::new())
             .with_collecting_peers(Vec::new())
     }

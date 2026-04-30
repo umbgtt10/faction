@@ -68,13 +68,13 @@ fn assert_post_exit_inputs_do_not_change_any_field(
 
 proptest! {
     #[test]
-    fn counts_never_exceed_peer_count(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn counts_never_exceed_peer_count(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -87,13 +87,13 @@ proptest! {
     }
 
     #[test]
-    fn required_count_never_changes(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn required_count_never_changes(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -106,14 +106,14 @@ proptest! {
 
     #[test]
     fn local_participation_completion_is_idempotent(
-        inputs in prop::collection::vec(input_strategy(), 0..128)
+        commands in prop::collection::vec(input_strategy(), 0..128)
     ) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
         }
 
         let previous = match coordinator.process(Command::Probe) {
@@ -144,18 +144,18 @@ proptest! {
 
     #[test]
     fn post_exit_inputs_never_change_any_field(
-        inputs in prop::collection::vec(input_strategy(), 0..128)
+        commands in prop::collection::vec(input_strategy(), 0..128)
     ) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
+        for command in commands {
             let previous = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let _ = coordinator.process(input);
+            let _ = coordinator.process(command);
             let current = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),

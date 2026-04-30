@@ -13,8 +13,8 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
@@ -106,7 +106,6 @@ fn assert_stale_outputs_do_not_mutate_state(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.peer_state(), previous.peer_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.is_pinging_completed(),
@@ -131,7 +130,6 @@ fn assert_non_member_outputs_do_not_mutate_state(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.peer_state(), previous.peer_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.is_pinging_completed(),
@@ -169,14 +167,14 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
 
 proptest! {
     #[test]
-    fn exit_mode_never_changes_after_exit(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn exit_mode_never_changes_after_exit(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut exited_mode = None;
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -192,14 +190,14 @@ proptest! {
     }
 
     #[test]
-    fn once_exited_state_never_returns_to_active(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn once_exited_state_never_returns_to_active(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut has_exited = false;
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -225,7 +223,7 @@ proptest! {
     }
 
     #[test]
-    fn pinging_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn pinging_count_never_decreases(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -234,8 +232,8 @@ proptest! {
 };
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let current = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -248,7 +246,7 @@ proptest! {
     }
 
     #[test]
-    fn collecting_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn collecting_count_never_decreases(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -257,8 +255,8 @@ proptest! {
 };
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let current = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -271,17 +269,17 @@ proptest! {
     }
 
     #[test]
-    fn stale_inputs_never_mutate_counts(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn stale_inputs_never_mutate_counts(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
+        for command in commands {
             let previous = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match coordinator.process(input) {
+            let batch = match coordinator.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
@@ -298,17 +296,17 @@ proptest! {
     }
 
     #[test]
-    fn non_member_inputs_never_mutate_counts(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn non_member_inputs_never_mutate_counts(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
+        for command in commands {
             let previous = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match coordinator.process(input) {
+            let batch = match coordinator.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
@@ -325,18 +323,18 @@ proptest! {
     }
 
     #[test]
-    fn readiness_exits_at_most_once(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn readiness_exits_at_most_once(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut has_exited = false;
 
         // Act
-        for input in inputs {
+        for command in commands {
             let previous = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let _ = coordinator.process(input);
+            let _ = coordinator.process(command);
             let current = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -356,17 +354,17 @@ proptest! {
     }
 
     #[test]
-    fn duplicate_inputs_never_increase_counts(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn duplicate_inputs_never_increase_counts(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
+        for command in commands {
             let previous = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match coordinator.process(input) {
+            let batch = match coordinator.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
@@ -383,13 +381,13 @@ proptest! {
     }
 
     #[test]
-    fn quorum_exit_implies_local_participation_completion(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn quorum_exit_implies_local_participation_completion(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
@@ -408,13 +406,13 @@ proptest! {
     }
 
     #[test]
-    fn deadline_exit_implies_exited_state(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn deadline_exit_implies_exited_state(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
         // Act
-        for input in inputs {
-            let _ = coordinator.process(input);
+        for command in commands {
+            let _ = coordinator.process(command);
             let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),

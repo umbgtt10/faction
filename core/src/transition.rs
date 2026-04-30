@@ -11,24 +11,24 @@ use crate::outcome::Outcome;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transition {
-    previous_state: ClusterView,
+    previous_view: ClusterView,
     outputs: Vec<Outcome>,
-    new_state: ClusterView,
+    new_view: ClusterView,
 }
 
 impl Transition {
     #[must_use]
-    pub fn new(previous_state: ClusterView, outputs: Vec<Outcome>, new_state: ClusterView) -> Self {
+    pub fn new(previous_view: ClusterView, outputs: Vec<Outcome>, new_view: ClusterView) -> Self {
         Self {
-            previous_state,
+            previous_view,
             outputs,
-            new_state,
+            new_view,
         }
     }
 
     #[must_use]
-    pub fn previous_state(&self) -> ClusterView {
-        self.previous_state.clone()
+    pub fn previous_view(&self) -> ClusterView {
+        self.previous_view.clone()
     }
 
     #[must_use]
@@ -37,7 +37,7 @@ impl Transition {
     }
 
     #[must_use]
-    pub fn new_state(&self) -> ClusterView {
-        self.new_state.clone()
+    pub fn new_view(&self) -> ClusterView {
+        self.new_view.clone()
     }
 }

@@ -86,13 +86,13 @@ fn apply_observes_local_participation_completion_transition() {
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
-    assert_eq!(transition.previous_state().peer_state(), PeerState::Pinging);
-    assert!(!transition.previous_state().is_pinging_completed());
-    assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
-    assert!(transition.new_state().is_pinging_completed());
-    assert!(!transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_peers().len(), 1);
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Pinging);
+    assert!(!transition.previous_view().is_pinging_completed());
+    assert!(!transition.previous_view().readiness_exited());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Collecting);
+    assert!(transition.new_view().is_pinging_completed());
+    assert!(!transition.new_view().readiness_exited());
+    assert_eq!(transition.new_view().collecting_peers().len(), 1);
     assert_eq!(
         transition.outputs(),
         &[
@@ -134,9 +134,9 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
         transition.outputs(),
         &[Outcome::DuplicateParticipationIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().pinging_peers().len(), 1);
-    assert_eq!(transition.new_state().peer_state(), PeerState::Pinging);
+    assert_eq!(transition.previous_view(), transition.new_view());
+    assert_eq!(transition.new_view().pinging_peers().len(), 1);
+    assert_eq!(transition.new_view().peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -172,10 +172,10 @@ fn apply_observes_stale_ready_transition_without_state_change() {
         transition.outputs(),
         &[Outcome::StaleReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
-    assert_eq!(transition.new_state().collecting_peers().len(), 1);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view(), transition.new_view());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Collecting);
+    assert_eq!(transition.new_view().collecting_peers().len(), 1);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -218,18 +218,18 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().peer_state(),
+        transition.previous_view().peer_state(),
         PeerState::Collecting
     );
-    assert_eq!(transition.previous_state().collecting_peers().len(), 3);
-    assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Bootstrapped);
+    assert_eq!(transition.previous_view().collecting_peers().len(), 3);
+    assert!(!transition.previous_view().readiness_exited());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        transition.new_state().exit_mode(),
+        transition.new_view().exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert!(transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_peers().len(), 3);
+    assert!(transition.new_view().readiness_exited());
+    assert_eq!(transition.new_view().collecting_peers().len(), 3);
     assert_eq!(
         transition.outputs(),
         &[
@@ -268,16 +268,16 @@ fn apply_observes_deadline_exit_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().peer_state(),
+        transition.previous_view().peer_state(),
         PeerState::Collecting
     );
-    assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().peer_state(), PeerState::TimedOut);
+    assert!(!transition.previous_view().readiness_exited());
+    assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
     assert_eq!(
-        transition.new_state().exit_mode(),
+        transition.new_view().exit_mode(),
         Some(ReadinessExitMode::TimedOut)
     );
-    assert!(transition.new_state().readiness_exited());
+    assert!(transition.new_view().readiness_exited());
     assert_eq!(
         transition.outputs(),
         &[Outcome::ReadinessExited {
@@ -440,7 +440,7 @@ fn state_transition_outputs_are_fully_observable() {
         ]
     );
     assert_eq!(&outcomes_4, transition4.outputs());
-    assert!(transition4.new_state().readiness_exited());
+    assert!(transition4.new_view().readiness_exited());
 }
 
 #[test]
@@ -470,9 +470,10 @@ fn apply_observes_stale_participation_from_initial() {
         transition.outputs(),
         &[Outcome::StaleParticipationIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().pinging_peers().len(), 0);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Fresh);
+    assert_eq!(transition.new_view().peer_state(), PeerState::Pinging);
+    assert_eq!(transition.new_view().pinging_peers().len(), 0);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -502,9 +503,10 @@ fn apply_observes_non_member_participation_from_initial() {
         transition.outputs(),
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().pinging_peers().len(), 0);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Fresh);
+    assert_eq!(transition.new_view().peer_state(), PeerState::Pinging);
+    assert_eq!(transition.new_view().pinging_peers().len(), 0);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -534,9 +536,10 @@ fn apply_observes_stale_ready_from_initial() {
         transition.outputs(),
         &[Outcome::StaleReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().collecting_peers().len(), 0);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Fresh);
+    assert_eq!(transition.new_view().peer_state(), PeerState::Pinging);
+    assert_eq!(transition.new_view().collecting_peers().len(), 0);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -566,9 +569,10 @@ fn apply_observes_non_member_ready_from_initial() {
         transition.outputs(),
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().collecting_peers().len(), 0);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Fresh);
+    assert_eq!(transition.new_view().peer_state(), PeerState::Pinging);
+    assert_eq!(transition.new_view().collecting_peers().len(), 0);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -603,9 +607,9 @@ fn apply_observes_duplicate_ready_from_pinging() {
         transition.outputs(),
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().collecting_peers().len(), 1);
-    assert_eq!(transition.new_state().peer_state(), PeerState::Pinging);
+    assert_eq!(transition.previous_view(), transition.new_view());
+    assert_eq!(transition.new_view().collecting_peers().len(), 1);
+    assert_eq!(transition.new_view().peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -653,16 +657,16 @@ fn apply_observes_quorum_exit_from_pinging() {
             },
         ]
     );
-    assert_eq!(transition.previous_state().peer_state(), PeerState::Pinging);
-    assert!(!transition.previous_state().is_pinging_completed());
-    assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Bootstrapped);
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Pinging);
+    assert!(!transition.previous_view().is_pinging_completed());
+    assert!(!transition.previous_view().readiness_exited());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        transition.new_state().exit_mode(),
+        transition.new_view().exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert!(transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_peers().len(), 3);
+    assert!(transition.new_view().readiness_exited());
+    assert_eq!(transition.new_view().collecting_peers().len(), 3);
 }
 
 #[test]
@@ -689,22 +693,22 @@ fn apply_observes_deadline_exit_from_pinging() {
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
-    assert_eq!(transition.previous_state().peer_state(), PeerState::Pinging);
-    assert!(!transition.previous_state().is_pinging_completed());
-    assert!(!transition.previous_state().readiness_exited());
+    assert_eq!(transition.previous_view().peer_state(), PeerState::Pinging);
+    assert!(!transition.previous_view().is_pinging_completed());
+    assert!(!transition.previous_view().readiness_exited());
     assert_eq!(
         transition.outputs(),
         &[Outcome::ReadinessExited {
             mode: ReadinessExitMode::TimedOut
         }]
     );
-    assert_eq!(transition.new_state().peer_state(), PeerState::TimedOut);
+    assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
     assert_eq!(
-        transition.new_state().exit_mode(),
+        transition.new_view().exit_mode(),
         Some(ReadinessExitMode::TimedOut)
     );
-    assert!(transition.new_state().readiness_exited());
-    assert!(!transition.new_state().is_pinging_completed());
+    assert!(transition.new_view().readiness_exited());
+    assert!(!transition.new_view().is_pinging_completed());
 }
 
 #[test]
@@ -746,14 +750,14 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
         &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
-        transition.previous_state().peer_state(),
+        transition.previous_view().peer_state(),
         PeerState::Collecting
     );
-    assert_eq!(transition.previous_state().collecting_peers().len(), 2);
-    assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
-    assert_eq!(transition.new_state().collecting_peers().len(), 3);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view().collecting_peers().len(), 2);
+    assert!(!transition.previous_view().readiness_exited());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Collecting);
+    assert_eq!(transition.new_view().collecting_peers().len(), 3);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -794,10 +798,10 @@ fn apply_observes_duplicate_ready_from_collecting() {
         transition.outputs(),
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
-    assert_eq!(transition.new_state().collecting_peers().len(), 2);
-    assert!(!transition.new_state().readiness_exited());
+    assert_eq!(transition.previous_view(), transition.new_view());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Collecting);
+    assert_eq!(transition.new_view().collecting_peers().len(), 2);
+    assert!(!transition.new_view().readiness_exited());
 }
 
 #[test]
@@ -850,16 +854,16 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         ]
     );
     assert_eq!(
-        transition.previous_state().peer_state(),
+        transition.previous_view().peer_state(),
         PeerState::Collecting
     );
-    assert_eq!(transition.previous_state().collecting_peers().len(), 3);
-    assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().peer_state(), PeerState::Bootstrapped);
+    assert_eq!(transition.previous_view().collecting_peers().len(), 3);
+    assert!(!transition.previous_view().readiness_exited());
+    assert_eq!(transition.new_view().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        transition.new_state().exit_mode(),
+        transition.new_view().exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert!(transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_peers().len(), 3);
+    assert!(transition.new_view().readiness_exited());
+    assert_eq!(transition.new_view().collecting_peers().len(), 3);
 }

@@ -35,7 +35,7 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     };
 
     // Assert
-    assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
+    assert_eq!(cluster_view.peer_state(), PeerState::Fresh);
     assert_eq!(cluster_view.exit_mode(), None);
     assert!(!cluster_view.is_pinging_completed());
     assert!(!cluster_view.readiness_exited());

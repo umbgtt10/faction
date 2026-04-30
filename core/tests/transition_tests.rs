@@ -7,8 +7,8 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::transition::Transition;
 
@@ -43,7 +43,7 @@ fn new_stores_previous_state() {
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    assert_eq!(transition.previous_state(), cluster_view(vec![1], vec![]));
+    assert_eq!(transition.previous_view(), cluster_view(vec![1], vec![]));
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn new_stores_new_state() {
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    assert_eq!(transition.new_state(), cluster_view(vec![1], vec![1]));
+    assert_eq!(transition.new_view(), cluster_view(vec![1], vec![1]));
 }
 
 #[test]
@@ -102,7 +102,7 @@ fn previous_state_preserves_full_snapshot() {
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    let result = transition.previous_state();
+    let result = transition.previous_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
@@ -121,7 +121,7 @@ fn new_state_preserves_full_snapshot() {
     let transition = Transition::new(prev, vec![], next);
 
     // Assert
-    let result = transition.new_state();
+    let result = transition.new_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
@@ -166,8 +166,8 @@ fn clone_produces_equal_transition() {
     let cloned = transition.clone();
 
     // Assert
-    assert_eq!(cloned.previous_state(), transition.previous_state());
-    assert_eq!(cloned.new_state(), transition.new_state());
+    assert_eq!(cloned.previous_view(), transition.previous_view());
+    assert_eq!(cloned.new_view(), transition.new_view());
     assert_eq!(cloned.outputs(), transition.outputs());
 }
 

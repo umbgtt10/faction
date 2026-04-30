@@ -21,6 +21,7 @@ use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ModelLifecycleState {
+    Fresh,
     Pinging,
     Collecting,
     Bootstrapped,
@@ -61,7 +62,7 @@ impl ModelCoordinator {
             required_count: 4,
             max_delay: 2,
             initial: true,
-            peer_state: ModelLifecycleState::Pinging,
+            peer_state: ModelLifecycleState::Fresh,
             exit_mode: None,
             is_pinging_completed: false,
             phase1_confirmed: [false; 5],
@@ -88,6 +89,7 @@ impl ModelCoordinator {
             match command {
                 Command::ParticipationObserved { .. } | Command::ReadyObserved { .. } => {
                     self.initial = false;
+                    self.peer_state = ModelLifecycleState::Pinging;
                 }
                 _ => return Vec::new(),
             }
@@ -278,6 +280,7 @@ impl ModelCoordinator {
 fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
     ModelClusterView {
         peer_state: match cluster_view.peer_state() {
+            PeerState::Fresh => ModelLifecycleState::Fresh,
             PeerState::Pinging => ModelLifecycleState::Pinging,
             PeerState::Collecting => ModelLifecycleState::Collecting,
             PeerState::Bootstrapped => ModelLifecycleState::Bootstrapped,
@@ -333,7 +336,7 @@ fn input_strategy() -> impl Strategy<Value = Command> {
 
 proptest! {
     #[test]
-    fn model_matches_snapshot_and_outputs_for_random_sequences(
+    fn model_matches_cluster_view_and_outputs_for_random_sequences(
         inputs in prop::collection::vec(input_strategy(), 0..64)
     ) {
         // Arrange
@@ -347,16 +350,16 @@ proptest! {
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let actual_snapshot = match coordinator.process(Command::Probe) {
+            let cluster_view = match coordinator.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let expected_outputs = model.process(input);
-            let expected_snapshot = model.cluster_view();
+            let expected_cluster_view = model.cluster_view();
 
             // Assert
             prop_assert_eq!(actual_outputs.as_slice(), expected_outputs.as_slice());
-            prop_assert_eq!(model_snapshot(actual_snapshot), expected_snapshot);
+            prop_assert_eq!(model_snapshot(cluster_view), expected_cluster_view);
         }
     }
 }

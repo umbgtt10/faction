@@ -27,7 +27,7 @@ impl Faction {
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
         let base = ClusterView::new(
-            PeerState::Pinging,
+            PeerState::Fresh,
             false,
             Vec::new(),
             Vec::new(),

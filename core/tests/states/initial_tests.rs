@@ -13,8 +13,8 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::state::State;
@@ -104,7 +104,7 @@ fn deal_rejects_is_pinging_completedd() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.peer_state(), PeerState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Fresh);
     assert_eq!(snap.collecting_peers().len(), 0);
 }
 
@@ -124,7 +124,7 @@ fn deal_rejects_deadline_expired() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.peer_state(), PeerState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Fresh);
     assert_eq!(snap.exit_mode(), None);
 }
 
@@ -186,7 +186,7 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.peer_state(), PeerState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Fresh);
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
     assert_eq!(snap.exit_mode(), None);
@@ -283,7 +283,7 @@ fn vibe_check_returns_phase1_active_with_zeros() {
     };
 
     // Assert
-    assert_eq!(snap.peer_state(), PeerState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Fresh);
     assert_eq!(snap.exit_mode(), None);
     assert!(!snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
@@ -307,10 +307,10 @@ fn initial_cluster_view_inherits_correctly() {
     let result = Initial.cluster_view(&prev, &config);
 
     // Assert
-    assert_eq!(result.peer_state(), PeerState::Pinging);
+    assert_eq!(result.peer_state(), PeerState::Fresh);
     assert_eq!(result.pinging_peers().len(), 0);
     assert_eq!(result.collecting_peers().len(), 0);
     assert_eq!(result.exit_mode(), None);
-    assert!(result.is_pinging_completed());
+    assert!(!result.is_pinging_completed());
     assert!(!result.readiness_exited());
 }
