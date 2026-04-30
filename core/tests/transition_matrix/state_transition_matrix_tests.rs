@@ -82,9 +82,9 @@ use super::helpers::*;
     &[
         ReadyAccepted { peer_id: 4 },
         ReadyQuorumReached,
-        ReadinessExited { mode: ReadinessExitMode::Quorum },
+        ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::ready_delayed_triggers_quorum(
     Init::Phase2AlmostQuorum,
@@ -92,9 +92,9 @@ use super::helpers::*;
     &[
         DelayedReadyAccepted { peer_id: 4 },
         ReadyQuorumReached,
-        ReadinessExited { mode: ReadinessExitMode::Quorum },
+        ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,
@@ -109,9 +109,9 @@ use super::helpers::*;
         LocalParticipationCompleted,
         BroadcastLocalReady,
         ReadyQuorumReached,
-        ReadinessExited { mode: ReadinessExitMode::Quorum },
+        ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::P2Count(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
+    &[Assert::P2Count(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::local_completion_redundant(
     Init::Phase2NoReadiness,
@@ -122,14 +122,14 @@ use super::helpers::*;
 #[case::deadline_expired(
     Init::Fresh,
     Command::DeadlineExpired,
-    &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
-    &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+    &[ReadinessExited { mode: ReadinessExitMode::TimedOut }],
+    &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
 )]
 #[case::deadline_expired_from_collecting(
     Init::Phase2NoReadiness,
     Command::DeadlineExpired,
-    &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
-    &[Assert::P2Count(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+    &[ReadinessExited { mode: ReadinessExitMode::TimedOut }],
+    &[Assert::P2Count(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
 )]
 fn valid_transition(
     #[case] init: Init,

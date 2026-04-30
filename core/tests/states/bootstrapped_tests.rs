@@ -68,7 +68,7 @@ fn deal_rejects_participation_observed() {
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot.readiness_exited());
 }
 
@@ -137,7 +137,7 @@ fn vibe_check_returns_correct_snapshot() {
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot.local_participation_complete());
     assert!(snapshot.readiness_exited());
     assert_eq!(snapshot.phase1_confirmed_count(), 1);
@@ -170,7 +170,7 @@ fn bootstrapped_state_snapshot_overrides_all_fields() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 2);

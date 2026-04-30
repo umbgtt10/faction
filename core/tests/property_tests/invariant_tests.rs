@@ -396,7 +396,7 @@ proptest! {
             };
 
             // Assert
-            if snapshot.exit_mode() == Some(ReadinessExitMode::Quorum) {
+            if snapshot.exit_mode() == Some(ReadinessExitMode::Bootstrapped) {
                 prop_assert!(snapshot.local_participation_complete());
                 prop_assert!(snapshot.readiness_exited());
                 prop_assert_eq!(
@@ -421,7 +421,7 @@ proptest! {
             };
 
             // Assert
-            if snapshot.exit_mode() == Some(ReadinessExitMode::Deadline) {
+            if snapshot.exit_mode() == Some(ReadinessExitMode::TimedOut) {
                 prop_assert!(snapshot.readiness_exited());
                 prop_assert_eq!(
                     snapshot.lifecycle_state(),

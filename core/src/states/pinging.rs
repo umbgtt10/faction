@@ -110,7 +110,7 @@ impl State for Pinging {
                 if quorum {
                     outputs.push(Outcome::ReadyQuorumReached);
                     outputs.push(Outcome::ReadinessExited {
-                        mode: ReadinessExitMode::Quorum,
+                        mode: ReadinessExitMode::Bootstrapped,
                     });
                 }
 
@@ -130,7 +130,7 @@ impl State for Pinging {
 
             Command::DeadlineExpired => (
                 vec![Outcome::ReadinessExited {
-                    mode: ReadinessExitMode::Deadline,
+                    mode: ReadinessExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
                     phase1_count: phase1.count(),

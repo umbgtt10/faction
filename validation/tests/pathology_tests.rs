@@ -115,13 +115,13 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
     let snapshot = harness.snapshot(0);
     assert!(snapshot.readiness_exited());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
 }
 
 #[test]

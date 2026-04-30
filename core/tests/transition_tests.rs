@@ -27,7 +27,7 @@ fn snapshot(phase1: usize, phase2: usize) -> Snapshot {
 fn snapshot_exited() -> Snapshot {
     Snapshot::new(
         ReadinessLifecycleState::Bootstrapped,
-        Some(ReadinessExitMode::Quorum),
+        Some(ReadinessExitMode::Bootstrapped),
         true,
         true,
         3,
@@ -111,7 +111,7 @@ fn previous_state_preserves_full_snapshot() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 3);
@@ -133,7 +133,7 @@ fn new_state_preserves_full_snapshot() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 3);
@@ -167,7 +167,7 @@ fn clone_produces_equal_transition() {
         Outcome::ReadyAccepted { peer_id: 3 },
         Outcome::ReadyQuorumReached,
         Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Quorum,
+            mode: ReadinessExitMode::Bootstrapped,
         },
     ];
     let transition = Transition::new(prev, outputs.clone(), next);

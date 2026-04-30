@@ -137,7 +137,7 @@ fn deal_accepts_deadline_expired() {
     assert_eq!(
         outcomes,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline
+            mode: ReadinessExitMode::TimedOut
         }]
     );
 }
@@ -460,7 +460,7 @@ fn local_completion_triggers_quorum() {
             Outcome::BroadcastLocalReady,
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -469,7 +469,7 @@ fn local_completion_triggers_quorum() {
         _ => unreachable!(),
     };
     assert!(snap.readiness_exited());
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
 }
 
 #[test]
@@ -486,7 +486,7 @@ fn deadline_expired_in_phase1() {
     assert_eq!(
         outcomes,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     );
     let snap = match faction.process(Command::Probe) {
@@ -494,7 +494,7 @@ fn deadline_expired_in_phase1() {
         _ => unreachable!(),
     };
     assert!(snap.readiness_exited());
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
 }
 
 #[test]
@@ -525,7 +525,7 @@ fn pinging_state_snapshot_inherits_correctly() {
     let pinging = Pinging::new(5);
     let prev = Snapshot::new(
         ReadinessLifecycleState::Phase2Active,
-        Some(ReadinessExitMode::Deadline),
+        Some(ReadinessExitMode::TimedOut),
         true,
         true,
         99,
@@ -543,7 +543,7 @@ fn pinging_state_snapshot_inherits_correctly() {
     );
     assert_eq!(result.phase1_confirmed_count(), 0);
     assert_eq!(result.phase2_confirmed_count(), 0);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
 }

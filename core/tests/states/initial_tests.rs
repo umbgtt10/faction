@@ -318,7 +318,7 @@ fn initial_state_snapshot_inherits_correctly() {
     // Arrange
     let prev = Snapshot::new(
         ReadinessLifecycleState::Phase2Active,
-        Some(ReadinessExitMode::Deadline),
+        Some(ReadinessExitMode::TimedOut),
         true,
         true,
         99,
@@ -336,7 +336,7 @@ fn initial_state_snapshot_inherits_correctly() {
     );
     assert_eq!(result.phase1_confirmed_count(), 0);
     assert_eq!(result.phase2_confirmed_count(), 0);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
 }

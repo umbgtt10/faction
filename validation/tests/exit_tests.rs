@@ -31,11 +31,11 @@ fn slow_member_does_not_block_quorum_exit() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
 }
@@ -54,10 +54,10 @@ fn expire_deadline_exits_by_deadline() {
     assert_eq!(
         outputs,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
@@ -81,7 +81,7 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
 }
@@ -99,7 +99,7 @@ fn repeated_deadline_expiry_remains_idempotent() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
@@ -127,11 +127,11 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     assert_eq!(
         outputs,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     );
     let snapshot = harness.snapshot(0);
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
@@ -170,11 +170,11 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     let snapshot_0 = harness.snapshot(0);
     let snapshot_1 = harness.snapshot(1);
     let snapshot_2 = harness.snapshot(2);
-    assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot_0.readiness_exited());
-    assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot_1.readiness_exited());
-    assert_eq!(snapshot_2.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot_2.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot_2.readiness_exited());
 }
 
@@ -193,10 +193,10 @@ fn deadline_from_phase1() {
     assert_eq!(
         outputs,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
@@ -223,7 +223,7 @@ fn deadline_from_bootstrapped_is_noop() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
 }

@@ -4,6 +4,6 @@
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadinessExitMode {
-    Quorum,
-    Deadline,
+    Bootstrapped,
+    TimedOut,
 }

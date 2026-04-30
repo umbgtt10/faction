@@ -10,7 +10,7 @@ use faction::snapshot::Snapshot;
 
 const BASE: Snapshot = Snapshot::new(
     ReadinessLifecycleState::Phase2Active,
-    Some(ReadinessExitMode::Deadline),
+    Some(ReadinessExitMode::TimedOut),
     true,
     true,
     5,
@@ -25,7 +25,7 @@ fn with_lifecycle_state_updates_only_lifecycle_state() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 5);
@@ -35,12 +35,12 @@ fn with_lifecycle_state_updates_only_lifecycle_state() {
 
 #[test]
 fn with_exit_mode_updates_only_exit_mode() {
-    let result = BASE.with_exit_mode(Some(ReadinessExitMode::Quorum));
+    let result = BASE.with_exit_mode(Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 5);
@@ -55,7 +55,7 @@ fn with_local_participation_complete_updates_only_local_participation() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(!result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 5);
@@ -70,7 +70,7 @@ fn with_readiness_exited_updates_only_readiness_exited() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.local_participation_complete());
     assert!(!result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 5);
@@ -85,7 +85,7 @@ fn with_phase1_count_updates_only_phase1_count() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 42);
@@ -100,7 +100,7 @@ fn with_phase2_count_updates_only_phase2_count() {
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
     assert_eq!(result.phase1_confirmed_count(), 5);

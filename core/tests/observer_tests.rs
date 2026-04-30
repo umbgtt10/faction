@@ -230,7 +230,7 @@ fn apply_observes_quorum_exit_transition() {
     );
     assert_eq!(
         transition.new_state().exit_mode(),
-        Some(ReadinessExitMode::Quorum)
+        Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(transition.new_state().readiness_exited());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 4);
@@ -240,7 +240,7 @@ fn apply_observes_quorum_exit_transition() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum
+                mode: ReadinessExitMode::Bootstrapped
             },
         ]
     );
@@ -282,13 +282,13 @@ fn apply_observes_deadline_exit_transition() {
     );
     assert_eq!(
         transition.new_state().exit_mode(),
-        Some(ReadinessExitMode::Deadline)
+        Some(ReadinessExitMode::TimedOut)
     );
     assert!(transition.new_state().readiness_exited());
     assert_eq!(
         transition.outputs(),
         &[Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline
+            mode: ReadinessExitMode::TimedOut
         }]
     );
 }
@@ -442,7 +442,7 @@ fn state_transition_outputs_are_fully_observable() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -659,7 +659,7 @@ fn apply_observes_quorum_exit_from_pinging() {
             Outcome::BroadcastLocalReady,
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -675,7 +675,7 @@ fn apply_observes_quorum_exit_from_pinging() {
     );
     assert_eq!(
         transition.new_state().exit_mode(),
-        Some(ReadinessExitMode::Quorum)
+        Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(transition.new_state().readiness_exited());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 4);
@@ -714,7 +714,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     assert_eq!(
         transition.outputs(),
         &[Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline
+            mode: ReadinessExitMode::TimedOut
         }]
     );
     assert_eq!(
@@ -723,7 +723,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     );
     assert_eq!(
         transition.new_state().exit_mode(),
-        Some(ReadinessExitMode::Deadline)
+        Some(ReadinessExitMode::TimedOut)
     );
     assert!(transition.new_state().readiness_exited());
     assert!(!transition.new_state().local_participation_complete());
@@ -873,7 +873,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
             Outcome::DelayedReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -889,7 +889,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     );
     assert_eq!(
         transition.new_state().exit_mode(),
-        Some(ReadinessExitMode::Quorum)
+        Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(transition.new_state().readiness_exited());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 4);

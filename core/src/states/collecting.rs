@@ -82,7 +82,7 @@ impl State for Collecting {
                         output,
                         Outcome::ReadyQuorumReached,
                         Outcome::ReadinessExited {
-                            mode: ReadinessExitMode::Quorum,
+                            mode: ReadinessExitMode::Bootstrapped,
                         },
                     ]
                 } else {
@@ -109,7 +109,7 @@ impl State for Collecting {
 
             Command::DeadlineExpired => (
                 vec![Outcome::ReadinessExited {
-                    mode: ReadinessExitMode::Deadline,
+                    mode: ReadinessExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
                     phase1_count,

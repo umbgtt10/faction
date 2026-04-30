@@ -24,7 +24,7 @@ impl StateSnapshot for Bootstrapped {
     fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Bootstrapped)
-            .with_exit_mode(Some(ReadinessExitMode::Quorum))
+            .with_exit_mode(Some(ReadinessExitMode::Bootstrapped))
             .with_local_participation_complete(true)
             .with_readiness_exited(true)
             .with_phase1_count(self.phase1_count)

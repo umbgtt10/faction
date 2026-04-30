@@ -90,11 +90,11 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
@@ -123,11 +123,11 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
             Outcome::DelayedReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
 }
@@ -148,7 +148,7 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
     assert!(snapshot.readiness_exited());
 }
@@ -181,7 +181,7 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -191,14 +191,14 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
     let snapshot_0 = harness.snapshot(0);
     let snapshot_1 = harness.snapshot(1);
-    assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Quorum));
-    assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot_0.readiness_exited());
     assert!(snapshot_1.readiness_exited());
     assert_eq!(
@@ -242,12 +242,12 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
             Outcome::BroadcastLocalReady,
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
     let snapshot = harness.snapshot(0);
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot.readiness_exited());
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
 }

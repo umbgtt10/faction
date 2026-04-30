@@ -20,7 +20,7 @@ fn five_nodes_converge_on_quorum() {
         sim.complete_local(peer);
     }
 
-    assert!(sim.all_exited_with(ReadinessExitMode::Quorum));
+    assert!(sim.all_exited_with(ReadinessExitMode::Bootstrapped));
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn not_enough_signals_triggers_deadline() {
         sim.expire_deadline(peer);
     }
 
-    assert!(sim.all_exited_with(ReadinessExitMode::Deadline));
+    assert!(sim.all_exited_with(ReadinessExitMode::TimedOut));
 }
 
 #[test]
@@ -54,5 +54,5 @@ fn duplicate_signals_dont_disrupt_convergence() {
     }
 
     assert!(sim.pending_count() == 0);
-    assert!(sim.all_exited_with(ReadinessExitMode::Quorum));
+    assert!(sim.all_exited_with(ReadinessExitMode::Bootstrapped));
 }

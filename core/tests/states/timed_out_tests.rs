@@ -173,7 +173,7 @@ fn vibe_check_after_deadline_from_phase1() {
         s.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert_eq!(s.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(!s.local_participation_complete());
     assert_eq!(s.phase1_confirmed_count(), 1);
@@ -194,7 +194,7 @@ fn vibe_check_after_deadline_from_phase2() {
         s.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert_eq!(s.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(s.local_participation_complete());
     assert_eq!(s.phase1_confirmed_count(), 1);
@@ -243,7 +243,7 @@ fn timed_out_state_snapshot_inherits_local_completion_from_phase1() {
     };
     let prev = Snapshot::new(
         ReadinessLifecycleState::Phase1Active,
-        Some(ReadinessExitMode::Deadline),
+        Some(ReadinessExitMode::TimedOut),
         false,
         false,
         99,
@@ -259,7 +259,7 @@ fn timed_out_state_snapshot_inherits_local_completion_from_phase1() {
         result.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(!result.local_participation_complete());
     assert_eq!(result.phase1_confirmed_count(), 3);
@@ -276,7 +276,7 @@ fn timed_out_state_snapshot_inherits_local_completion_from_phase2() {
     };
     let prev = Snapshot::new(
         ReadinessLifecycleState::Phase2Active,
-        Some(ReadinessExitMode::Deadline),
+        Some(ReadinessExitMode::TimedOut),
         true,
         false,
         99,
@@ -292,7 +292,7 @@ fn timed_out_state_snapshot_inherits_local_completion_from_phase2() {
         result.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(result.local_participation_complete());
     assert_eq!(result.phase1_confirmed_count(), 2);

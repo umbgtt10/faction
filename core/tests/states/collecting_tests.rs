@@ -98,10 +98,10 @@ fn deal_accepts_deadline_expired() {
     assert_eq!(
         outcomes,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(snap.readiness_exited());
 }
 
@@ -427,7 +427,7 @@ fn ready_first_timely_triggers_quorum() {
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -436,7 +436,7 @@ fn ready_first_timely_triggers_quorum() {
         snap.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Quorum));
+    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snap.readiness_exited());
 }
 
@@ -473,7 +473,7 @@ fn ready_first_delayed_triggers_quorum() {
             Outcome::DelayedReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
             Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             },
         ]
     );
@@ -540,14 +540,14 @@ fn deadline_expired_exits_in_phase2() {
     assert_eq!(
         outcomes,
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     );
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(snap.readiness_exited());
     assert!(snap.local_participation_complete());
 }
@@ -586,7 +586,7 @@ fn collecting_state_snapshot_inherits_correctly() {
     };
     let prev = Snapshot::new(
         ReadinessLifecycleState::Phase1Active,
-        Some(ReadinessExitMode::Deadline),
+        Some(ReadinessExitMode::TimedOut),
         false,
         true,
         99,
@@ -605,6 +605,6 @@ fn collecting_state_snapshot_inherits_correctly() {
     assert!(result.local_participation_complete());
     assert_eq!(result.phase1_confirmed_count(), 2);
     assert_eq!(result.phase2_confirmed_count(), 2);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
+    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
 }

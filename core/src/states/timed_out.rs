@@ -24,7 +24,7 @@ impl StateSnapshot for TimedOut {
     fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::TimedOut)
-            .with_exit_mode(Some(ReadinessExitMode::Deadline))
+            .with_exit_mode(Some(ReadinessExitMode::TimedOut))
             .with_readiness_exited(true)
             .with_phase1_count(self.phase1_count)
             .with_phase2_count(self.phase2_count)

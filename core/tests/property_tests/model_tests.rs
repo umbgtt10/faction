@@ -188,13 +188,13 @@ impl ModelCoordinator {
 
         if self.local_participation_complete && self.phase2_confirmed_count >= self.quorum_threshold
         {
-            self.exit_mode = Some(ReadinessExitMode::Quorum);
+            self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.lifecycle_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
                 Outcome::ReadyQuorumReached,
                 Outcome::ReadinessExited {
-                    mode: ReadinessExitMode::Quorum,
+                    mode: ReadinessExitMode::Bootstrapped,
                 },
             ]
         } else {
@@ -224,11 +224,11 @@ impl ModelCoordinator {
         ];
 
         if self.phase2_confirmed_count >= self.quorum_threshold {
-            self.exit_mode = Some(ReadinessExitMode::Quorum);
+            self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.lifecycle_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
             outputs.push(Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Quorum,
+                mode: ReadinessExitMode::Bootstrapped,
             });
         }
 
@@ -240,11 +240,11 @@ impl ModelCoordinator {
             return vec![];
         }
 
-        self.exit_mode = Some(ReadinessExitMode::Deadline);
+        self.exit_mode = Some(ReadinessExitMode::TimedOut);
         self.lifecycle_state = ModelLifecycleState::TimedOut;
 
         vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Deadline,
+            mode: ReadinessExitMode::TimedOut,
         }]
     }
 
