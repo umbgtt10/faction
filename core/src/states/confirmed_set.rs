@@ -6,6 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::freshness_classification::FreshnessClassification;
+use crate::PeerId;
 
 #[derive(Debug, Clone)]
 pub struct ConfirmedSet {
@@ -73,5 +74,15 @@ impl ConfirmedSet {
                 )
             }
         }
+    }
+
+    #[must_use]
+    pub fn confirmed_peers(&self, peer_set: &[PeerId]) -> Vec<PeerId> {
+        self.flags
+            .iter()
+            .enumerate()
+            .filter(|(_, &confirmed)| confirmed)
+            .map(|(i, _)| peer_set[i])
+            .collect()
     }
 }

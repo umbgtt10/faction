@@ -81,7 +81,7 @@ fn apply_observes_local_participation_completion_transition() {
     assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
     assert!(transition.new_state().is_pinging_completed());
     assert!(!transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 1);
+    assert_eq!(transition.new_state().collecting_peers().len(), 1);
     assert_eq!(
         transition.outputs(),
         &[
@@ -124,7 +124,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
         &[Outcome::DuplicateParticipationIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().pinging_confirmed_count(), 1);
+    assert_eq!(transition.new_state().pinging_peers().len(), 1);
     assert_eq!(transition.new_state().node_state(), NodeState::Pinging);
 }
 
@@ -163,7 +163,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 1);
+    assert_eq!(transition.new_state().collecting_peers().len(), 1);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -210,7 +210,7 @@ fn apply_observes_quorum_exit_transition() {
         transition.previous_state().node_state(),
         NodeState::Collecting
     );
-    assert_eq!(transition.previous_state().collecting_confirmed_count(), 3);
+    assert_eq!(transition.previous_state().collecting_peers().len(), 3);
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(transition.new_state().node_state(), NodeState::Bootstrapped);
     assert_eq!(
@@ -218,7 +218,7 @@ fn apply_observes_quorum_exit_transition() {
         Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 4);
+    assert_eq!(transition.new_state().collecting_peers().len(), 3);
     assert_eq!(
         transition.outputs(),
         &[
@@ -460,7 +460,7 @@ fn apply_observes_stale_participation_from_initial() {
         &[Outcome::StaleParticipationIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().pinging_confirmed_count(), 0);
+    assert_eq!(transition.new_state().pinging_peers().len(), 0);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -492,7 +492,7 @@ fn apply_observes_non_member_participation_from_initial() {
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().pinging_confirmed_count(), 0);
+    assert_eq!(transition.new_state().pinging_peers().len(), 0);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -524,7 +524,7 @@ fn apply_observes_stale_ready_from_initial() {
         &[Outcome::StaleReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 0);
+    assert_eq!(transition.new_state().collecting_peers().len(), 0);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -556,7 +556,7 @@ fn apply_observes_non_member_ready_from_initial() {
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 0);
+    assert_eq!(transition.new_state().collecting_peers().len(), 0);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -593,7 +593,7 @@ fn apply_observes_duplicate_ready_from_pinging() {
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 1);
+    assert_eq!(transition.new_state().collecting_peers().len(), 1);
     assert_eq!(transition.new_state().node_state(), NodeState::Pinging);
 }
 
@@ -651,7 +651,7 @@ fn apply_observes_quorum_exit_from_pinging() {
         Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 4);
+    assert_eq!(transition.new_state().collecting_peers().len(), 3);
 }
 
 #[test]
@@ -738,10 +738,10 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
         transition.previous_state().node_state(),
         NodeState::Collecting
     );
-    assert_eq!(transition.previous_state().collecting_confirmed_count(), 2);
+    assert_eq!(transition.previous_state().collecting_peers().len(), 2);
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 3);
+    assert_eq!(transition.new_state().collecting_peers().len(), 3);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -785,7 +785,7 @@ fn apply_observes_duplicate_ready_from_collecting() {
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 2);
+    assert_eq!(transition.new_state().collecting_peers().len(), 2);
     assert!(!transition.new_state().readiness_exited());
 }
 
@@ -842,7 +842,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         transition.previous_state().node_state(),
         NodeState::Collecting
     );
-    assert_eq!(transition.previous_state().collecting_confirmed_count(), 3);
+    assert_eq!(transition.previous_state().collecting_peers().len(), 3);
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(transition.new_state().node_state(), NodeState::Bootstrapped);
     assert_eq!(
@@ -850,5 +850,5 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(transition.new_state().readiness_exited());
-    assert_eq!(transition.new_state().collecting_confirmed_count(), 4);
+    assert_eq!(transition.new_state().collecting_peers().len(), 3);
 }

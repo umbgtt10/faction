@@ -17,11 +17,12 @@ use crate::states::pinging::Pinging;
 pub struct Initial;
 
 impl State for Initial {
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous
+            .clone()
             .with_node_state(NodeState::Pinging)
-            .with_pinging_count(0)
-            .with_collecting_count(0)
+            .with_pinging_peers(Vec::new())
+            .with_collecting_peers(Vec::new())
     }
 
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {

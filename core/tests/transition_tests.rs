@@ -12,47 +12,59 @@ use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::transition::Transition;
 
-fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
-    ClusterView::new(NodeState::Pinging, false, phase1, phase2, 4)
+fn cluster_view(pinging_peers: Vec<u64>, collecting_peers: Vec<u64>) -> ClusterView {
+    ClusterView::new(
+        NodeState::Pinging,
+        false,
+        pinging_peers,
+        collecting_peers,
+        4,
+    )
 }
 
 fn snapshot_exited() -> ClusterView {
-    ClusterView::new(NodeState::Bootstrapped, true, 3, 5, 4)
+    ClusterView::new(
+        NodeState::Bootstrapped,
+        true,
+        vec![1, 2, 3],
+        vec![1, 2, 3, 4, 5],
+        4,
+    )
 }
 
 #[test]
 fn new_stores_previous_state() {
     // Arrange
-    let prev = cluster_view(1, 0);
-    let next = cluster_view(1, 1);
+    let prev = cluster_view(vec![1], vec![]);
+    let next = cluster_view(vec![1], vec![1]);
     let outputs = vec![Outcome::ParticipationAccepted { peer_id: 1 }];
 
     // Act
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    assert_eq!(transition.previous_state(), cluster_view(1, 0));
+    assert_eq!(transition.previous_state(), cluster_view(vec![1], vec![]));
 }
 
 #[test]
 fn new_stores_new_state() {
     // Arrange
-    let prev = cluster_view(1, 0);
-    let next = cluster_view(1, 1);
+    let prev = cluster_view(vec![1], vec![]);
+    let next = cluster_view(vec![1], vec![1]);
     let outputs = vec![Outcome::ParticipationAccepted { peer_id: 1 }];
 
     // Act
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    assert_eq!(transition.new_state(), cluster_view(1, 1));
+    assert_eq!(transition.new_state(), cluster_view(vec![1], vec![1]));
 }
 
 #[test]
 fn new_stores_outputs() {
     // Arrange
-    let prev = cluster_view(0, 0);
-    let next = cluster_view(1, 0);
+    let prev = cluster_view(vec![], vec![]);
+    let next = cluster_view(vec![1], vec![]);
     let outputs = vec![
         Outcome::LocalParticipationCompleted,
         Outcome::BroadcastLocalReady,
@@ -68,8 +80,8 @@ fn new_stores_outputs() {
 #[test]
 fn new_handles_empty_outputs() {
     // Arrange
-    let prev = cluster_view(0, 0);
-    let next = cluster_view(0, 1);
+    let prev = cluster_view(vec![], vec![]);
+    let next = cluster_view(vec![], vec![1]);
     let outputs = vec![];
 
     // Act
@@ -83,7 +95,7 @@ fn new_handles_empty_outputs() {
 fn previous_state_preserves_full_snapshot() {
     // Arrange
     let prev = snapshot_exited();
-    let next = cluster_view(0, 0);
+    let next = cluster_view(vec![], vec![]);
     let outputs = vec![];
 
     // Act
@@ -95,14 +107,14 @@ fn previous_state_preserves_full_snapshot() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
-    assert_eq!(result.pinging_confirmed_count(), 3);
-    assert_eq!(result.collecting_confirmed_count(), 5);
+    assert_eq!(result.pinging_peers().len(), 3);
+    assert_eq!(result.collecting_peers().len(), 5);
 }
 
 #[test]
 fn new_state_preserves_full_snapshot() {
     // Arrange
-    let prev = cluster_view(0, 0);
+    let prev = cluster_view(vec![], vec![]);
     let next = snapshot_exited();
 
     // Act
@@ -114,15 +126,15 @@ fn new_state_preserves_full_snapshot() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
-    assert_eq!(result.pinging_confirmed_count(), 3);
-    assert_eq!(result.collecting_confirmed_count(), 5);
+    assert_eq!(result.pinging_peers().len(), 3);
+    assert_eq!(result.collecting_peers().len(), 5);
 }
 
 #[test]
 fn outputs_are_immutable() {
     // Arrange
-    let prev = cluster_view(0, 0);
-    let next = cluster_view(1, 0);
+    let prev = cluster_view(vec![], vec![]);
+    let next = cluster_view(vec![1], vec![]);
     let outputs = vec![Outcome::ReadyAccepted { peer_id: 1 }];
 
     // Act
@@ -139,8 +151,8 @@ fn outputs_are_immutable() {
 #[test]
 fn clone_produces_equal_transition() {
     // Arrange
-    let prev = cluster_view(1, 0);
-    let next = cluster_view(1, 2);
+    let prev = cluster_view(vec![1], vec![]);
+    let next = cluster_view(vec![1], vec![1, 2]);
     let outputs = vec![
         Outcome::ReadyAccepted { peer_id: 3 },
         Outcome::ReadyQuorumReached,
@@ -162,7 +174,11 @@ fn clone_produces_equal_transition() {
 #[test]
 fn debug_format_does_not_panic() {
     // Arrange
-    let transition = Transition::new(cluster_view(0, 0), vec![], cluster_view(1, 1));
+    let transition = Transition::new(
+        cluster_view(vec![], vec![]),
+        vec![],
+        cluster_view(vec![1], vec![1]),
+    );
 
     // Act & Assert
     let _ = format!("{:?}", transition);

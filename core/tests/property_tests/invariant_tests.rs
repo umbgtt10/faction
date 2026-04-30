@@ -87,8 +87,8 @@ fn assert_counts_do_not_decrease(
     previous: ClusterView,
     current: ClusterView,
 ) -> Result<(), TestCaseError> {
-    prop_assert!(current.pinging_confirmed_count() >= previous.pinging_confirmed_count());
-    prop_assert!(current.collecting_confirmed_count() >= previous.collecting_confirmed_count());
+    prop_assert!(current.pinging_peers().len() >= previous.pinging_peers().len());
+    prop_assert!(current.collecting_peers().len() >= previous.collecting_peers().len());
     Ok(())
 }
 
@@ -99,12 +99,12 @@ fn assert_stale_outputs_do_not_mutate_state(
 ) -> Result<(), TestCaseError> {
     if outputs_contain_stale(outputs) {
         prop_assert_eq!(
-            current.pinging_confirmed_count(),
-            previous.pinging_confirmed_count()
+            current.pinging_peers().len(),
+            previous.pinging_peers().len()
         );
         prop_assert_eq!(
-            current.collecting_confirmed_count(),
-            previous.collecting_confirmed_count()
+            current.collecting_peers().len(),
+            previous.collecting_peers().len()
         );
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -124,12 +124,12 @@ fn assert_non_member_outputs_do_not_mutate_state(
 ) -> Result<(), TestCaseError> {
     if outputs_contain_non_member(outputs) {
         prop_assert_eq!(
-            current.pinging_confirmed_count(),
-            previous.pinging_confirmed_count()
+            current.pinging_peers().len(),
+            previous.pinging_peers().len()
         );
         prop_assert_eq!(
-            current.collecting_confirmed_count(),
-            previous.collecting_confirmed_count()
+            current.collecting_peers().len(),
+            previous.collecting_peers().len()
         );
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -149,12 +149,12 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
 ) -> Result<(), TestCaseError> {
     if outputs_contain_duplicate(outputs) {
         prop_assert_eq!(
-            current.pinging_confirmed_count(),
-            previous.pinging_confirmed_count()
+            current.pinging_peers().len(),
+            previous.pinging_peers().len()
         );
         prop_assert_eq!(
-            current.collecting_confirmed_count(),
-            previous.collecting_confirmed_count()
+            current.collecting_peers().len(),
+            previous.collecting_peers().len()
         );
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -242,7 +242,7 @@ proptest! {
             };
 
             // Assert
-            prop_assert!(current.pinging_confirmed_count() >= previous.pinging_confirmed_count());
+            prop_assert!(current.pinging_peers().len() >= previous.pinging_peers().len());
             previous = current;
         }
     }
@@ -265,7 +265,7 @@ proptest! {
             };
 
             // Assert
-            prop_assert!(current.collecting_confirmed_count() >= previous.collecting_confirmed_count());
+            prop_assert!(current.collecting_peers().len() >= previous.collecting_peers().len());
             previous = current;
         }
     }
@@ -292,7 +292,7 @@ proptest! {
             };
 
             // Assert
-            assert_counts_do_not_decrease(previous, current)?;
+            assert_counts_do_not_decrease(previous.clone(), current.clone())?;
             assert_stale_outputs_do_not_mutate_state(previous, current, &batch)?;
         }
     }
@@ -319,7 +319,7 @@ proptest! {
             };
 
             // Assert
-            assert_counts_do_not_decrease(previous, current)?;
+            assert_counts_do_not_decrease(previous.clone(), current.clone())?;
             assert_non_member_outputs_do_not_mutate_state(previous, current, &batch)?;
         }
     }
@@ -377,7 +377,7 @@ proptest! {
             };
 
             // Assert
-            assert_counts_do_not_decrease(previous, current)?;
+            assert_counts_do_not_decrease(previous.clone(), current.clone())?;
             assert_duplicate_outputs_do_not_mutate_counts(previous, current, &batch)?;
         }
     }

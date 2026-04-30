@@ -84,7 +84,7 @@ use super::helpers::*;
         ReadyQuorumReached,
         ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::ready_delayed_triggers_quorum(
     Init::Phase2AlmostQuorum,
@@ -94,7 +94,7 @@ use super::helpers::*;
         ReadyQuorumReached,
         ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,

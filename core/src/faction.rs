@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
@@ -25,8 +26,14 @@ impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
-        let base = ClusterView::new(NodeState::Pinging, false, 0, 0, config.required_count());
-        let cluster_view = state.cluster_view(&base);
+        let base = ClusterView::new(
+            NodeState::Pinging,
+            false,
+            Vec::new(),
+            Vec::new(),
+            config.required_count(),
+        );
+        let cluster_view = state.cluster_view(&base, &config);
         Self {
             config,
             observer,
@@ -39,28 +46,27 @@ impl Faction {
     pub fn process(&mut self, command: Command) -> ProcessResult {
         if let Command::Probe = command {
             return ProcessResult::Probed {
-                cluster_view: self.cluster_view,
+                cluster_view: self.cluster_view.clone(),
                 admissible: self.state.admissible_commands(),
             };
         }
 
         if !self.state.accept(&command) {
             return ProcessResult::Rejected {
-                cluster_view: self.cluster_view,
+                cluster_view: self.cluster_view.clone(),
                 admissible: self.state.admissible_commands(),
             };
         }
 
-        let previous_snapshot = self.cluster_view;
+        let previous_snapshot = self.cluster_view.clone();
 
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
-        let new_snapshot = self.state.cluster_view(&previous_snapshot);
-        self.cluster_view = new_snapshot;
-
-        let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
+        let new_snapshot = self.state.cluster_view(&previous_snapshot, &self.config);
+        let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot.clone());
         self.observer.observe(command, transition);
+        self.cluster_view = new_snapshot.clone();
         ProcessResult::Accepted {
             outcomes: outputs,
             cluster_view: new_snapshot,

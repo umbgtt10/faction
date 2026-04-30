@@ -178,6 +178,7 @@ impl ModelCoordinator {
         }
 
         self.phase2_confirmed[index] = true;
+        let prev_collecting = self.collecting_confirmed_count;
         self.collecting_confirmed_count += 1;
 
         let accepted_output = if self.is_delayed(current_marker, freshness) {
@@ -186,9 +187,8 @@ impl ModelCoordinator {
             Outcome::ReadyAccepted { peer_id }
         };
 
-        if self.is_pinging_completed
-            && self.collecting_confirmed_count >= self.required_count
-        {
+        if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
+            self.collecting_confirmed_count = prev_collecting;
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
             vec![
@@ -224,7 +224,10 @@ impl ModelCoordinator {
             Outcome::BroadcastLocalReady,
         ];
 
+        let prev_collecting = self.collecting_confirmed_count;
+
         if self.collecting_confirmed_count >= self.required_count {
+            self.collecting_confirmed_count = prev_collecting;
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
@@ -283,8 +286,8 @@ fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
         exit_mode: cluster_view.exit_mode(),
         is_pinging_completed: cluster_view.is_pinging_completed(),
         readiness_exited: cluster_view.readiness_exited(),
-        pinging_confirmed_count: cluster_view.pinging_confirmed_count(),
-        collecting_confirmed_count: cluster_view.collecting_confirmed_count(),
+        pinging_confirmed_count: cluster_view.pinging_peers().len(),
+        collecting_confirmed_count: cluster_view.collecting_peers().len(),
         required_count: cluster_view.required_count(),
     }
 }

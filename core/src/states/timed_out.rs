@@ -23,11 +23,8 @@ impl State for TimedOut {
         unreachable!("accept() rejects all inputs for this state")
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous
-            .with_node_state(NodeState::TimedOut)
-            .with_pinging_count(self.pinging_count)
-            .with_collecting_count(self.collecting_count)
+    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
+        previous.clone().with_node_state(NodeState::TimedOut)
     }
 
     fn accept(&self, _input: &Command) -> bool {

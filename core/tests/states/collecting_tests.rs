@@ -339,7 +339,7 @@ fn ready_first_timely_no_quorum() {
     };
 
     // Act & Assert
-    assert_eq!(snap_before.collecting_confirmed_count(), 1);
+    assert_eq!(snap_before.collecting_peers().len(), 1);
     assert_eq!(snap_before.node_state(), NodeState::Collecting);
 
     // Act
@@ -355,7 +355,7 @@ fn ready_first_timely_no_quorum() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
-    assert_eq!(snap.collecting_confirmed_count(), 2);
+    assert_eq!(snap.collecting_peers().len(), 2);
     assert_eq!(snap.node_state(), NodeState::Collecting);
     assert!(!snap.readiness_exited());
 }
@@ -370,7 +370,7 @@ fn ready_first_delayed_no_quorum() {
     };
 
     // Act & Assert
-    assert_eq!(snap_before.collecting_confirmed_count(), 1);
+    assert_eq!(snap_before.collecting_peers().len(), 1);
 
     // Act
     let outcomes = match v.process(ready(1, DELAYED)) {
@@ -385,7 +385,7 @@ fn ready_first_delayed_no_quorum() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
-    assert_eq!(snap.collecting_confirmed_count(), 2);
+    assert_eq!(snap.collecting_peers().len(), 2);
     assert!(!snap.readiness_exited());
 }
 
@@ -401,7 +401,7 @@ fn ready_first_timely_triggers_quorum() {
     };
 
     // Act & Assert
-    assert_eq!(snap_before.collecting_confirmed_count(), 3);
+    assert_eq!(snap_before.collecting_peers().len(), 3);
     assert!(!snap_before.readiness_exited());
 
     // Act
@@ -426,7 +426,7 @@ fn ready_first_timely_triggers_quorum() {
             },
         ]
     );
-    assert_eq!(snap.collecting_confirmed_count(), 4);
+    assert_eq!(snap.collecting_peers().len(), 3);
     assert_eq!(snap.node_state(), NodeState::Bootstrapped);
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snap.readiness_exited());
@@ -444,7 +444,7 @@ fn ready_first_delayed_triggers_quorum() {
     };
 
     // Act & Assert
-    assert_eq!(snap_before.collecting_confirmed_count(), 3);
+    assert_eq!(snap_before.collecting_peers().len(), 3);
     assert!(!snap_before.readiness_exited());
 
     // Act
@@ -469,7 +469,7 @@ fn ready_first_delayed_triggers_quorum() {
             },
         ]
     );
-    assert_eq!(snap.collecting_confirmed_count(), 4);
+    assert_eq!(snap.collecting_peers().len(), 3);
     assert_eq!(snap.node_state(), NodeState::Bootstrapped);
     assert!(snap.readiness_exited());
 }
@@ -549,8 +549,8 @@ fn vibe_check_returns_correct_snapshot() {
     assert_eq!(snap.exit_mode(), None);
     assert!(snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
-    assert_eq!(snap.pinging_confirmed_count(), 1);
-    assert_eq!(snap.collecting_confirmed_count(), 1);
+    assert_eq!(snap.pinging_peers().len(), 1);
+    assert_eq!(snap.collecting_peers().len(), 1);
     assert_eq!(snap.required_count(), 4);
 }
 
@@ -564,16 +564,22 @@ fn collecting_cluster_view_inherits_correctly() {
         phase2,
         pinging_count: 2,
     };
-    let prev = ClusterView::new(NodeState::Pinging, false, 99, 99, 4);
+    let config = Config::new(
+        0,
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(4),
+        FreshnessPolicy::new(2),
+    );
+    let prev = ClusterView::new(NodeState::Pinging, false, vec![], vec![], 4);
 
     // Act
-    let result = collecting.cluster_view(&prev);
+    let result = collecting.cluster_view(&prev, &config);
 
     // Assert
     assert_eq!(result.node_state(), NodeState::Collecting);
     assert!(result.is_pinging_completed());
-    assert_eq!(result.pinging_confirmed_count(), 2);
-    assert_eq!(result.collecting_confirmed_count(), 2);
+    assert_eq!(result.pinging_peers().len(), 0);
+    assert_eq!(result.collecting_peers(), &[1, 3]);
     assert_eq!(result.exit_mode(), None);
     assert!(!result.readiness_exited());
 }

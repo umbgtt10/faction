@@ -50,13 +50,13 @@ fn machine_in_phase1() -> Faction {
 
 fn p1(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view.pinging_confirmed_count(),
+        ProcessResult::Probed { cluster_view, .. } => cluster_view.pinging_peers().len(),
         _ => unreachable!(),
     }
 }
 fn p2(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view.collecting_confirmed_count(),
+        ProcessResult::Probed { cluster_view, .. } => cluster_view.collecting_peers().len(),
         _ => unreachable!(),
     }
 }
@@ -509,8 +509,8 @@ fn vibe_check_in_phase1() {
     assert!(!snap.readiness_exited());
     assert!(!snap.is_pinging_completed());
     assert_eq!(snap.exit_mode(), None);
-    assert_eq!(snap.pinging_confirmed_count(), 1);
-    assert_eq!(snap.collecting_confirmed_count(), 0);
+    assert_eq!(snap.pinging_peers().len(), 1);
+    assert_eq!(snap.collecting_peers().len(), 0);
     assert_eq!(snap.required_count(), THRESHOLD);
 }
 
@@ -518,15 +518,21 @@ fn vibe_check_in_phase1() {
 fn pinging_cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new(5);
-    let prev = ClusterView::new(NodeState::Collecting, true, 99, 99, 4);
+    let config = Config::new(
+        0,
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(4),
+        FreshnessPolicy::new(2),
+    );
+    let prev = ClusterView::new(NodeState::Collecting, true, vec![99], vec![99], 4);
 
     // Act
-    let result = pinging.cluster_view(&prev);
+    let result = pinging.cluster_view(&prev, &config);
 
     // Assert
     assert_eq!(result.node_state(), NodeState::Pinging);
-    assert_eq!(result.pinging_confirmed_count(), 0);
-    assert_eq!(result.collecting_confirmed_count(), 0);
+    assert_eq!(result.pinging_peers().len(), 0);
+    assert_eq!(result.collecting_peers().len(), 0);
     assert_eq!(result.exit_mode(), None);
     assert!(result.is_pinging_completed());
     assert!(!result.readiness_exited());

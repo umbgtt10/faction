@@ -28,7 +28,7 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
     );
     assert!(cluster_view.is_pinging_completed());
     assert_eq!(cluster_view.node_state(), NodeState::Collecting);
-    assert_eq!(cluster_view.collecting_confirmed_count(), 1);
+    assert_eq!(cluster_view.collecting_peers().len(), 1);
     assert!(!cluster_view.readiness_exited());
 }
 
@@ -44,7 +44,7 @@ fn apply_participation_accepts_timely_member_observation() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
-    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
+    assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.node_state(), NodeState::Pinging);
     assert!(!cluster_view.readiness_exited());
 }
@@ -64,7 +64,7 @@ fn apply_participation_accepts_delayed_member_observation_within_margin() {
         outputs,
         vec![Outcome::DelayedParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
+    assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert!(!cluster_view.readiness_exited());
 }
 
@@ -83,7 +83,7 @@ fn apply_participation_rejects_stale_member_observation() {
         outputs,
         vec![Outcome::StaleParticipationIgnored { peer_id: 1 }]
     );
-    assert_eq!(cluster_view.pinging_confirmed_count(), 0);
-    assert_eq!(cluster_view.collecting_confirmed_count(), 0);
+    assert_eq!(cluster_view.pinging_peers().len(), 0);
+    assert_eq!(cluster_view.collecting_peers().len(), 0);
     assert!(!cluster_view.readiness_exited());
 }

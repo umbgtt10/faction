@@ -144,15 +144,15 @@ proptest! {
             // Assert
             if let Some((coordinator_index, outputs)) = result {
                 if outputs_contain_duplicate(&outputs) {
-                    let previous = previous_snapshots[coordinator_index];
+                    let previous = &previous_snapshots[coordinator_index];
                     let current = harness.cluster_view(coordinator_index);
                     prop_assert_eq!(
-                        current.pinging_confirmed_count(),
-                        previous.pinging_confirmed_count()
+                        current.pinging_peers().len(),
+                        previous.pinging_peers().len()
                     );
                     prop_assert_eq!(
-                        current.collecting_confirmed_count(),
-                        previous.collecting_confirmed_count()
+                        current.collecting_peers().len(),
+                        previous.collecting_peers().len()
                     );
                     prop_assert_eq!(current.node_state(), previous.node_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -183,15 +183,15 @@ proptest! {
             // Assert
             if let Some((coordinator_index, outputs)) = result {
                 if outputs_contain_stale(&outputs) {
-                    let previous = previous_snapshots[coordinator_index];
+                    let previous = &previous_snapshots[coordinator_index];
                     let current = harness.cluster_view(coordinator_index);
                     prop_assert_eq!(
-                        current.pinging_confirmed_count(),
-                        previous.pinging_confirmed_count()
+                        current.pinging_peers().len(),
+                        previous.pinging_peers().len()
                     );
                     prop_assert_eq!(
-                        current.collecting_confirmed_count(),
-                        previous.collecting_confirmed_count()
+                        current.collecting_peers().len(),
+                        previous.collecting_peers().len()
                     );
                     prop_assert_eq!(current.node_state(), previous.node_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());

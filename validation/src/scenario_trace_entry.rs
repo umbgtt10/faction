@@ -47,7 +47,7 @@ impl ScenarioTraceEntry {
     }
 
     #[must_use]
-    pub const fn cluster_view(&self) -> ClusterView {
-        self.cluster_view
+    pub fn cluster_view(&self) -> ClusterView {
+        self.cluster_view.clone()
     }
 }

@@ -130,8 +130,8 @@ pub fn verify(m: &mut Faction, checks: &[Assert]) {
     };
     for check in checks {
         match *check {
-            Assert::PingingCount(n) => assert_eq!(s.pinging_confirmed_count(), n),
-            Assert::CollectingCount(n) => assert_eq!(s.collecting_confirmed_count(), n),
+            Assert::PingingCount(n) => assert_eq!(s.pinging_peers().len(), n),
+            Assert::CollectingCount(n) => assert_eq!(s.collecting_peers().len(), n),
             Assert::Exited => assert!(s.readiness_exited()),
             Assert::NotExited => assert!(!s.readiness_exited()),
             Assert::ExitMode(mode) => assert_eq!(s.exit_mode(), Some(mode)),

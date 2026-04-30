@@ -27,8 +27,8 @@ impl Transition {
     }
 
     #[must_use]
-    pub const fn previous_state(&self) -> ClusterView {
-        self.previous_state
+    pub fn previous_state(&self) -> ClusterView {
+        self.previous_state.clone()
     }
 
     #[must_use]
@@ -37,7 +37,7 @@ impl Transition {
     }
 
     #[must_use]
-    pub const fn new_state(&self) -> ClusterView {
-        self.new_state
+    pub fn new_state(&self) -> ClusterView {
+        self.new_state.clone()
     }
 }

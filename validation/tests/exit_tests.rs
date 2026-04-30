@@ -39,7 +39,7 @@ fn slow_member_does_not_block_quorum_exit() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_peers().len(), 3);
     assert!(cluster_view.readiness_exited());
 }
 
@@ -85,7 +85,7 @@ fn post_exit_ready_is_ignored() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_peers().len(), 3);
     assert!(cluster_view.readiness_exited());
 }
 
@@ -134,7 +134,7 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(cluster_view.node_state(), NodeState::TimedOut);
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.collecting_confirmed_count(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 3);
 }
 
 #[test]
@@ -206,8 +206,8 @@ fn deadline_from_phase1() {
     assert_eq!(cluster_view.node_state(), NodeState::TimedOut);
     assert!(cluster_view.readiness_exited());
     assert!(!cluster_view.is_pinging_completed());
-    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
-    assert_eq!(cluster_view.collecting_confirmed_count(), 0);
+    assert_eq!(cluster_view.pinging_peers().len(), 1);
+    assert_eq!(cluster_view.collecting_peers().len(), 0);
 }
 
 #[test]
@@ -230,6 +230,6 @@ fn deadline_from_bootstrapped_is_noop() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_peers().len(), 3);
     assert!(cluster_view.readiness_exited());
 }

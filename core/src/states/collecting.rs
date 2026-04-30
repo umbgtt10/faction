@@ -45,12 +45,12 @@ impl State for Collecting {
         ]
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView, config: &Config) -> ClusterView {
         previous
+            .clone()
             .with_node_state(NodeState::Collecting)
             .with_is_pinging_completed(true)
-            .with_pinging_count(self.pinging_count)
-            .with_collecting_count(self.phase2.count())
+            .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
     }
 
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {

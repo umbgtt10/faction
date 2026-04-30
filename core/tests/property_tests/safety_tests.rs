@@ -81,8 +81,8 @@ proptest! {
             };
 
             // Assert
-            prop_assert!(cluster_view.pinging_confirmed_count() <= 5);
-            prop_assert!(cluster_view.collecting_confirmed_count() <= 5);
+            prop_assert!(cluster_view.pinging_peers().len() <= 5);
+            prop_assert!(cluster_view.collecting_peers().len() <= 5);
         }
     }
 
@@ -135,7 +135,7 @@ proptest! {
         if previous.is_pinging_completed() || previous.readiness_exited() {
             let first_rejected = matches!(first_status, ProcessResult::Rejected { .. });
             prop_assert!(first_rejected);
-            prop_assert_eq!(after_first, previous);
+            prop_assert_eq!(after_first.clone(), previous);
         }
         let second_rejected = matches!(second_status, ProcessResult::Rejected { .. });
         prop_assert!(second_rejected);

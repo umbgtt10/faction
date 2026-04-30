@@ -141,9 +141,18 @@ fn vibe_check_returns_correct_snapshot() {
     );
     assert!(cluster_view.is_pinging_completed());
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
-    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
+    assert_eq!(cluster_view.pinging_peers().len(), 1);
+    assert_eq!(cluster_view.collecting_peers().len(), 3);
     assert_eq!(cluster_view.required_count(), 4);
+}
+
+fn config() -> Config {
+    Config::new(
+        0,
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(4),
+        FreshnessPolicy::new(2),
+    )
 }
 
 #[test]
@@ -153,17 +162,23 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
         pinging_count: 2,
         collecting_count: 5,
     };
-    let prev = ClusterView::new(NodeState::Pinging, false, 99, 99, 4);
+    let prev = ClusterView::new(
+        NodeState::Pinging,
+        false,
+        vec![1, 2],
+        vec![1, 2, 3, 4, 5],
+        4,
+    );
 
     // Act
-    let result = rq.cluster_view(&prev);
+    let result = rq.cluster_view(&prev, &config());
 
     // Assert
     assert_eq!(result.node_state(), NodeState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
-    assert_eq!(result.pinging_confirmed_count(), 2);
-    assert_eq!(result.collecting_confirmed_count(), 5);
+    assert_eq!(result.pinging_peers(), &[1, 2]);
+    assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.required_count(), 4);
 }

@@ -27,12 +27,11 @@ impl State for Bootstrapped {
         false
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous
+            .clone()
             .with_node_state(NodeState::Bootstrapped)
             .with_is_pinging_completed(true)
-            .with_pinging_count(self.pinging_count)
-            .with_collecting_count(self.collecting_count)
     }
 
     fn admissible_commands(&self) -> alloc::vec::Vec<Command> {

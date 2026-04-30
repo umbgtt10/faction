@@ -39,8 +39,8 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     assert_eq!(cluster_view.exit_mode(), None);
     assert!(!cluster_view.is_pinging_completed());
     assert!(!cluster_view.readiness_exited());
-    assert_eq!(cluster_view.pinging_confirmed_count(), 0);
-    assert_eq!(cluster_view.collecting_confirmed_count(), 0);
+    assert_eq!(cluster_view.pinging_peers().len(), 0);
+    assert_eq!(cluster_view.collecting_peers().len(), 0);
 }
 
 #[test]
@@ -94,5 +94,5 @@ fn get_snapshot_works_after_valid_inputs() {
     };
 
     // Assert
-    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
+    assert_eq!(cluster_view.pinging_peers().len(), 1);
 }
