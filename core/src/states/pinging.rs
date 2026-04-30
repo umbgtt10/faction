@@ -67,7 +67,13 @@ impl State for Pinging {
                     .compute_output(index, classification, is_dup);
                 let (phase1, _) = pinging_count.try_confirm(index, is_dup, classification);
 
-                (vec![output], Box::new(Self { pinging_count: phase1, collecting_count }))
+                (
+                    vec![output],
+                    Box::new(Self {
+                        pinging_count: phase1,
+                        collecting_count,
+                    }),
+                )
             }
 
             Command::ReadyObserved {
@@ -88,9 +94,16 @@ impl State for Pinging {
                     classification,
                     is_dup,
                 );
-                let (new_collecting_count, _) = collecting_count.try_confirm(index, is_dup, classification);
+                let (new_collecting_count, _) =
+                    collecting_count.try_confirm(index, is_dup, classification);
 
-                (vec![output], Box::new(Self { pinging_count, collecting_count: new_collecting_count }))
+                (
+                    vec![output],
+                    Box::new(Self {
+                        pinging_count,
+                        collecting_count: new_collecting_count,
+                    }),
+                )
             }
 
             Command::LocalParticipationCompleted => {
