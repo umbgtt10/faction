@@ -11,7 +11,7 @@ pub struct ClusterView {
     local_participation_complete: bool,
     pinging_confirmed_count: usize,
     collecting_confirmed_count: usize,
-    quorum_threshold: usize,
+    required_count: usize,
 }
 
 impl ClusterView {
@@ -21,14 +21,14 @@ impl ClusterView {
         local_participation_complete: bool,
         pinging_confirmed_count: usize,
         collecting_confirmed_count: usize,
-        quorum_threshold: usize,
+        required_count: usize,
     ) -> Self {
         Self {
             node_state,
             local_participation_complete,
             pinging_confirmed_count,
             collecting_confirmed_count,
-            quorum_threshold,
+            required_count,
         }
     }
 
@@ -70,8 +70,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn quorum_threshold(&self) -> usize {
-        self.quorum_threshold
+    pub const fn required_count(&self) -> usize {
+        self.required_count
     }
 
     #[must_use]

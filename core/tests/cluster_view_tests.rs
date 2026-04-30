@@ -25,7 +25,7 @@ fn with_node_state_updates_only_node_state() {
     assert!(!result.readiness_exited());
     assert_eq!(result.pinging_confirmed_count(), 5);
     assert_eq!(result.collecting_confirmed_count(), 7);
-    assert_eq!(result.quorum_threshold(), 3);
+    assert_eq!(result.required_count(), 3);
 }
 
 #[test]
@@ -43,5 +43,5 @@ fn with_collecting_count_updates_only_collecting_count() {
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_confirmed_count(), 5);
     assert_eq!(result.collecting_confirmed_count(), 99);
-    assert_eq!(result.quorum_threshold(), 3);
+    assert_eq!(result.required_count(), 3);
 }

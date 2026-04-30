@@ -27,7 +27,7 @@ fn new_stores_provided_values() {
     assert_eq!(config.local_peer_id(), 0);
     assert_eq!(config.peer_set(), &[0, 1, 2, 3, 4]);
     assert_eq!(config.peer_count(), 5);
-    assert_eq!(config.quorum_threshold(), 3);
+    assert_eq!(config.required_count(), 3);
     assert_eq!(config.quorum_policy().threshold(), 3);
     assert_eq!(config.freshness_policy().max_delay(), 2);
 }

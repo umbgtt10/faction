@@ -149,7 +149,7 @@ fn vibe_check_returns_correct_snapshot() {
     assert!(cluster_view.readiness_exited());
     assert_eq!(cluster_view.pinging_confirmed_count(), 1);
     assert_eq!(cluster_view.collecting_confirmed_count(), 4);
-    assert_eq!(cluster_view.quorum_threshold(), 4);
+    assert_eq!(cluster_view.required_count(), 4);
 }
 
 #[test]
@@ -174,5 +174,5 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_confirmed_count(), 2);
     assert_eq!(result.collecting_confirmed_count(), 5);
-    assert_eq!(result.quorum_threshold(), 4);
+    assert_eq!(result.required_count(), 4);
 }

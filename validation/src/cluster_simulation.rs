@@ -30,7 +30,7 @@ pub struct ClusterSimulation {
 
 impl ClusterSimulation {
     #[must_use]
-    pub fn new(peer_count: usize, quorum_threshold: usize, max_delay: u64) -> Self {
+    pub fn new(peer_count: usize, required_count: usize, max_delay: u64) -> Self {
         let peer_ids: Vec<PeerId> = (0..peer_count as PeerId).collect();
         let nodes = peer_ids
             .iter()
@@ -39,7 +39,7 @@ impl ClusterSimulation {
                     Config::new(
                         peer_id,
                         peer_ids.clone(),
-                        QuorumPolicy::new(quorum_threshold),
+                        QuorumPolicy::new(required_count),
                         FreshnessPolicy::new(max_delay),
                     ),
                     Box::new(NoOpObserver),

@@ -517,7 +517,7 @@ fn vibe_check_in_phase1() {
     assert_eq!(snap.exit_mode(), None);
     assert_eq!(snap.pinging_confirmed_count(), 1);
     assert_eq!(snap.collecting_confirmed_count(), 0);
-    assert_eq!(snap.quorum_threshold(), THRESHOLD);
+    assert_eq!(snap.required_count(), THRESHOLD);
 }
 
 #[test]

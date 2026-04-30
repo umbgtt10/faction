@@ -87,7 +87,7 @@ proptest! {
     }
 
     #[test]
-    fn quorum_threshold_never_changes(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn required_count_never_changes(inputs in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
 
@@ -100,7 +100,7 @@ proptest! {
             };
 
             // Assert
-            prop_assert_eq!(cluster_view.quorum_threshold(), 4);
+            prop_assert_eq!(cluster_view.required_count(), 4);
         }
     }
 

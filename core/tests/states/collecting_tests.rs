@@ -569,7 +569,7 @@ fn vibe_check_returns_correct_snapshot() {
     assert!(!snap.readiness_exited());
     assert_eq!(snap.pinging_confirmed_count(), 1);
     assert_eq!(snap.collecting_confirmed_count(), 1);
-    assert_eq!(snap.quorum_threshold(), 4);
+    assert_eq!(snap.required_count(), 4);
 }
 
 #[test]

@@ -24,7 +24,7 @@ pub struct ScenarioHarness {
 }
 
 impl ScenarioHarness {
-    pub fn new(peer_set: Vec<PeerId>, quorum_threshold: usize, max_delay: u64) -> Self {
+    pub fn new(peer_set: Vec<PeerId>, required_count: usize, max_delay: u64) -> Self {
         let mut coordinators = Vec::new();
 
         for peer_id in peer_set.iter().copied() {
@@ -32,7 +32,7 @@ impl ScenarioHarness {
                 Config::new(
                     peer_id,
                     peer_set.clone(),
-                    QuorumPolicy::new(quorum_threshold),
+                    QuorumPolicy::new(required_count),
                     FreshnessPolicy::new(max_delay),
                 ),
                 Box::new(NoOpObserver),

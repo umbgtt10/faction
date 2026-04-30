@@ -47,7 +47,7 @@ impl Config {
     }
 
     #[must_use]
-    pub fn quorum_threshold(&self) -> usize {
+    pub fn required_count(&self) -> usize {
         self.quorum_policy.threshold()
     }
 

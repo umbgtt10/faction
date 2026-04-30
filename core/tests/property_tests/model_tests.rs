@@ -35,13 +35,13 @@ struct ModelClusterView {
     readiness_exited: bool,
     pinging_confirmed_count: usize,
     collecting_confirmed_count: usize,
-    quorum_threshold: usize,
+    required_count: usize,
 }
 
 struct ModelCoordinator {
     local_peer_id: u64,
     peer_set: [u64; 5],
-    quorum_threshold: usize,
+    required_count: usize,
     max_delay: u64,
     initial: bool,
     node_state: ModelLifecycleState,
@@ -58,7 +58,7 @@ impl ModelCoordinator {
         Self {
             local_peer_id: 0,
             peer_set: [0, 1, 2, 3, 4],
-            quorum_threshold: 4,
+            required_count: 4,
             max_delay: 2,
             initial: true,
             node_state: ModelLifecycleState::Pinging,
@@ -79,7 +79,7 @@ impl ModelCoordinator {
             readiness_exited: self.exit_mode.is_some(),
             pinging_confirmed_count: self.pinging_confirmed_count,
             collecting_confirmed_count: self.collecting_confirmed_count,
-            quorum_threshold: self.quorum_threshold,
+            required_count: self.required_count,
         }
     }
 
@@ -186,7 +186,7 @@ impl ModelCoordinator {
             Outcome::ReadyAccepted { peer_id }
         };
 
-        if self.local_participation_complete && self.collecting_confirmed_count >= self.quorum_threshold
+        if self.local_participation_complete && self.collecting_confirmed_count >= self.required_count
         {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
@@ -223,7 +223,7 @@ impl ModelCoordinator {
             Outcome::BroadcastLocalReady,
         ];
 
-        if self.collecting_confirmed_count >= self.quorum_threshold {
+        if self.collecting_confirmed_count >= self.required_count {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
@@ -284,7 +284,7 @@ fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
         readiness_exited: cluster_view.readiness_exited(),
         pinging_confirmed_count: cluster_view.pinging_confirmed_count(),
         collecting_confirmed_count: cluster_view.collecting_confirmed_count(),
-        quorum_threshold: cluster_view.quorum_threshold(),
+        required_count: cluster_view.required_count(),
     }
 }
 

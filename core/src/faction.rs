@@ -30,7 +30,7 @@ impl Faction {
             false,
             0,
             0,
-            config.quorum_threshold(),
+            config.required_count(),
         );
         let cluster_view = state.cluster_view(&base);
         Self {

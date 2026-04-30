@@ -83,7 +83,7 @@ impl State for Collecting {
 
                 let (phase2, confirmed_new) = phase2.try_confirm(index, is_dup, classification);
 
-                let quorum = confirmed_new && phase2.count() >= config.quorum_threshold();
+                let quorum = confirmed_new && phase2.count() >= config.required_count();
                 let outputs = if quorum {
                     vec![
                         output,

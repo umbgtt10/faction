@@ -103,7 +103,7 @@ impl State for Pinging {
                     Outcome::BroadcastLocalReady,
                 ];
 
-                let quorum = phase2.count() >= config.quorum_threshold();
+                let quorum = phase2.count() >= config.required_count();
                 if quorum {
                     outputs.push(Outcome::ReadyQuorumReached);
                     outputs.push(Outcome::ReadinessExited {

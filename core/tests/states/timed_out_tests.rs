@@ -248,7 +248,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
     assert!(!result.local_participation_complete());
     assert_eq!(result.pinging_confirmed_count(), 3);
     assert_eq!(result.collecting_confirmed_count(), 1);
-    assert_eq!(result.quorum_threshold(), 4);
+    assert_eq!(result.required_count(), 4);
 }
 
 #[test]
@@ -270,5 +270,5 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
     assert!(result.local_participation_complete());
     assert_eq!(result.pinging_confirmed_count(), 2);
     assert_eq!(result.collecting_confirmed_count(), 4);
-    assert_eq!(result.quorum_threshold(), 4);
+    assert_eq!(result.required_count(), 4);
 }
