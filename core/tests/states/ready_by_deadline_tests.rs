@@ -59,7 +59,10 @@ fn reach_deadline_from_phase2() -> Faction {
 fn deal_rejects_participation_observed() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
-    let snap_before = f.snapshot();
+    let snap_before = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     match f.process(Command::ParticipationObserved {
@@ -71,14 +74,23 @@ fn deal_rejects_participation_observed() {
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
         ProcessResult::Probed { .. } => unreachable!(),
     };
-    assert_eq!(f.snapshot(), snap_before);
+    assert_eq!(
+        match f.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn deal_rejects_ready_observed() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
-    let snap_before = f.snapshot();
+    let snap_before = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     match f.process(Command::ReadyObserved {
@@ -90,14 +102,23 @@ fn deal_rejects_ready_observed() {
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
         ProcessResult::Probed { .. } => unreachable!(),
     };
-    assert_eq!(f.snapshot(), snap_before);
+    assert_eq!(
+        match f.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn deal_rejects_local_participation_completed() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
-    let snap_before = f.snapshot();
+    let snap_before = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     match f.process(Command::LocalParticipationCompleted) {
@@ -105,14 +126,23 @@ fn deal_rejects_local_participation_completed() {
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
         ProcessResult::Probed { .. } => unreachable!(),
     };
-    assert_eq!(f.snapshot(), snap_before);
+    assert_eq!(
+        match f.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn deal_rejects_deadline_expired() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
-    let snap_before = f.snapshot();
+    let snap_before = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     match f.process(Command::DeadlineExpired) {
@@ -120,14 +150,23 @@ fn deal_rejects_deadline_expired() {
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
         ProcessResult::Probed { .. } => unreachable!(),
     };
-    assert_eq!(f.snapshot(), snap_before);
+    assert_eq!(
+        match f.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn vibe_check_after_deadline_from_phase1() {
     // Arrange & Act
-    let f = reach_deadline_from_phase1();
-    let s = f.snapshot();
+    let mut f = reach_deadline_from_phase1();
+    let s = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -144,8 +183,11 @@ fn vibe_check_after_deadline_from_phase1() {
 #[test]
 fn vibe_check_after_deadline_from_phase2() {
     // Arrange & Act
-    let f = reach_deadline_from_phase2();
-    let s = f.snapshot();
+    let mut f = reach_deadline_from_phase2();
+    let s = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -163,7 +205,10 @@ fn vibe_check_after_deadline_from_phase2() {
 fn post_deadline_inputs_leave_state_unchanged() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
-    let snapshot_before = f.snapshot();
+    let snapshot_before = match f.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     let _ = f.process(Command::ParticipationObserved {
@@ -180,7 +225,13 @@ fn post_deadline_inputs_leave_state_unchanged() {
     let _ = f.process(Command::DeadlineExpired);
 
     // Assert
-    assert_eq!(f.snapshot(), snapshot_before);
+    assert_eq!(
+        match f.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snapshot_before
+    );
 }
 
 #[test]

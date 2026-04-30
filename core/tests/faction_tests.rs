@@ -59,9 +59,15 @@ fn get_snapshot_does_not_mutate_state() {
     let mut faction = Faction::new(config, observer);
 
     // Act
-    let first = faction.snapshot();
+    let first = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     let _ = faction.process(Command::Probe);
-    let second = faction.snapshot();
+    let second = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(first, second);

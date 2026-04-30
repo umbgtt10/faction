@@ -47,11 +47,17 @@ fn machine_in_phase1() -> Faction {
     faction
 }
 
-fn p1(faction: &Faction) -> usize {
-    faction.snapshot().phase1_confirmed_count()
+fn p1(faction: &mut Faction) -> usize {
+    match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot.phase1_confirmed_count(),
+        _ => unreachable!(),
+    }
 }
-fn p2(faction: &Faction) -> usize {
-    faction.snapshot().phase2_confirmed_count()
+fn p2(faction: &mut Faction) -> usize {
+    match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot.phase2_confirmed_count(),
+        _ => unreachable!(),
+    }
 }
 
 #[test]
@@ -140,7 +146,7 @@ fn deal_accepts_deadline_expired() {
 fn participation_observed_non_member() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p1(&faction);
+    let before = p1(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
@@ -155,14 +161,14 @@ fn participation_observed_non_member() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(p1(&faction), before);
+    assert_eq!(p1(&mut faction), before);
 }
 
 #[test]
 fn participation_observed_stale() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p1(&faction);
+    let before = p1(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
@@ -180,7 +186,7 @@ fn participation_observed_stale() {
         outcomes,
         vec![Outcome::StaleParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&faction), before);
+    assert_eq!(p1(&mut faction), before);
 }
 
 #[test]
@@ -191,7 +197,7 @@ fn participation_observed_duplicate() {
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let before = p1(&faction);
+    let before = p1(&mut faction);
     let outcomes = match faction.process(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
@@ -205,14 +211,14 @@ fn participation_observed_duplicate() {
         outcomes,
         vec![Outcome::DuplicateParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&faction), before);
+    assert_eq!(p1(&mut faction), before);
 }
 
 #[test]
 fn participation_observed_first_timely() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p1(&faction);
+    let before = p1(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
@@ -230,14 +236,14 @@ fn participation_observed_first_timely() {
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 3 }]
     );
-    assert_eq!(p1(&faction), before + 1);
+    assert_eq!(p1(&mut faction), before + 1);
 }
 
 #[test]
 fn participation_observed_first_delayed() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p1(&faction);
+    let before = p1(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
@@ -255,14 +261,14 @@ fn participation_observed_first_delayed() {
         outcomes,
         vec![Outcome::DelayedParticipationAccepted { peer_id: 3 }]
     );
-    assert_eq!(p1(&faction), before + 1);
+    assert_eq!(p1(&mut faction), before + 1);
 }
 
 #[test]
 fn ready_observed_non_member() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p2(&faction);
+    let before = p2(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved {
@@ -277,14 +283,14 @@ fn ready_observed_non_member() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(p2(&faction), before);
+    assert_eq!(p2(&mut faction), before);
 }
 
 #[test]
 fn ready_observed_stale() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p2(&faction);
+    let before = p2(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved {
@@ -299,7 +305,7 @@ fn ready_observed_stale() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
-    assert_eq!(p2(&faction), before);
+    assert_eq!(p2(&mut faction), before);
 }
 
 #[test]
@@ -311,7 +317,7 @@ fn ready_observed_duplicate() {
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let before = p2(&faction);
+    let before = p2(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved {
@@ -329,14 +335,14 @@ fn ready_observed_duplicate() {
         outcomes,
         vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]
     );
-    assert_eq!(p2(&faction), before);
+    assert_eq!(p2(&mut faction), before);
 }
 
 #[test]
 fn ready_observed_first_timely() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p2(&faction);
+    let before = p2(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved {
@@ -351,14 +357,14 @@ fn ready_observed_first_timely() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
-    assert_eq!(p2(&faction), before + 1);
+    assert_eq!(p2(&mut faction), before + 1);
 }
 
 #[test]
 fn ready_observed_first_delayed() {
     // Arrange
     let mut faction = machine_in_phase1();
-    let before = p2(&faction);
+    let before = p2(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved {
@@ -373,7 +379,7 @@ fn ready_observed_first_delayed() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]);
-    assert_eq!(p2(&faction), before + 1);
+    assert_eq!(p2(&mut faction), before + 1);
 }
 
 #[test]
@@ -394,7 +400,10 @@ fn local_completion_no_quorum() {
             Outcome::BroadcastLocalReady,
         ]
     );
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -455,7 +464,10 @@ fn local_completion_triggers_quorum() {
             },
         ]
     );
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert!(snap.readiness_exited());
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Quorum));
 }
@@ -477,7 +489,10 @@ fn deadline_expired_in_phase1() {
             mode: ReadinessExitMode::Deadline,
         }]
     );
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert!(snap.readiness_exited());
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
 }
@@ -485,8 +500,11 @@ fn deadline_expired_in_phase1() {
 #[test]
 fn vibe_check_in_phase1() {
     // Arrange & Act
-    let faction = machine_in_phase1();
-    let snap = faction.snapshot();
+    let mut faction = machine_in_phase1();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(

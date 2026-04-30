@@ -89,7 +89,10 @@ fn deal_accepts_deadline_expired() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = v.snapshot();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -106,91 +109,148 @@ fn deal_accepts_deadline_expired() {
 fn deal_rejects_participation_observed() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     assert!(matches!(
         v.process(participation(2, TIMELY)),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn deal_rejects_local_participation_completed() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     assert!(matches!(
         v.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn participation_non_member_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     assert!(matches!(
         v.process(participation(99, TIMELY)),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn participation_stale_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     assert!(matches!(
         v.process(participation(1, STALE)),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn participation_first_timely_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     assert!(matches!(
         v.process(participation(2, TIMELY)),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn participation_first_delayed_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     assert!(matches!(
         v.process(participation(2, DELAYED)),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn ready_non_member_rejected() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     let outcomes = match v.process(ready(99, TIMELY)) {
@@ -201,14 +261,23 @@ fn ready_non_member_rejected() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn ready_stale_rejected() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     let outcomes = match v.process(ready(1, STALE)) {
@@ -219,7 +288,13 @@ fn ready_stale_rejected() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
@@ -227,7 +302,10 @@ fn ready_duplicate_rejected() {
     // Arrange
     let mut v = machine_in_phase2();
     let _ = v.process(ready(1, TIMELY));
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     let outcomes = match v.process(ready(1, TIMELY)) {
@@ -241,14 +319,25 @@ fn ready_duplicate_rejected() {
         outcomes,
         vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn ready_first_timely_no_quorum() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
     assert_eq!(snap_before.phase2_confirmed_count(), 1);
     assert_eq!(
         snap_before.lifecycle_state(),
@@ -261,7 +350,10 @@ fn ready_first_timely_no_quorum() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = v.snapshot();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
@@ -277,7 +369,12 @@ fn ready_first_timely_no_quorum() {
 fn ready_first_delayed_no_quorum() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
     assert_eq!(snap_before.phase2_confirmed_count(), 1);
 
     // Act
@@ -286,7 +383,10 @@ fn ready_first_delayed_no_quorum() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = v.snapshot();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
@@ -300,7 +400,12 @@ fn ready_first_timely_triggers_quorum() {
     let mut v = machine_in_phase2();
     let _ = v.process(ready(1, TIMELY));
     let _ = v.process(ready(2, TIMELY));
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
     assert_eq!(snap_before.phase2_confirmed_count(), 3);
     assert!(!snap_before.readiness_exited());
 
@@ -310,7 +415,10 @@ fn ready_first_timely_triggers_quorum() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = v.snapshot();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -338,7 +446,12 @@ fn ready_first_delayed_triggers_quorum() {
     let mut v = machine_in_phase2();
     let _ = v.process(ready(1, TIMELY));
     let _ = v.process(ready(2, TIMELY));
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
     assert_eq!(snap_before.phase2_confirmed_count(), 3);
     assert!(!snap_before.readiness_exited());
 
@@ -348,7 +461,10 @@ fn ready_first_delayed_triggers_quorum() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = v.snapshot();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -373,21 +489,35 @@ fn ready_first_delayed_triggers_quorum() {
 fn local_completion_in_phase2_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act & Assert
     assert!(matches!(
         v.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
     ));
-    assert_eq!(v.snapshot(), snap_before);
+    assert_eq!(
+        match v.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
 }
 
 #[test]
 fn deadline_expired_exits_in_phase2() {
     // Arrange
     let mut v = machine_in_phase2();
-    let snap_before = v.snapshot();
+    let snap_before = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
     assert_eq!(
         snap_before.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -401,7 +531,10 @@ fn deadline_expired_exits_in_phase2() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = v.snapshot();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -422,8 +555,11 @@ fn deadline_expired_exits_in_phase2() {
 #[test]
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
-    let v = machine_in_phase2();
-    let snap = v.snapshot();
+    let mut v = machine_in_phase2();
+    let snap = match v.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(

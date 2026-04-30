@@ -12,6 +12,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::Freshness;
@@ -122,8 +123,11 @@ pub enum Assert {
     NotLocalComplete,
 }
 
-pub fn verify(m: &Faction, checks: &[Assert]) {
-    let s = m.snapshot();
+pub fn verify(m: &mut Faction, checks: &[Assert]) {
+    let s = match m.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     for check in checks {
         match *check {
             Assert::P1Count(n) => assert_eq!(s.phase1_confirmed_count(), n),

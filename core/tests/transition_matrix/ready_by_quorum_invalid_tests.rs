@@ -66,7 +66,10 @@ fn invalid_transition(
 ) {
     // Arrange
     let mut m = build(init);
-    let snapshot_before = m.snapshot();
+    let snapshot_before = match m.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     let result = m.process(input);
@@ -79,7 +82,7 @@ fn invalid_transition(
         } => (snapshot, admissible),
         other => panic!("expected Rejected, got {other:?}"),
     };
-    verify(&m, asserts);
+    verify(&mut m, asserts);
     assert_eq!(snapshot, snapshot_before);
     assert_eq!(admissible, expected_admissible);
 }

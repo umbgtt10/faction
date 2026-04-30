@@ -343,7 +343,10 @@ proptest! {
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let actual_snapshot = coordinator.snapshot();
+            let actual_snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
             let expected_outputs = model.process(input);
             let expected_snapshot = model.snapshot();
 

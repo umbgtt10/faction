@@ -67,8 +67,11 @@ impl ScenarioHarness {
         self.coordinators.len()
     }
 
-    pub fn snapshot(&self, coordinator_index: usize) -> Snapshot {
-        self.coordinators[coordinator_index].snapshot()
+    pub fn snapshot(&mut self, coordinator_index: usize) -> Snapshot {
+        match self.coordinators[coordinator_index].process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        }
     }
 
     pub fn apply_participation(

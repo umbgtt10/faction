@@ -57,8 +57,11 @@ fn reach_ready_by_quorum() -> Faction {
 #[test]
 fn deal_rejects_participation_observed() {
     // Arrange & Act
-    let faction = reach_ready_by_quorum();
-    let snapshot = faction.snapshot();
+    let mut faction = reach_ready_by_quorum();
+    let snapshot = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(
@@ -73,7 +76,10 @@ fn deal_rejects_participation_observed() {
 fn all_inputs_leave_state_unchanged() {
     // Arrange
     let mut faction = reach_ready_by_quorum();
-    let snapshot_before = faction.snapshot();
+    let snapshot_before = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Act
     let r1 = match faction.process(Command::ParticipationObserved {
@@ -104,7 +110,10 @@ fn all_inputs_leave_state_unchanged() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
-    let snapshot_after = faction.snapshot();
+    let snapshot_after = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert!(r1.is_empty());
@@ -117,8 +126,11 @@ fn all_inputs_leave_state_unchanged() {
 #[test]
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
-    let faction = reach_ready_by_quorum();
-    let snapshot = faction.snapshot();
+    let mut faction = reach_ready_by_quorum();
+    let snapshot = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
 
     // Assert
     assert_eq!(

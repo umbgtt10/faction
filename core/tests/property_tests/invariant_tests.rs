@@ -177,7 +177,10 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = coordinator.snapshot();
+            let snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             if let Some(mode) = exited_mode {
@@ -197,7 +200,10 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = coordinator.snapshot();
+            let snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             if snapshot.readiness_exited() {
@@ -222,12 +228,18 @@ proptest! {
     fn phase1_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
-        let mut previous = coordinator.snapshot();
+        let mut previous = match coordinator.process(Command::Probe) {
+    ProcessResult::Probed { snapshot, .. } => snapshot,
+    _ => unreachable!(),
+};
 
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
@@ -239,12 +251,18 @@ proptest! {
     fn phase2_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
-        let mut previous = coordinator.snapshot();
+        let mut previous = match coordinator.process(Command::Probe) {
+    ProcessResult::Probed { snapshot, .. } => snapshot,
+    _ => unreachable!(),
+};
 
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
@@ -259,13 +277,19 @@ proptest! {
 
         // Act
         for input in inputs {
-            let previous = coordinator.snapshot();
+            let previous = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
             let batch = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             assert_counts_do_not_decrease(previous, current)?;
@@ -280,13 +304,19 @@ proptest! {
 
         // Act
         for input in inputs {
-            let previous = coordinator.snapshot();
+            let previous = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
             let batch = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             assert_counts_do_not_decrease(previous, current)?;
@@ -302,9 +332,15 @@ proptest! {
 
         // Act
         for input in inputs {
-            let previous = coordinator.snapshot();
+            let previous = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
             let _ = coordinator.process(input);
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             if has_exited {
@@ -326,13 +362,19 @@ proptest! {
 
         // Act
         for input in inputs {
-            let previous = coordinator.snapshot();
+            let previous = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
             let batch = match coordinator.process(input) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             assert_counts_do_not_decrease(previous, current)?;
@@ -348,7 +390,10 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = coordinator.snapshot();
+            let snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             if snapshot.exit_mode() == Some(ReadinessExitMode::Quorum) {
@@ -370,7 +415,10 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = coordinator.snapshot();
+            let snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             if snapshot.exit_mode() == Some(ReadinessExitMode::Deadline) {

@@ -149,5 +149,5 @@ fn valid_transition(
 
     // Assert
     assert_eq!(outcomes.as_slice(), expected_outputs, "output mismatch");
-    verify(&m, asserts);
+    verify(&mut m, asserts);
 }

@@ -45,7 +45,10 @@ fn deal_accepts_participation_observed() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
@@ -69,7 +72,10 @@ fn deal_accepts_ready_observed() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(
         snap.lifecycle_state(),
@@ -85,7 +91,10 @@ fn deal_rejects_local_participation_completed() {
         faction.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
     ));
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -100,7 +109,10 @@ fn deal_rejects_deadline_expired() {
         faction.process(Command::DeadlineExpired),
         ProcessResult::Rejected { .. }
     ));
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -124,7 +136,10 @@ fn stays_in_initial_after_rejected_input() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
@@ -147,7 +162,10 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
         faction.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
     ));
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -171,7 +189,10 @@ fn punch_participation_non_member_from_initial() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(
@@ -192,7 +213,10 @@ fn punch_participation_delayed_from_initial() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         outcomes,
         vec![Outcome::DelayedParticipationAccepted { peer_id: 1 }]
@@ -212,15 +236,21 @@ fn punch_ready_non_member_from_initial() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let snap = faction.snapshot();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase2_confirmed_count(), 0);
 }
 
 #[test]
 fn vibe_check_returns_phase1_active_with_zeros() {
-    let faction = test_machine();
-    let snap = faction.snapshot();
+    let mut faction = test_machine();
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { snapshot, .. } => snapshot,
+        _ => unreachable!(),
+    };
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active

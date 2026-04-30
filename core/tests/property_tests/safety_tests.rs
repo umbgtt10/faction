@@ -75,7 +75,10 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = coordinator.snapshot();
+            let snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             prop_assert!(snapshot.phase1_confirmed_count() <= 5);
@@ -91,7 +94,10 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = coordinator.snapshot();
+            let snapshot = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             prop_assert_eq!(snapshot.quorum_threshold(), 4);
@@ -110,11 +116,20 @@ proptest! {
             let _ = coordinator.process(input);
         }
 
-        let previous = coordinator.snapshot();
+        let previous = match coordinator.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        };
         let first_status = coordinator.process(Command::LocalParticipationCompleted);
-        let after_first = coordinator.snapshot();
+        let after_first = match coordinator.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        };
         let second_status = coordinator.process(Command::LocalParticipationCompleted);
-        let after_second = coordinator.snapshot();
+        let after_second = match coordinator.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        };
 
         // Assert
         if previous.local_participation_complete() || previous.readiness_exited() {
@@ -136,9 +151,15 @@ proptest! {
 
         // Act
         for input in inputs {
-            let previous = coordinator.snapshot();
+            let previous = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
             let _ = coordinator.process(input);
-            let current = coordinator.snapshot();
+            let current = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot,
+                _ => unreachable!(),
+            };
 
             // Assert
             assert_post_exit_inputs_do_not_change_any_field(previous, current)?;

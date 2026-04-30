@@ -5,6 +5,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
@@ -47,12 +48,15 @@ impl ScenarioNode {
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> Snapshot {
-        self.readiness.snapshot()
+    pub fn snapshot(&mut self) -> Snapshot {
+        match self.readiness.process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        }
     }
 
     #[must_use]
-    pub fn process(self, input: faction::command::Command) -> (Self, Vec<Outcome>) {
+    pub fn process(self, input: Command) -> (Self, Vec<Outcome>) {
         let mut readiness = self.readiness;
         let outputs = match readiness.process(input) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,

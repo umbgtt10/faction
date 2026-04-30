@@ -148,15 +148,23 @@ impl ClusterSimulation {
     }
 
     #[must_use]
-    pub fn all_exited(&self) -> bool {
-        self.nodes.iter().all(|n| n.snapshot().readiness_exited())
+    pub fn all_exited(&mut self) -> bool {
+        self.nodes
+            .iter_mut()
+            .all(|n| match n.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot.readiness_exited(),
+                _ => unreachable!(),
+            })
     }
 
     #[must_use]
-    pub fn all_exited_with(&self, mode: ReadinessExitMode) -> bool {
+    pub fn all_exited_with(&mut self, mode: ReadinessExitMode) -> bool {
         self.nodes
-            .iter()
-            .all(|n| n.snapshot().exit_mode() == Some(mode))
+            .iter_mut()
+            .all(|n| match n.process(Command::Probe) {
+                ProcessResult::Probed { snapshot, .. } => snapshot.exit_mode() == Some(mode),
+                _ => unreachable!(),
+            })
     }
 
     #[must_use]
@@ -165,12 +173,15 @@ impl ClusterSimulation {
     }
 
     #[must_use]
-    pub fn snapshot(&self, peer_id: PeerId) -> Snapshot {
+    pub fn snapshot(&mut self, peer_id: PeerId) -> Snapshot {
         let index = self
             .peer_ids
             .iter()
             .position(|p| *p == peer_id)
             .expect("peer is in the cluster");
-        self.nodes[index].snapshot()
+        match self.nodes[index].process(Command::Probe) {
+            ProcessResult::Probed { snapshot, .. } => snapshot,
+            _ => unreachable!(),
+        }
     }
 }

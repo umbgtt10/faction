@@ -43,11 +43,9 @@ impl Faction {
         }
 
         if !self.state.as_ref().unwrap().accept(&command) {
-            let snapshot = self.snapshot();
-            let admissible = self.state.as_ref().unwrap().admissible_commands();
             return ProcessResult::Rejected {
-                snapshot,
-                admissible,
+                snapshot: self.snapshot(),
+                admissible: self.state.as_ref().unwrap().admissible_commands(),
             };
         }
 
@@ -76,16 +74,16 @@ impl Faction {
     }
 
     #[must_use]
-    pub fn snapshot(&self) -> Snapshot {
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    #[must_use]
+    fn snapshot(&self) -> Snapshot {
         match self.cached_snapshot.get() {
             Some(snap) => snap,
             None => self.compute_snapshot(),
         }
-    }
-
-    #[must_use]
-    pub fn config(&self) -> &Config {
-        &self.config
     }
 
     fn base_snapshot(&self) -> Snapshot {
