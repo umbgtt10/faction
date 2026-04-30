@@ -125,7 +125,7 @@ pub enum Assert {
 
 pub fn verify(m: &mut Faction, checks: &[Assert]) {
     let s = match m.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     for check in checks {

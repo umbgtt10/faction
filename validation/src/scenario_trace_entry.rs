@@ -4,7 +4,7 @@
 
 use faction::command::Command;
 use faction::outcome::Outcome;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,7 +12,7 @@ pub struct ScenarioTraceEntry {
     node_id: PeerId,
     input: Command,
     outputs: alloc::vec::Vec<Outcome>,
-    snapshot: Snapshot,
+    cluster_view: ClusterView,
 }
 
 impl ScenarioTraceEntry {
@@ -21,13 +21,13 @@ impl ScenarioTraceEntry {
         node_id: PeerId,
         input: Command,
         outputs: alloc::vec::Vec<Outcome>,
-        snapshot: Snapshot,
+        cluster_view: ClusterView,
     ) -> Self {
         Self {
             node_id,
             input,
             outputs,
-            snapshot,
+            cluster_view,
         }
     }
 
@@ -47,7 +47,7 @@ impl ScenarioTraceEntry {
     }
 
     #[must_use]
-    pub const fn snapshot(&self) -> Snapshot {
-        self.snapshot
+    pub const fn cluster_view(&self) -> ClusterView {
+        self.cluster_view
     }
 }

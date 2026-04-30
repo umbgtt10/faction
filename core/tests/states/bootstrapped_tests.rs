@@ -16,8 +16,8 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
-use faction::state_snapshot::StateSnapshot;
+use faction::cluster_view::ClusterView;
+use faction::state_snapshot::StateClusterView;
 use faction::states::bootstrapped::Bootstrapped;
 
 fn reach_bootstrapped() -> Faction {
@@ -58,18 +58,18 @@ fn reach_bootstrapped() -> Faction {
 fn deal_rejects_participation_observed() {
     // Arrange & Act
     let mut faction = reach_bootstrapped();
-    let snapshot = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+    let cluster_view = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
     // Assert
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert!(snapshot.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn all_inputs_leave_state_unchanged() {
     // Arrange
     let mut faction = reach_bootstrapped();
     let snapshot_before = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -111,7 +111,7 @@ fn all_inputs_leave_state_unchanged() {
         ProcessResult::Rejected { .. } => vec![],
     };
     let snapshot_after = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -127,43 +127,40 @@ fn all_inputs_leave_state_unchanged() {
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
     let mut faction = reach_bootstrapped();
-    let snapshot = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+    let cluster_view = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
     // Assert
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert!(snapshot.local_participation_complete());
-    assert!(snapshot.readiness_exited());
-    assert_eq!(snapshot.phase1_confirmed_count(), 1);
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
-    assert_eq!(snapshot.quorum_threshold(), 4);
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert!(cluster_view.local_participation_complete());
+    assert!(cluster_view.readiness_exited());
+    assert_eq!(cluster_view.phase1_confirmed_count(), 1);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.quorum_threshold(), 4);
 }
 
 #[test]
-fn bootstrapped_state_snapshot_overrides_all_fields() {
+fn bootstrapped_cluster_view_overrides_all_fields() {
     // Arrange
     let rq = Bootstrapped {
         phase1_count: 2,
         phase2_count: 5,
     };
-    let prev = Snapshot::new(
+    let prev = ClusterView::new(
         ReadinessLifecycleState::Phase1Active,
-        None,
-        false,
-        false,
-        99,
+        false, 99,
         99,
         4,
     );
 
     // Act
-    let result = rq.state_snapshot(&prev);
+    let result = rq.cluster_view(&prev);
 
     // Assert
     assert_eq!(

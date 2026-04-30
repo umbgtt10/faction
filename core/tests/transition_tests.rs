@@ -9,28 +9,22 @@ use alloc::vec;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use faction::transition::Transition;
 
-fn snapshot(phase1: usize, phase2: usize) -> Snapshot {
-    Snapshot::new(
+fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
+    ClusterView::new(
         ReadinessLifecycleState::Phase1Active,
-        None,
-        false,
-        false,
-        phase1,
+        false, phase1,
         phase2,
         4,
     )
 }
 
-fn snapshot_exited() -> Snapshot {
-    Snapshot::new(
+fn snapshot_exited() -> ClusterView {
+    ClusterView::new(
         ReadinessLifecycleState::Bootstrapped,
-        Some(ReadinessExitMode::Bootstrapped),
-        true,
-        true,
-        3,
+        true, 3,
         5,
         4,
     )
@@ -39,36 +33,36 @@ fn snapshot_exited() -> Snapshot {
 #[test]
 fn new_stores_previous_state() {
     // Arrange
-    let prev = snapshot(1, 0);
-    let next = snapshot(1, 1);
+    let prev = cluster_view(1, 0);
+    let next = cluster_view(1, 1);
     let outputs = vec![Outcome::ParticipationAccepted { peer_id: 1 }];
 
     // Act
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    assert_eq!(transition.previous_state(), snapshot(1, 0));
+    assert_eq!(transition.previous_state(), cluster_view(1, 0));
 }
 
 #[test]
 fn new_stores_new_state() {
     // Arrange
-    let prev = snapshot(1, 0);
-    let next = snapshot(1, 1);
+    let prev = cluster_view(1, 0);
+    let next = cluster_view(1, 1);
     let outputs = vec![Outcome::ParticipationAccepted { peer_id: 1 }];
 
     // Act
     let transition = Transition::new(prev, outputs, next);
 
     // Assert
-    assert_eq!(transition.new_state(), snapshot(1, 1));
+    assert_eq!(transition.new_state(), cluster_view(1, 1));
 }
 
 #[test]
 fn new_stores_outputs() {
     // Arrange
-    let prev = snapshot(0, 0);
-    let next = snapshot(1, 0);
+    let prev = cluster_view(0, 0);
+    let next = cluster_view(1, 0);
     let outputs = vec![
         Outcome::LocalParticipationCompleted,
         Outcome::BroadcastLocalReady,
@@ -84,8 +78,8 @@ fn new_stores_outputs() {
 #[test]
 fn new_handles_empty_outputs() {
     // Arrange
-    let prev = snapshot(0, 0);
-    let next = snapshot(0, 1);
+    let prev = cluster_view(0, 0);
+    let next = cluster_view(0, 1);
     let outputs = vec![];
 
     // Act
@@ -99,7 +93,7 @@ fn new_handles_empty_outputs() {
 fn previous_state_preserves_full_snapshot() {
     // Arrange
     let prev = snapshot_exited();
-    let next = snapshot(0, 0);
+    let next = cluster_view(0, 0);
     let outputs = vec![];
 
     // Act
@@ -121,7 +115,7 @@ fn previous_state_preserves_full_snapshot() {
 #[test]
 fn new_state_preserves_full_snapshot() {
     // Arrange
-    let prev = snapshot(0, 0);
+    let prev = cluster_view(0, 0);
     let next = snapshot_exited();
 
     // Act
@@ -143,8 +137,8 @@ fn new_state_preserves_full_snapshot() {
 #[test]
 fn outputs_are_immutable() {
     // Arrange
-    let prev = snapshot(0, 0);
-    let next = snapshot(1, 0);
+    let prev = cluster_view(0, 0);
+    let next = cluster_view(1, 0);
     let outputs = vec![Outcome::ReadyAccepted { peer_id: 1 }];
 
     // Act
@@ -161,8 +155,8 @@ fn outputs_are_immutable() {
 #[test]
 fn clone_produces_equal_transition() {
     // Arrange
-    let prev = snapshot(1, 0);
-    let next = snapshot(1, 2);
+    let prev = cluster_view(1, 0);
+    let next = cluster_view(1, 2);
     let outputs = vec![
         Outcome::ReadyAccepted { peer_id: 3 },
         Outcome::ReadyQuorumReached,
@@ -184,7 +178,7 @@ fn clone_produces_equal_transition() {
 #[test]
 fn debug_format_does_not_panic() {
     // Arrange
-    let transition = Transition::new(snapshot(0, 0), vec![], snapshot(1, 1));
+    let transition = Transition::new(cluster_view(0, 0), vec![], cluster_view(1, 1));
 
     // Act & Assert
     let _ = format!("{:?}", transition);

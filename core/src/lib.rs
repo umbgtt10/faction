@@ -10,6 +10,7 @@ pub mod freshness_classification;
 pub mod freshness_policy;
 pub mod no_op_observer;
 
+pub mod cluster_view;
 pub mod command;
 pub mod config;
 pub mod faction;
@@ -19,7 +20,6 @@ pub mod process_result;
 pub mod quorum_policy;
 pub mod readiness_exit_mode;
 pub mod readiness_lifecycle_state;
-pub mod snapshot;
 pub mod state;
 pub mod state_snapshot;
 pub mod states;

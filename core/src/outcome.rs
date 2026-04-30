@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 use crate::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,5 +21,5 @@ pub enum Outcome {
     BroadcastLocalReady,
     ReadyQuorumReached,
     ReadinessExited { mode: ReadinessExitMode },
-    SnapshotAvailable(Snapshot),
+    ClusterViewAvailable(ClusterView),
 }

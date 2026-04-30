@@ -17,7 +17,7 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
@@ -84,8 +84,8 @@ fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
 }
 
 fn assert_counts_do_not_decrease(
-    previous: Snapshot,
-    current: Snapshot,
+    previous: ClusterView,
+    current: ClusterView,
 ) -> Result<(), TestCaseError> {
     prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
     prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
@@ -93,8 +93,8 @@ fn assert_counts_do_not_decrease(
 }
 
 fn assert_stale_outputs_do_not_mutate_state(
-    previous: Snapshot,
-    current: Snapshot,
+    previous: ClusterView,
+    current: ClusterView,
     outputs: &[Outcome],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_stale(outputs) {
@@ -118,8 +118,8 @@ fn assert_stale_outputs_do_not_mutate_state(
 }
 
 fn assert_non_member_outputs_do_not_mutate_state(
-    previous: Snapshot,
-    current: Snapshot,
+    previous: ClusterView,
+    current: ClusterView,
     outputs: &[Outcome],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_non_member(outputs) {
@@ -143,8 +143,8 @@ fn assert_non_member_outputs_do_not_mutate_state(
 }
 
 fn assert_duplicate_outputs_do_not_mutate_counts(
-    previous: Snapshot,
-    current: Snapshot,
+    previous: ClusterView,
+    current: ClusterView,
     outputs: &[Outcome],
 ) -> Result<(), TestCaseError> {
     if outputs_contain_duplicate(outputs) {
@@ -177,15 +177,15 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+            let cluster_view = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
             // Assert
             if let Some(mode) = exited_mode {
-                prop_assert_eq!(snapshot.exit_mode(), Some(mode));
-            } else if let Some(mode) = snapshot.exit_mode() {
+                prop_assert_eq!(cluster_view.exit_mode(), Some(mode));
+            } else if let Some(mode) = cluster_view.exit_mode() {
                 exited_mode = Some(mode);
             }
         }
@@ -200,24 +200,24 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+            let cluster_view = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
             // Assert
-            if snapshot.readiness_exited() {
+            if cluster_view.readiness_exited() {
                 has_exited = true;
                 prop_assert!(matches!(
-                    snapshot.lifecycle_state(),
+                    cluster_view.lifecycle_state(),
                     ReadinessLifecycleState::Bootstrapped | ReadinessLifecycleState::TimedOut
                 ));
             }
 
             if has_exited {
-                prop_assert!(snapshot.readiness_exited());
+                prop_assert!(cluster_view.readiness_exited());
                 prop_assert!(matches!(
-                    snapshot.lifecycle_state(),
+                    cluster_view.lifecycle_state(),
                     ReadinessLifecycleState::Bootstrapped | ReadinessLifecycleState::TimedOut
                 ));
             }
@@ -229,7 +229,7 @@ proptest! {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
-    ProcessResult::Probed { snapshot, .. } => snapshot,
+    ProcessResult::Probed { cluster_view, .. } => cluster_view,
     _ => unreachable!(),
 };
 
@@ -237,7 +237,7 @@ proptest! {
         for input in inputs {
             let _ = coordinator.process(input);
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
@@ -252,7 +252,7 @@ proptest! {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
-    ProcessResult::Probed { snapshot, .. } => snapshot,
+    ProcessResult::Probed { cluster_view, .. } => cluster_view,
     _ => unreachable!(),
 };
 
@@ -260,7 +260,7 @@ proptest! {
         for input in inputs {
             let _ = coordinator.process(input);
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
@@ -278,7 +278,7 @@ proptest! {
         // Act
         for input in inputs {
             let previous = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let batch = match coordinator.process(input) {
@@ -287,7 +287,7 @@ proptest! {
                 ProcessResult::Rejected { .. } => vec![],
             };
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
@@ -305,7 +305,7 @@ proptest! {
         // Act
         for input in inputs {
             let previous = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let batch = match coordinator.process(input) {
@@ -314,7 +314,7 @@ proptest! {
                 ProcessResult::Rejected { .. } => vec![],
             };
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
@@ -333,12 +333,12 @@ proptest! {
         // Act
         for input in inputs {
             let previous = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let _ = coordinator.process(input);
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
@@ -363,7 +363,7 @@ proptest! {
         // Act
         for input in inputs {
             let previous = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let batch = match coordinator.process(input) {
@@ -372,7 +372,7 @@ proptest! {
                 ProcessResult::Rejected { .. } => vec![],
             };
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
@@ -390,17 +390,17 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+            let cluster_view = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
             // Assert
-            if snapshot.exit_mode() == Some(ReadinessExitMode::Bootstrapped) {
-                prop_assert!(snapshot.local_participation_complete());
-                prop_assert!(snapshot.readiness_exited());
+            if cluster_view.exit_mode() == Some(ReadinessExitMode::Bootstrapped) {
+                prop_assert!(cluster_view.local_participation_complete());
+                prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
-                    snapshot.lifecycle_state(),
+                    cluster_view.lifecycle_state(),
                     ReadinessLifecycleState::Bootstrapped
                 );
             }
@@ -415,16 +415,16 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+            let cluster_view = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
             // Assert
-            if snapshot.exit_mode() == Some(ReadinessExitMode::TimedOut) {
-                prop_assert!(snapshot.readiness_exited());
+            if cluster_view.exit_mode() == Some(ReadinessExitMode::TimedOut) {
+                prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
-                    snapshot.lifecycle_state(),
+                    cluster_view.lifecycle_state(),
                     ReadinessLifecycleState::TimedOut
                 );
             }

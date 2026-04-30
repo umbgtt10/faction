@@ -6,32 +6,26 @@ use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Snapshot {
+pub struct ClusterView {
     lifecycle_state: ReadinessLifecycleState,
-    exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
-    readiness_exited: bool,
     phase1_confirmed_count: usize,
     phase2_confirmed_count: usize,
     quorum_threshold: usize,
 }
 
-impl Snapshot {
+impl ClusterView {
     #[must_use]
     pub const fn new(
         lifecycle_state: ReadinessLifecycleState,
-        exit_mode: Option<ReadinessExitMode>,
         local_participation_complete: bool,
-        readiness_exited: bool,
         phase1_confirmed_count: usize,
         phase2_confirmed_count: usize,
         quorum_threshold: usize,
     ) -> Self {
         Self {
             lifecycle_state,
-            exit_mode,
             local_participation_complete,
-            readiness_exited,
             phase1_confirmed_count,
             phase2_confirmed_count,
             quorum_threshold,
@@ -45,7 +39,11 @@ impl Snapshot {
 
     #[must_use]
     pub const fn exit_mode(&self) -> Option<ReadinessExitMode> {
-        self.exit_mode
+        match self.lifecycle_state {
+            ReadinessLifecycleState::Bootstrapped => Some(ReadinessExitMode::Bootstrapped),
+            ReadinessLifecycleState::TimedOut => Some(ReadinessExitMode::TimedOut),
+            _ => None,
+        }
     }
 
     #[must_use]
@@ -55,7 +53,10 @@ impl Snapshot {
 
     #[must_use]
     pub const fn readiness_exited(&self) -> bool {
-        self.readiness_exited
+        matches!(
+            self.lifecycle_state,
+            ReadinessLifecycleState::Bootstrapped | ReadinessLifecycleState::TimedOut
+        )
     }
 
     #[must_use]
@@ -80,20 +81,8 @@ impl Snapshot {
     }
 
     #[must_use]
-    pub const fn with_exit_mode(mut self, mode: Option<ReadinessExitMode>) -> Self {
-        self.exit_mode = mode;
-        self
-    }
-
-    #[must_use]
     pub const fn with_local_participation_complete(mut self, val: bool) -> Self {
         self.local_participation_complete = val;
-        self
-    }
-
-    #[must_use]
-    pub const fn with_readiness_exited(mut self, val: bool) -> Self {
-        self.readiness_exited = val;
         self
     }
 

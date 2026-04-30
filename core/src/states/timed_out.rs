@@ -9,23 +9,20 @@ use alloc::vec::Vec;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
-use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateSnapshot;
+use crate::state_snapshot::StateClusterView;
 
 pub struct TimedOut {
     pub phase1_count: usize,
     pub phase2_count: usize,
 }
 
-impl StateSnapshot for TimedOut {
-    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
+impl StateClusterView for TimedOut {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::TimedOut)
-            .with_exit_mode(Some(ReadinessExitMode::TimedOut))
-            .with_readiness_exited(true)
             .with_phase1_count(self.phase1_count)
             .with_phase2_count(self.phase2_count)
     }

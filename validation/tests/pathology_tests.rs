@@ -21,16 +21,16 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
 
     // Act
     let outputs = harness.apply_ready(0, 2, 7);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
-    assert_eq!(snapshot.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert!(!snapshot.readiness_exited());
+    assert!(!cluster_view.readiness_exited());
 }
 
 #[test]
@@ -43,16 +43,16 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
 
     // Act
     let outputs = harness.apply_ready(0, 1, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
-    assert_eq!(snapshot.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert!(!snapshot.readiness_exited());
+    assert!(!cluster_view.readiness_exited());
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
     let delayed_outputs = harness.apply_ready(0, 2, 8);
     let stale_outputs = harness.apply_ready(0, 3, 7);
     let duplicate_outputs = harness.apply_ready(0, 1, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(
@@ -82,12 +82,12 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
         duplicate_outputs,
         vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(snapshot.phase2_confirmed_count(), 3);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 3);
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert!(!snapshot.readiness_exited());
+    assert!(!cluster_view.readiness_exited());
 }
 
 #[test]
@@ -119,9 +119,9 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
             },
         ]
     );
-    let snapshot = harness.snapshot(0);
-    assert!(snapshot.readiness_exited());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    let cluster_view = harness.cluster_view(0);
+    assert!(cluster_view.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
 }
 
 #[test]
@@ -134,14 +134,14 @@ fn non_member_signal_does_not_perturb_multi_node_state() {
 
     // Act
     let outputs = harness.apply_ready(0, 99, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(snapshot.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert!(!snapshot.readiness_exited());
+    assert!(!cluster_view.readiness_exited());
 }

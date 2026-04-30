@@ -9,7 +9,7 @@ use crate::config::Config;
 use crate::observer::Observer;
 use crate::process_result::ProcessResult;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 use crate::state::State;
 use crate::states::initial::Initial;
 use crate::transition::Transition;
@@ -18,28 +18,25 @@ pub struct Faction {
     config: Config,
     observer: Box<dyn Observer>,
     state: Box<dyn State>,
-    snapshot: Snapshot,
+    cluster_view: ClusterView,
 }
 
 impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
-        let base = Snapshot::new(
+        let base = ClusterView::new(
             ReadinessLifecycleState::Phase1Active,
-            None,
-            false,
-            false,
-            0,
+            false, 0,
             0,
             config.quorum_threshold(),
         );
-        let snapshot = state.state_snapshot(&base);
+        let cluster_view = state.cluster_view(&base);
         Self {
             config,
             observer,
             state,
-            snapshot,
+            cluster_view,
         }
     }
 
@@ -47,31 +44,31 @@ impl Faction {
     pub fn process(&mut self, command: Command) -> ProcessResult {
         if let Command::Probe = command {
             return ProcessResult::Probed {
-                snapshot: self.snapshot,
+                cluster_view: self.cluster_view,
                 admissible: self.state.admissible_commands(),
             };
         }
 
         if !self.state.accept(&command) {
             return ProcessResult::Rejected {
-                snapshot: self.snapshot,
+                cluster_view: self.cluster_view,
                 admissible: self.state.admissible_commands(),
             };
         }
 
-        let previous_snapshot = self.snapshot;
+        let previous_snapshot = self.cluster_view;
 
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
-        let new_snapshot = self.state.state_snapshot(&previous_snapshot);
-        self.snapshot = new_snapshot;
+        let new_snapshot = self.state.cluster_view(&previous_snapshot);
+        self.cluster_view = new_snapshot;
 
         let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(command, transition);
         ProcessResult::Accepted {
             outcomes: outputs,
-            snapshot: new_snapshot,
+            cluster_view: new_snapshot,
         }
     }
 

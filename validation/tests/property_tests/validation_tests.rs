@@ -137,7 +137,7 @@ proptest! {
         // Act
         for operation in operations {
             let previous_snapshots = (0..5)
-                .map(|index| harness.snapshot(index))
+                .map(|index| harness.cluster_view(index))
                 .collect::<Vec<_>>();
             let result = apply_operation(&mut harness, operation);
 
@@ -145,7 +145,7 @@ proptest! {
             if let Some((coordinator_index, outputs)) = result {
                 if outputs_contain_duplicate(&outputs) {
                     let previous = previous_snapshots[coordinator_index];
-                    let current = harness.snapshot(coordinator_index);
+                    let current = harness.cluster_view(coordinator_index);
                     prop_assert_eq!(
                         current.phase1_confirmed_count(),
                         previous.phase1_confirmed_count()
@@ -176,7 +176,7 @@ proptest! {
         // Act
         for operation in operations {
             let previous_snapshots = (0..5)
-                .map(|index| harness.snapshot(index))
+                .map(|index| harness.cluster_view(index))
                 .collect::<Vec<_>>();
             let result = apply_operation(&mut harness, operation);
 
@@ -184,7 +184,7 @@ proptest! {
             if let Some((coordinator_index, outputs)) = result {
                 if outputs_contain_stale(&outputs) {
                     let previous = previous_snapshots[coordinator_index];
-                    let current = harness.snapshot(coordinator_index);
+                    let current = harness.cluster_view(coordinator_index);
                     prop_assert_eq!(
                         current.phase1_confirmed_count(),
                         previous.phase1_confirmed_count()
@@ -219,20 +219,20 @@ proptest! {
 
             // Assert
             for (index, has_exited) in exited.iter_mut().enumerate() {
-                let snapshot = harness.snapshot(index);
-                if snapshot.readiness_exited() {
+                let cluster_view = harness.cluster_view(index);
+                if cluster_view.readiness_exited() {
                     *has_exited = true;
                     prop_assert!(matches!(
-                        snapshot.lifecycle_state(),
+                        cluster_view.lifecycle_state(),
                         ReadinessLifecycleState::Bootstrapped
                             | ReadinessLifecycleState::TimedOut
                     ));
                 }
 
                 if *has_exited {
-                    prop_assert!(snapshot.readiness_exited());
+                    prop_assert!(cluster_view.readiness_exited());
                     prop_assert!(matches!(
-                        snapshot.lifecycle_state(),
+                        cluster_view.lifecycle_state(),
                         ReadinessLifecycleState::Bootstrapped
                             | ReadinessLifecycleState::TimedOut
                     ));

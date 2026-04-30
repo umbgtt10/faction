@@ -14,7 +14,7 @@ use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
@@ -57,8 +57,8 @@ fn input_strategy() -> impl Strategy<Value = Command> {
 }
 
 fn assert_post_exit_inputs_do_not_change_any_field(
-    previous: Snapshot,
-    current: Snapshot,
+    previous: ClusterView,
+    current: ClusterView,
 ) -> Result<(), TestCaseError> {
     if previous.readiness_exited() {
         prop_assert_eq!(current, previous);
@@ -75,14 +75,14 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+            let cluster_view = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
             // Assert
-            prop_assert!(snapshot.phase1_confirmed_count() <= 5);
-            prop_assert!(snapshot.phase2_confirmed_count() <= 5);
+            prop_assert!(cluster_view.phase1_confirmed_count() <= 5);
+            prop_assert!(cluster_view.phase2_confirmed_count() <= 5);
         }
     }
 
@@ -94,13 +94,13 @@ proptest! {
         // Act
         for input in inputs {
             let _ = coordinator.process(input);
-            let snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+            let cluster_view = match coordinator.process(Command::Probe) {
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 
             // Assert
-            prop_assert_eq!(snapshot.quorum_threshold(), 4);
+            prop_assert_eq!(cluster_view.quorum_threshold(), 4);
         }
     }
 
@@ -117,17 +117,17 @@ proptest! {
         }
 
         let previous = match coordinator.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
         let first_status = coordinator.process(Command::LocalParticipationCompleted);
         let after_first = match coordinator.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
         let second_status = coordinator.process(Command::LocalParticipationCompleted);
         let after_second = match coordinator.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
 
@@ -152,12 +152,12 @@ proptest! {
         // Act
         for input in inputs {
             let previous = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let _ = coordinator.process(input);
             let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
 

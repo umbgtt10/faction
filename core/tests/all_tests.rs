@@ -8,7 +8,7 @@ pub mod freshness_policy_tests;
 pub mod observer_tests;
 pub mod property_tests;
 pub mod quorum_policy_tests;
-pub mod snapshot_tests;
+pub mod cluster_view_tests;
 pub mod states;
 pub mod transition_matrix;
 pub mod transition_tests;

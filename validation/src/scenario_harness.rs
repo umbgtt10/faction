@@ -15,7 +15,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 pub struct ScenarioHarness {
@@ -67,9 +67,9 @@ impl ScenarioHarness {
         self.coordinators.len()
     }
 
-    pub fn snapshot(&mut self, coordinator_index: usize) -> Snapshot {
+    pub fn cluster_view(&mut self, coordinator_index: usize) -> ClusterView {
         match self.coordinators[coordinator_index].process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         }
     }

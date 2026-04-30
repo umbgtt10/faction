@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 
-pub trait StateSnapshot {
-    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot;
+pub trait StateClusterView {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView;
 }

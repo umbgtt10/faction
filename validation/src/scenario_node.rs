@@ -12,7 +12,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 pub struct ScenarioNode {
@@ -48,9 +48,9 @@ impl ScenarioNode {
     }
 
     #[must_use]
-    pub fn snapshot(&mut self) -> Snapshot {
+    pub fn cluster_view(&mut self) -> ClusterView {
         match self.readiness.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         }
     }

@@ -11,9 +11,9 @@ use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateSnapshot;
+use crate::state_snapshot::StateClusterView;
 
 use super::collecting::Collecting;
 use super::compute_output::ObservedKind;
@@ -37,8 +37,8 @@ impl Pinging {
     }
 }
 
-impl StateSnapshot for Pinging {
-    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
+impl StateClusterView for Pinging {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
             .with_phase1_count(self.phase1.count())

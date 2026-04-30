@@ -16,8 +16,8 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
-use faction::state_snapshot::StateSnapshot;
+use faction::cluster_view::ClusterView;
+use faction::state_snapshot::StateClusterView;
 use faction::states::timed_out::TimedOut;
 
 fn make_faction() -> Faction {
@@ -60,7 +60,7 @@ fn deal_rejects_participation_observed() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -76,7 +76,7 @@ fn deal_rejects_participation_observed() {
     };
     assert_eq!(
         match f.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -88,7 +88,7 @@ fn deal_rejects_ready_observed() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -104,7 +104,7 @@ fn deal_rejects_ready_observed() {
     };
     assert_eq!(
         match f.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -116,7 +116,7 @@ fn deal_rejects_local_participation_completed() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -128,7 +128,7 @@ fn deal_rejects_local_participation_completed() {
     };
     assert_eq!(
         match f.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -140,7 +140,7 @@ fn deal_rejects_deadline_expired() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -152,7 +152,7 @@ fn deal_rejects_deadline_expired() {
     };
     assert_eq!(
         match f.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -164,7 +164,7 @@ fn vibe_check_after_deadline_from_phase1() {
     // Arrange & Act
     let mut f = reach_deadline_from_phase1();
     let s = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -185,7 +185,7 @@ fn vibe_check_after_deadline_from_phase2() {
     // Arrange & Act
     let mut f = reach_deadline_from_phase2();
     let s = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -206,7 +206,7 @@ fn post_deadline_inputs_leave_state_unchanged() {
     // Arrange
     let mut f = reach_deadline_from_phase1();
     let snapshot_before = match f.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -227,7 +227,7 @@ fn post_deadline_inputs_leave_state_unchanged() {
     // Assert
     assert_eq!(
         match f.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snapshot_before
@@ -235,24 +235,21 @@ fn post_deadline_inputs_leave_state_unchanged() {
 }
 
 #[test]
-fn timed_out_state_snapshot_inherits_local_completion_from_phase1() {
+fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
     // Arrange
     let rbd = TimedOut {
         phase1_count: 3,
         phase2_count: 1,
     };
-    let prev = Snapshot::new(
+    let prev = ClusterView::new(
         ReadinessLifecycleState::Phase1Active,
-        Some(ReadinessExitMode::TimedOut),
-        false,
-        false,
-        99,
+        false, 99,
         99,
         4,
     );
 
     // Act
-    let result = rbd.state_snapshot(&prev);
+    let result = rbd.cluster_view(&prev);
 
     // Assert
     assert_eq!(
@@ -268,24 +265,21 @@ fn timed_out_state_snapshot_inherits_local_completion_from_phase1() {
 }
 
 #[test]
-fn timed_out_state_snapshot_inherits_local_completion_from_phase2() {
+fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
     // Arrange
     let rbd = TimedOut {
         phase1_count: 2,
         phase2_count: 4,
     };
-    let prev = Snapshot::new(
+    let prev = ClusterView::new(
         ReadinessLifecycleState::Phase2Active,
-        Some(ReadinessExitMode::TimedOut),
-        true,
-        false,
-        99,
+        true, 99,
         99,
         4,
     );
 
     // Act
-    let result = rbd.state_snapshot(&prev);
+    let result = rbd.cluster_view(&prev);
 
     // Assert
     assert_eq!(

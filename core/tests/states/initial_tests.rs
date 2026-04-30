@@ -15,10 +15,9 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
-use faction::state_snapshot::StateSnapshot;
+use faction::cluster_view::ClusterView;
+use faction::state_snapshot::StateClusterView;
 use faction::states::initial::Initial;
 
 fn test_machine() -> Faction {
@@ -51,7 +50,7 @@ fn deal_accepts_participation_observed() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -83,7 +82,7 @@ fn deal_accepts_ready_observed() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
@@ -107,7 +106,7 @@ fn deal_rejects_local_participation_completed() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -130,7 +129,7 @@ fn deal_rejects_deadline_expired() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -164,7 +163,7 @@ fn stays_in_initial_after_rejected_input() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -195,7 +194,7 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -227,7 +226,7 @@ fn punch_participation_non_member_from_initial() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
@@ -256,7 +255,7 @@ fn punch_participation_delayed_from_initial() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -284,7 +283,7 @@ fn punch_ready_non_member_from_initial() {
 
     // Assert
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
@@ -296,7 +295,7 @@ fn vibe_check_returns_phase1_active_with_zeros() {
     // Arrange & Act
     let mut faction = test_machine();
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -314,20 +313,12 @@ fn vibe_check_returns_phase1_active_with_zeros() {
 }
 
 #[test]
-fn initial_state_snapshot_inherits_correctly() {
+fn initial_cluster_view_inherits_correctly() {
     // Arrange
-    let prev = Snapshot::new(
-        ReadinessLifecycleState::Phase2Active,
-        Some(ReadinessExitMode::TimedOut),
-        true,
-        true,
-        99,
-        99,
-        4,
-    );
+    let prev = ClusterView::new(ReadinessLifecycleState::Phase2Active, true, 99, 99, 4);
 
     // Act
-    let result = Initial.state_snapshot(&prev);
+    let result = Initial.cluster_view(&prev);
 
     // Assert
     assert_eq!(
@@ -336,7 +327,7 @@ fn initial_state_snapshot_inherits_correctly() {
     );
     assert_eq!(result.phase1_confirmed_count(), 0);
     assert_eq!(result.phase2_confirmed_count(), 0);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(result.exit_mode(), None);
     assert!(result.local_participation_complete());
-    assert!(result.readiness_exited());
+    assert!(!result.readiness_exited());
 }

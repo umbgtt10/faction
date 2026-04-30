@@ -20,16 +20,16 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
 
     // Act
     let outputs = harness.apply_ready(0, 1, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
-    assert_eq!(snapshot.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert!(!snapshot.readiness_exited());
+    assert!(!cluster_view.readiness_exited());
 }
 
 #[test]
@@ -41,12 +41,12 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
 
     // Act
     let outputs = harness.apply_ready(0, 1, 8);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
-    assert_eq!(snapshot.phase2_confirmed_count(), 2);
-    assert!(!snapshot.readiness_exited());
+    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
+    assert!(!cluster_view.readiness_exited());
 }
 
 #[test]
@@ -58,16 +58,16 @@ fn apply_ready_rejects_stale_member_observation() {
 
     // Act
     let outputs = harness.apply_ready(0, 1, 7);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
-    assert_eq!(snapshot.phase2_confirmed_count(), 1);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 1);
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
     );
-    assert!(!snapshot.readiness_exited());
+    assert!(!cluster_view.readiness_exited());
 }
 
 #[test]
@@ -81,7 +81,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
 
     // Act
     let outputs = harness.apply_ready(0, 3, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(
@@ -94,13 +94,13 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
             },
         ]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert!(snapshot.readiness_exited());
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
+    assert!(cluster_view.readiness_exited());
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
 }
 
 #[test]
@@ -114,7 +114,7 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
 
     // Act
     let outputs = harness.apply_ready(0, 3, 8);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(
@@ -127,9 +127,9 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
             },
         ]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
-    assert!(snapshot.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -144,13 +144,13 @@ fn post_exit_ready_is_ignored() {
 
     // Act
     let outputs = harness.apply_ready(0, 4, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
-    assert!(snapshot.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -195,8 +195,8 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
             },
         ]
     );
-    let snapshot_0 = harness.snapshot(0);
-    let snapshot_1 = harness.snapshot(1);
+    let snapshot_0 = harness.cluster_view(0);
+    let snapshot_1 = harness.cluster_view(1);
     assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot_0.readiness_exited());
@@ -219,7 +219,7 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     let outputs_peer_1 = harness.apply_ready(0, 1, 10);
     let outputs_peer_2 = harness.apply_ready(0, 2, 10);
     let outputs_peer_3 = harness.apply_ready(0, 3, 10);
-    let intermediate_snapshot = harness.snapshot(0);
+    let intermediate_snapshot = harness.cluster_view(0);
 
     // Act
     let outputs = harness.complete_local_participation(0);
@@ -246,8 +246,8 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
             },
         ]
     );
-    let snapshot = harness.snapshot(0);
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert!(snapshot.readiness_exited());
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
+    let cluster_view = harness.cluster_view(0);
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert!(cluster_view.readiness_exited());
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
 }

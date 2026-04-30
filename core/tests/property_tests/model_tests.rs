@@ -16,7 +16,7 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,7 +28,7 @@ enum ModelLifecycleState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ModelSnapshot {
+struct ModelClusterView {
     lifecycle_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
@@ -71,8 +71,8 @@ impl ModelCoordinator {
         }
     }
 
-    fn snapshot(&self) -> ModelSnapshot {
-        ModelSnapshot {
+    fn cluster_view(&self) -> ModelClusterView {
+        ModelClusterView {
             lifecycle_state: self.lifecycle_state,
             exit_mode: self.exit_mode,
             local_participation_complete: self.local_participation_complete,
@@ -271,20 +271,20 @@ impl ModelCoordinator {
     }
 }
 
-fn model_snapshot(snapshot: Snapshot) -> ModelSnapshot {
-    ModelSnapshot {
-        lifecycle_state: match snapshot.lifecycle_state() {
+fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
+    ModelClusterView {
+        lifecycle_state: match cluster_view.lifecycle_state() {
             ReadinessLifecycleState::Phase1Active => ModelLifecycleState::Phase1Active,
             ReadinessLifecycleState::Phase2Active => ModelLifecycleState::Phase2Active,
             ReadinessLifecycleState::Bootstrapped => ModelLifecycleState::Bootstrapped,
             ReadinessLifecycleState::TimedOut => ModelLifecycleState::TimedOut,
         },
-        exit_mode: snapshot.exit_mode(),
-        local_participation_complete: snapshot.local_participation_complete(),
-        readiness_exited: snapshot.readiness_exited(),
-        phase1_confirmed_count: snapshot.phase1_confirmed_count(),
-        phase2_confirmed_count: snapshot.phase2_confirmed_count(),
-        quorum_threshold: snapshot.quorum_threshold(),
+        exit_mode: cluster_view.exit_mode(),
+        local_participation_complete: cluster_view.local_participation_complete(),
+        readiness_exited: cluster_view.readiness_exited(),
+        phase1_confirmed_count: cluster_view.phase1_confirmed_count(),
+        phase2_confirmed_count: cluster_view.phase2_confirmed_count(),
+        quorum_threshold: cluster_view.quorum_threshold(),
     }
 }
 
@@ -344,11 +344,11 @@ proptest! {
                 ProcessResult::Rejected { .. } => vec![],
             };
             let actual_snapshot = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot,
+                ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
             let expected_outputs = model.process(input);
-            let expected_snapshot = model.snapshot();
+            let expected_snapshot = model.cluster_view();
 
             // Assert
             prop_assert_eq!(actual_outputs.as_slice(), expected_outputs.as_slice());

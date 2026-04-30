@@ -10,15 +10,15 @@ use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateSnapshot;
+use crate::state_snapshot::StateClusterView;
 use crate::states::pinging::Pinging;
 
 pub struct Initial;
 
-impl StateSnapshot for Initial {
-    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
+impl StateClusterView for Initial {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
             .with_phase1_count(0)

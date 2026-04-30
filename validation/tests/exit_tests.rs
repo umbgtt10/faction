@@ -22,7 +22,7 @@ fn slow_member_does_not_block_quorum_exit() {
 
     // Act
     let outputs = harness.apply_ready(0, 3, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(
@@ -35,9 +35,9 @@ fn slow_member_does_not_block_quorum_exit() {
             },
         ]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
-    assert!(snapshot.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn expire_deadline_exits_by_deadline() {
 
     // Act
     let outputs = harness.expire_deadline(0);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(
@@ -57,12 +57,12 @@ fn expire_deadline_exits_by_deadline() {
             mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert!(snapshot.readiness_exited());
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -77,13 +77,13 @@ fn post_exit_ready_is_ignored() {
 
     // Act
     let outputs = harness.apply_ready(0, 4, 10);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
-    assert!(snapshot.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -95,16 +95,16 @@ fn repeated_deadline_expiry_remains_idempotent() {
 
     // Act
     let outputs = harness.expire_deadline(0);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert!(snapshot.readiness_exited());
+    assert!(cluster_view.readiness_exited());
 }
 
 #[test]
@@ -130,14 +130,14 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
             mode: ReadinessExitMode::TimedOut,
         }]
     );
-    let snapshot = harness.snapshot(0);
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    let cluster_view = harness.cluster_view(0);
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert!(snapshot.readiness_exited());
-    assert_eq!(snapshot.phase2_confirmed_count(), 3);
+    assert!(cluster_view.readiness_exited());
+    assert_eq!(cluster_view.phase2_confirmed_count(), 3);
 }
 
 #[test]
@@ -167,9 +167,9 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     assert!(outputs_0.is_empty());
     assert!(outputs_1.is_empty());
     assert!(outputs_2.is_empty());
-    let snapshot_0 = harness.snapshot(0);
-    let snapshot_1 = harness.snapshot(1);
-    let snapshot_2 = harness.snapshot(2);
+    let snapshot_0 = harness.cluster_view(0);
+    let snapshot_1 = harness.cluster_view(1);
+    let snapshot_2 = harness.cluster_view(2);
     assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snapshot_0.readiness_exited());
     assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
@@ -187,7 +187,7 @@ fn deadline_from_phase1() {
 
     // Act
     let outputs = harness.expire_deadline(0);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(
@@ -196,15 +196,15 @@ fn deadline_from_phase1() {
             mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::TimedOut
     );
-    assert!(snapshot.readiness_exited());
-    assert!(!snapshot.local_participation_complete());
-    assert_eq!(snapshot.phase1_confirmed_count(), 1);
-    assert_eq!(snapshot.phase2_confirmed_count(), 0);
+    assert!(cluster_view.readiness_exited());
+    assert!(!cluster_view.local_participation_complete());
+    assert_eq!(cluster_view.phase1_confirmed_count(), 1);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 0);
 }
 
 #[test]
@@ -219,11 +219,11 @@ fn deadline_from_bootstrapped_is_noop() {
 
     // Act
     let outputs = harness.expire_deadline(0);
-    let snapshot = harness.snapshot(0);
+    let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert_eq!(snapshot.phase2_confirmed_count(), 4);
-    assert!(snapshot.readiness_exited());
+    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert!(cluster_view.readiness_exited());
 }

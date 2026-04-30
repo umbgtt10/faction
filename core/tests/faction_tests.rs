@@ -29,21 +29,21 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     let mut faction = Faction::new(config, observer);
 
     // Act
-    let snapshot = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+    let cluster_view = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => panic!("expected Probed"),
     };
 
     // Assert
     assert_eq!(
-        snapshot.lifecycle_state(),
+        cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
     );
-    assert_eq!(snapshot.exit_mode(), None);
-    assert!(!snapshot.local_participation_complete());
-    assert!(!snapshot.readiness_exited());
-    assert_eq!(snapshot.phase1_confirmed_count(), 0);
-    assert_eq!(snapshot.phase2_confirmed_count(), 0);
+    assert_eq!(cluster_view.exit_mode(), None);
+    assert!(!cluster_view.local_participation_complete());
+    assert!(!cluster_view.readiness_exited());
+    assert_eq!(cluster_view.phase1_confirmed_count(), 0);
+    assert_eq!(cluster_view.phase2_confirmed_count(), 0);
 }
 
 #[test]
@@ -60,12 +60,12 @@ fn get_snapshot_does_not_mutate_state() {
 
     // Act
     let first = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     let _ = faction.process(Command::Probe);
     let second = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -91,11 +91,11 @@ fn get_snapshot_works_after_valid_inputs() {
     });
 
     // Act
-    let snapshot = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+    let cluster_view = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => panic!("expected Probed"),
     };
 
     // Assert
-    assert_eq!(snapshot.phase1_confirmed_count(), 1);
+    assert_eq!(cluster_view.phase1_confirmed_count(), 1);
 }

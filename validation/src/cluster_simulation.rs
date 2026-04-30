@@ -18,7 +18,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::snapshot::Snapshot;
+use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 pub struct ClusterSimulation {
@@ -152,7 +152,7 @@ impl ClusterSimulation {
         self.nodes
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot.readiness_exited(),
+                ProcessResult::Probed { cluster_view, .. } => cluster_view.readiness_exited(),
                 _ => unreachable!(),
             })
     }
@@ -162,7 +162,7 @@ impl ClusterSimulation {
         self.nodes
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
-                ProcessResult::Probed { snapshot, .. } => snapshot.exit_mode() == Some(mode),
+                ProcessResult::Probed { cluster_view, .. } => cluster_view.exit_mode() == Some(mode),
                 _ => unreachable!(),
             })
     }
@@ -173,14 +173,14 @@ impl ClusterSimulation {
     }
 
     #[must_use]
-    pub fn snapshot(&mut self, peer_id: PeerId) -> Snapshot {
+    pub fn cluster_view(&mut self, peer_id: PeerId) -> ClusterView {
         let index = self
             .peer_ids
             .iter()
             .position(|p| *p == peer_id)
             .expect("peer is in the cluster");
         match self.nodes[index].process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         }
     }

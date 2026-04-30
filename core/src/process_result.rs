@@ -8,20 +8,20 @@ use alloc::vec::Vec;
 
 use crate::command::Command;
 use crate::outcome::Outcome;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessResult {
     Accepted {
         outcomes: Vec<Outcome>,
-        snapshot: Snapshot,
+        cluster_view: ClusterView,
     },
     Rejected {
-        snapshot: Snapshot,
+        cluster_view: ClusterView,
         admissible: Vec<Command>,
     },
     Probed {
-        snapshot: Snapshot,
+        cluster_view: ClusterView,
         admissible: Vec<Command>,
     },
 }

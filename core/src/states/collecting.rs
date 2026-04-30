@@ -11,9 +11,9 @@ use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 use crate::state::State;
-use crate::state_snapshot::StateSnapshot;
+use crate::state_snapshot::StateClusterView;
 
 use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
@@ -124,8 +124,8 @@ impl State for Collecting {
     }
 }
 
-impl StateSnapshot for Collecting {
-    fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
+impl StateClusterView for Collecting {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_lifecycle_state(ReadinessLifecycleState::Phase2Active)
             .with_local_participation_complete(true)

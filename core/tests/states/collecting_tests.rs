@@ -17,8 +17,8 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
-use faction::state_snapshot::StateSnapshot;
+use faction::cluster_view::ClusterView;
+use faction::state_snapshot::StateClusterView;
 use faction::states::collecting::Collecting;
 use faction::states::confirmed_set::ConfirmedSet;
 use faction::Freshness;
@@ -90,7 +90,7 @@ fn deal_accepts_deadline_expired() {
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -110,7 +110,7 @@ fn deal_rejects_participation_observed() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -121,7 +121,7 @@ fn deal_rejects_participation_observed() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -133,7 +133,7 @@ fn deal_rejects_local_participation_completed() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -144,7 +144,7 @@ fn deal_rejects_local_participation_completed() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -156,7 +156,7 @@ fn participation_non_member_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -167,7 +167,7 @@ fn participation_non_member_is_noop() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -179,7 +179,7 @@ fn participation_stale_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -190,7 +190,7 @@ fn participation_stale_is_noop() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -202,7 +202,7 @@ fn participation_first_timely_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -213,7 +213,7 @@ fn participation_first_timely_is_noop() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -225,7 +225,7 @@ fn participation_first_delayed_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -236,7 +236,7 @@ fn participation_first_delayed_is_noop() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -248,7 +248,7 @@ fn ready_non_member_rejected() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -263,7 +263,7 @@ fn ready_non_member_rejected() {
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -275,7 +275,7 @@ fn ready_stale_rejected() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -290,7 +290,7 @@ fn ready_stale_rejected() {
     assert_eq!(outcomes, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -303,7 +303,7 @@ fn ready_duplicate_rejected() {
     let mut v = machine_in_phase2();
     let _ = v.process(ready(1, TIMELY));
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -321,7 +321,7 @@ fn ready_duplicate_rejected() {
     );
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -333,7 +333,7 @@ fn ready_first_timely_no_quorum() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -351,7 +351,7 @@ fn ready_first_timely_no_quorum() {
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -370,7 +370,7 @@ fn ready_first_delayed_no_quorum() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -384,7 +384,7 @@ fn ready_first_delayed_no_quorum() {
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -401,7 +401,7 @@ fn ready_first_timely_triggers_quorum() {
     let _ = v.process(ready(1, TIMELY));
     let _ = v.process(ready(2, TIMELY));
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -416,7 +416,7 @@ fn ready_first_timely_triggers_quorum() {
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -447,7 +447,7 @@ fn ready_first_delayed_triggers_quorum() {
     let _ = v.process(ready(1, TIMELY));
     let _ = v.process(ready(2, TIMELY));
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -462,7 +462,7 @@ fn ready_first_delayed_triggers_quorum() {
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -490,7 +490,7 @@ fn local_completion_in_phase2_is_noop() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -501,7 +501,7 @@ fn local_completion_in_phase2_is_noop() {
     ));
     assert_eq!(
         match v.process(Command::Probe) {
-            ProcessResult::Probed { snapshot, .. } => snapshot,
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         },
         snap_before
@@ -513,7 +513,7 @@ fn deadline_expired_exits_in_phase2() {
     // Arrange
     let mut v = machine_in_phase2();
     let snap_before = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -532,7 +532,7 @@ fn deadline_expired_exits_in_phase2() {
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -543,10 +543,7 @@ fn deadline_expired_exits_in_phase2() {
             mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
-    );
+    assert_eq!(snap.lifecycle_state(), ReadinessLifecycleState::TimedOut);
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(snap.readiness_exited());
     assert!(snap.local_participation_complete());
@@ -557,7 +554,7 @@ fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
     let mut v = machine_in_phase2();
     let snap = match v.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -575,7 +572,7 @@ fn vibe_check_returns_correct_snapshot() {
 }
 
 #[test]
-fn collecting_state_snapshot_inherits_correctly() {
+fn collecting_cluster_view_inherits_correctly() {
     // Arrange
     let phase2 = ConfirmedSet::new(5);
     let (phase2, _) = phase2.confirm(1);
@@ -584,18 +581,10 @@ fn collecting_state_snapshot_inherits_correctly() {
         phase2,
         phase1_count: 2,
     };
-    let prev = Snapshot::new(
-        ReadinessLifecycleState::Phase1Active,
-        Some(ReadinessExitMode::TimedOut),
-        false,
-        true,
-        99,
-        99,
-        4,
-    );
+    let prev = ClusterView::new(ReadinessLifecycleState::Phase1Active, false, 99, 99, 4);
 
     // Act
-    let result = collecting.state_snapshot(&prev);
+    let result = collecting.cluster_view(&prev);
 
     // Assert
     assert_eq!(
@@ -605,6 +594,6 @@ fn collecting_state_snapshot_inherits_correctly() {
     assert!(result.local_participation_complete());
     assert_eq!(result.phase1_confirmed_count(), 2);
     assert_eq!(result.phase2_confirmed_count(), 2);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
-    assert!(result.readiness_exited());
+    assert_eq!(result.exit_mode(), None);
+    assert!(!result.readiness_exited());
 }

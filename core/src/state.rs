@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
-use crate::state_snapshot::StateSnapshot;
+use crate::state_snapshot::StateClusterView;
 
-pub trait State: StateSnapshot {
+pub trait State: StateClusterView {
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>);
 
     fn accept(&self, _input: &Command) -> bool {

@@ -7,18 +7,18 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use crate::outcome::Outcome;
-use crate::snapshot::Snapshot;
+use crate::cluster_view::ClusterView;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transition {
-    previous_state: Snapshot,
+    previous_state: ClusterView,
     outputs: Vec<Outcome>,
-    new_state: Snapshot,
+    new_state: ClusterView,
 }
 
 impl Transition {
     #[must_use]
-    pub fn new(previous_state: Snapshot, outputs: Vec<Outcome>, new_state: Snapshot) -> Self {
+    pub fn new(previous_state: ClusterView, outputs: Vec<Outcome>, new_state: ClusterView) -> Self {
         Self {
             previous_state,
             outputs,
@@ -27,7 +27,7 @@ impl Transition {
     }
 
     #[must_use]
-    pub const fn previous_state(&self) -> Snapshot {
+    pub const fn previous_state(&self) -> ClusterView {
         self.previous_state
     }
 
@@ -37,7 +37,7 @@ impl Transition {
     }
 
     #[must_use]
-    pub const fn new_state(&self) -> Snapshot {
+    pub const fn new_state(&self) -> ClusterView {
         self.new_state
     }
 }

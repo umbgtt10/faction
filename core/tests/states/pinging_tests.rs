@@ -17,8 +17,8 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::snapshot::Snapshot;
-use faction::state_snapshot::StateSnapshot;
+use faction::cluster_view::ClusterView;
+use faction::state_snapshot::StateClusterView;
 use faction::states::pinging::Pinging;
 
 const PEER_SET: &[u64] = &[0, 1, 2, 3, 4];
@@ -49,13 +49,13 @@ fn machine_in_phase1() -> Faction {
 
 fn p1(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot.phase1_confirmed_count(),
+        ProcessResult::Probed { cluster_view, .. } => cluster_view.phase1_confirmed_count(),
         _ => unreachable!(),
     }
 }
 fn p2(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot.phase2_confirmed_count(),
+        ProcessResult::Probed { cluster_view, .. } => cluster_view.phase2_confirmed_count(),
         _ => unreachable!(),
     }
 }
@@ -401,7 +401,7 @@ fn local_completion_no_quorum() {
         ]
     );
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert_eq!(
@@ -465,7 +465,7 @@ fn local_completion_triggers_quorum() {
         ]
     );
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert!(snap.readiness_exited());
@@ -490,7 +490,7 @@ fn deadline_expired_in_phase1() {
         }]
     );
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     assert!(snap.readiness_exited());
@@ -502,7 +502,7 @@ fn vibe_check_in_phase1() {
     // Arrange & Act
     let mut faction = machine_in_phase1();
     let snap = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot, .. } => snapshot,
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
@@ -520,21 +520,13 @@ fn vibe_check_in_phase1() {
 }
 
 #[test]
-fn pinging_state_snapshot_inherits_correctly() {
+fn pinging_cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new(5);
-    let prev = Snapshot::new(
-        ReadinessLifecycleState::Phase2Active,
-        Some(ReadinessExitMode::TimedOut),
-        true,
-        true,
-        99,
-        99,
-        4,
-    );
+    let prev = ClusterView::new(ReadinessLifecycleState::Phase2Active, true, 99, 99, 4);
 
     // Act
-    let result = pinging.state_snapshot(&prev);
+    let result = pinging.cluster_view(&prev);
 
     // Assert
     assert_eq!(
@@ -543,7 +535,7 @@ fn pinging_state_snapshot_inherits_correctly() {
     );
     assert_eq!(result.phase1_confirmed_count(), 0);
     assert_eq!(result.phase2_confirmed_count(), 0);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(result.exit_mode(), None);
     assert!(result.local_participation_complete());
-    assert!(result.readiness_exited());
+    assert!(!result.readiness_exited());
 }
