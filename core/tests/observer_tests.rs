@@ -10,13 +10,13 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
@@ -55,7 +55,7 @@ fn recording_coordinator() -> (Faction, Observations) {
 fn apply_observes_local_participation_completion_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -63,10 +63,10 @@ fn apply_observes_local_participation_completion_transition() {
     let input = Command::LocalParticipationCompleted;
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -101,7 +101,7 @@ fn apply_observes_local_participation_completion_transition() {
 fn apply_observes_duplicate_participation_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -113,10 +113,10 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -141,12 +141,12 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
 fn apply_observes_stale_ready_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let _ = coordinator.process(Command::LocalParticipationCompleted);
     let input = Command::ReadyObserved {
         peer_id: 1,
         freshness: 7,
@@ -154,10 +154,10 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -183,18 +183,18 @@ fn apply_observes_stale_ready_transition_without_state_change() {
 fn apply_observes_quorum_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::LocalParticipationCompleted);
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::LocalParticipationCompleted);
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
@@ -206,10 +206,10 @@ fn apply_observes_quorum_exit_transition() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -250,19 +250,19 @@ fn apply_observes_quorum_exit_transition() {
 fn apply_observes_deadline_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::LocalParticipationCompleted);
+    let _ = coordinator.process(Command::LocalParticipationCompleted);
     let input = Command::DeadlineExpired;
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -299,28 +299,28 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let outcomes_0 = match coordinator.apply(Command::ParticipationObserved {
+    let outcomes_0 = match coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
         current_marker: 10,
     }) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_1 = match coordinator.apply(Command::LocalParticipationCompleted) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes_1 = match coordinator.process(Command::LocalParticipationCompleted) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_2 = match coordinator.apply(Command::ReadyObserved {
+    let outcomes_2 = match coordinator.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 8,
         current_marker: 10,
     }) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -358,46 +358,46 @@ fn state_transition_outputs_are_fully_observable() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let outcomes_0 = match coordinator.apply(Command::ParticipationObserved {
+    let outcomes_0 = match coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     }) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_1 = match coordinator.apply(Command::LocalParticipationCompleted) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes_1 = match coordinator.process(Command::LocalParticipationCompleted) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_2 = match coordinator.apply(Command::ReadyObserved {
+    let outcomes_2 = match coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     }) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_3 = match coordinator.apply(Command::ReadyObserved {
+    let outcomes_3 = match coordinator.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     }) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_4 = match coordinator.apply(Command::ReadyObserved {
+    let outcomes_4 = match coordinator.process(Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
     }) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -461,10 +461,10 @@ fn apply_observes_stale_participation_from_initial() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -493,10 +493,10 @@ fn apply_observes_non_member_participation_from_initial() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -525,10 +525,10 @@ fn apply_observes_stale_ready_from_initial() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -557,10 +557,10 @@ fn apply_observes_non_member_ready_from_initial() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -582,7 +582,7 @@ fn apply_observes_non_member_ready_from_initial() {
 fn apply_observes_duplicate_ready_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -594,10 +594,10 @@ fn apply_observes_duplicate_ready_from_pinging() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -622,17 +622,17 @@ fn apply_observes_duplicate_ready_from_pinging() {
 fn apply_observes_quorum_exit_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
@@ -640,10 +640,10 @@ fn apply_observes_quorum_exit_from_pinging() {
     let input = Command::LocalParticipationCompleted;
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -685,7 +685,7 @@ fn apply_observes_quorum_exit_from_pinging() {
 fn apply_observes_deadline_exit_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -693,10 +693,10 @@ fn apply_observes_deadline_exit_from_pinging() {
     let input = Command::DeadlineExpired;
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -733,13 +733,13 @@ fn apply_observes_deadline_exit_from_pinging() {
 fn apply_observes_timely_ready_from_collecting_no_quorum() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::LocalParticipationCompleted);
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::LocalParticipationCompleted);
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -751,10 +751,10 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -785,13 +785,13 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
 fn apply_observes_duplicate_ready_from_collecting() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::LocalParticipationCompleted);
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::LocalParticipationCompleted);
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
@@ -803,10 +803,10 @@ fn apply_observes_duplicate_ready_from_collecting() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -832,18 +832,18 @@ fn apply_observes_duplicate_ready_from_collecting() {
 fn apply_observes_delayed_quorum_exit_from_collecting() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.apply(Command::ParticipationObserved {
+    let _ = coordinator.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::LocalParticipationCompleted);
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::LocalParticipationCompleted);
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = coordinator.apply(Command::ReadyObserved {
+    let _ = coordinator.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
@@ -855,10 +855,10 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     };
 
     // Act
-    let outcomes = match coordinator.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match coordinator.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert

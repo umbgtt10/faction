@@ -7,12 +7,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::snapshot::Snapshot;
 use proptest::prelude::*;
@@ -74,7 +74,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let snapshot = coordinator.snapshot();
 
             // Assert
@@ -90,7 +90,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let snapshot = coordinator.snapshot();
 
             // Assert
@@ -107,22 +107,22 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
         }
 
         let previous = coordinator.snapshot();
-        let first_status = coordinator.apply(Command::LocalParticipationCompleted);
+        let first_status = coordinator.process(Command::LocalParticipationCompleted);
         let after_first = coordinator.snapshot();
-        let second_status = coordinator.apply(Command::LocalParticipationCompleted);
+        let second_status = coordinator.process(Command::LocalParticipationCompleted);
         let after_second = coordinator.snapshot();
 
         // Assert
         if previous.local_participation_complete() || previous.readiness_exited() {
-            let first_rejected = matches!(first_status, ApplyStatus::Rejected { .. });
+            let first_rejected = matches!(first_status, ProcessResult::Rejected { .. });
             prop_assert!(first_rejected);
             prop_assert_eq!(after_first, previous);
         }
-        let second_rejected = matches!(second_status, ApplyStatus::Rejected { .. });
+        let second_rejected = matches!(second_status, ProcessResult::Rejected { .. });
         prop_assert!(second_rejected);
         prop_assert_eq!(after_second, after_first);
     }
@@ -137,7 +137,7 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let current = coordinator.snapshot();
 
             // Assert

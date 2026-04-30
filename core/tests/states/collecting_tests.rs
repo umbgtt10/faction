@@ -7,13 +7,13 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
@@ -41,12 +41,12 @@ fn machine_in_phase2() -> Faction {
         ),
         Box::new(NoOpObserver),
     );
-    let _ = v.apply(Command::ParticipationObserved {
+    let _ = v.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: TIMELY,
         current_marker: MARKER,
     });
-    let _ = v.apply(Command::LocalParticipationCompleted);
+    let _ = v.process(Command::LocalParticipationCompleted);
     v
 }
 
@@ -70,10 +70,10 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> Command {
 fn deal_accepts_ready_observed() {
     // Arrange & Act
     let mut v = machine_in_phase2();
-    let outcomes = match v.apply(ready(1, TIMELY)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(1, TIMELY)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -84,10 +84,10 @@ fn deal_accepts_ready_observed() {
 fn deal_accepts_deadline_expired() {
     // Arrange & Act
     let mut v = machine_in_phase2();
-    let outcomes = match v.apply(Command::DeadlineExpired) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(Command::DeadlineExpired) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
 
@@ -110,8 +110,8 @@ fn deal_rejects_participation_observed() {
 
     // Act
     assert!(matches!(
-        v.apply(participation(2, TIMELY)),
-        ApplyStatus::Rejected { .. }
+        v.process(participation(2, TIMELY)),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -124,8 +124,8 @@ fn deal_rejects_local_participation_completed() {
 
     // Act
     assert!(matches!(
-        v.apply(Command::LocalParticipationCompleted),
-        ApplyStatus::Rejected { .. }
+        v.process(Command::LocalParticipationCompleted),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -138,8 +138,8 @@ fn participation_non_member_is_noop() {
 
     // Act & Assert
     assert!(matches!(
-        v.apply(participation(99, TIMELY)),
-        ApplyStatus::Rejected { .. }
+        v.process(participation(99, TIMELY)),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -152,8 +152,8 @@ fn participation_stale_is_noop() {
 
     // Act & Assert
     assert!(matches!(
-        v.apply(participation(1, STALE)),
-        ApplyStatus::Rejected { .. }
+        v.process(participation(1, STALE)),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -166,8 +166,8 @@ fn participation_first_timely_is_noop() {
 
     // Act & Assert
     assert!(matches!(
-        v.apply(participation(2, TIMELY)),
-        ApplyStatus::Rejected { .. }
+        v.process(participation(2, TIMELY)),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -180,8 +180,8 @@ fn participation_first_delayed_is_noop() {
 
     // Act & Assert
     assert!(matches!(
-        v.apply(participation(2, DELAYED)),
-        ApplyStatus::Rejected { .. }
+        v.process(participation(2, DELAYED)),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -193,10 +193,10 @@ fn ready_non_member_rejected() {
     let snap_before = v.snapshot();
 
     // Act
-    let outcomes = match v.apply(ready(99, TIMELY)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(99, TIMELY)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -211,10 +211,10 @@ fn ready_stale_rejected() {
     let snap_before = v.snapshot();
 
     // Act
-    let outcomes = match v.apply(ready(1, STALE)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(1, STALE)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -226,14 +226,14 @@ fn ready_stale_rejected() {
 fn ready_duplicate_rejected() {
     // Arrange
     let mut v = machine_in_phase2();
-    let _ = v.apply(ready(1, TIMELY));
+    let _ = v.process(ready(1, TIMELY));
     let snap_before = v.snapshot();
 
     // Act
-    let outcomes = match v.apply(ready(1, TIMELY)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(1, TIMELY)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
@@ -256,10 +256,10 @@ fn ready_first_timely_no_quorum() {
     );
 
     // Act
-    let outcomes = match v.apply(ready(1, TIMELY)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(1, TIMELY)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
 
@@ -281,10 +281,10 @@ fn ready_first_delayed_no_quorum() {
     assert_eq!(snap_before.phase2_confirmed_count(), 1);
 
     // Act
-    let outcomes = match v.apply(ready(1, DELAYED)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(1, DELAYED)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
 
@@ -298,17 +298,17 @@ fn ready_first_delayed_no_quorum() {
 fn ready_first_timely_triggers_quorum() {
     // Arrange
     let mut v = machine_in_phase2();
-    let _ = v.apply(ready(1, TIMELY));
-    let _ = v.apply(ready(2, TIMELY));
+    let _ = v.process(ready(1, TIMELY));
+    let _ = v.process(ready(2, TIMELY));
     let snap_before = v.snapshot();
     assert_eq!(snap_before.phase2_confirmed_count(), 3);
     assert!(!snap_before.readiness_exited());
 
     // Act
-    let outcomes = match v.apply(ready(3, TIMELY)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(3, TIMELY)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
 
@@ -336,17 +336,17 @@ fn ready_first_timely_triggers_quorum() {
 fn ready_first_delayed_triggers_quorum() {
     // Arrange
     let mut v = machine_in_phase2();
-    let _ = v.apply(ready(1, TIMELY));
-    let _ = v.apply(ready(2, TIMELY));
+    let _ = v.process(ready(1, TIMELY));
+    let _ = v.process(ready(2, TIMELY));
     let snap_before = v.snapshot();
     assert_eq!(snap_before.phase2_confirmed_count(), 3);
     assert!(!snap_before.readiness_exited());
 
     // Act
-    let outcomes = match v.apply(ready(3, DELAYED)) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(ready(3, DELAYED)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
 
@@ -377,8 +377,8 @@ fn local_completion_in_phase2_is_noop() {
 
     // Act & Assert
     assert!(matches!(
-        v.apply(Command::LocalParticipationCompleted),
-        ApplyStatus::Rejected { .. }
+        v.process(Command::LocalParticipationCompleted),
+        ProcessResult::Rejected { .. }
     ));
     assert_eq!(v.snapshot(), snap_before);
 }
@@ -396,10 +396,10 @@ fn deadline_expired_exits_in_phase2() {
     assert!(snap_before.local_participation_complete());
 
     // Act
-    let outcomes = match v.apply(Command::DeadlineExpired) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let outcomes = match v.process(Command::DeadlineExpired) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
 

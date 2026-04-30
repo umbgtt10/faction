@@ -6,13 +6,13 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::vec;
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
@@ -83,7 +83,7 @@ impl ModelCoordinator {
         }
     }
 
-    fn apply(&mut self, input: Command) -> alloc::vec::Vec<Outcome> {
+    fn process(&mut self, input: Command) -> alloc::vec::Vec<Outcome> {
         if self.initial {
             match input {
                 Command::ParticipationObserved { .. } | Command::ReadyObserved { .. } => {
@@ -338,13 +338,13 @@ proptest! {
 
         // Act
         for input in inputs {
-            let actual_outputs = match coordinator.apply(input) {
-                ApplyStatus::Accepted { outcomes, .. } => outcomes,
-                ApplyStatus::Snapshot { .. } => unreachable!(),
-                ApplyStatus::Rejected { .. } => vec![],
+            let actual_outputs = match coordinator.process(input) {
+                ProcessResult::Accepted { outcomes, .. } => outcomes,
+                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Rejected { .. } => vec![],
             };
             let actual_snapshot = coordinator.snapshot();
-            let expected_outputs = model.apply(input);
+            let expected_outputs = model.process(input);
             let expected_snapshot = model.snapshot();
 
             // Assert

@@ -8,7 +8,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
-use faction::apply_status::ApplyStatus;
+use faction::process_result::ProcessResult;
 
 use faction::command::Command;
 use faction::config::Config;
@@ -60,10 +60,10 @@ impl ClusterSimulation {
     }
 
     fn apply_to(&mut self, index: usize, input: Command) -> Vec<Outcome> {
-        match self.nodes[index].apply(input) {
-            ApplyStatus::Accepted { outcomes, .. } => outcomes,
-            ApplyStatus::Snapshot { .. } => unreachable!(),
-            ApplyStatus::Rejected { .. } => Vec::new(),
+        match self.nodes[index].process(input) {
+            ProcessResult::Accepted { outcomes, .. } => outcomes,
+            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
 

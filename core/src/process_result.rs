@@ -11,7 +11,7 @@ use crate::outcome::Outcome;
 use crate::snapshot::Snapshot;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ApplyStatus {
+pub enum ProcessResult {
     Accepted {
         outcomes: Vec<Outcome>,
         snapshot: Snapshot,

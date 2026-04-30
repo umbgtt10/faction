@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
+use faction::process_result::ProcessResult;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use rstest::rstest;
 
@@ -69,11 +69,11 @@ fn invalid_transition(
     let snapshot_before = m.snapshot();
 
     // Act
-    let result = m.apply(input);
+    let result = m.process(input);
 
     // Assert
     let (snapshot, admissible) = match result {
-        ApplyStatus::Rejected {
+        ProcessResult::Rejected {
             snapshot,
             admissible,
         } => (snapshot, admissible),

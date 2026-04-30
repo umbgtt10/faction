@@ -48,7 +48,7 @@ pub fn build(init: Init) -> Faction {
         Box::new(NoOpObserver),
     );
     if !matches!(init, Init::Initial) {
-        let _ = m.apply(Command::ParticipationObserved {
+        let _ = m.process(Command::ParticipationObserved {
             peer_id: 99,
             freshness: MARKER,
             current_marker: MARKER,
@@ -58,7 +58,7 @@ pub fn build(init: Init) -> Faction {
         Init::Initial => {}
         Init::Fresh => {}
         Init::Phase1Peer1Confirmed => {
-            let _ = m.apply(Command::ParticipationObserved {
+            let _ = m.process(Command::ParticipationObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
@@ -66,7 +66,7 @@ pub fn build(init: Init) -> Faction {
         }
         Init::Phase1P2Threshold => {
             for peer in 0..5 {
-                let _ = m.apply(Command::ReadyObserved {
+                let _ = m.process(Command::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -74,20 +74,20 @@ pub fn build(init: Init) -> Faction {
             }
         }
         Init::Phase2NoReadiness => {
-            let _ = m.apply(Command::LocalParticipationCompleted);
+            let _ = m.process(Command::LocalParticipationCompleted);
         }
         Init::Phase2Peer1Confirmed => {
-            let _ = m.apply(Command::LocalParticipationCompleted);
-            let _ = m.apply(Command::ReadyObserved {
+            let _ = m.process(Command::LocalParticipationCompleted);
+            let _ = m.process(Command::ReadyObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
             });
         }
         Init::Phase2AlmostQuorum => {
-            let _ = m.apply(Command::LocalParticipationCompleted);
+            let _ = m.process(Command::LocalParticipationCompleted);
             for peer in 1..4 {
-                let _ = m.apply(Command::ReadyObserved {
+                let _ = m.process(Command::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -95,9 +95,9 @@ pub fn build(init: Init) -> Faction {
             }
         }
         Init::ReadyByQuorum => {
-            let _ = m.apply(Command::LocalParticipationCompleted);
+            let _ = m.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
-                let _ = m.apply(Command::ReadyObserved {
+                let _ = m.process(Command::ReadyObserved {
                     peer_id: peer,
                     freshness: TIMELY,
                     current_marker: MARKER,
@@ -105,7 +105,7 @@ pub fn build(init: Init) -> Faction {
             }
         }
         Init::ReadyByDeadline => {
-            let _ = m.apply(Command::DeadlineExpired);
+            let _ = m.process(Command::DeadlineExpired);
         }
     }
     m

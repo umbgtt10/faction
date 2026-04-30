@@ -5,10 +5,10 @@
 use alloc::boxed::Box;
 use core::cell::Cell;
 
-use crate::apply_status::ApplyStatus;
 use crate::command::Command;
 use crate::config::Config;
 use crate::observer::Observer;
+use crate::process_result::ProcessResult;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::snapshot::Snapshot;
 use crate::state::State;
@@ -34,9 +34,9 @@ impl Faction {
     }
 
     #[must_use]
-    pub fn apply(&mut self, command: Command) -> ApplyStatus {
+    pub fn process(&mut self, command: Command) -> ProcessResult {
         if let Command::GetSnapshot = command {
-            return ApplyStatus::Snapshot {
+            return ProcessResult::Snapshot {
                 snapshot: self.snapshot(),
             };
         }
@@ -44,7 +44,7 @@ impl Faction {
         if !self.state.as_ref().unwrap().accept(&command) {
             let snapshot = self.snapshot();
             let admissible = self.state.as_ref().unwrap().admissible_commands();
-            return ApplyStatus::Rejected {
+            return ProcessResult::Rejected {
                 snapshot,
                 admissible,
             };
@@ -68,7 +68,7 @@ impl Faction {
 
         let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(command, transition);
-        ApplyStatus::Accepted {
+        ProcessResult::Accepted {
             outcomes: outputs,
             snapshot: new_snapshot,
         }

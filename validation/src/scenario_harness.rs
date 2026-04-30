@@ -7,13 +7,13 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::snapshot::Snapshot;
 use faction::PeerId;
@@ -37,7 +37,7 @@ impl ScenarioHarness {
                 ),
                 Box::new(NoOpObserver),
             );
-            let _ = machine.apply(Command::ParticipationObserved {
+            let _ = machine.process(Command::ParticipationObserved {
                 peer_id: PeerId::MAX,
                 freshness: 0,
                 current_marker: 0,
@@ -77,14 +77,14 @@ impl ScenarioHarness {
         peer_id: PeerId,
         freshness: u64,
     ) -> Vec<Outcome> {
-        match self.coordinators[coordinator_index].apply(Command::ParticipationObserved {
+        match self.coordinators[coordinator_index].process(Command::ParticipationObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
         }) {
-            ApplyStatus::Accepted { outcomes, .. } => outcomes,
-            ApplyStatus::Snapshot { .. } => unreachable!(),
-            ApplyStatus::Rejected { .. } => Vec::new(),
+            ProcessResult::Accepted { outcomes, .. } => outcomes,
+            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
 
@@ -94,30 +94,30 @@ impl ScenarioHarness {
         peer_id: PeerId,
         freshness: u64,
     ) -> Vec<Outcome> {
-        match self.coordinators[coordinator_index].apply(Command::ReadyObserved {
+        match self.coordinators[coordinator_index].process(Command::ReadyObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
         }) {
-            ApplyStatus::Accepted { outcomes, .. } => outcomes,
-            ApplyStatus::Snapshot { .. } => unreachable!(),
-            ApplyStatus::Rejected { .. } => Vec::new(),
+            ProcessResult::Accepted { outcomes, .. } => outcomes,
+            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
 
     pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<Outcome> {
-        match self.coordinators[coordinator_index].apply(Command::LocalParticipationCompleted) {
-            ApplyStatus::Accepted { outcomes, .. } => outcomes,
-            ApplyStatus::Snapshot { .. } => unreachable!(),
-            ApplyStatus::Rejected { .. } => Vec::new(),
+        match self.coordinators[coordinator_index].process(Command::LocalParticipationCompleted) {
+            ProcessResult::Accepted { outcomes, .. } => outcomes,
+            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
 
     pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<Outcome> {
-        match self.coordinators[coordinator_index].apply(Command::DeadlineExpired) {
-            ApplyStatus::Accepted { outcomes, .. } => outcomes,
-            ApplyStatus::Snapshot { .. } => unreachable!(),
-            ApplyStatus::Rejected { .. } => Vec::new(),
+        match self.coordinators[coordinator_index].process(Command::DeadlineExpired) {
+            ProcessResult::Accepted { outcomes, .. } => outcomes,
+            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Rejected { .. } => Vec::new(),
         }
     }
 }

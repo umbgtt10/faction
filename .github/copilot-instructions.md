@@ -68,8 +68,8 @@ The transition matrix tests under `core/tests/transition_matrix/` provide **exha
 | ReadyByQuorum | **invalid** | **invalid** | **invalid** | **invalid** |
 | ReadyByDeadline | **invalid** | **invalid** | **invalid** | **invalid** |
 
-- **valid** = present in `valid_transition` rstest, expects `ApplyStatus::Accepted`
-- **invalid** = present in per-state `*_invalid_tests.rs` rstest, expects `ApplyStatus::Rejected`
+- **valid** = present in `valid_transition` rstest, expects `ProcessResult::Accepted`
+- **invalid** = present in per-state `*_invalid_tests.rs` rstest, expects `ProcessResult::Rejected`
 - Any new state or command variant MUST add the corresponding valid/invalid cases to preserve exhaustive coverage.
 - Valid transitions live in `state_transition_matrix_tests.rs`. Invalid transitions live in per-state files (`initial_invalid_tests.rs`, `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`, `ready_by_quorum_invalid_tests.rs`, `ready_by_deadline_invalid_tests.rs`). Common helpers (`Init`, `Assert`, `build()`, `verify()` etc.) live in `helpers.rs`.
 

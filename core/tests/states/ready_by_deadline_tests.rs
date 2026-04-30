@@ -7,12 +7,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
@@ -34,24 +34,24 @@ fn make_faction() -> Faction {
 
 fn reach_deadline_from_phase1() -> Faction {
     let mut f = make_faction();
-    let _ = f.apply(Command::ParticipationObserved {
+    let _ = f.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = f.apply(Command::DeadlineExpired);
+    let _ = f.process(Command::DeadlineExpired);
     f
 }
 
 fn reach_deadline_from_phase2() -> Faction {
     let mut f = make_faction();
-    let _ = f.apply(Command::ParticipationObserved {
+    let _ = f.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = f.apply(Command::LocalParticipationCompleted);
-    let _ = f.apply(Command::DeadlineExpired);
+    let _ = f.process(Command::LocalParticipationCompleted);
+    let _ = f.process(Command::DeadlineExpired);
     f
 }
 
@@ -62,14 +62,14 @@ fn deal_rejects_participation_observed() {
     let snap_before = f.snapshot();
 
     // Act & Assert
-    match f.apply(Command::ParticipationObserved {
+    match f.process(Command::ParticipationObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     }) {
-        ApplyStatus::Rejected { .. } => {}
-        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
-        ApplyStatus::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => {}
+        ProcessResult::Accepted { .. } => panic!("expected rejected"),
+        ProcessResult::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -81,14 +81,14 @@ fn deal_rejects_ready_observed() {
     let snap_before = f.snapshot();
 
     // Act & Assert
-    match f.apply(Command::ReadyObserved {
+    match f.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     }) {
-        ApplyStatus::Rejected { .. } => {}
-        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
-        ApplyStatus::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => {}
+        ProcessResult::Accepted { .. } => panic!("expected rejected"),
+        ProcessResult::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -100,10 +100,10 @@ fn deal_rejects_local_participation_completed() {
     let snap_before = f.snapshot();
 
     // Act & Assert
-    match f.apply(Command::LocalParticipationCompleted) {
-        ApplyStatus::Rejected { .. } => {}
-        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
-        ApplyStatus::Snapshot { .. } => unreachable!(),
+    match f.process(Command::LocalParticipationCompleted) {
+        ProcessResult::Rejected { .. } => {}
+        ProcessResult::Accepted { .. } => panic!("expected rejected"),
+        ProcessResult::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -115,10 +115,10 @@ fn deal_rejects_deadline_expired() {
     let snap_before = f.snapshot();
 
     // Act & Assert
-    match f.apply(Command::DeadlineExpired) {
-        ApplyStatus::Rejected { .. } => {}
-        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
-        ApplyStatus::Snapshot { .. } => unreachable!(),
+    match f.process(Command::DeadlineExpired) {
+        ProcessResult::Rejected { .. } => {}
+        ProcessResult::Accepted { .. } => panic!("expected rejected"),
+        ProcessResult::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -166,18 +166,18 @@ fn post_deadline_inputs_leave_state_unchanged() {
     let snapshot_before = f.snapshot();
 
     // Act
-    let _ = f.apply(Command::ParticipationObserved {
+    let _ = f.process(Command::ParticipationObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = f.apply(Command::ReadyObserved {
+    let _ = f.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
     });
-    let _ = f.apply(Command::LocalParticipationCompleted);
-    let _ = f.apply(Command::DeadlineExpired);
+    let _ = f.process(Command::LocalParticipationCompleted);
+    let _ = f.process(Command::DeadlineExpired);
 
     // Assert
     assert_eq!(f.snapshot(), snapshot_before);

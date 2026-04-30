@@ -7,12 +7,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 
@@ -29,8 +29,8 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     let mut faction = Faction::new(config, observer);
 
     // Act
-    let snapshot = match faction.apply(Command::GetSnapshot) {
-        ApplyStatus::Snapshot { snapshot } => snapshot,
+    let snapshot = match faction.process(Command::GetSnapshot) {
+        ProcessResult::Snapshot { snapshot } => snapshot,
         _ => panic!("expected Snapshot"),
     };
 
@@ -60,7 +60,7 @@ fn get_snapshot_does_not_mutate_state() {
 
     // Act
     let first = faction.snapshot();
-    let _ = faction.apply(Command::GetSnapshot);
+    let _ = faction.process(Command::GetSnapshot);
     let second = faction.snapshot();
 
     // Assert
@@ -78,15 +78,15 @@ fn get_snapshot_works_after_valid_inputs() {
     );
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
-    let _ = faction.apply(Command::ParticipationObserved {
+    let _ = faction.process(Command::ParticipationObserved {
         peer_id: 0,
         freshness: 5,
         current_marker: 5,
     });
 
     // Act
-    let snapshot = match faction.apply(Command::GetSnapshot) {
-        ApplyStatus::Snapshot { snapshot } => snapshot,
+    let snapshot = match faction.process(Command::GetSnapshot) {
+        ProcessResult::Snapshot { snapshot } => snapshot,
         _ => panic!("expected Snapshot"),
     };
 

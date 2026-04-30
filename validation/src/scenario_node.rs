@@ -5,12 +5,12 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
+use faction::process_result::ProcessResult;
 use faction::snapshot::Snapshot;
 use faction::PeerId;
 
@@ -52,12 +52,12 @@ impl ScenarioNode {
     }
 
     #[must_use]
-    pub fn apply(self, input: faction::command::Command) -> (Self, Vec<Outcome>) {
+    pub fn process(self, input: faction::command::Command) -> (Self, Vec<Outcome>) {
         let mut readiness = self.readiness;
-        let outputs = match readiness.apply(input) {
-            ApplyStatus::Accepted { outcomes, .. } => outcomes,
-            ApplyStatus::Snapshot { .. } => unreachable!(),
-            ApplyStatus::Rejected { .. } => Vec::new(),
+        let outputs = match readiness.process(input) {
+            ProcessResult::Accepted { outcomes, .. } => outcomes,
+            ProcessResult::Snapshot { .. } => unreachable!(),
+            ProcessResult::Rejected { .. } => Vec::new(),
         };
 
         (

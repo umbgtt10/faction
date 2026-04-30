@@ -6,10 +6,10 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::outcome::Outcome;
 use faction::outcome::Outcome::*;
+use faction::process_result::ProcessResult;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use rstest::rstest;
 
@@ -141,10 +141,10 @@ fn valid_transition(
     let mut m = build(init);
 
     // Act
-    let outcomes = match m.apply(input) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Snapshot { .. } => unreachable!(),
-        ApplyStatus::Rejected { .. } => vec![],
+    let outcomes = match m.process(input) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Snapshot { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => vec![],
     };
 
     // Assert

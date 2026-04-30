@@ -7,13 +7,13 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
+use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
@@ -176,7 +176,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let snapshot = coordinator.snapshot();
 
             // Assert
@@ -196,7 +196,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let snapshot = coordinator.snapshot();
 
             // Assert
@@ -226,7 +226,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let current = coordinator.snapshot();
 
             // Assert
@@ -243,7 +243,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let current = coordinator.snapshot();
 
             // Assert
@@ -260,10 +260,10 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let batch = match coordinator.apply(input) {
-                ApplyStatus::Accepted { outcomes, .. } => outcomes,
-                ApplyStatus::Snapshot { .. } => unreachable!(),
-                ApplyStatus::Rejected { .. } => vec![],
+            let batch = match coordinator.process(input) {
+                ProcessResult::Accepted { outcomes, .. } => outcomes,
+                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
 
@@ -281,10 +281,10 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let batch = match coordinator.apply(input) {
-                ApplyStatus::Accepted { outcomes, .. } => outcomes,
-                ApplyStatus::Snapshot { .. } => unreachable!(),
-                ApplyStatus::Rejected { .. } => vec![],
+            let batch = match coordinator.process(input) {
+                ProcessResult::Accepted { outcomes, .. } => outcomes,
+                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
 
@@ -303,7 +303,7 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let current = coordinator.snapshot();
 
             // Assert
@@ -327,10 +327,10 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let batch = match coordinator.apply(input) {
-                ApplyStatus::Accepted { outcomes, .. } => outcomes,
-                ApplyStatus::Snapshot { .. } => unreachable!(),
-                ApplyStatus::Rejected { .. } => vec![],
+            let batch = match coordinator.process(input) {
+                ProcessResult::Accepted { outcomes, .. } => outcomes,
+                ProcessResult::Snapshot { .. } => unreachable!(),
+                ProcessResult::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
 
@@ -347,7 +347,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let snapshot = coordinator.snapshot();
 
             // Assert
@@ -369,7 +369,7 @@ proptest! {
 
         // Act
         for input in inputs {
-            let _ = coordinator.apply(input);
+            let _ = coordinator.process(input);
             let snapshot = coordinator.snapshot();
 
             // Assert
