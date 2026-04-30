@@ -19,17 +19,28 @@ pub struct Faction {
     config: Config,
     observer: Box<dyn Observer>,
     state: Box<dyn State>,
-    cached_snapshot: Cell<Option<Snapshot>>,
+    cached_snapshot: Cell<Snapshot>,
 }
 
 impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
+        let state: Box<dyn State> = Box::new(Initial);
+        let base = Snapshot::new(
+            ReadinessLifecycleState::Phase1Active,
+            None,
+            false,
+            false,
+            0,
+            0,
+            config.quorum_threshold(),
+        );
+        let snapshot = state.state_snapshot(&base);
         Self {
             config,
             observer,
-            state: Box::new(Initial),
-            cached_snapshot: Cell::new(None),
+            state,
+            cached_snapshot: Cell::new(snapshot),
         }
     }
 
@@ -55,7 +66,7 @@ impl Faction {
         self.state = new_state;
 
         let new_snapshot = self.state.state_snapshot(&previous_snapshot);
-        self.cached_snapshot.set(Some(new_snapshot));
+        self.cached_snapshot.set(new_snapshot);
 
         let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
         self.observer.observe(command, transition);
@@ -72,22 +83,6 @@ impl Faction {
 
     #[must_use]
     fn snapshot(&self) -> Snapshot {
-        match self.cached_snapshot.get() {
-            Some(snap) => snap,
-            None => {
-                let base = Snapshot::new(
-                    ReadinessLifecycleState::Phase1Active,
-                    None,
-                    false,
-                    false,
-                    0,
-                    0,
-                    self.config.quorum_threshold(),
-                );
-                let snap = self.state.state_snapshot(&base);
-                self.cached_snapshot.set(Some(snap));
-                snap
-            }
-        }
+        self.cached_snapshot.get()
     }
 }
