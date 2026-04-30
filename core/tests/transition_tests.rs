@@ -7,9 +7,9 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
+use faction::exit_mode::ExitMode;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::transition::Transition;
 
 fn cluster_view(pinging_peers: Vec<u64>, collecting_peers: Vec<u64>) -> ClusterView {
@@ -104,7 +104,7 @@ fn previous_state_preserves_full_snapshot() {
     // Assert
     let result = transition.previous_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_peers().len(), 3);
@@ -123,7 +123,7 @@ fn new_state_preserves_full_snapshot() {
     // Assert
     let result = transition.new_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());
     assert_eq!(result.pinging_peers().len(), 3);
@@ -156,8 +156,8 @@ fn clone_produces_equal_transition() {
     let outputs = vec![
         Outcome::ReadyAccepted { peer_id: 3 },
         Outcome::ReadyQuorumReached,
-        Outcome::ReadinessExited {
-            mode: ReadinessExitMode::Bootstrapped,
+        Outcome::Exited {
+            mode: ExitMode::Bootstrapped,
         },
     ];
     let transition = Transition::new(prev, outputs.clone(), next);

@@ -9,8 +9,8 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
+use crate::peer_state::PeerState;
 use crate::state::State;
 
 pub struct Bootstrapped {

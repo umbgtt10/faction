@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::peer_state::PeerState;
+use faction::exit_mode::ExitMode;
 use faction::outcome::Outcome;
-use faction::readiness_exit_mode::ReadinessExitMode;
+use faction::peer_state::PeerState;
 use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
@@ -105,17 +105,14 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
     let cluster_view = harness.cluster_view(0);
     assert!(cluster_view.readiness_exited());
-    assert_eq!(
-        cluster_view.exit_mode(),
-        Some(ReadinessExitMode::Bootstrapped)
-    );
+    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
 }
 
 #[test]

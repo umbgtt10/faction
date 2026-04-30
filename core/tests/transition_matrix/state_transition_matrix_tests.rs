@@ -7,10 +7,10 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::command::Command;
+use faction::exit_mode::ExitMode;
 use faction::outcome::Outcome;
 use faction::outcome::Outcome::*;
 use faction::process_result::ProcessResult;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use rstest::rstest;
 
 use super::helpers::*;
@@ -82,9 +82,9 @@ use super::helpers::*;
     &[
         ReadyAccepted { peer_id: 4 },
         ReadyQuorumReached,
-        ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
+        Exited { mode: ExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::ready_delayed_triggers_quorum(
     Init::Phase2AlmostQuorum,
@@ -92,9 +92,9 @@ use super::helpers::*;
     &[
         DelayedReadyAccepted { peer_id: 4 },
         ReadyQuorumReached,
-        ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
+        Exited { mode: ExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,
@@ -109,9 +109,9 @@ use super::helpers::*;
         LocalParticipationCompleted,
         BroadcastLocalReady,
         ReadyQuorumReached,
-        ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
+        Exited { mode: ExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::local_completion_redundant(
     Init::Phase2NoReadiness,
@@ -122,14 +122,14 @@ use super::helpers::*;
 #[case::deadline_expired(
     Init::Fresh,
     Command::DeadlineExpired,
-    &[ReadinessExited { mode: ReadinessExitMode::TimedOut }],
-    &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Exited { mode: ExitMode::TimedOut }],
+    &[Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
 )]
 #[case::deadline_expired_from_collecting(
     Init::Phase2NoReadiness,
     Command::DeadlineExpired,
-    &[ReadinessExited { mode: ReadinessExitMode::TimedOut }],
-    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Exited { mode: ExitMode::TimedOut }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
 )]
 fn valid_transition(
     #[case] init: Init,

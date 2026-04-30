@@ -10,14 +10,14 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::state::State;
 
 use faction::states::pinging::Pinging;
@@ -137,8 +137,8 @@ fn deal_accepts_deadline_expired() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut
+        vec![Outcome::Exited {
+            mode: ExitMode::TimedOut
         }]
     );
 }
@@ -457,8 +457,8 @@ fn local_completion_triggers_quorum() {
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
@@ -467,7 +467,7 @@ fn local_completion_triggers_quorum() {
         _ => unreachable!(),
     };
     assert!(snap.readiness_exited());
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
 }
 
 #[test]
@@ -483,8 +483,8 @@ fn deadline_expired_in_phase1() {
     };
     assert_eq!(
         outcomes,
-        vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut,
+        vec![Outcome::Exited {
+            mode: ExitMode::TimedOut,
         }]
     );
     let snap = match faction.process(Command::Probe) {
@@ -492,7 +492,7 @@ fn deadline_expired_in_phase1() {
         _ => unreachable!(),
     };
     assert!(snap.readiness_exited());
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
 }
 
 #[test]

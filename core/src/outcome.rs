@@ -2,8 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::cluster_view::ClusterView;
-use crate::readiness_exit_mode::ReadinessExitMode;
+use crate::exit_mode::ExitMode;
 use crate::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,6 +19,5 @@ pub enum Outcome {
     LocalParticipationCompleted,
     BroadcastLocalReady,
     ReadyQuorumReached,
-    ReadinessExited { mode: ReadinessExitMode },
-    ClusterViewAvailable(ClusterView),
+    Exited { mode: ExitMode },
 }

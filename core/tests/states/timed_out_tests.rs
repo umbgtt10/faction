@@ -10,13 +10,13 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::state::State;
 
 use faction::states::timed_out::TimedOut;
@@ -171,7 +171,7 @@ fn vibe_check_after_deadline_from_phase1() {
 
     // Assert
     assert_eq!(s.peer_state(), PeerState::TimedOut);
-    assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(s.exit_mode(), Some(ExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(!s.is_pinging_completed());
     assert_eq!(s.pinging_peers().len(), 1);
@@ -189,7 +189,7 @@ fn vibe_check_after_deadline_from_phase2() {
 
     // Assert
     assert_eq!(s.peer_state(), PeerState::TimedOut);
-    assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(s.exit_mode(), Some(ExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(s.is_pinging_completed());
     assert_eq!(s.pinging_peers().len(), 1);
@@ -249,7 +249,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(result.exit_mode(), Some(ExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(!result.is_pinging_completed());
     assert_eq!(result.pinging_peers(), &[1, 2, 3]);
@@ -277,7 +277,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(result.exit_mode(), Some(ExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(result.is_pinging_completed());
     assert_eq!(result.pinging_peers().len(), 2);

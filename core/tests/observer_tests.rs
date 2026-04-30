@@ -13,6 +13,7 @@ use core::cell::RefCell;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::observer::Observer;
@@ -20,7 +21,6 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::transition::Transition;
 
 type Observations = Rc<RefCell<Vec<(Command, Transition)>>>;
@@ -226,7 +226,7 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(transition.new_view().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         transition.new_view().exit_mode(),
-        Some(ReadinessExitMode::Bootstrapped)
+        Some(ExitMode::Bootstrapped)
     );
     assert!(transition.new_view().readiness_exited());
     assert_eq!(transition.new_view().collecting_peers().len(), 3);
@@ -235,8 +235,8 @@ fn apply_observes_quorum_exit_transition() {
         &[
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped
             },
         ]
     );
@@ -273,15 +273,12 @@ fn apply_observes_deadline_exit_transition() {
     );
     assert!(!transition.previous_view().readiness_exited());
     assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
-    assert_eq!(
-        transition.new_view().exit_mode(),
-        Some(ReadinessExitMode::TimedOut)
-    );
+    assert_eq!(transition.new_view().exit_mode(), Some(ExitMode::TimedOut));
     assert!(transition.new_view().readiness_exited());
     assert_eq!(
         transition.outputs(),
-        &[Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut
+        &[Outcome::Exited {
+            mode: ExitMode::TimedOut
         }]
     );
 }
@@ -434,8 +431,8 @@ fn state_transition_outputs_are_fully_observable() {
         &[
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
@@ -652,8 +649,8 @@ fn apply_observes_quorum_exit_from_pinging() {
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
@@ -663,7 +660,7 @@ fn apply_observes_quorum_exit_from_pinging() {
     assert_eq!(transition.new_view().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         transition.new_view().exit_mode(),
-        Some(ReadinessExitMode::Bootstrapped)
+        Some(ExitMode::Bootstrapped)
     );
     assert!(transition.new_view().readiness_exited());
     assert_eq!(transition.new_view().collecting_peers().len(), 3);
@@ -698,15 +695,12 @@ fn apply_observes_deadline_exit_from_pinging() {
     assert!(!transition.previous_view().readiness_exited());
     assert_eq!(
         transition.outputs(),
-        &[Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut
+        &[Outcome::Exited {
+            mode: ExitMode::TimedOut
         }]
     );
     assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
-    assert_eq!(
-        transition.new_view().exit_mode(),
-        Some(ReadinessExitMode::TimedOut)
-    );
+    assert_eq!(transition.new_view().exit_mode(), Some(ExitMode::TimedOut));
     assert!(transition.new_view().readiness_exited());
     assert!(!transition.new_view().is_pinging_completed());
 }
@@ -848,8 +842,8 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         &[
             Outcome::DelayedReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
@@ -862,7 +856,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     assert_eq!(transition.new_view().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         transition.new_view().exit_mode(),
-        Some(ReadinessExitMode::Bootstrapped)
+        Some(ExitMode::Bootstrapped)
     );
     assert!(transition.new_view().readiness_exited());
     assert_eq!(transition.new_view().collecting_peers().len(), 3);

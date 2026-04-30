@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::exit_mode::ExitMode;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
-use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;
@@ -88,8 +88,8 @@ impl State for Collecting {
                     vec![
                         output,
                         Outcome::ReadyQuorumReached,
-                        Outcome::ReadinessExited {
-                            mode: ReadinessExitMode::Bootstrapped,
+                        Outcome::Exited {
+                            mode: ExitMode::Bootstrapped,
                         },
                     ]
                 } else {
@@ -115,8 +115,8 @@ impl State for Collecting {
             }
 
             Command::DeadlineExpired => (
-                vec![Outcome::ReadinessExited {
-                    mode: ReadinessExitMode::TimedOut,
+                vec![Outcome::Exited {
+                    mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
                     pinging_count,

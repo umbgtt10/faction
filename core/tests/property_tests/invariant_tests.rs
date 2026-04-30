@@ -10,6 +10,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -17,7 +18,6 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
@@ -394,7 +394,7 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.exit_mode() == Some(ReadinessExitMode::Bootstrapped) {
+            if cluster_view.exit_mode() == Some(ExitMode::Bootstrapped) {
                 prop_assert!(cluster_view.is_pinging_completed());
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
@@ -419,7 +419,7 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.exit_mode() == Some(ReadinessExitMode::TimedOut) {
+            if cluster_view.exit_mode() == Some(ExitMode::TimedOut) {
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
                     cluster_view.peer_state(),

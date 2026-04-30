@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::exit_mode::ExitMode;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
-use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;
@@ -107,8 +107,8 @@ impl State for Pinging {
                 let quorum = phase2.count() >= config.required_count();
                 if quorum {
                     outputs.push(Outcome::ReadyQuorumReached);
-                    outputs.push(Outcome::ReadinessExited {
-                        mode: ReadinessExitMode::Bootstrapped,
+                    outputs.push(Outcome::Exited {
+                        mode: ExitMode::Bootstrapped,
                     });
                 }
 
@@ -127,8 +127,8 @@ impl State for Pinging {
             }
 
             Command::DeadlineExpired => (
-                vec![Outcome::ReadinessExited {
-                    mode: ReadinessExitMode::TimedOut,
+                vec![Outcome::Exited {
+                    mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
                     pinging_count: phase1.count(),

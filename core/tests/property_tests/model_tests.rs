@@ -9,6 +9,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -16,7 +17,6 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +31,7 @@ enum ModelLifecycleState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ModelClusterView {
     peer_state: ModelLifecycleState,
-    exit_mode: Option<ReadinessExitMode>,
+    exit_mode: Option<ExitMode>,
     is_pinging_completed: bool,
     readiness_exited: bool,
     pinging_confirmed_count: usize,
@@ -46,7 +46,7 @@ struct ModelCoordinator {
     max_delay: u64,
     initial: bool,
     peer_state: ModelLifecycleState,
-    exit_mode: Option<ReadinessExitMode>,
+    exit_mode: Option<ExitMode>,
     is_pinging_completed: bool,
     phase1_confirmed: [bool; 5],
     phase2_confirmed: [bool; 5],
@@ -191,13 +191,13 @@ impl ModelCoordinator {
 
         if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
             self.collecting_confirmed_count = prev_collecting;
-            self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
+            self.exit_mode = Some(ExitMode::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
                 Outcome::ReadyQuorumReached,
-                Outcome::ReadinessExited {
-                    mode: ReadinessExitMode::Bootstrapped,
+                Outcome::Exited {
+                    mode: ExitMode::Bootstrapped,
                 },
             ]
         } else {
@@ -230,11 +230,11 @@ impl ModelCoordinator {
 
         if self.collecting_confirmed_count >= self.required_count {
             self.collecting_confirmed_count = prev_collecting;
-            self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
+            self.exit_mode = Some(ExitMode::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
-            outputs.push(Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            outputs.push(Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             });
         }
 
@@ -246,11 +246,11 @@ impl ModelCoordinator {
             return vec![];
         }
 
-        self.exit_mode = Some(ReadinessExitMode::TimedOut);
+        self.exit_mode = Some(ExitMode::TimedOut);
         self.peer_state = ModelLifecycleState::TimedOut;
 
-        vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut,
+        vec![Outcome::Exited {
+            mode: ExitMode::TimedOut,
         }]
     }
 

@@ -9,12 +9,12 @@ use alloc::vec;
 
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::Freshness;
 use faction::PeerId;
 
@@ -118,7 +118,7 @@ pub enum Assert {
     CollectingCount(usize),
     Exited,
     NotExited,
-    ExitMode(ReadinessExitMode),
+    ExitMode(ExitMode),
     LocalComplete,
     NotLocalComplete,
 }

@@ -10,14 +10,14 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
+use faction::exit_mode::ExitMode;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::state::State;
 
 use faction::states::collecting::Collecting;
@@ -98,11 +98,11 @@ fn deal_accepts_deadline_expired() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut,
+        vec![Outcome::Exited {
+            mode: ExitMode::TimedOut,
         }]
     );
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
     assert!(snap.readiness_exited());
 }
 
@@ -421,14 +421,14 @@ fn ready_first_timely_triggers_quorum() {
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
     assert_eq!(snap.collecting_peers().len(), 3);
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(snap.readiness_exited());
 }
 
@@ -464,8 +464,8 @@ fn ready_first_delayed_triggers_quorum() {
         vec![
             Outcome::DelayedReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
-            Outcome::ReadinessExited {
-                mode: ReadinessExitMode::Bootstrapped,
+            Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
             },
         ]
     );
@@ -525,12 +525,12 @@ fn deadline_expired_exits_in_phase2() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::ReadinessExited {
-            mode: ReadinessExitMode::TimedOut,
+        vec![Outcome::Exited {
+            mode: ExitMode::TimedOut,
         }]
     );
     assert_eq!(snap.peer_state(), PeerState::TimedOut);
-    assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
+    assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
     assert!(snap.readiness_exited());
     assert!(snap.is_pinging_completed());
 }

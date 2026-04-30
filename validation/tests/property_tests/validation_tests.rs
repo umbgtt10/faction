@@ -6,8 +6,8 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction_validation::scenario_harness::ScenarioHarness;
 use proptest::prelude::*;
 

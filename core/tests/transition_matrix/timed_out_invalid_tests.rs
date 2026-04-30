@@ -3,8 +3,8 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::command::Command;
+use faction::exit_mode::ExitMode;
 use faction::process_result::ProcessResult;
-use faction::readiness_exit_mode::ReadinessExitMode;
 use rstest::rstest;
 
 use super::helpers::*;
@@ -13,49 +13,49 @@ use super::helpers::*;
 #[case::rejects_participation_observed(
     Init::TimedOut,
     participation(1, TIMELY),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
     Init::TimedOut,
     participation(1, DELAYED),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::TimedOut,
     participation(99, TIMELY),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::TimedOut,
     ready(1, TIMELY),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
     Init::TimedOut,
     ready(1, DELAYED),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::TimedOut,
     ready(99, TIMELY),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_is_pinging_completedd(
     Init::TimedOut,
     Command::LocalParticipationCompleted,
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::TimedOut,
     Command::DeadlineExpired,
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
     &[Command::Probe],
 )]
 fn invalid_transition(
