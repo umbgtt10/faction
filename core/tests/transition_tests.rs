@@ -14,7 +14,7 @@ use faction::transition::Transition;
 
 fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
     ClusterView::new(
-        NodeState::Phase1Active,
+        NodeState::Pinging,
         false,
         phase1,
         phase2,
@@ -104,8 +104,8 @@ fn previous_state_preserves_full_snapshot() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
-    assert_eq!(result.phase1_confirmed_count(), 3);
-    assert_eq!(result.phase2_confirmed_count(), 5);
+    assert_eq!(result.pinging_confirmed_count(), 3);
+    assert_eq!(result.collecting_confirmed_count(), 5);
 }
 
 #[test]
@@ -126,8 +126,8 @@ fn new_state_preserves_full_snapshot() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
-    assert_eq!(result.phase1_confirmed_count(), 3);
-    assert_eq!(result.phase2_confirmed_count(), 5);
+    assert_eq!(result.pinging_confirmed_count(), 3);
+    assert_eq!(result.collecting_confirmed_count(), 5);
 }
 
 #[test]

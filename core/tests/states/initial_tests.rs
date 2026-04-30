@@ -60,9 +60,9 @@ fn deal_accepts_participation_observed() {
     );
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
-    assert_eq!(snap.phase1_confirmed_count(), 1);
+    assert_eq!(snap.pinging_confirmed_count(), 1);
 }
 
 #[test]
@@ -89,9 +89,9 @@ fn deal_accepts_ready_observed() {
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
-    assert_eq!(snap.phase2_confirmed_count(), 1);
+    assert_eq!(snap.collecting_confirmed_count(), 1);
 }
 
 #[test]
@@ -112,9 +112,9 @@ fn deal_rejects_local_participation_completed() {
     };
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
-    assert_eq!(snap.phase2_confirmed_count(), 0);
+    assert_eq!(snap.collecting_confirmed_count(), 0);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn deal_rejects_deadline_expired() {
     };
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
     assert_eq!(snap.exit_mode(), None);
 }
@@ -171,7 +171,7 @@ fn stays_in_initial_after_rejected_input() {
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(snap.phase1_confirmed_count(), 1);
+    assert_eq!(snap.pinging_confirmed_count(), 1);
 }
 
 #[test]
@@ -200,10 +200,10 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
     };
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
-    assert_eq!(snap.phase1_confirmed_count(), 0);
-    assert_eq!(snap.phase2_confirmed_count(), 0);
+    assert_eq!(snap.pinging_confirmed_count(), 0);
+    assert_eq!(snap.collecting_confirmed_count(), 0);
     assert_eq!(snap.exit_mode(), None);
     assert!(!snap.readiness_exited());
     assert!(!snap.local_participation_complete());
@@ -231,10 +231,10 @@ fn punch_participation_non_member_from_initial() {
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(snap.phase1_confirmed_count(), 0);
+    assert_eq!(snap.pinging_confirmed_count(), 0);
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
 }
 
@@ -263,7 +263,7 @@ fn punch_participation_delayed_from_initial() {
         outcomes,
         vec![Outcome::DelayedParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(snap.phase1_confirmed_count(), 1);
+    assert_eq!(snap.pinging_confirmed_count(), 1);
 }
 
 #[test]
@@ -288,7 +288,7 @@ fn punch_ready_non_member_from_initial() {
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(snap.phase2_confirmed_count(), 0);
+    assert_eq!(snap.collecting_confirmed_count(), 0);
 }
 
 #[test]
@@ -303,20 +303,20 @@ fn vibe_check_returns_phase1_active_with_zeros() {
     // Assert
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
     assert_eq!(snap.exit_mode(), None);
     assert!(!snap.local_participation_complete());
     assert!(!snap.readiness_exited());
-    assert_eq!(snap.phase1_confirmed_count(), 0);
-    assert_eq!(snap.phase2_confirmed_count(), 0);
+    assert_eq!(snap.pinging_confirmed_count(), 0);
+    assert_eq!(snap.collecting_confirmed_count(), 0);
     assert_eq!(snap.quorum_threshold(), 4);
 }
 
 #[test]
 fn initial_cluster_view_inherits_correctly() {
     // Arrange
-    let prev = ClusterView::new(NodeState::Phase2Active, true, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Collecting, true, 99, 99, 4);
 
     // Act
     let result = Initial.cluster_view(&prev);
@@ -324,10 +324,10 @@ fn initial_cluster_view_inherits_correctly() {
     // Assert
     assert_eq!(
         result.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
-    assert_eq!(result.phase1_confirmed_count(), 0);
-    assert_eq!(result.phase2_confirmed_count(), 0);
+    assert_eq!(result.pinging_confirmed_count(), 0);
+    assert_eq!(result.collecting_confirmed_count(), 0);
     assert_eq!(result.exit_mode(), None);
     assert!(result.local_participation_complete());
     assert!(!result.readiness_exited());

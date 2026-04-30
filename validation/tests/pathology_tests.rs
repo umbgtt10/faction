@@ -25,10 +25,10 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 2);
     assert_eq!(
         cluster_view.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -47,10 +47,10 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 2);
     assert_eq!(
         cluster_view.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -82,10 +82,10 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
         duplicate_outputs,
         vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(cluster_view.phase2_confirmed_count(), 3);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 3);
     assert_eq!(
         cluster_view.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -141,10 +141,10 @@ fn non_member_signal_does_not_perturb_multi_node_state() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 2);
     assert_eq!(
         cluster_view.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(!cluster_view.readiness_exited());
 }

@@ -12,25 +12,25 @@ use super::helpers::*;
 #[case::rejects_participation_observed(
     Init::Phase2NoReadiness,
     participation(1, TIMELY),
-    &[Assert::P1Count(0), Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
+    &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 #[case::rejects_participation_observed_stale(
     Init::Phase2Peer1Confirmed,
     participation(2, STALE),
-    &[Assert::P1Count(0), Assert::P2Count(2), Assert::LocalComplete, Assert::NotExited],
+    &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 #[case::rejects_local_participation_completed(
     Init::Phase2NoReadiness,
     Command::LocalParticipationCompleted,
-    &[Assert::P1Count(0), Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
+    &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 #[case::rejects_local_participation_completed_after_ready(
     Init::Phase2Peer1Confirmed,
     Command::LocalParticipationCompleted,
-    &[Assert::P1Count(0), Assert::P2Count(2), Assert::LocalComplete, Assert::NotExited],
+    &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 fn invalid_transition(

@@ -81,8 +81,8 @@ proptest! {
             };
 
             // Assert
-            prop_assert!(cluster_view.phase1_confirmed_count() <= 5);
-            prop_assert!(cluster_view.phase2_confirmed_count() <= 5);
+            prop_assert!(cluster_view.pinging_confirmed_count() <= 5);
+            prop_assert!(cluster_view.collecting_confirmed_count() <= 5);
         }
     }
 

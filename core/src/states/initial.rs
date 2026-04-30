@@ -19,9 +19,9 @@ pub struct Initial;
 impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_node_state(NodeState::Phase1Active)
-            .with_phase1_count(0)
-            .with_phase2_count(0)
+            .with_node_state(NodeState::Pinging)
+            .with_pinging_count(0)
+            .with_collecting_count(0)
     }
 
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {

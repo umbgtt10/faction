@@ -39,7 +39,7 @@ fn slow_member_does_not_block_quorum_exit() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
 
@@ -88,7 +88,7 @@ fn post_exit_ready_is_ignored() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
 
@@ -143,7 +143,7 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
         NodeState::TimedOut
     );
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.phase2_confirmed_count(), 3);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 3);
 }
 
 #[test]
@@ -218,8 +218,8 @@ fn deadline_from_phase1() {
     );
     assert!(cluster_view.readiness_exited());
     assert!(!cluster_view.local_participation_complete());
-    assert_eq!(cluster_view.phase1_confirmed_count(), 1);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 0);
+    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 0);
 }
 
 #[test]
@@ -242,6 +242,6 @@ fn deadline_from_bootstrapped_is_noop() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }

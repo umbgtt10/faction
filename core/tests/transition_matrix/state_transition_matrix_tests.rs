@@ -20,61 +20,61 @@ use super::helpers::*;
     Init::Fresh,
     participation(1, TIMELY),
     &[ParticipationAccepted { peer_id: 1 }],
-    &[Assert::P1Count(1), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::participation_delayed_member(
     Init::Fresh,
     participation(1, DELAYED),
     &[DelayedParticipationAccepted { peer_id: 1 }],
-    &[Assert::P1Count(1), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::participation_stale_member(
     Init::Fresh,
     participation(1, STALE),
     &[StaleParticipationIgnored { peer_id: 1 }],
-    &[Assert::P1Count(0), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::participation_non_member(
     Init::Fresh,
     participation(99, TIMELY),
     &[NonMemberIgnored { peer_id: 99 }],
-    &[Assert::P1Count(0), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::participation_duplicate(
     Init::Phase1Peer1Confirmed,
     participation(1, TIMELY),
     &[DuplicateParticipationIgnored { peer_id: 1 }],
-    &[Assert::P1Count(1), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_timely_member(
     Init::Fresh,
     ready(1, TIMELY),
     &[ReadyAccepted { peer_id: 1 }],
-    &[Assert::P2Count(1), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::CollectingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_delayed_member(
     Init::Fresh,
     ready(1, DELAYED),
     &[DelayedReadyAccepted { peer_id: 1 }],
-    &[Assert::P2Count(1), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::CollectingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_stale_member(
     Init::Fresh,
     ready(1, STALE),
     &[StaleReadyIgnored { peer_id: 1 }],
-    &[Assert::P2Count(0), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_non_member(
     Init::Fresh,
     ready(99, TIMELY),
     &[NonMemberIgnored { peer_id: 99 }],
-    &[Assert::P2Count(0), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_duplicate(
     Init::Phase2Peer1Confirmed,
     ready(1, TIMELY),
     &[DuplicateReadyIgnored { peer_id: 1 }],
-    &[Assert::P2Count(2), Assert::NotExited, Assert::LocalComplete],
+    &[Assert::CollectingCount(2), Assert::NotExited, Assert::LocalComplete],
 )]
 #[case::ready_timely_triggers_quorum(
     Init::Phase2AlmostQuorum,
@@ -84,7 +84,7 @@ use super::helpers::*;
         ReadyQuorumReached,
         ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::ready_delayed_triggers_quorum(
     Init::Phase2AlmostQuorum,
@@ -94,13 +94,13 @@ use super::helpers::*;
         ReadyQuorumReached,
         ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::local_completion_transitions_to_phase2(
     Init::Fresh,
     Command::LocalParticipationCompleted,
     &[LocalParticipationCompleted, BroadcastLocalReady],
-    &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::local_completion_with_preloaded_quorum(
     Init::Phase1P2Threshold,
@@ -111,13 +111,13 @@ use super::helpers::*;
         ReadyQuorumReached,
         ReadinessExited { mode: ReadinessExitMode::Bootstrapped },
     ],
-    &[Assert::P2Count(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
 )]
 #[case::local_completion_redundant(
     Init::Phase2NoReadiness,
     Command::LocalParticipationCompleted,
     &[],
-    &[Assert::P2Count(1), Assert::LocalComplete, Assert::NotExited],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::deadline_expired(
     Init::Fresh,
@@ -129,7 +129,7 @@ use super::helpers::*;
     Init::Phase2NoReadiness,
     Command::DeadlineExpired,
     &[ReadinessExited { mode: ReadinessExitMode::TimedOut }],
-    &[Assert::P2Count(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::TimedOut)],
 )]
 fn valid_transition(
     #[case] init: Init,

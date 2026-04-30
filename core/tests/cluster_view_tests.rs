@@ -13,25 +13,25 @@ const BASE: ClusterView = ClusterView::new(NodeState::Bootstrapped, true, 5, 7, 
 #[test]
 fn with_node_state_updates_only_node_state() {
     // Arrange & Act
-    let result = BASE.with_node_state(NodeState::Phase1Active);
+    let result = BASE.with_node_state(NodeState::Pinging);
 
     // Assert
     assert_eq!(
         result.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
     assert_eq!(result.exit_mode(), None);
     assert!(result.local_participation_complete());
     assert!(!result.readiness_exited());
-    assert_eq!(result.phase1_confirmed_count(), 5);
-    assert_eq!(result.phase2_confirmed_count(), 7);
+    assert_eq!(result.pinging_confirmed_count(), 5);
+    assert_eq!(result.collecting_confirmed_count(), 7);
     assert_eq!(result.quorum_threshold(), 3);
 }
 
 #[test]
-fn with_phase2_count_updates_only_phase2_count() {
+fn with_collecting_count_updates_only_collecting_count() {
     // Arrange & Act
-    let result = BASE.with_phase2_count(99);
+    let result = BASE.with_collecting_count(99);
 
     // Assert
     assert_eq!(
@@ -41,7 +41,7 @@ fn with_phase2_count_updates_only_phase2_count() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
-    assert_eq!(result.phase1_confirmed_count(), 5);
-    assert_eq!(result.phase2_confirmed_count(), 99);
+    assert_eq!(result.pinging_confirmed_count(), 5);
+    assert_eq!(result.collecting_confirmed_count(), 99);
     assert_eq!(result.quorum_threshold(), 3);
 }

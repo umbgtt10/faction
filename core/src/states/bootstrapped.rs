@@ -14,8 +14,8 @@ use crate::node_state::NodeState;
 use crate::state::State;
 
 pub struct Bootstrapped {
-    pub phase1_count: usize,
-    pub phase2_count: usize,
+    pub pinging_count: usize,
+    pub collecting_count: usize,
 }
 
 impl State for Bootstrapped {
@@ -31,8 +31,8 @@ impl State for Bootstrapped {
         previous
             .with_node_state(NodeState::Bootstrapped)
             .with_local_participation_complete(true)
-            .with_phase1_count(self.phase1_count)
-            .with_phase2_count(self.phase2_count)
+            .with_pinging_count(self.pinging_count)
+            .with_collecting_count(self.collecting_count)
     }
 
     fn admissible_commands(&self) -> alloc::vec::Vec<Command> {

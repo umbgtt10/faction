@@ -4,8 +4,8 @@
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeState {
-    Phase1Active,
-    Phase2Active,
+    Pinging,
+    Collecting,
     Bootstrapped,
     TimedOut,
 }

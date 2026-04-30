@@ -26,7 +26,7 @@ impl Faction {
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
         let base = ClusterView::new(
-            NodeState::Phase1Active,
+            NodeState::Pinging,
             false,
             0,
             0,

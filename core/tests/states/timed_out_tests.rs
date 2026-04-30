@@ -174,8 +174,8 @@ fn vibe_check_after_deadline_from_phase1() {
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(!s.local_participation_complete());
-    assert_eq!(s.phase1_confirmed_count(), 1);
-    assert_eq!(s.phase2_confirmed_count(), 0);
+    assert_eq!(s.pinging_confirmed_count(), 1);
+    assert_eq!(s.collecting_confirmed_count(), 0);
 }
 
 #[test]
@@ -192,8 +192,8 @@ fn vibe_check_after_deadline_from_phase2() {
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(s.local_participation_complete());
-    assert_eq!(s.phase1_confirmed_count(), 1);
-    assert_eq!(s.phase2_confirmed_count(), 1);
+    assert_eq!(s.pinging_confirmed_count(), 1);
+    assert_eq!(s.collecting_confirmed_count(), 1);
 }
 
 #[test]
@@ -233,10 +233,10 @@ fn post_deadline_inputs_leave_state_unchanged() {
 fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
     // Arrange
     let rbd = TimedOut {
-        phase1_count: 3,
-        phase2_count: 1,
+        pinging_count: 3,
+        collecting_count: 1,
     };
-    let prev = ClusterView::new(NodeState::Phase1Active, false, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Pinging, false, 99, 99, 4);
 
     // Act
     let result = rbd.cluster_view(&prev);
@@ -246,8 +246,8 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(!result.local_participation_complete());
-    assert_eq!(result.phase1_confirmed_count(), 3);
-    assert_eq!(result.phase2_confirmed_count(), 1);
+    assert_eq!(result.pinging_confirmed_count(), 3);
+    assert_eq!(result.collecting_confirmed_count(), 1);
     assert_eq!(result.quorum_threshold(), 4);
 }
 
@@ -255,10 +255,10 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
 fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
     // Arrange
     let rbd = TimedOut {
-        phase1_count: 2,
-        phase2_count: 4,
+        pinging_count: 2,
+        collecting_count: 4,
     };
-    let prev = ClusterView::new(NodeState::Phase2Active, true, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Collecting, true, 99, 99, 4);
 
     // Act
     let result = rbd.cluster_view(&prev);
@@ -268,7 +268,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(result.local_participation_complete());
-    assert_eq!(result.phase1_confirmed_count(), 2);
-    assert_eq!(result.phase2_confirmed_count(), 4);
+    assert_eq!(result.pinging_confirmed_count(), 2);
+    assert_eq!(result.collecting_confirmed_count(), 4);
     assert_eq!(result.quorum_threshold(), 4);
 }

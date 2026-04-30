@@ -24,10 +24,10 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 2);
     assert_eq!(
         cluster_view.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -45,7 +45,7 @@ fn apply_ready_accepts_delayed_member_observation_within_margin() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 2);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 2);
     assert!(!cluster_view.readiness_exited());
 }
 
@@ -62,10 +62,10 @@ fn apply_ready_rejects_stale_member_observation() {
 
     // Assert
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 1);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 1);
     assert_eq!(
         cluster_view.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -103,7 +103,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
         NodeState::Bootstrapped
     );
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
 
@@ -158,7 +158,7 @@ fn post_exit_ready_is_ignored() {
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
     );
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
 
@@ -243,10 +243,10 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     assert_eq!(outputs_peer_1, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(outputs_peer_2, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
     assert_eq!(outputs_peer_3, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
-    assert_eq!(intermediate_snapshot.phase2_confirmed_count(), 3);
+    assert_eq!(intermediate_snapshot.collecting_confirmed_count(), 3);
     assert_eq!(
         intermediate_snapshot.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
     assert!(!intermediate_snapshot.local_participation_complete());
     assert!(!intermediate_snapshot.readiness_exited());
@@ -267,5 +267,5 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
         Some(ReadinessExitMode::Bootstrapped)
     );
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
 }

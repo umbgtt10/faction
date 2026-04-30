@@ -9,8 +9,8 @@ use crate::node_state::NodeState;
 pub struct ClusterView {
     node_state: NodeState,
     local_participation_complete: bool,
-    phase1_confirmed_count: usize,
-    phase2_confirmed_count: usize,
+    pinging_confirmed_count: usize,
+    collecting_confirmed_count: usize,
     quorum_threshold: usize,
 }
 
@@ -19,15 +19,15 @@ impl ClusterView {
     pub const fn new(
         node_state: NodeState,
         local_participation_complete: bool,
-        phase1_confirmed_count: usize,
-        phase2_confirmed_count: usize,
+        pinging_confirmed_count: usize,
+        collecting_confirmed_count: usize,
         quorum_threshold: usize,
     ) -> Self {
         Self {
             node_state,
             local_participation_complete,
-            phase1_confirmed_count,
-            phase2_confirmed_count,
+            pinging_confirmed_count,
+            collecting_confirmed_count,
             quorum_threshold,
         }
     }
@@ -60,13 +60,13 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn phase1_confirmed_count(&self) -> usize {
-        self.phase1_confirmed_count
+    pub const fn pinging_confirmed_count(&self) -> usize {
+        self.pinging_confirmed_count
     }
 
     #[must_use]
-    pub const fn phase2_confirmed_count(&self) -> usize {
-        self.phase2_confirmed_count
+    pub const fn collecting_confirmed_count(&self) -> usize {
+        self.collecting_confirmed_count
     }
 
     #[must_use]
@@ -87,14 +87,14 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn with_phase1_count(mut self, count: usize) -> Self {
-        self.phase1_confirmed_count = count;
+    pub const fn with_pinging_count(mut self, count: usize) -> Self {
+        self.pinging_confirmed_count = count;
         self
     }
 
     #[must_use]
-    pub const fn with_phase2_count(mut self, count: usize) -> Self {
-        self.phase2_confirmed_count = count;
+    pub const fn with_collecting_count(mut self, count: usize) -> Self {
+        self.collecting_confirmed_count = count;
         self
     }
 }

@@ -21,8 +21,8 @@ use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ModelLifecycleState {
-    Phase1Active,
-    Phase2Active,
+    Pinging,
+    Collecting,
     Bootstrapped,
     TimedOut,
 }
@@ -33,8 +33,8 @@ struct ModelClusterView {
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
     readiness_exited: bool,
-    phase1_confirmed_count: usize,
-    phase2_confirmed_count: usize,
+    pinging_confirmed_count: usize,
+    collecting_confirmed_count: usize,
     quorum_threshold: usize,
 }
 
@@ -49,8 +49,8 @@ struct ModelCoordinator {
     local_participation_complete: bool,
     phase1_confirmed: [bool; 5],
     phase2_confirmed: [bool; 5],
-    phase1_confirmed_count: usize,
-    phase2_confirmed_count: usize,
+    pinging_confirmed_count: usize,
+    collecting_confirmed_count: usize,
 }
 
 impl ModelCoordinator {
@@ -61,13 +61,13 @@ impl ModelCoordinator {
             quorum_threshold: 4,
             max_delay: 2,
             initial: true,
-            node_state: ModelLifecycleState::Phase1Active,
+            node_state: ModelLifecycleState::Pinging,
             exit_mode: None,
             local_participation_complete: false,
             phase1_confirmed: [false; 5],
             phase2_confirmed: [false; 5],
-            phase1_confirmed_count: 0,
-            phase2_confirmed_count: 0,
+            pinging_confirmed_count: 0,
+            collecting_confirmed_count: 0,
         }
     }
 
@@ -77,8 +77,8 @@ impl ModelCoordinator {
             exit_mode: self.exit_mode,
             local_participation_complete: self.local_participation_complete,
             readiness_exited: self.exit_mode.is_some(),
-            phase1_confirmed_count: self.phase1_confirmed_count,
-            phase2_confirmed_count: self.phase2_confirmed_count,
+            pinging_confirmed_count: self.pinging_confirmed_count,
+            collecting_confirmed_count: self.collecting_confirmed_count,
             quorum_threshold: self.quorum_threshold,
         }
     }
@@ -146,7 +146,7 @@ impl ModelCoordinator {
         }
 
         self.phase1_confirmed[index] = true;
-        self.phase1_confirmed_count += 1;
+        self.pinging_confirmed_count += 1;
 
         if self.is_delayed(current_marker, freshness) {
             vec![Outcome::DelayedParticipationAccepted { peer_id }]
@@ -178,7 +178,7 @@ impl ModelCoordinator {
         }
 
         self.phase2_confirmed[index] = true;
-        self.phase2_confirmed_count += 1;
+        self.collecting_confirmed_count += 1;
 
         let accepted_output = if self.is_delayed(current_marker, freshness) {
             Outcome::DelayedReadyAccepted { peer_id }
@@ -186,7 +186,7 @@ impl ModelCoordinator {
             Outcome::ReadyAccepted { peer_id }
         };
 
-        if self.local_participation_complete && self.phase2_confirmed_count >= self.quorum_threshold
+        if self.local_participation_complete && self.collecting_confirmed_count >= self.quorum_threshold
         {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
@@ -208,14 +208,14 @@ impl ModelCoordinator {
         }
 
         self.local_participation_complete = true;
-        self.node_state = ModelLifecycleState::Phase2Active;
+        self.node_state = ModelLifecycleState::Collecting;
 
         let local_index = self
             .peer_index(self.local_peer_id)
             .expect("local peer must be in peer set");
         if !self.phase2_confirmed[local_index] {
             self.phase2_confirmed[local_index] = true;
-            self.phase2_confirmed_count += 1;
+            self.collecting_confirmed_count += 1;
         }
 
         let mut outputs = vec![
@@ -223,7 +223,7 @@ impl ModelCoordinator {
             Outcome::BroadcastLocalReady,
         ];
 
-        if self.phase2_confirmed_count >= self.quorum_threshold {
+        if self.collecting_confirmed_count >= self.quorum_threshold {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
             self.node_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
@@ -274,16 +274,16 @@ impl ModelCoordinator {
 fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
     ModelClusterView {
         node_state: match cluster_view.node_state() {
-            NodeState::Phase1Active => ModelLifecycleState::Phase1Active,
-            NodeState::Phase2Active => ModelLifecycleState::Phase2Active,
+            NodeState::Pinging => ModelLifecycleState::Pinging,
+            NodeState::Collecting => ModelLifecycleState::Collecting,
             NodeState::Bootstrapped => ModelLifecycleState::Bootstrapped,
             NodeState::TimedOut => ModelLifecycleState::TimedOut,
         },
         exit_mode: cluster_view.exit_mode(),
         local_participation_complete: cluster_view.local_participation_complete(),
         readiness_exited: cluster_view.readiness_exited(),
-        phase1_confirmed_count: cluster_view.phase1_confirmed_count(),
-        phase2_confirmed_count: cluster_view.phase2_confirmed_count(),
+        pinging_confirmed_count: cluster_view.pinging_confirmed_count(),
+        collecting_confirmed_count: cluster_view.collecting_confirmed_count(),
         quorum_threshold: cluster_view.quorum_threshold(),
     }
 }

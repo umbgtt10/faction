@@ -12,13 +12,13 @@ use super::helpers::*;
 #[case::rejects_local_participation_completed(
     Init::Initial,
     Command::LocalParticipationCompleted,
-    &[Assert::P1Count(0), Assert::P2Count(0), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
     &[Command::ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::Initial,
     Command::DeadlineExpired,
-    &[Assert::P1Count(0), Assert::P2Count(0), Assert::NotExited, Assert::NotLocalComplete],
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
     &[Command::ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::Probe],
 )]
 fn invalid_transition(

@@ -50,13 +50,13 @@ fn machine_in_phase1() -> Faction {
 
 fn p1(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view.phase1_confirmed_count(),
+        ProcessResult::Probed { cluster_view, .. } => cluster_view.pinging_confirmed_count(),
         _ => unreachable!(),
     }
 }
 fn p2(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view.phase2_confirmed_count(),
+        ProcessResult::Probed { cluster_view, .. } => cluster_view.collecting_confirmed_count(),
         _ => unreachable!(),
     }
 }
@@ -407,7 +407,7 @@ fn local_completion_no_quorum() {
     };
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase2Active
+        NodeState::Collecting
     );
     assert!(snap.local_participation_complete());
     assert!(!snap.readiness_exited());
@@ -510,13 +510,13 @@ fn vibe_check_in_phase1() {
     // Assert
     assert_eq!(
         snap.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
     assert!(!snap.readiness_exited());
     assert!(!snap.local_participation_complete());
     assert_eq!(snap.exit_mode(), None);
-    assert_eq!(snap.phase1_confirmed_count(), 1);
-    assert_eq!(snap.phase2_confirmed_count(), 0);
+    assert_eq!(snap.pinging_confirmed_count(), 1);
+    assert_eq!(snap.collecting_confirmed_count(), 0);
     assert_eq!(snap.quorum_threshold(), THRESHOLD);
 }
 
@@ -524,7 +524,7 @@ fn vibe_check_in_phase1() {
 fn pinging_cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new(5);
-    let prev = ClusterView::new(NodeState::Phase2Active, true, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Collecting, true, 99, 99, 4);
 
     // Act
     let result = pinging.cluster_view(&prev);
@@ -532,10 +532,10 @@ fn pinging_cluster_view_inherits_correctly() {
     // Assert
     assert_eq!(
         result.node_state(),
-        NodeState::Phase1Active
+        NodeState::Pinging
     );
-    assert_eq!(result.phase1_confirmed_count(), 0);
-    assert_eq!(result.phase2_confirmed_count(), 0);
+    assert_eq!(result.pinging_confirmed_count(), 0);
+    assert_eq!(result.collecting_confirmed_count(), 0);
     assert_eq!(result.exit_mode(), None);
     assert!(result.local_participation_complete());
     assert!(!result.readiness_exited());

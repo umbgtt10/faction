@@ -87,8 +87,8 @@ fn assert_counts_do_not_decrease(
     previous: ClusterView,
     current: ClusterView,
 ) -> Result<(), TestCaseError> {
-    prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
-    prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
+    prop_assert!(current.pinging_confirmed_count() >= previous.pinging_confirmed_count());
+    prop_assert!(current.collecting_confirmed_count() >= previous.collecting_confirmed_count());
     Ok(())
 }
 
@@ -99,12 +99,12 @@ fn assert_stale_outputs_do_not_mutate_state(
 ) -> Result<(), TestCaseError> {
     if outputs_contain_stale(outputs) {
         prop_assert_eq!(
-            current.phase1_confirmed_count(),
-            previous.phase1_confirmed_count()
+            current.pinging_confirmed_count(),
+            previous.pinging_confirmed_count()
         );
         prop_assert_eq!(
-            current.phase2_confirmed_count(),
-            previous.phase2_confirmed_count()
+            current.collecting_confirmed_count(),
+            previous.collecting_confirmed_count()
         );
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -124,12 +124,12 @@ fn assert_non_member_outputs_do_not_mutate_state(
 ) -> Result<(), TestCaseError> {
     if outputs_contain_non_member(outputs) {
         prop_assert_eq!(
-            current.phase1_confirmed_count(),
-            previous.phase1_confirmed_count()
+            current.pinging_confirmed_count(),
+            previous.pinging_confirmed_count()
         );
         prop_assert_eq!(
-            current.phase2_confirmed_count(),
-            previous.phase2_confirmed_count()
+            current.collecting_confirmed_count(),
+            previous.collecting_confirmed_count()
         );
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -149,12 +149,12 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
 ) -> Result<(), TestCaseError> {
     if outputs_contain_duplicate(outputs) {
         prop_assert_eq!(
-            current.phase1_confirmed_count(),
-            previous.phase1_confirmed_count()
+            current.pinging_confirmed_count(),
+            previous.pinging_confirmed_count()
         );
         prop_assert_eq!(
-            current.phase2_confirmed_count(),
-            previous.phase2_confirmed_count()
+            current.collecting_confirmed_count(),
+            previous.collecting_confirmed_count()
         );
         prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
@@ -225,7 +225,7 @@ proptest! {
     }
 
     #[test]
-    fn phase1_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn pinging_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -242,13 +242,13 @@ proptest! {
             };
 
             // Assert
-            prop_assert!(current.phase1_confirmed_count() >= previous.phase1_confirmed_count());
+            prop_assert!(current.pinging_confirmed_count() >= previous.pinging_confirmed_count());
             previous = current;
         }
     }
 
     #[test]
-    fn phase2_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
+    fn collecting_count_never_decreases(inputs in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -265,7 +265,7 @@ proptest! {
             };
 
             // Assert
-            prop_assert!(current.phase2_confirmed_count() >= previous.phase2_confirmed_count());
+            prop_assert!(current.collecting_confirmed_count() >= previous.collecting_confirmed_count());
             previous = current;
         }
     }

@@ -13,49 +13,49 @@ use super::helpers::*;
 #[case::rejects_participation_observed(
     Init::Bootstrapped,
     participation(1, TIMELY),
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
     Init::Bootstrapped,
     participation(1, DELAYED),
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::Bootstrapped,
     participation(99, TIMELY),
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::Bootstrapped,
     ready(1, TIMELY),
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
     Init::Bootstrapped,
     ready(1, DELAYED),
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::Bootstrapped,
     ready(99, TIMELY),
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_local_participation_completed(
     Init::Bootstrapped,
     Command::LocalParticipationCompleted,
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::Bootstrapped,
     Command::DeadlineExpired,
-    &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Bootstrapped)],
     &[Command::Probe],
 )]
 fn invalid_transition(

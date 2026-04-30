@@ -147,8 +147,8 @@ fn vibe_check_returns_correct_snapshot() {
     );
     assert!(cluster_view.local_participation_complete());
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.phase1_confirmed_count(), 1);
-    assert_eq!(cluster_view.phase2_confirmed_count(), 4);
+    assert_eq!(cluster_view.pinging_confirmed_count(), 1);
+    assert_eq!(cluster_view.collecting_confirmed_count(), 4);
     assert_eq!(cluster_view.quorum_threshold(), 4);
 }
 
@@ -156,10 +156,10 @@ fn vibe_check_returns_correct_snapshot() {
 fn bootstrapped_cluster_view_overrides_all_fields() {
     // Arrange
     let rq = Bootstrapped {
-        phase1_count: 2,
-        phase2_count: 5,
+        pinging_count: 2,
+        collecting_count: 5,
     };
-    let prev = ClusterView::new(NodeState::Phase1Active, false, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Pinging, false, 99, 99, 4);
 
     // Act
     let result = rq.cluster_view(&prev);
@@ -172,7 +172,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
     assert!(result.readiness_exited());
-    assert_eq!(result.phase1_confirmed_count(), 2);
-    assert_eq!(result.phase2_confirmed_count(), 5);
+    assert_eq!(result.pinging_confirmed_count(), 2);
+    assert_eq!(result.collecting_confirmed_count(), 5);
     assert_eq!(result.quorum_threshold(), 4);
 }

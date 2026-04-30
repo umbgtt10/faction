@@ -14,8 +14,8 @@ use crate::node_state::NodeState;
 use crate::state::State;
 
 pub struct TimedOut {
-    pub phase1_count: usize,
-    pub phase2_count: usize,
+    pub pinging_count: usize,
+    pub collecting_count: usize,
 }
 
 impl State for TimedOut {
@@ -26,8 +26,8 @@ impl State for TimedOut {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .with_node_state(NodeState::TimedOut)
-            .with_phase1_count(self.phase1_count)
-            .with_phase2_count(self.phase2_count)
+            .with_pinging_count(self.pinging_count)
+            .with_collecting_count(self.collecting_count)
     }
 
     fn accept(&self, _input: &Command) -> bool {

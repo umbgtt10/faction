@@ -22,7 +22,7 @@ use super::timed_out::TimedOut;
 
 pub struct Collecting {
     pub phase2: ConfirmedSet,
-    pub phase1_count: usize,
+    pub pinging_count: usize,
 }
 
 impl State for Collecting {
@@ -47,15 +47,15 @@ impl State for Collecting {
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_node_state(NodeState::Phase2Active)
+            .with_node_state(NodeState::Collecting)
             .with_local_participation_complete(true)
-            .with_phase1_count(self.phase1_count)
-            .with_phase2_count(self.phase2.count())
+            .with_pinging_count(self.pinging_count)
+            .with_collecting_count(self.phase2.count())
     }
 
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let phase2 = self.phase2.clone();
-        let phase1_count = self.phase1_count;
+        let pinging_count = self.pinging_count;
 
         match input {
             Command::ParticipationObserved { .. } => {
@@ -98,13 +98,13 @@ impl State for Collecting {
 
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
-                        phase1_count,
-                        phase2_count: phase2.count(),
+                        pinging_count,
+                        collecting_count: phase2.count(),
                     })
                 } else {
                     Box::new(Self {
                         phase2,
-                        phase1_count,
+                        pinging_count,
                     })
                 };
                 (outputs, new_state)
@@ -119,8 +119,8 @@ impl State for Collecting {
                     mode: ReadinessExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
-                    phase1_count,
-                    phase2_count: phase2.count(),
+                    pinging_count,
+                    collecting_count: phase2.count(),
                 }),
             ),
 

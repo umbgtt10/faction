@@ -39,9 +39,9 @@ impl Pinging {
 impl State for Pinging {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_node_state(NodeState::Phase1Active)
-            .with_phase1_count(self.phase1.count())
-            .with_phase2_count(self.phase2.count())
+            .with_node_state(NodeState::Pinging)
+            .with_pinging_count(self.phase1.count())
+            .with_collecting_count(self.phase2.count())
     }
 
     fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
@@ -113,13 +113,13 @@ impl State for Pinging {
 
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
-                        phase1_count: phase1.count(),
-                        phase2_count: phase2.count(),
+                        pinging_count: phase1.count(),
+                        collecting_count: phase2.count(),
                     })
                 } else {
                     Box::new(Collecting {
                         phase2,
-                        phase1_count: phase1.count(),
+                        pinging_count: phase1.count(),
                     })
                 };
                 (outputs, new_state)
@@ -130,8 +130,8 @@ impl State for Pinging {
                     mode: ReadinessExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
-                    phase1_count: phase1.count(),
-                    phase2_count: phase2.count(),
+                    pinging_count: phase1.count(),
+                    collecting_count: phase2.count(),
                 }),
             ),
 
