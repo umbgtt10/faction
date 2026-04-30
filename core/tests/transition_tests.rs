@@ -26,7 +26,7 @@ fn snapshot(phase1: usize, phase2: usize) -> Snapshot {
 
 fn snapshot_exited() -> Snapshot {
     Snapshot::new(
-        ReadinessLifecycleState::ReadyByQuorum,
+        ReadinessLifecycleState::Bootstrapped,
         Some(ReadinessExitMode::Quorum),
         true,
         true,
@@ -109,7 +109,7 @@ fn previous_state_preserves_full_snapshot() {
     let result = transition.previous_state();
     assert_eq!(
         result.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(result.local_participation_complete());
@@ -131,7 +131,7 @@ fn new_state_preserves_full_snapshot() {
     let result = transition.new_state();
     assert_eq!(
         result.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(result.local_participation_complete());

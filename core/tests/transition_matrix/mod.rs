@@ -7,5 +7,5 @@ pub mod helpers;
 pub mod initial_invalid_tests;
 pub mod pinging_invalid_tests;
 pub mod timed_out_invalid_tests;
-pub mod ready_by_quorum_invalid_tests;
+pub mod bootstrapped_invalid_tests;
 pub mod state_transition_matrix_tests;

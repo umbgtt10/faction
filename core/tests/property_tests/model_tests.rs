@@ -23,7 +23,7 @@ use proptest::prelude::*;
 enum ModelLifecycleState {
     Phase1Active,
     Phase2Active,
-    ReadyByQuorum,
+    Bootstrapped,
     TimedOut,
 }
 
@@ -189,7 +189,7 @@ impl ModelCoordinator {
         if self.local_participation_complete && self.phase2_confirmed_count >= self.quorum_threshold
         {
             self.exit_mode = Some(ReadinessExitMode::Quorum);
-            self.lifecycle_state = ModelLifecycleState::ReadyByQuorum;
+            self.lifecycle_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
                 Outcome::ReadyQuorumReached,
@@ -225,7 +225,7 @@ impl ModelCoordinator {
 
         if self.phase2_confirmed_count >= self.quorum_threshold {
             self.exit_mode = Some(ReadinessExitMode::Quorum);
-            self.lifecycle_state = ModelLifecycleState::ReadyByQuorum;
+            self.lifecycle_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
             outputs.push(Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Quorum,
@@ -276,7 +276,7 @@ fn model_snapshot(snapshot: Snapshot) -> ModelSnapshot {
         lifecycle_state: match snapshot.lifecycle_state() {
             ReadinessLifecycleState::Phase1Active => ModelLifecycleState::Phase1Active,
             ReadinessLifecycleState::Phase2Active => ModelLifecycleState::Phase2Active,
-            ReadinessLifecycleState::ReadyByQuorum => ModelLifecycleState::ReadyByQuorum,
+            ReadinessLifecycleState::Bootstrapped => ModelLifecycleState::Bootstrapped,
             ReadinessLifecycleState::TimedOut => ModelLifecycleState::TimedOut,
         },
         exit_mode: snapshot.exit_mode(),

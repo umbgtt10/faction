@@ -11,49 +11,49 @@ use super::helpers::*;
 
 #[rstest]
 #[case::rejects_participation_observed(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     participation(1, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     participation(1, DELAYED),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     participation(99, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     ready(1, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     ready(1, DELAYED),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     ready(99, TIMELY),
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_local_participation_completed(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     Command::LocalParticipationCompleted,
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
-    Init::ReadyByQuorum,
+    Init::Bootstrapped,
     Command::DeadlineExpired,
     &[Assert::P2Count(5), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Quorum)],
     &[Command::Probe],

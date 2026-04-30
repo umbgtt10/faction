@@ -6,6 +6,6 @@
 pub enum ReadinessLifecycleState {
     Phase1Active,
     Phase2Active,
-    ReadyByQuorum,
+    Bootstrapped,
     TimedOut,
 }

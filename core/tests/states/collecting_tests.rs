@@ -434,7 +434,7 @@ fn ready_first_timely_triggers_quorum() {
     assert_eq!(snap.phase2_confirmed_count(), 4);
     assert_eq!(
         snap.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(snap.readiness_exited());
@@ -480,7 +480,7 @@ fn ready_first_delayed_triggers_quorum() {
     assert_eq!(snap.phase2_confirmed_count(), 4);
     assert_eq!(
         snap.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert!(snap.readiness_exited());
 }

@@ -208,7 +208,7 @@ fn deadline_from_phase1() {
 }
 
 #[test]
-fn deadline_from_ready_by_quorum_is_noop() {
+fn deadline_from_bootstrapped_is_noop() {
     // Arrange
     let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);

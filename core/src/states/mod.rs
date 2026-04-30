@@ -8,4 +8,4 @@ pub mod confirmed_set;
 pub mod initial;
 pub mod pinging;
 pub mod timed_out;
-pub mod ready_by_quorum;
+pub mod bootstrapped;

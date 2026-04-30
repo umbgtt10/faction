@@ -34,7 +34,7 @@ pub enum Init {
     Phase2NoReadiness,
     Phase2Peer1Confirmed,
     Phase2AlmostQuorum,
-    ReadyByQuorum,
+    Bootstrapped,
     TimedOut,
 }
 
@@ -95,7 +95,7 @@ pub fn build(init: Init) -> Faction {
                 });
             }
         }
-        Init::ReadyByQuorum => {
+        Init::Bootstrapped => {
             let _ = m.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
                 let _ = m.process(Command::ReadyObserved {

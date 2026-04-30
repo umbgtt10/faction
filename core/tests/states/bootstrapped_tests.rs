@@ -18,9 +18,9 @@ use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::snapshot::Snapshot;
 use faction::state_snapshot::StateSnapshot;
-use faction::states::ready_by_quorum::ReadyByQuorum;
+use faction::states::bootstrapped::Bootstrapped;
 
-fn reach_ready_by_quorum() -> Faction {
+fn reach_bootstrapped() -> Faction {
     let mut faction = Faction::new(
         Config::new(
             0,
@@ -57,7 +57,7 @@ fn reach_ready_by_quorum() -> Faction {
 #[test]
 fn deal_rejects_participation_observed() {
     // Arrange & Act
-    let mut faction = reach_ready_by_quorum();
+    let mut faction = reach_bootstrapped();
     let snapshot = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -66,7 +66,7 @@ fn deal_rejects_participation_observed() {
     // Assert
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(snapshot.readiness_exited());
@@ -75,7 +75,7 @@ fn deal_rejects_participation_observed() {
 #[test]
 fn all_inputs_leave_state_unchanged() {
     // Arrange
-    let mut faction = reach_ready_by_quorum();
+    let mut faction = reach_bootstrapped();
     let snapshot_before = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -126,7 +126,7 @@ fn all_inputs_leave_state_unchanged() {
 #[test]
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
-    let mut faction = reach_ready_by_quorum();
+    let mut faction = reach_bootstrapped();
     let snapshot = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -135,7 +135,7 @@ fn vibe_check_returns_correct_snapshot() {
     // Assert
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(snapshot.local_participation_complete());
@@ -146,9 +146,9 @@ fn vibe_check_returns_correct_snapshot() {
 }
 
 #[test]
-fn ready_by_quorum_state_snapshot_overrides_all_fields() {
+fn bootstrapped_state_snapshot_overrides_all_fields() {
     // Arrange
-    let rq = ReadyByQuorum {
+    let rq = Bootstrapped {
         phase1_count: 2,
         phase2_count: 5,
     };
@@ -168,7 +168,7 @@ fn ready_by_quorum_state_snapshot_overrides_all_fields() {
     // Assert
     assert_eq!(
         result.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert!(result.local_participation_complete());

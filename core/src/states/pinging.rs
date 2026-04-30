@@ -20,7 +20,7 @@ use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
 use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
-use super::ready_by_quorum::ReadyByQuorum;
+use super::bootstrapped::Bootstrapped;
 
 pub struct Pinging {
     phase1: ConfirmedSet,
@@ -115,7 +115,7 @@ impl State for Pinging {
                 }
 
                 let new_state: Box<dyn State> = if quorum {
-                    Box::new(ReadyByQuorum {
+                    Box::new(Bootstrapped {
                         phase1_count: phase1.count(),
                         phase2_count: phase2.count(),
                     })

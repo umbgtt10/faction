@@ -224,7 +224,7 @@ proptest! {
                     *has_exited = true;
                     prop_assert!(matches!(
                         snapshot.lifecycle_state(),
-                        ReadinessLifecycleState::ReadyByQuorum
+                        ReadinessLifecycleState::Bootstrapped
                             | ReadinessLifecycleState::TimedOut
                     ));
                 }
@@ -233,7 +233,7 @@ proptest! {
                     prop_assert!(snapshot.readiness_exited());
                     prop_assert!(matches!(
                         snapshot.lifecycle_state(),
-                        ReadinessLifecycleState::ReadyByQuorum
+                        ReadinessLifecycleState::Bootstrapped
                             | ReadinessLifecycleState::TimedOut
                     ));
                 }

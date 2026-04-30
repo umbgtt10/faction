@@ -4,4 +4,4 @@ pub mod confirmed_set_tests;
 pub mod initial_tests;
 pub mod pinging_tests;
 pub mod timed_out_tests;
-pub mod ready_by_quorum_tests;
+pub mod bootstrapped_tests;

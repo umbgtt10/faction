@@ -97,7 +97,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Quorum));
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert!(snapshot.readiness_exited());
     assert_eq!(snapshot.phase2_confirmed_count(), 4);
@@ -203,11 +203,11 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     assert!(snapshot_1.readiness_exited());
     assert_eq!(
         snapshot_0.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(
         snapshot_1.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
 }
 

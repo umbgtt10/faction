@@ -226,7 +226,7 @@ fn apply_observes_quorum_exit_transition() {
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
         transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -671,7 +671,7 @@ fn apply_observes_quorum_exit_from_pinging() {
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
         transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -885,7 +885,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
         transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::ReadyByQuorum
+        ReadinessLifecycleState::Bootstrapped
     );
     assert_eq!(
         transition.new_state().exit_mode(),
