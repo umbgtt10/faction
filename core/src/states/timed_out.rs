@@ -15,15 +15,15 @@ use crate::snapshot::Snapshot;
 use crate::state::State;
 use crate::state_snapshot::StateSnapshot;
 
-pub struct ReadyByDeadline {
+pub struct TimedOut {
     pub phase1_count: usize,
     pub phase2_count: usize,
 }
 
-impl StateSnapshot for ReadyByDeadline {
+impl StateSnapshot for TimedOut {
     fn state_snapshot(&self, previous: &Snapshot) -> Snapshot {
         previous
-            .with_lifecycle_state(ReadinessLifecycleState::ReadyByDeadline)
+            .with_lifecycle_state(ReadinessLifecycleState::TimedOut)
             .with_exit_mode(Some(ReadinessExitMode::Deadline))
             .with_readiness_exited(true)
             .with_phase1_count(self.phase1_count)
@@ -31,7 +31,7 @@ impl StateSnapshot for ReadyByDeadline {
     }
 }
 
-impl State for ReadyByDeadline {
+impl State for TimedOut {
     fn step(&self, _input: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         unreachable!("accept() rejects all inputs for this state")
     }

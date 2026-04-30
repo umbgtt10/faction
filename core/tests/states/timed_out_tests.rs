@@ -18,7 +18,7 @@ use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::snapshot::Snapshot;
 use faction::state_snapshot::StateSnapshot;
-use faction::states::ready_by_deadline::ReadyByDeadline;
+use faction::states::timed_out::TimedOut;
 
 fn make_faction() -> Faction {
     Faction::new(
@@ -171,7 +171,7 @@ fn vibe_check_after_deadline_from_phase1() {
     // Assert
     assert_eq!(
         s.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert!(s.readiness_exited());
@@ -192,7 +192,7 @@ fn vibe_check_after_deadline_from_phase2() {
     // Assert
     assert_eq!(
         s.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert!(s.readiness_exited());
@@ -235,9 +235,9 @@ fn post_deadline_inputs_leave_state_unchanged() {
 }
 
 #[test]
-fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
+fn timed_out_state_snapshot_inherits_local_completion_from_phase1() {
     // Arrange
-    let rbd = ReadyByDeadline {
+    let rbd = TimedOut {
         phase1_count: 3,
         phase2_count: 1,
     };
@@ -257,7 +257,7 @@ fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
     // Assert
     assert_eq!(
         result.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert!(result.readiness_exited());
@@ -268,9 +268,9 @@ fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
 }
 
 #[test]
-fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase2() {
+fn timed_out_state_snapshot_inherits_local_completion_from_phase2() {
     // Arrange
-    let rbd = ReadyByDeadline {
+    let rbd = TimedOut {
         phase1_count: 2,
         phase2_count: 4,
     };
@@ -290,7 +290,7 @@ fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase2() {
     // Assert
     assert_eq!(
         result.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert!(result.readiness_exited());

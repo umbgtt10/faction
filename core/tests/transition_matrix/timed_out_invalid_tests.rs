@@ -11,49 +11,49 @@ use super::helpers::*;
 
 #[rstest]
 #[case::rejects_participation_observed(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     participation(1, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     participation(1, DELAYED),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     participation(99, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     ready(1, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     ready(1, DELAYED),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     ready(99, TIMELY),
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_local_participation_completed(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     Command::LocalParticipationCompleted,
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
-    Init::ReadyByDeadline,
+    Init::TimedOut,
     Command::DeadlineExpired,
     &[Assert::P1Count(0), Assert::P2Count(0), Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
     &[Command::Probe],

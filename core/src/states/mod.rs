@@ -7,5 +7,5 @@ pub mod compute_output;
 pub mod confirmed_set;
 pub mod initial;
 pub mod pinging;
-pub mod ready_by_deadline;
+pub mod timed_out;
 pub mod ready_by_quorum;

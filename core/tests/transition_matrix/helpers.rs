@@ -35,7 +35,7 @@ pub enum Init {
     Phase2Peer1Confirmed,
     Phase2AlmostQuorum,
     ReadyByQuorum,
-    ReadyByDeadline,
+    TimedOut,
 }
 
 pub fn build(init: Init) -> Faction {
@@ -105,7 +105,7 @@ pub fn build(init: Init) -> Faction {
                 });
             }
         }
-        Init::ReadyByDeadline => {
+        Init::TimedOut => {
             let _ = m.process(Command::DeadlineExpired);
         }
     }

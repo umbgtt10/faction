@@ -225,7 +225,7 @@ proptest! {
                     prop_assert!(matches!(
                         snapshot.lifecycle_state(),
                         ReadinessLifecycleState::ReadyByQuorum
-                            | ReadinessLifecycleState::ReadyByDeadline
+                            | ReadinessLifecycleState::TimedOut
                     ));
                 }
 
@@ -234,7 +234,7 @@ proptest! {
                     prop_assert!(matches!(
                         snapshot.lifecycle_state(),
                         ReadinessLifecycleState::ReadyByQuorum
-                            | ReadinessLifecycleState::ReadyByDeadline
+                            | ReadinessLifecycleState::TimedOut
                     ));
                 }
             }

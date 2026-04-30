@@ -278,7 +278,7 @@ fn apply_observes_deadline_exit_transition() {
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
         transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -719,7 +719,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     );
     assert_eq!(
         transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(
         transition.new_state().exit_mode(),

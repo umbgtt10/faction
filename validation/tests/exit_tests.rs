@@ -60,7 +60,7 @@ fn expire_deadline_exits_by_deadline() {
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert!(snapshot.readiness_exited());
 }
@@ -102,7 +102,7 @@ fn repeated_deadline_expiry_remains_idempotent() {
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert!(snapshot.readiness_exited());
 }
@@ -134,7 +134,7 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert!(snapshot.readiness_exited());
     assert_eq!(snapshot.phase2_confirmed_count(), 3);
@@ -199,7 +199,7 @@ fn deadline_from_phase1() {
     assert_eq!(snapshot.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert_eq!(
         snapshot.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert!(snapshot.readiness_exited());
     assert!(!snapshot.local_participation_complete());

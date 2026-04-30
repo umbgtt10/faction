@@ -545,7 +545,7 @@ fn deadline_expired_exits_in_phase2() {
     );
     assert_eq!(
         snap.lifecycle_state(),
-        ReadinessLifecycleState::ReadyByDeadline
+        ReadinessLifecycleState::TimedOut
     );
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Deadline));
     assert!(snap.readiness_exited());

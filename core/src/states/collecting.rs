@@ -18,7 +18,7 @@ use crate::state_snapshot::StateSnapshot;
 use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
 use super::confirmed_set::ConfirmedSet;
-use super::ready_by_deadline::ReadyByDeadline;
+use super::timed_out::TimedOut;
 use super::ready_by_quorum::ReadyByQuorum;
 
 pub struct Collecting {
@@ -111,7 +111,7 @@ impl State for Collecting {
                 vec![Outcome::ReadinessExited {
                     mode: ReadinessExitMode::Deadline,
                 }],
-                Box::new(ReadyByDeadline {
+                Box::new(TimedOut {
                     phase1_count,
                     phase2_count: phase2.count(),
                 }),

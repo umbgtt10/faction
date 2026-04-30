@@ -210,7 +210,7 @@ proptest! {
                 has_exited = true;
                 prop_assert!(matches!(
                     snapshot.lifecycle_state(),
-                    ReadinessLifecycleState::ReadyByQuorum | ReadinessLifecycleState::ReadyByDeadline
+                    ReadinessLifecycleState::ReadyByQuorum | ReadinessLifecycleState::TimedOut
                 ));
             }
 
@@ -218,7 +218,7 @@ proptest! {
                 prop_assert!(snapshot.readiness_exited());
                 prop_assert!(matches!(
                     snapshot.lifecycle_state(),
-                    ReadinessLifecycleState::ReadyByQuorum | ReadinessLifecycleState::ReadyByDeadline
+                    ReadinessLifecycleState::ReadyByQuorum | ReadinessLifecycleState::TimedOut
                 ));
             }
         }
@@ -425,7 +425,7 @@ proptest! {
                 prop_assert!(snapshot.readiness_exited());
                 prop_assert_eq!(
                     snapshot.lifecycle_state(),
-                    ReadinessLifecycleState::ReadyByDeadline
+                    ReadinessLifecycleState::TimedOut
                 );
             }
         }

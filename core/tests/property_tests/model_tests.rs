@@ -24,7 +24,7 @@ enum ModelLifecycleState {
     Phase1Active,
     Phase2Active,
     ReadyByQuorum,
-    ReadyByDeadline,
+    TimedOut,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -241,7 +241,7 @@ impl ModelCoordinator {
         }
 
         self.exit_mode = Some(ReadinessExitMode::Deadline);
-        self.lifecycle_state = ModelLifecycleState::ReadyByDeadline;
+        self.lifecycle_state = ModelLifecycleState::TimedOut;
 
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
@@ -277,7 +277,7 @@ fn model_snapshot(snapshot: Snapshot) -> ModelSnapshot {
             ReadinessLifecycleState::Phase1Active => ModelLifecycleState::Phase1Active,
             ReadinessLifecycleState::Phase2Active => ModelLifecycleState::Phase2Active,
             ReadinessLifecycleState::ReadyByQuorum => ModelLifecycleState::ReadyByQuorum,
-            ReadinessLifecycleState::ReadyByDeadline => ModelLifecycleState::ReadyByDeadline,
+            ReadinessLifecycleState::TimedOut => ModelLifecycleState::TimedOut,
         },
         exit_mode: snapshot.exit_mode(),
         local_participation_complete: snapshot.local_participation_complete(),
