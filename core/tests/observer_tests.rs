@@ -10,13 +10,14 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::peer_state::PeerState;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
@@ -31,6 +32,16 @@ struct RecordingObserver {
 impl Observer for RecordingObserver {
     fn observe(&mut self, command: Command, transition: Transition) {
         self.observations.borrow_mut().push((command, transition));
+    }
+
+    fn observe_query(&mut self, _command: Command, _cluster_view: ClusterView) {}
+
+    fn observe_rejection(
+        &mut self,
+        _command: Command,
+        _cluster_view: ClusterView,
+        _admissible: Vec<Command>,
+    ) {
     }
 }
 
