@@ -11,7 +11,7 @@ use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScenarioTraceEntry {
-    node_id: PeerId,
+    peer_id: PeerId,
     command: Command,
     outputs: Vec<Outcome>,
     cluster_view: ClusterView,
@@ -20,13 +20,13 @@ pub struct ScenarioTraceEntry {
 impl ScenarioTraceEntry {
     #[must_use]
     pub fn new(
-        node_id: PeerId,
+        peer_id: PeerId,
         command: Command,
         outputs: Vec<Outcome>,
         cluster_view: ClusterView,
     ) -> Self {
         Self {
-            node_id,
+            peer_id,
             command,
             outputs,
             cluster_view,
@@ -34,8 +34,8 @@ impl ScenarioTraceEntry {
     }
 
     #[must_use]
-    pub const fn node_id(&self) -> PeerId {
-        self.node_id
+    pub const fn peer_id(&self) -> PeerId {
+        self.peer_id
     }
 
     #[must_use]
