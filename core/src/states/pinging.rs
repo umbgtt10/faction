@@ -16,9 +16,9 @@ use crate::state::State;
 use crate::state_snapshot::StateSnapshot;
 
 use super::collecting::Collecting;
-use super::helpers::compute_output::ObservedKind;
-use super::helpers::compute_output::ObservedOutput;
-use super::helpers::confirmed_set::ConfirmedSet;
+use super::compute_output::ObservedKind;
+use super::compute_output::ObservedOutput;
+use super::confirmed_set::ConfirmedSet;
 use super::ready_by_deadline::ReadyByDeadline;
 use super::ready_by_quorum::ReadyByQuorum;
 

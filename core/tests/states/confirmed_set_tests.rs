@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use faction::freshness_classification::FreshnessClassification;
-use faction::states::helpers::confirmed_set::ConfirmedSet;
+use faction::states::confirmed_set::ConfirmedSet;
 
 #[test]
 fn new_creates_empty_set() {

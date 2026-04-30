@@ -20,7 +20,7 @@ use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 use faction::snapshot::Snapshot;
 use faction::state_snapshot::StateSnapshot;
 use faction::states::collecting::Collecting;
-use faction::states::helpers::confirmed_set::ConfirmedSet;
+use faction::states::confirmed_set::ConfirmedSet;
 use faction::Freshness;
 use faction::PeerId;
 
