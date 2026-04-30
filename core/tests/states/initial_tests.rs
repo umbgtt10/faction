@@ -35,7 +35,10 @@ fn test_machine() -> Faction {
 
 #[test]
 fn deal_accepts_participation_observed() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
@@ -45,6 +48,8 @@ fn deal_accepts_participation_observed() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -62,7 +67,10 @@ fn deal_accepts_participation_observed() {
 
 #[test]
 fn deal_accepts_ready_observed() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act
     let outcomes = match faction.process(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
@@ -72,6 +80,8 @@ fn deal_accepts_ready_observed() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -86,11 +96,16 @@ fn deal_accepts_ready_observed() {
 
 #[test]
 fn deal_rejects_local_participation_completed() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act & Assert
     assert!(matches!(
         faction.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
     ));
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -104,11 +119,16 @@ fn deal_rejects_local_participation_completed() {
 
 #[test]
 fn deal_rejects_deadline_expired() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act & Assert
     assert!(matches!(
         faction.process(Command::DeadlineExpired),
         ProcessResult::Rejected { .. }
     ));
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -122,11 +142,16 @@ fn deal_rejects_deadline_expired() {
 
 #[test]
 fn stays_in_initial_after_rejected_input() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act & Assert
     assert!(matches!(
         faction.process(Command::DeadlineExpired),
         ProcessResult::Rejected { .. }
     ));
+
+    // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
@@ -136,6 +161,8 @@ fn stays_in_initial_after_rejected_input() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -149,7 +176,10 @@ fn stays_in_initial_after_rejected_input() {
 
 #[test]
 fn multiple_rejected_inputs_keep_initial_unchanged() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act & Assert
     assert!(matches!(
         faction.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
@@ -162,6 +192,8 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
         faction.process(Command::LocalParticipationCompleted),
         ProcessResult::Rejected { .. }
     ));
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -179,7 +211,10 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
 
 #[test]
 fn punch_participation_non_member_from_initial() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
         peer_id: 99,
         freshness: 10,
@@ -189,6 +224,8 @@ fn punch_participation_non_member_from_initial() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -203,7 +240,10 @@ fn punch_participation_non_member_from_initial() {
 
 #[test]
 fn punch_participation_delayed_from_initial() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
@@ -213,6 +253,8 @@ fn punch_participation_delayed_from_initial() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -226,7 +268,10 @@ fn punch_participation_delayed_from_initial() {
 
 #[test]
 fn punch_ready_non_member_from_initial() {
+    // Arrange
     let mut faction = test_machine();
+
+    // Act
     let outcomes = match faction.process(Command::ReadyObserved {
         peer_id: 99,
         freshness: 10,
@@ -236,6 +281,8 @@ fn punch_ready_non_member_from_initial() {
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
+
+    // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
@@ -246,11 +293,14 @@ fn punch_ready_non_member_from_initial() {
 
 #[test]
 fn vibe_check_returns_phase1_active_with_zeros() {
+    // Arrange & Act
     let mut faction = test_machine();
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => unreachable!(),
     };
+
+    // Assert
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -265,6 +315,7 @@ fn vibe_check_returns_phase1_active_with_zeros() {
 
 #[test]
 fn initial_state_snapshot_inherits_correctly() {
+    // Arrange
     let prev = Snapshot::new(
         ReadinessLifecycleState::Phase2Active,
         Some(ReadinessExitMode::Deadline),
@@ -274,7 +325,11 @@ fn initial_state_snapshot_inherits_correctly() {
         99,
         4,
     );
+
+    // Act
     let result = Initial.state_snapshot(&prev);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active

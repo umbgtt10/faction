@@ -49,10 +49,7 @@ impl Faction {
             };
         }
 
-        let previous_snapshot = match self.cached_snapshot.get() {
-            Some(snap) => snap,
-            None => self.compute_snapshot(),
-        };
+        let previous_snapshot = self.snapshot();
 
         let old_state = self.state.take().unwrap();
         let (outputs, new_state) = old_state.step(command, &self.config);
@@ -82,26 +79,20 @@ impl Faction {
     fn snapshot(&self) -> Snapshot {
         match self.cached_snapshot.get() {
             Some(snap) => snap,
-            None => self.compute_snapshot(),
+            None => {
+                let base = Snapshot::new(
+                    ReadinessLifecycleState::Phase1Active,
+                    None,
+                    false,
+                    false,
+                    0,
+                    0,
+                    self.config.quorum_threshold(),
+                );
+                let snap = self.state.as_ref().unwrap().state_snapshot(&base);
+                self.cached_snapshot.set(Some(snap));
+                snap
+            }
         }
-    }
-
-    fn base_snapshot(&self) -> Snapshot {
-        Snapshot::new(
-            ReadinessLifecycleState::Phase1Active,
-            None,
-            false,
-            false,
-            0,
-            0,
-            self.config.quorum_threshold(),
-        )
-    }
-
-    fn compute_snapshot(&self) -> Snapshot {
-        let base = self.base_snapshot();
-        let snap = self.state.as_ref().unwrap().state_snapshot(&base);
-        self.cached_snapshot.set(Some(snap));
-        snap
     }
 }
