@@ -13,7 +13,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
@@ -405,7 +405,7 @@ fn local_completion_no_quorum() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.node_state(), NodeState::Collecting);
+    assert_eq!(snap.peer_state(), PeerState::Collecting);
     assert!(snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
 }
@@ -505,7 +505,7 @@ fn vibe_check_in_phase1() {
     };
 
     // Assert
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert!(!snap.readiness_exited());
     assert!(!snap.is_pinging_completed());
     assert_eq!(snap.exit_mode(), None);
@@ -524,13 +524,13 @@ fn pinging_cluster_view_inherits_correctly() {
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let prev = ClusterView::new(NodeState::Collecting, true, vec![99], vec![99], 4);
+    let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
 
     // Act
     let result = pinging.cluster_view(&prev, &config);
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::Pinging);
+    assert_eq!(result.peer_state(), PeerState::Pinging);
     assert_eq!(result.pinging_peers().len(), 0);
     assert_eq!(result.collecting_peers().len(), 0);
     assert_eq!(result.exit_mode(), None);

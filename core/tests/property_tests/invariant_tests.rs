@@ -13,7 +13,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
@@ -106,7 +106,7 @@ fn assert_stale_outputs_do_not_mutate_state(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.node_state(), previous.node_state());
+        prop_assert_eq!(current.peer_state(), previous.peer_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.is_pinging_completed(),
@@ -131,7 +131,7 @@ fn assert_non_member_outputs_do_not_mutate_state(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.node_state(), previous.node_state());
+        prop_assert_eq!(current.peer_state(), previous.peer_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.is_pinging_completed(),
@@ -156,7 +156,7 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.node_state(), previous.node_state());
+        prop_assert_eq!(current.peer_state(), previous.peer_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.is_pinging_completed(),
@@ -209,16 +209,16 @@ proptest! {
             if cluster_view.readiness_exited() {
                 has_exited = true;
                 prop_assert!(matches!(
-                    cluster_view.node_state(),
-                    NodeState::Bootstrapped | NodeState::TimedOut
+                    cluster_view.peer_state(),
+                    PeerState::Bootstrapped | PeerState::TimedOut
                 ));
             }
 
             if has_exited {
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert!(matches!(
-                    cluster_view.node_state(),
-                    NodeState::Bootstrapped | NodeState::TimedOut
+                    cluster_view.peer_state(),
+                    PeerState::Bootstrapped | PeerState::TimedOut
                 ));
             }
         }
@@ -400,8 +400,8 @@ proptest! {
                 prop_assert!(cluster_view.is_pinging_completed());
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
-                    cluster_view.node_state(),
-                    NodeState::Bootstrapped
+                    cluster_view.peer_state(),
+                    PeerState::Bootstrapped
                 );
             }
         }
@@ -424,8 +424,8 @@ proptest! {
             if cluster_view.exit_mode() == Some(ReadinessExitMode::TimedOut) {
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
-                    cluster_view.node_state(),
-                    NodeState::TimedOut
+                    cluster_view.peer_state(),
+                    PeerState::TimedOut
                 );
             }
         }

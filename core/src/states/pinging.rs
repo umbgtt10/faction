@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::state::State;
@@ -40,7 +40,7 @@ impl State for Pinging {
     fn cluster_view(&self, previous: &ClusterView, config: &Config) -> ClusterView {
         previous
             .clone()
-            .with_node_state(NodeState::Pinging)
+            .with_peer_state(PeerState::Pinging)
             .with_pinging_peers(self.phase1.confirmed_peers(config.peer_set()))
             .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
     }

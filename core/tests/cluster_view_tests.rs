@@ -7,12 +7,12 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::readiness_exit_mode::ReadinessExitMode;
 
 fn base() -> ClusterView {
     ClusterView::new(
-        NodeState::Bootstrapped,
+        PeerState::Bootstrapped,
         true,
         vec![1, 2, 3, 4, 5],
         vec![1, 2, 3, 4, 5, 6, 7],
@@ -21,12 +21,12 @@ fn base() -> ClusterView {
 }
 
 #[test]
-fn with_node_state_updates_only_node_state() {
+fn with_peer_state_updates_only_peer_state() {
     // Arrange & Act
-    let result = base().with_node_state(NodeState::Pinging);
+    let result = base().with_peer_state(PeerState::Pinging);
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::Pinging);
+    assert_eq!(result.peer_state(), PeerState::Pinging);
     assert_eq!(result.exit_mode(), None);
     assert!(result.is_pinging_completed());
     assert!(!result.readiness_exited());
@@ -41,7 +41,7 @@ fn with_collecting_peers_updates_only_collecting_peers() {
     let result = base().with_collecting_peers(vec![99]);
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::Bootstrapped);
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());

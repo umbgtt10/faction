@@ -6,13 +6,13 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
-fn stale_signals_do_not_perturb_active_multi_node_state() {
+fn stale_signals_do_not_perturb_active_multi_peer_state() {
     // Arrange
     let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
@@ -26,7 +26,7 @@ fn stale_signals_do_not_perturb_active_multi_node_state() {
     // Assert
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
-    assert_eq!(cluster_view.node_state(), NodeState::Collecting);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
     assert!(!cluster_view.readiness_exited());
 }
 
@@ -45,7 +45,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
     // Assert
     assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
-    assert_eq!(cluster_view.node_state(), NodeState::Collecting);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
     assert!(!cluster_view.readiness_exited());
 }
 
@@ -77,7 +77,7 @@ fn mixed_delayed_stale_and_duplicate_sequence_preserves_correct_state() {
         vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(cluster_view.collecting_peers().len(), 3);
-    assert_eq!(cluster_view.node_state(), NodeState::Collecting);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
     assert!(!cluster_view.readiness_exited());
 }
 
@@ -119,7 +119,7 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
 }
 
 #[test]
-fn non_member_signal_does_not_perturb_multi_node_state() {
+fn non_member_signal_does_not_perturb_multi_peer_state() {
     // Arrange
     let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);
@@ -133,6 +133,6 @@ fn non_member_signal_does_not_perturb_multi_node_state() {
     // Assert
     assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
-    assert_eq!(cluster_view.node_state(), NodeState::Collecting);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
     assert!(!cluster_view.readiness_exited());
 }

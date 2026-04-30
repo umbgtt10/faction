@@ -13,7 +13,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
@@ -170,7 +170,7 @@ fn vibe_check_after_deadline_from_phase1() {
     };
 
     // Assert
-    assert_eq!(s.node_state(), NodeState::TimedOut);
+    assert_eq!(s.peer_state(), PeerState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(!s.is_pinging_completed());
@@ -188,7 +188,7 @@ fn vibe_check_after_deadline_from_phase2() {
     };
 
     // Assert
-    assert_eq!(s.node_state(), NodeState::TimedOut);
+    assert_eq!(s.peer_state(), PeerState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(s.is_pinging_completed());
@@ -242,13 +242,13 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let prev = ClusterView::new(NodeState::Pinging, false, vec![1, 2, 3], vec![9], 4);
+    let prev = ClusterView::new(PeerState::Pinging, false, vec![1, 2, 3], vec![9], 4);
 
     // Act
     let result = rbd.cluster_view(&prev, &config);
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::TimedOut);
+    assert_eq!(result.peer_state(), PeerState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(!result.is_pinging_completed());
@@ -270,13 +270,13 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let prev = ClusterView::new(NodeState::Collecting, true, vec![5, 6], vec![1, 2, 3, 4], 4);
+    let prev = ClusterView::new(PeerState::Collecting, true, vec![5, 6], vec![1, 2, 3, 4], 4);
 
     // Act
     let result = rbd.cluster_view(&prev, &config);
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::TimedOut);
+    assert_eq!(result.peer_state(), PeerState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(result.is_pinging_completed());

@@ -13,7 +13,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
@@ -65,7 +65,7 @@ fn deal_rejects_participation_observed() {
     };
 
     // Assert
-    assert_eq!(cluster_view.node_state(), NodeState::Bootstrapped);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
@@ -134,7 +134,7 @@ fn vibe_check_returns_correct_snapshot() {
     };
 
     // Assert
-    assert_eq!(cluster_view.node_state(), NodeState::Bootstrapped);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         cluster_view.exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
@@ -163,7 +163,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
         collecting_count: 5,
     };
     let prev = ClusterView::new(
-        NodeState::Pinging,
+        PeerState::Pinging,
         false,
         vec![1, 2],
         vec![1, 2, 3, 4, 5],
@@ -174,7 +174,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
     let result = rq.cluster_view(&prev, &config());
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::Bootstrapped);
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.readiness_exited());

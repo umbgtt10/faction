@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
 use crate::state::State;
 
@@ -30,7 +30,7 @@ impl State for Bootstrapped {
     fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous
             .clone()
-            .with_node_state(NodeState::Bootstrapped)
+            .with_peer_state(PeerState::Bootstrapped)
             .with_is_pinging_completed(true)
     }
 

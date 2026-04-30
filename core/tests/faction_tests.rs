@@ -12,7 +12,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 
@@ -35,7 +35,7 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     };
 
     // Assert
-    assert_eq!(cluster_view.node_state(), NodeState::Pinging);
+    assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
     assert_eq!(cluster_view.exit_mode(), None);
     assert!(!cluster_view.is_pinging_completed());
     assert!(!cluster_view.readiness_exited());

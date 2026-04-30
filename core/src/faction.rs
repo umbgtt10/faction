@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::observer::Observer;
 use crate::process_result::ProcessResult;
 use crate::state::State;
@@ -27,7 +27,7 @@ impl Faction {
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
         let base = ClusterView::new(
-            NodeState::Pinging,
+            PeerState::Pinging,
             false,
             Vec::new(),
             Vec::new(),

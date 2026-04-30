@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
 use crate::state::State;
 use crate::states::pinging::Pinging;
@@ -20,7 +20,7 @@ impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous
             .clone()
-            .with_node_state(NodeState::Pinging)
+            .with_peer_state(PeerState::Pinging)
             .with_pinging_peers(Vec::new())
             .with_collecting_peers(Vec::new())
     }

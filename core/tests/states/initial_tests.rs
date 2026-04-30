@@ -13,7 +13,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
@@ -58,7 +58,7 @@ fn deal_accepts_participation_observed() {
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.pinging_peers().len(), 1);
 }
 
@@ -84,7 +84,7 @@ fn deal_accepts_ready_observed() {
         _ => unreachable!(),
     };
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.collecting_peers().len(), 1);
 }
 
@@ -104,7 +104,7 @@ fn deal_rejects_is_pinging_completedd() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.collecting_peers().len(), 0);
 }
 
@@ -124,7 +124,7 @@ fn deal_rejects_deadline_expired() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.exit_mode(), None);
 }
 
@@ -186,7 +186,7 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
     assert_eq!(snap.exit_mode(), None);
@@ -217,7 +217,7 @@ fn punch_participation_non_member_from_initial() {
     };
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.pinging_peers().len(), 0);
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -283,7 +283,7 @@ fn vibe_check_returns_phase1_active_with_zeros() {
     };
 
     // Assert
-    assert_eq!(snap.node_state(), NodeState::Pinging);
+    assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.exit_mode(), None);
     assert!(!snap.is_pinging_completed());
     assert!(!snap.readiness_exited());
@@ -301,13 +301,13 @@ fn initial_cluster_view_inherits_correctly() {
         QuorumPolicy::new(4),
         FreshnessPolicy::new(2),
     );
-    let prev = ClusterView::new(NodeState::Collecting, true, vec![99], vec![99], 4);
+    let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
 
     // Act
     let result = Initial.cluster_view(&prev, &config);
 
     // Assert
-    assert_eq!(result.node_state(), NodeState::Pinging);
+    assert_eq!(result.peer_state(), PeerState::Pinging);
     assert_eq!(result.pinging_peers().len(), 0);
     assert_eq!(result.collecting_peers().len(), 0);
     assert_eq!(result.exit_mode(), None);

@@ -12,7 +12,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
@@ -29,7 +29,7 @@ enum ModelLifecycleState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ModelClusterView {
-    node_state: ModelLifecycleState,
+    peer_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     is_pinging_completed: bool,
     readiness_exited: bool,
@@ -44,7 +44,7 @@ struct ModelCoordinator {
     required_count: usize,
     max_delay: u64,
     initial: bool,
-    node_state: ModelLifecycleState,
+    peer_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     is_pinging_completed: bool,
     phase1_confirmed: [bool; 5],
@@ -61,7 +61,7 @@ impl ModelCoordinator {
             required_count: 4,
             max_delay: 2,
             initial: true,
-            node_state: ModelLifecycleState::Pinging,
+            peer_state: ModelLifecycleState::Pinging,
             exit_mode: None,
             is_pinging_completed: false,
             phase1_confirmed: [false; 5],
@@ -73,7 +73,7 @@ impl ModelCoordinator {
 
     fn cluster_view(&self) -> ModelClusterView {
         ModelClusterView {
-            node_state: self.node_state,
+            peer_state: self.peer_state,
             exit_mode: self.exit_mode,
             is_pinging_completed: self.is_pinging_completed,
             readiness_exited: self.exit_mode.is_some(),
@@ -190,7 +190,7 @@ impl ModelCoordinator {
         if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
             self.collecting_confirmed_count = prev_collecting;
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
-            self.node_state = ModelLifecycleState::Bootstrapped;
+            self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
                 Outcome::ReadyQuorumReached,
@@ -209,7 +209,7 @@ impl ModelCoordinator {
         }
 
         self.is_pinging_completed = true;
-        self.node_state = ModelLifecycleState::Collecting;
+        self.peer_state = ModelLifecycleState::Collecting;
 
         let local_index = self
             .peer_index(self.local_peer_id)
@@ -229,7 +229,7 @@ impl ModelCoordinator {
         if self.collecting_confirmed_count >= self.required_count {
             self.collecting_confirmed_count = prev_collecting;
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
-            self.node_state = ModelLifecycleState::Bootstrapped;
+            self.peer_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
             outputs.push(Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Bootstrapped,
@@ -245,7 +245,7 @@ impl ModelCoordinator {
         }
 
         self.exit_mode = Some(ReadinessExitMode::TimedOut);
-        self.node_state = ModelLifecycleState::TimedOut;
+        self.peer_state = ModelLifecycleState::TimedOut;
 
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::TimedOut,
@@ -277,11 +277,11 @@ impl ModelCoordinator {
 
 fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
     ModelClusterView {
-        node_state: match cluster_view.node_state() {
-            NodeState::Pinging => ModelLifecycleState::Pinging,
-            NodeState::Collecting => ModelLifecycleState::Collecting,
-            NodeState::Bootstrapped => ModelLifecycleState::Bootstrapped,
-            NodeState::TimedOut => ModelLifecycleState::TimedOut,
+        peer_state: match cluster_view.peer_state() {
+            PeerState::Pinging => ModelLifecycleState::Pinging,
+            PeerState::Collecting => ModelLifecycleState::Collecting,
+            PeerState::Bootstrapped => ModelLifecycleState::Bootstrapped,
+            PeerState::TimedOut => ModelLifecycleState::TimedOut,
         },
         exit_mode: cluster_view.exit_mode(),
         is_pinging_completed: cluster_view.is_pinging_completed(),

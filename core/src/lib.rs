@@ -14,7 +14,7 @@ pub mod cluster_view;
 pub mod command;
 pub mod config;
 pub mod faction;
-pub mod node_state;
+pub mod peer_state;
 pub mod observer;
 pub mod outcome;
 pub mod process_result;

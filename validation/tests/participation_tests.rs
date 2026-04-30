@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use alloc::vec;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction_validation::scenario_harness::ScenarioHarness;
 
@@ -27,7 +27,7 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
         ]
     );
     assert!(cluster_view.is_pinging_completed());
-    assert_eq!(cluster_view.node_state(), NodeState::Collecting);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
     assert_eq!(cluster_view.collecting_peers().len(), 1);
     assert!(!cluster_view.readiness_exited());
 }
@@ -45,7 +45,7 @@ fn apply_participation_accepts_timely_member_observation() {
     // Assert
     assert_eq!(outputs, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.pinging_peers().len(), 1);
-    assert_eq!(cluster_view.node_state(), NodeState::Pinging);
+    assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
     assert!(!cluster_view.readiness_exited());
 }
 

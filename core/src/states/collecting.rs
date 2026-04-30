@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::state::State;
@@ -48,7 +48,7 @@ impl State for Collecting {
     fn cluster_view(&self, previous: &ClusterView, config: &Config) -> ClusterView {
         previous
             .clone()
-            .with_node_state(NodeState::Collecting)
+            .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
             .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
     }

@@ -4,13 +4,13 @@
 
 use alloc::vec::Vec;
 
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterView {
-    node_state: NodeState,
+    peer_state: PeerState,
     is_pinging_completed: bool,
     pinging_peers: Vec<PeerId>,
     collecting_peers: Vec<PeerId>,
@@ -20,14 +20,14 @@ pub struct ClusterView {
 impl ClusterView {
     #[must_use]
     pub fn new(
-        node_state: NodeState,
+        peer_state: PeerState,
         is_pinging_completed: bool,
         pinging_peers: Vec<PeerId>,
         collecting_peers: Vec<PeerId>,
         required_count: usize,
     ) -> Self {
         Self {
-            node_state,
+            peer_state,
             is_pinging_completed,
             pinging_peers,
             collecting_peers,
@@ -36,15 +36,15 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn node_state(&self) -> NodeState {
-        self.node_state
+    pub fn peer_state(&self) -> PeerState {
+        self.peer_state
     }
 
     #[must_use]
     pub fn exit_mode(&self) -> Option<ReadinessExitMode> {
-        match self.node_state {
-            NodeState::Bootstrapped => Some(ReadinessExitMode::Bootstrapped),
-            NodeState::TimedOut => Some(ReadinessExitMode::TimedOut),
+        match self.peer_state {
+            PeerState::Bootstrapped => Some(ReadinessExitMode::Bootstrapped),
+            PeerState::TimedOut => Some(ReadinessExitMode::TimedOut),
             _ => None,
         }
     }
@@ -57,8 +57,8 @@ impl ClusterView {
     #[must_use]
     pub fn readiness_exited(&self) -> bool {
         matches!(
-            self.node_state,
-            NodeState::Bootstrapped | NodeState::TimedOut
+            self.peer_state,
+            PeerState::Bootstrapped | PeerState::TimedOut
         )
     }
 
@@ -78,8 +78,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn with_node_state(mut self, state: NodeState) -> Self {
-        self.node_state = state;
+    pub fn with_peer_state(mut self, state: PeerState) -> Self {
+        self.peer_state = state;
         self
     }
 

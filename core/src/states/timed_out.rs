@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::node_state::NodeState;
+use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
 use crate::state::State;
 
@@ -24,7 +24,7 @@ impl State for TimedOut {
     }
 
     fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
-        previous.clone().with_node_state(NodeState::TimedOut)
+        previous.clone().with_peer_state(PeerState::TimedOut)
     }
 
     fn accept(&self, _input: &Command) -> bool {

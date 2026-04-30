@@ -6,7 +6,7 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
 use faction_validation::scenario_harness::ScenarioHarness;
 use proptest::prelude::*;
@@ -154,7 +154,7 @@ proptest! {
                         current.collecting_peers().len(),
                         previous.collecting_peers().len()
                     );
-                    prop_assert_eq!(current.node_state(), previous.node_state());
+                    prop_assert_eq!(current.peer_state(), previous.peer_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
                     prop_assert_eq!(
                         current.is_pinging_completed(),
@@ -193,7 +193,7 @@ proptest! {
                         current.collecting_peers().len(),
                         previous.collecting_peers().len()
                     );
-                    prop_assert_eq!(current.node_state(), previous.node_state());
+                    prop_assert_eq!(current.peer_state(), previous.peer_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
                     prop_assert_eq!(
                         current.is_pinging_completed(),
@@ -223,18 +223,18 @@ proptest! {
                 if cluster_view.readiness_exited() {
                     *has_exited = true;
                     prop_assert!(matches!(
-                        cluster_view.node_state(),
-                        NodeState::Bootstrapped
-                            | NodeState::TimedOut
+                        cluster_view.peer_state(),
+                        PeerState::Bootstrapped
+                            | PeerState::TimedOut
                     ));
                 }
 
                 if *has_exited {
                     prop_assert!(cluster_view.readiness_exited());
                     prop_assert!(matches!(
-                        cluster_view.node_state(),
-                        NodeState::Bootstrapped
-                            | NodeState::TimedOut
+                        cluster_view.peer_state(),
+                        PeerState::Bootstrapped
+                            | PeerState::TimedOut
                     ));
                 }
             }

@@ -14,7 +14,7 @@ use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
-use faction::node_state::NodeState;
+use faction::peer_state::PeerState;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
@@ -75,10 +75,10 @@ fn apply_observes_local_participation_completion_transition() {
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
-    assert_eq!(transition.previous_state().node_state(), NodeState::Pinging);
+    assert_eq!(transition.previous_state().peer_state(), PeerState::Pinging);
     assert!(!transition.previous_state().is_pinging_completed());
     assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
     assert!(transition.new_state().is_pinging_completed());
     assert!(!transition.new_state().readiness_exited());
     assert_eq!(transition.new_state().collecting_peers().len(), 1);
@@ -125,7 +125,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().pinging_peers().len(), 1);
-    assert_eq!(transition.new_state().node_state(), NodeState::Pinging);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -162,7 +162,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
         &[Outcome::StaleReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
     assert_eq!(transition.new_state().collecting_peers().len(), 1);
     assert!(!transition.new_state().readiness_exited());
 }
@@ -207,12 +207,12 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().node_state(),
-        NodeState::Collecting
+        transition.previous_state().peer_state(),
+        PeerState::Collecting
     );
     assert_eq!(transition.previous_state().collecting_peers().len(), 3);
     assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().node_state(), NodeState::Bootstrapped);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         transition.new_state().exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
@@ -257,11 +257,11 @@ fn apply_observes_deadline_exit_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().node_state(),
-        NodeState::Collecting
+        transition.previous_state().peer_state(),
+        PeerState::Collecting
     );
     assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().node_state(), NodeState::TimedOut);
+    assert_eq!(transition.new_state().peer_state(), PeerState::TimedOut);
     assert_eq!(
         transition.new_state().exit_mode(),
         Some(ReadinessExitMode::TimedOut)
@@ -594,7 +594,7 @@ fn apply_observes_duplicate_ready_from_pinging() {
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().collecting_peers().len(), 1);
-    assert_eq!(transition.new_state().node_state(), NodeState::Pinging);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -642,10 +642,10 @@ fn apply_observes_quorum_exit_from_pinging() {
             },
         ]
     );
-    assert_eq!(transition.previous_state().node_state(), NodeState::Pinging);
+    assert_eq!(transition.previous_state().peer_state(), PeerState::Pinging);
     assert!(!transition.previous_state().is_pinging_completed());
     assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().node_state(), NodeState::Bootstrapped);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         transition.new_state().exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
@@ -678,7 +678,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
-    assert_eq!(transition.previous_state().node_state(), NodeState::Pinging);
+    assert_eq!(transition.previous_state().peer_state(), PeerState::Pinging);
     assert!(!transition.previous_state().is_pinging_completed());
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
@@ -687,7 +687,7 @@ fn apply_observes_deadline_exit_from_pinging() {
             mode: ReadinessExitMode::TimedOut
         }]
     );
-    assert_eq!(transition.new_state().node_state(), NodeState::TimedOut);
+    assert_eq!(transition.new_state().peer_state(), PeerState::TimedOut);
     assert_eq!(
         transition.new_state().exit_mode(),
         Some(ReadinessExitMode::TimedOut)
@@ -735,12 +735,12 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
         &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
-        transition.previous_state().node_state(),
-        NodeState::Collecting
+        transition.previous_state().peer_state(),
+        PeerState::Collecting
     );
     assert_eq!(transition.previous_state().collecting_peers().len(), 2);
     assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
     assert_eq!(transition.new_state().collecting_peers().len(), 3);
     assert!(!transition.new_state().readiness_exited());
 }
@@ -784,7 +784,7 @@ fn apply_observes_duplicate_ready_from_collecting() {
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
     assert_eq!(transition.previous_state(), transition.new_state());
-    assert_eq!(transition.new_state().node_state(), NodeState::Collecting);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Collecting);
     assert_eq!(transition.new_state().collecting_peers().len(), 2);
     assert!(!transition.new_state().readiness_exited());
 }
@@ -839,12 +839,12 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         ]
     );
     assert_eq!(
-        transition.previous_state().node_state(),
-        NodeState::Collecting
+        transition.previous_state().peer_state(),
+        PeerState::Collecting
     );
     assert_eq!(transition.previous_state().collecting_peers().len(), 3);
     assert!(!transition.previous_state().readiness_exited());
-    assert_eq!(transition.new_state().node_state(), NodeState::Bootstrapped);
+    assert_eq!(transition.new_state().peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         transition.new_state().exit_mode(),
         Some(ReadinessExitMode::Bootstrapped)
