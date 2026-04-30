@@ -125,6 +125,12 @@ use super::helpers::*;
     &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
     &[Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
 )]
+#[case::deadline_expired_from_collecting(
+    Init::Phase2NoReadiness,
+    Command::DeadlineExpired,
+    &[ReadinessExited { mode: ReadinessExitMode::Deadline }],
+    &[Assert::P2Count(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ReadinessExitMode::Deadline)],
+)]
 fn valid_transition(
     #[case] init: Init,
     #[case] input: Command,
