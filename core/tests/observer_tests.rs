@@ -10,6 +10,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -62,14 +63,17 @@ fn apply_observes_local_participation_completion_transition() {
     let input = Command::LocalParticipationCompleted;
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -108,14 +112,17 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::DuplicateParticipationIgnored { peer_id: 1 }]
@@ -145,14 +152,17 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 3);
     let (observed_input, transition) = &obs[2];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::StaleReadyIgnored { peer_id: 1 }]
@@ -193,14 +203,17 @@ fn apply_observes_quorum_exit_transition() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 5);
     let (observed_input, transition) = &obs[4];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -242,14 +255,17 @@ fn apply_observes_deadline_exit_transition() {
     let input = Command::DeadlineExpired;
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 3);
     let (observed_input, transition) = &obs[2];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
@@ -278,17 +294,26 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let batch0 = coordinator.apply(Command::ParticipationObserved {
+    let outcomes_0 = match coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
         current_marker: 10,
-    });
-    let batch1 = coordinator.apply(Command::LocalParticipationCompleted);
-    let batch2 = coordinator.apply(Command::ReadyObserved {
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+    let outcomes_1 = match coordinator.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+    let outcomes_2 = match coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 8,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
@@ -299,7 +324,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
         transition0.outputs(),
         &[Outcome::DelayedParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(&batch0, transition0.outputs());
+    assert_eq!(&outcomes_0, transition0.outputs());
 
     let (_, transition1) = &obs[1];
     assert_eq!(
@@ -309,14 +334,14 @@ fn accepted_delayed_input_is_observable_as_delayed() {
             Outcome::BroadcastLocalReady,
         ]
     );
-    assert_eq!(&batch1, transition1.outputs());
+    assert_eq!(&outcomes_1, transition1.outputs());
 
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
         &[Outcome::DelayedReadyAccepted { peer_id: 2 }]
     );
-    assert_eq!(&batch2, transition2.outputs());
+    assert_eq!(&outcomes_2, transition2.outputs());
 }
 
 #[test]
@@ -325,27 +350,42 @@ fn state_transition_outputs_are_fully_observable() {
     let (mut coordinator, observations) = recording_coordinator();
 
     // Act
-    let batch0 = coordinator.apply(Command::ParticipationObserved {
+    let outcomes_0 = match coordinator.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
-    });
-    let batch1 = coordinator.apply(Command::LocalParticipationCompleted);
-    let batch2 = coordinator.apply(Command::ReadyObserved {
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+    let outcomes_1 = match coordinator.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+    let outcomes_2 = match coordinator.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
-    });
-    let batch3 = coordinator.apply(Command::ReadyObserved {
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+    let outcomes_3 = match coordinator.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
-    });
-    let batch4 = coordinator.apply(Command::ReadyObserved {
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+    let outcomes_4 = match coordinator.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: 10,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
@@ -356,7 +396,7 @@ fn state_transition_outputs_are_fully_observable() {
         transition0.outputs(),
         &[Outcome::ParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(&batch0, transition0.outputs());
+    assert_eq!(&outcomes_0, transition0.outputs());
 
     let (_, transition1) = &obs[1];
     assert_eq!(
@@ -366,21 +406,21 @@ fn state_transition_outputs_are_fully_observable() {
             Outcome::BroadcastLocalReady,
         ]
     );
-    assert_eq!(&batch1, transition1.outputs());
+    assert_eq!(&outcomes_1, transition1.outputs());
 
     let (_, transition2) = &obs[2];
     assert_eq!(
         transition2.outputs(),
         &[Outcome::ReadyAccepted { peer_id: 1 }]
     );
-    assert_eq!(&batch2, transition2.outputs());
+    assert_eq!(&outcomes_2, transition2.outputs());
 
     let (_, transition3) = &obs[3];
     assert_eq!(
         transition3.outputs(),
         &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
-    assert_eq!(&batch3, transition3.outputs());
+    assert_eq!(&outcomes_3, transition3.outputs());
 
     let (_, transition4) = &obs[4];
     assert_eq!(
@@ -393,7 +433,7 @@ fn state_transition_outputs_are_fully_observable() {
             },
         ]
     );
-    assert_eq!(&batch4, transition4.outputs());
+    assert_eq!(&outcomes_4, transition4.outputs());
     assert!(transition4.new_state().readiness_exited());
 }
 
@@ -408,14 +448,17 @@ fn apply_observes_stale_participation_from_initial() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::StaleParticipationIgnored { peer_id: 1 }]
@@ -436,14 +479,17 @@ fn apply_observes_non_member_participation_from_initial() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
@@ -464,14 +510,17 @@ fn apply_observes_stale_ready_from_initial() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::StaleReadyIgnored { peer_id: 1 }]
@@ -492,14 +541,17 @@ fn apply_observes_non_member_ready_from_initial() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
@@ -525,14 +577,17 @@ fn apply_observes_duplicate_ready_from_pinging() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
@@ -567,14 +622,17 @@ fn apply_observes_quorum_exit_from_pinging() {
     let input = Command::LocalParticipationCompleted;
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[
@@ -616,14 +674,17 @@ fn apply_observes_deadline_exit_from_pinging() {
     let input = Command::DeadlineExpired;
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.previous_state().lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -670,14 +731,17 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::ReadyAccepted { peer_id: 2 }]
@@ -718,14 +782,17 @@ fn apply_observes_duplicate_ready_from_collecting() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
@@ -766,14 +833,17 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     };
 
     // Act
-    let outputs = coordinator.apply(input);
+    let outcomes = match coordinator.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     let obs = observations.borrow();
     assert_eq!(obs.len(), 5);
     let (observed_input, transition) = &obs[4];
     assert_eq!(*observed_input, input);
-    assert_eq!(&outputs, transition.outputs());
+    assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
         transition.outputs(),
         &[

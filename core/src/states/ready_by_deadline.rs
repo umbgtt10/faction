@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::command::Command;
@@ -37,5 +38,9 @@ impl State for ReadyByDeadline {
 
     fn accept(&self, _input: &Command) -> bool {
         false
+    }
+
+    fn admissible_commands(&self) -> Vec<Command> {
+        vec![Command::GetSnapshot]
     }
 }

@@ -8,6 +8,8 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::vec::Vec;
 
+use faction::apply_status::ApplyStatus;
+
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -58,7 +60,10 @@ impl ClusterSimulation {
     }
 
     fn apply_to(&mut self, index: usize, input: Command) -> Vec<Outcome> {
-        self.nodes[index].apply(input)
+        match self.nodes[index].apply(input) {
+            ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Rejected { .. } => Vec::new(),
+        }
     }
 
     fn enqueue_broadcasts(&mut self, outputs: &[Outcome], source_index: usize) {

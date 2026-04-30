@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -277,9 +278,12 @@ fn valid_transition(
     let mut m = build(init);
 
     // Act
-    let batch = m.apply(input);
+    let outcomes = match m.apply(input) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => vec![],
+    };
 
     // Assert
-    assert_eq!(batch.as_slice(), expected_outputs, "output mismatch");
+    assert_eq!(outcomes.as_slice(), expected_outputs, "output mismatch");
     verify(&m, asserts);
 }

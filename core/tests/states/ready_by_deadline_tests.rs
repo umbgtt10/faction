@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -56,61 +57,75 @@ fn reach_deadline_from_phase2() -> Faction {
 
 #[test]
 fn deal_rejects_participation_observed() {
+    // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = f.snapshot();
 
-    let outputs = f.apply(Command::ParticipationObserved {
+    // Act & Assert
+    match f.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
-    });
-
-    assert!(outputs.is_empty());
+    }) {
+        ApplyStatus::Rejected { .. } => {}
+        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+    };
     assert_eq!(f.snapshot(), snap_before);
 }
 
 #[test]
 fn deal_rejects_ready_observed() {
+    // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = f.snapshot();
 
-    let outputs = f.apply(Command::ReadyObserved {
+    // Act & Assert
+    match f.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: 10,
         current_marker: 10,
-    });
-
-    assert!(outputs.is_empty());
+    }) {
+        ApplyStatus::Rejected { .. } => {}
+        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+    };
     assert_eq!(f.snapshot(), snap_before);
 }
 
 #[test]
 fn deal_rejects_local_participation_completed() {
+    // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = f.snapshot();
 
-    let outputs = f.apply(Command::LocalParticipationCompleted);
-
-    assert!(outputs.is_empty());
+    // Act & Assert
+    match f.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Rejected { .. } => {}
+        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+    };
     assert_eq!(f.snapshot(), snap_before);
 }
 
 #[test]
 fn deal_rejects_deadline_expired() {
+    // Arrange
     let mut f = reach_deadline_from_phase1();
     let snap_before = f.snapshot();
 
-    let outputs = f.apply(Command::DeadlineExpired);
-
-    assert!(outputs.is_empty());
+    // Act & Assert
+    match f.apply(Command::DeadlineExpired) {
+        ApplyStatus::Rejected { .. } => {}
+        ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+    };
     assert_eq!(f.snapshot(), snap_before);
 }
 
 #[test]
 fn vibe_check_after_deadline_from_phase1() {
+    // Arrange & Act
     let f = reach_deadline_from_phase1();
     let s = f.snapshot();
 
+    // Assert
     assert_eq!(
         s.lifecycle_state(),
         ReadinessLifecycleState::ReadyByDeadline
@@ -124,9 +139,11 @@ fn vibe_check_after_deadline_from_phase1() {
 
 #[test]
 fn vibe_check_after_deadline_from_phase2() {
+    // Arrange & Act
     let f = reach_deadline_from_phase2();
     let s = f.snapshot();
 
+    // Assert
     assert_eq!(
         s.lifecycle_state(),
         ReadinessLifecycleState::ReadyByDeadline
@@ -140,9 +157,11 @@ fn vibe_check_after_deadline_from_phase2() {
 
 #[test]
 fn post_deadline_inputs_leave_state_unchanged() {
+    // Arrange
     let mut f = reach_deadline_from_phase1();
     let snapshot_before = f.snapshot();
 
+    // Act
     let _ = f.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: 10,
@@ -156,11 +175,13 @@ fn post_deadline_inputs_leave_state_unchanged() {
     let _ = f.apply(Command::LocalParticipationCompleted);
     let _ = f.apply(Command::DeadlineExpired);
 
+    // Assert
     assert_eq!(f.snapshot(), snapshot_before);
 }
 
 #[test]
 fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
+    // Arrange
     let rbd = ReadyByDeadline {
         phase1_count: 3,
         phase2_count: 1,
@@ -174,7 +195,11 @@ fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
         99,
         4,
     );
+
+    // Act
     let result = rbd.state_snapshot(&prev);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::ReadyByDeadline
@@ -189,6 +214,7 @@ fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase1() {
 
 #[test]
 fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase2() {
+    // Arrange
     let rbd = ReadyByDeadline {
         phase1_count: 2,
         phase2_count: 4,
@@ -202,7 +228,11 @@ fn ready_by_deadline_state_snapshot_inherits_local_completion_from_phase2() {
         99,
         4,
     );
+
+    // Act
     let result = rbd.state_snapshot(&prev);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::ReadyByDeadline

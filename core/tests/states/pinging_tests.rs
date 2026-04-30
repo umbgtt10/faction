@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -59,42 +60,72 @@ fn deal_accepts_participation_observed() {
     let mut faction = machine_in_phase1();
 
     // Act
-    let result = faction.apply(Command::ParticipationObserved {
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(result, vec![Outcome::ParticipationAccepted { peer_id: 2 }]);
+    assert_eq!(
+        outcomes,
+        vec![Outcome::ParticipationAccepted { peer_id: 2 }]
+    );
 }
 
 #[test]
 fn deal_accepts_ready_observed() {
+    // Arrange
     let mut faction = machine_in_phase1();
-    let result = faction.apply(Command::ReadyObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
 }
 
 #[test]
 fn deal_accepts_local_participation_completed() {
+    // Arrange
     let mut faction = machine_in_phase1();
-    let result = faction.apply(Command::LocalParticipationCompleted);
-    assert_eq!(result.len(), 2);
-    assert_eq!(result[0], Outcome::LocalParticipationCompleted);
-    assert_eq!(result[1], Outcome::BroadcastLocalReady);
+
+    // Act
+    let outcomes = match faction.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes.len(), 2);
+    assert_eq!(outcomes[0], Outcome::LocalParticipationCompleted);
+    assert_eq!(outcomes[1], Outcome::BroadcastLocalReady);
 }
 
 #[test]
 fn deal_accepts_deadline_expired() {
+    // Arrange
     let mut faction = machine_in_phase1();
-    let result = faction.apply(Command::DeadlineExpired);
+
+    // Act
+    let outcomes = match faction.apply(Command::DeadlineExpired) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
     assert_eq!(
-        result,
+        outcomes,
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline
         }]
@@ -103,28 +134,44 @@ fn deal_accepts_deadline_expired() {
 
 #[test]
 fn participation_observed_non_member() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p1(&faction);
-    let result = faction.apply(Command::ParticipationObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 99,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(p1(&faction), before);
 }
 
 #[test]
 fn participation_observed_stale() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p1(&faction);
-    let result = faction.apply(Command::ParticipationObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: STALE,
         current_marker: MARKER,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
     assert_eq!(
-        result,
+        outcomes,
         vec![Outcome::StaleParticipationIgnored { peer_id: 2 }]
     );
     assert_eq!(p1(&faction), before);
@@ -139,13 +186,16 @@ fn participation_observed_duplicate() {
         current_marker: MARKER,
     });
     let before = p1(&faction);
-    let result = faction.apply(Command::ParticipationObserved {
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     assert_eq!(
-        result,
+        outcomes,
         vec![Outcome::DuplicateParticipationIgnored { peer_id: 2 }]
     );
     assert_eq!(p1(&faction), before);
@@ -153,28 +203,47 @@ fn participation_observed_duplicate() {
 
 #[test]
 fn participation_observed_first_timely() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p1(&faction);
-    let result = faction.apply(Command::ParticipationObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::ParticipationAccepted { peer_id: 3 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::ParticipationAccepted { peer_id: 3 }]
+    );
     assert_eq!(p1(&faction), before + 1);
 }
 
 #[test]
 fn participation_observed_first_delayed() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p1(&faction);
-    let result = faction.apply(Command::ParticipationObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 3,
         freshness: DELAYED,
         current_marker: MARKER,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
     assert_eq!(
-        result,
+        outcomes,
         vec![Outcome::DelayedParticipationAccepted { peer_id: 3 }]
     );
     assert_eq!(p1(&faction), before + 1);
@@ -182,32 +251,49 @@ fn participation_observed_first_delayed() {
 
 #[test]
 fn ready_observed_non_member() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p2(&faction);
-    let result = faction.apply(Command::ReadyObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 99,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(p2(&faction), before);
 }
 
 #[test]
 fn ready_observed_stale() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p2(&faction);
-    let result = faction.apply(Command::ReadyObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: STALE,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
     assert_eq!(p2(&faction), before);
 }
 
 #[test]
 fn ready_observed_duplicate() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let _ = faction.apply(Command::ReadyObserved {
         peer_id: 2,
@@ -215,54 +301,84 @@ fn ready_observed_duplicate() {
         current_marker: MARKER,
     });
     let before = p2(&faction);
-    let result = faction.apply(Command::ReadyObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]
+    );
     assert_eq!(p2(&faction), before);
 }
 
 #[test]
 fn ready_observed_first_timely() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p2(&faction);
-    let result = faction.apply(Command::ReadyObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: TIMELY,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
     assert_eq!(p2(&faction), before + 1);
 }
 
 #[test]
 fn ready_observed_first_delayed() {
+    // Arrange
     let mut faction = machine_in_phase1();
     let before = p2(&faction);
-    let result = faction.apply(Command::ReadyObserved {
+
+    // Act
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 3,
         freshness: DELAYED,
         current_marker: MARKER,
-    });
-    assert_eq!(result, vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]);
     assert_eq!(p2(&faction), before + 1);
 }
 
 #[test]
 fn local_completion_no_quorum() {
-    let mut faction = machine_in_phase1();
-    let result = faction.apply(Command::LocalParticipationCompleted);
     // Arrange & Act
+    let mut faction = machine_in_phase1();
+    let outcomes = match faction.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
     assert_eq!(
-        result,
+        outcomes,
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
         ]
     );
-    // Assert
     let snap = faction.snapshot();
     assert_eq!(
         snap.lifecycle_state(),
@@ -306,11 +422,14 @@ fn local_completion_triggers_quorum() {
     });
 
     // Act
-    let result = faction.apply(Command::LocalParticipationCompleted);
+    let outcomes = match faction.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
     assert_eq!(
-        result,
+        outcomes,
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
@@ -327,11 +446,16 @@ fn local_completion_triggers_quorum() {
 
 #[test]
 fn deadline_expired_in_phase1() {
+    // Arrange
     let mut faction = machine_in_phase1();
+
     // Act & Assert
-    let result = faction.apply(Command::DeadlineExpired);
+    let outcomes = match faction.apply(Command::DeadlineExpired) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     assert_eq!(
-        result,
+        outcomes,
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]

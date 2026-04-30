@@ -5,6 +5,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
@@ -53,7 +54,10 @@ impl ScenarioNode {
     #[must_use]
     pub fn apply(self, input: faction::command::Command) -> (Self, Vec<Outcome>) {
         let mut readiness = self.readiness;
-        let outputs = readiness.apply(input);
+        let outputs = match readiness.apply(input) {
+            ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Rejected { .. } => Vec::new(),
+        };
 
         (
             Self {

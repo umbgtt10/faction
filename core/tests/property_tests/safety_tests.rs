@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -110,17 +111,19 @@ proptest! {
         }
 
         let previous = coordinator.snapshot();
-        let first_outputs = coordinator.apply(Command::LocalParticipationCompleted);
+        let first_status = coordinator.apply(Command::LocalParticipationCompleted);
         let after_first = coordinator.snapshot();
-        let second_outputs = coordinator.apply(Command::LocalParticipationCompleted);
+        let second_status = coordinator.apply(Command::LocalParticipationCompleted);
         let after_second = coordinator.snapshot();
 
         // Assert
         if previous.local_participation_complete() || previous.readiness_exited() {
-            prop_assert!(first_outputs.is_empty());
+            let first_rejected = matches!(first_status, ApplyStatus::Rejected { .. });
+            prop_assert!(first_rejected);
             prop_assert_eq!(after_first, previous);
         }
-        prop_assert!(second_outputs.is_empty());
+        let second_rejected = matches!(second_status, ApplyStatus::Rejected { .. });
+        prop_assert!(second_rejected);
         prop_assert_eq!(after_second, after_first);
     }
 

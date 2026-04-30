@@ -10,6 +10,7 @@ pub mod freshness_classification;
 pub mod freshness_policy;
 pub mod no_op_observer;
 
+pub mod apply_status;
 pub mod command;
 pub mod config;
 pub mod faction;

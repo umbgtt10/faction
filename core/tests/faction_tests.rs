@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -29,11 +30,14 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     let mut faction = Faction::new(config, observer);
 
     // Act
-    let outputs = faction.apply(Command::GetSnapshot);
+    let outcomes = match faction.apply(Command::GetSnapshot) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(outputs.len(), 1);
-    let snapshot = match &outputs[0] {
+    assert_eq!(outcomes.len(), 1);
+    let snapshot = match &outcomes[0] {
         Outcome::SnapshotAvailable(snap) => *snap,
         other => panic!("expected SnapshotAvailable, got {other:?}"),
     };
@@ -62,7 +66,7 @@ fn get_snapshot_does_not_mutate_state() {
 
     // Act
     let first = faction.snapshot();
-    let _outputs = faction.apply(Command::GetSnapshot);
+    let _ = faction.apply(Command::GetSnapshot);
     let second = faction.snapshot();
 
     // Assert
@@ -87,11 +91,14 @@ fn get_snapshot_works_after_valid_inputs() {
     });
 
     // Act
-    let outputs = faction.apply(Command::GetSnapshot);
+    let outcomes = match faction.apply(Command::GetSnapshot) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(outputs.len(), 1);
-    let snapshot = match &outputs[0] {
+    assert_eq!(outcomes.len(), 1);
+    let snapshot = match &outcomes[0] {
         Outcome::SnapshotAvailable(snap) => *snap,
         other => panic!("expected SnapshotAvailable, got {other:?}"),
     };

@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -259,7 +260,10 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let batch = coordinator.apply(input);
+            let batch = match coordinator.apply(input) {
+                ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Rejected { .. } => vec![],
+            };
             let current = coordinator.snapshot();
 
             // Assert
@@ -276,7 +280,10 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let batch = coordinator.apply(input);
+            let batch = match coordinator.apply(input) {
+                ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Rejected { .. } => vec![],
+            };
             let current = coordinator.snapshot();
 
             // Assert
@@ -318,7 +325,10 @@ proptest! {
         // Act
         for input in inputs {
             let previous = coordinator.snapshot();
-            let batch = coordinator.apply(input);
+            let batch = match coordinator.apply(input) {
+                ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Rejected { .. } => vec![],
+            };
             let current = coordinator.snapshot();
 
             // Assert

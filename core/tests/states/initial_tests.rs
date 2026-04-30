@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -35,13 +36,19 @@ fn test_machine() -> Faction {
 #[test]
 fn deal_accepts_participation_observed() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::ParticipationObserved {
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = faction.snapshot();
-    assert_eq!(outputs, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
+    assert_eq!(
+        outcomes,
+        vec![Outcome::ParticipationAccepted { peer_id: 1 }]
+    );
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -52,13 +59,16 @@ fn deal_accepts_participation_observed() {
 #[test]
 fn deal_accepts_ready_observed() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::ReadyObserved {
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = faction.snapshot();
-    assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -69,9 +79,11 @@ fn deal_accepts_ready_observed() {
 #[test]
 fn deal_rejects_local_participation_completed() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::LocalParticipationCompleted);
+    assert!(matches!(
+        faction.apply(Command::LocalParticipationCompleted),
+        ApplyStatus::Rejected { .. }
+    ));
     let snap = faction.snapshot();
-    assert!(outputs.is_empty());
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -82,9 +94,11 @@ fn deal_rejects_local_participation_completed() {
 #[test]
 fn deal_rejects_deadline_expired() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::DeadlineExpired);
+    assert!(matches!(
+        faction.apply(Command::DeadlineExpired),
+        ApplyStatus::Rejected { .. }
+    ));
     let snap = faction.snapshot();
-    assert!(outputs.is_empty());
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -95,28 +109,42 @@ fn deal_rejects_deadline_expired() {
 #[test]
 fn stays_in_initial_after_rejected_input() {
     let mut faction = test_machine();
-    let first = faction.apply(Command::DeadlineExpired);
-    let second = faction.apply(Command::ParticipationObserved {
+    assert!(matches!(
+        faction.apply(Command::DeadlineExpired),
+        ApplyStatus::Rejected { .. }
+    ));
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 10,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = faction.snapshot();
-    assert!(first.is_empty());
-    assert_eq!(second, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
+    assert_eq!(
+        outcomes,
+        vec![Outcome::ParticipationAccepted { peer_id: 1 }]
+    );
     assert_eq!(snap.phase1_confirmed_count(), 1);
 }
 
 #[test]
 fn multiple_rejected_inputs_keep_initial_unchanged() {
     let mut faction = test_machine();
-    let r1 = faction.apply(Command::LocalParticipationCompleted);
-    let r2 = faction.apply(Command::DeadlineExpired);
-    let r3 = faction.apply(Command::LocalParticipationCompleted);
+    assert!(matches!(
+        faction.apply(Command::LocalParticipationCompleted),
+        ApplyStatus::Rejected { .. }
+    ));
+    assert!(matches!(
+        faction.apply(Command::DeadlineExpired),
+        ApplyStatus::Rejected { .. }
+    ));
+    assert!(matches!(
+        faction.apply(Command::LocalParticipationCompleted),
+        ApplyStatus::Rejected { .. }
+    ));
     let snap = faction.snapshot();
-    assert!(r1.is_empty());
-    assert!(r2.is_empty());
-    assert!(r3.is_empty());
     assert_eq!(
         snap.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -131,13 +159,16 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
 #[test]
 fn punch_participation_non_member_from_initial() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::ParticipationObserved {
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 99,
         freshness: 10,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = faction.snapshot();
-    assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(
         snap.lifecycle_state(),
@@ -148,14 +179,17 @@ fn punch_participation_non_member_from_initial() {
 #[test]
 fn punch_participation_delayed_from_initial() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::ParticipationObserved {
+    let outcomes = match faction.apply(Command::ParticipationObserved {
         peer_id: 1,
         freshness: 8,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = faction.snapshot();
     assert_eq!(
-        outputs,
+        outcomes,
         vec![Outcome::DelayedParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(snap.phase1_confirmed_count(), 1);
@@ -164,13 +198,16 @@ fn punch_participation_delayed_from_initial() {
 #[test]
 fn punch_ready_non_member_from_initial() {
     let mut faction = test_machine();
-    let outputs = faction.apply(Command::ReadyObserved {
+    let outcomes = match faction.apply(Command::ReadyObserved {
         peer_id: 99,
         freshness: 10,
         current_marker: 10,
-    });
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = faction.snapshot();
-    assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase2_confirmed_count(), 0);
 }
 

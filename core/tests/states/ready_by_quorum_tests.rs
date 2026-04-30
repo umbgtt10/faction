@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -55,7 +56,7 @@ fn reach_ready_by_quorum() -> Faction {
 
 #[test]
 fn deal_rejects_participation_observed() {
-    // Arrange
+    // Arrange & Act
     let faction = reach_ready_by_quorum();
     let snapshot = faction.snapshot();
 
@@ -75,18 +76,30 @@ fn all_inputs_leave_state_unchanged() {
     let snapshot_before = faction.snapshot();
 
     // Act
-    let r1 = faction.apply(Command::ParticipationObserved {
+    let r1 = match faction.apply(Command::ParticipationObserved {
         peer_id: 0,
         freshness: 10,
         current_marker: 10,
-    });
-    let r2 = faction.apply(Command::ReadyObserved {
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => vec![],
+    };
+    let r2 = match faction.apply(Command::ReadyObserved {
         peer_id: 4,
         freshness: 10,
         current_marker: 10,
-    });
-    let r3 = faction.apply(Command::LocalParticipationCompleted);
-    let r4 = faction.apply(Command::DeadlineExpired);
+    }) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => vec![],
+    };
+    let r3 = match faction.apply(Command::LocalParticipationCompleted) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => vec![],
+    };
+    let r4 = match faction.apply(Command::DeadlineExpired) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => vec![],
+    };
     let snapshot_after = faction.snapshot();
 
     // Assert
@@ -118,6 +131,7 @@ fn vibe_check_returns_correct_snapshot() {
 
 #[test]
 fn ready_by_quorum_state_snapshot_overrides_all_fields() {
+    // Arrange
     let rq = ReadyByQuorum {
         phase1_count: 2,
         phase2_count: 5,
@@ -131,7 +145,11 @@ fn ready_by_quorum_state_snapshot_overrides_all_fields() {
         99,
         4,
     );
+
+    // Act
     let result = rq.state_snapshot(&prev);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::ReadyByQuorum

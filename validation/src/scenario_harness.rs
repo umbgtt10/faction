@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -76,11 +77,14 @@ impl ScenarioHarness {
         peer_id: PeerId,
         freshness: u64,
     ) -> Vec<Outcome> {
-        self.coordinators[coordinator_index].apply(Command::ParticipationObserved {
+        match self.coordinators[coordinator_index].apply(Command::ParticipationObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
-        })
+        }) {
+            ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Rejected { .. } => Vec::new(),
+        }
     }
 
     pub fn apply_ready(
@@ -89,18 +93,27 @@ impl ScenarioHarness {
         peer_id: PeerId,
         freshness: u64,
     ) -> Vec<Outcome> {
-        self.coordinators[coordinator_index].apply(Command::ReadyObserved {
+        match self.coordinators[coordinator_index].apply(Command::ReadyObserved {
             peer_id,
             freshness,
             current_marker: self.current_marker,
-        })
+        }) {
+            ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Rejected { .. } => Vec::new(),
+        }
     }
 
     pub fn complete_local_participation(&mut self, coordinator_index: usize) -> Vec<Outcome> {
-        self.coordinators[coordinator_index].apply(Command::LocalParticipationCompleted)
+        match self.coordinators[coordinator_index].apply(Command::LocalParticipationCompleted) {
+            ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Rejected { .. } => Vec::new(),
+        }
     }
 
     pub fn expire_deadline(&mut self, coordinator_index: usize) -> Vec<Outcome> {
-        self.coordinators[coordinator_index].apply(Command::DeadlineExpired)
+        match self.coordinators[coordinator_index].apply(Command::DeadlineExpired) {
+            ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Rejected { .. } => Vec::new(),
+        }
     }
 }

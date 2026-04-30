@@ -34,6 +34,18 @@ impl State for Collecting {
         )
     }
 
+    fn admissible_commands(&self) -> Vec<Command> {
+        vec![
+            Command::ReadyObserved {
+                peer_id: 0,
+                freshness: 0,
+                current_marker: 0,
+            },
+            Command::DeadlineExpired,
+            Command::GetSnapshot,
+        ]
+    }
+
     fn step(self: Box<Self>, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let Self {
             phase2,

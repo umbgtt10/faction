@@ -51,7 +51,7 @@ Specifically:
 - only use `pub mod` in `mod.rs` and `lib.rs`
 - split test files so there is one test file per source file, named `<source file name>_tests.rs`
 - in `all_tests.rs`, reference test files one by one without `#[path = ...]`
-- apply AAA (`Arrange`, `Act`, `Assert`) structure to tests
+- apply AAA (`Arrange`, `Act`, `Assert`) structure to tests with blank-line separation between the three sections
 - use `// Arrange & Act` if there is no separate `Arrange`
 - use `// Act & Assert` if there is no separate `Act`
 - add the repository copyright and license header to every Rust source file

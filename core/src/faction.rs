@@ -4,9 +4,9 @@
 
 use alloc::boxed::Box;
 use alloc::vec;
-use alloc::vec::Vec;
 use core::cell::Cell;
 
+use crate::apply_status::ApplyStatus;
 use crate::command::Command;
 use crate::config::Config;
 use crate::observer::Observer;
@@ -35,6 +35,62 @@ impl Faction {
         }
     }
 
+    #[must_use]
+    pub fn apply(&mut self, command: Command) -> ApplyStatus {
+        if let Command::GetSnapshot = command {
+            let snapshot = self.snapshot();
+            return ApplyStatus::Accepted {
+                outcomes: vec![Outcome::SnapshotAvailable(snapshot)],
+                snapshot,
+            };
+        }
+
+        if !self.state.as_ref().unwrap().accept(&command) {
+            let snapshot = self.snapshot();
+            let admissible = self.state.as_ref().unwrap().admissible_commands();
+            return ApplyStatus::Rejected {
+                snapshot,
+                admissible,
+            };
+        }
+
+        let previous_snapshot = match self.cached_snapshot.get() {
+            Some(snap) => snap,
+            None => self.compute_snapshot(),
+        };
+
+        let old_state = self.state.take().unwrap();
+        let (outputs, new_state) = old_state.step(command, &self.config);
+        self.state = Some(new_state);
+
+        let new_snapshot = self
+            .state
+            .as_ref()
+            .unwrap()
+            .state_snapshot(&previous_snapshot);
+        self.cached_snapshot.set(Some(new_snapshot));
+
+        let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
+        self.observer.observe(command, transition);
+        ApplyStatus::Accepted {
+            outcomes: outputs,
+            snapshot: new_snapshot,
+        }
+    }
+
+    #[must_use]
+    pub fn snapshot(&self) -> Snapshot {
+        match self.cached_snapshot.get() {
+            Some(snap) => snap,
+            None => self.compute_snapshot(),
+        }
+    }
+
+    #[must_use]
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
     fn base_snapshot(&self) -> Snapshot {
         Snapshot::new(
             ReadinessLifecycleState::Phase1Active,
@@ -52,49 +108,5 @@ impl Faction {
         let snap = self.state.as_ref().unwrap().state_snapshot(&base);
         self.cached_snapshot.set(Some(snap));
         snap
-    }
-
-    #[must_use]
-    pub fn apply(&mut self, input: Command) -> Vec<Outcome> {
-        if let Command::GetSnapshot = input {
-            return vec![Outcome::SnapshotAvailable(self.snapshot())];
-        }
-
-        if !self.state.as_ref().unwrap().accept(&input) {
-            return Vec::new();
-        }
-
-        let previous_snapshot = match self.cached_snapshot.get() {
-            Some(snap) => snap,
-            None => self.compute_snapshot(),
-        };
-
-        let old_state = self.state.take().unwrap();
-        let (outputs, new_state) = old_state.step(input, &self.config);
-        self.state = Some(new_state);
-
-        let new_snapshot = self
-            .state
-            .as_ref()
-            .unwrap()
-            .state_snapshot(&previous_snapshot);
-        self.cached_snapshot.set(Some(new_snapshot));
-
-        let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
-        self.observer.observe(input, transition);
-        outputs
-    }
-
-    #[must_use]
-    pub fn snapshot(&self) -> Snapshot {
-        match self.cached_snapshot.get() {
-            Some(snap) => snap,
-            None => self.compute_snapshot(),
-        }
-    }
-
-    #[must_use]
-    pub fn config(&self) -> &Config {
-        &self.config
     }
 }

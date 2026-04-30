@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::apply_status::ApplyStatus;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -69,22 +70,28 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> Command {
 fn deal_accepts_ready_observed() {
     // Arrange & Act
     let mut v = machine_in_phase2();
-    let outputs = v.apply(ready(1, TIMELY));
+    let outcomes = match v.apply(ready(1, TIMELY)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
 }
 
 #[test]
 fn deal_accepts_deadline_expired() {
     // Arrange & Act
     let mut v = machine_in_phase2();
-    let outputs = v.apply(Command::DeadlineExpired);
+    let outcomes = match v.apply(Command::DeadlineExpired) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = v.snapshot();
 
     // Assert
     assert_eq!(
-        outputs,
+        outcomes,
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
@@ -100,10 +107,10 @@ fn deal_rejects_participation_observed() {
     let snap_before = v.snapshot();
 
     // Act
-    let outputs = v.apply(participation(2, TIMELY));
-
-    // Assert
-    assert!(outputs.is_empty());
+    assert!(matches!(
+        v.apply(participation(2, TIMELY)),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -114,10 +121,10 @@ fn deal_rejects_local_participation_completed() {
     let snap_before = v.snapshot();
 
     // Act
-    let outputs = v.apply(Command::LocalParticipationCompleted);
-
-    // Assert
-    assert!(outputs.is_empty());
+    assert!(matches!(
+        v.apply(Command::LocalParticipationCompleted),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -128,7 +135,10 @@ fn participation_non_member_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v.apply(participation(99, TIMELY)).is_empty());
+    assert!(matches!(
+        v.apply(participation(99, TIMELY)),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -139,7 +149,10 @@ fn participation_stale_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v.apply(participation(1, STALE)).is_empty());
+    assert!(matches!(
+        v.apply(participation(1, STALE)),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -150,7 +163,10 @@ fn participation_first_timely_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v.apply(participation(2, TIMELY)).is_empty());
+    assert!(matches!(
+        v.apply(participation(2, TIMELY)),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -161,7 +177,10 @@ fn participation_first_delayed_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v.apply(participation(2, DELAYED)).is_empty());
+    assert!(matches!(
+        v.apply(participation(2, DELAYED)),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -172,10 +191,13 @@ fn ready_non_member_rejected() {
     let snap_before = v.snapshot();
 
     // Act
-    let outputs = v.apply(ready(99, TIMELY));
+    let outcomes = match v.apply(ready(99, TIMELY)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -186,10 +208,13 @@ fn ready_stale_rejected() {
     let snap_before = v.snapshot();
 
     // Act
-    let outputs = v.apply(ready(1, STALE));
+    let outcomes = match v.apply(ready(1, STALE)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
+    assert_eq!(outcomes, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -201,10 +226,16 @@ fn ready_duplicate_rejected() {
     let snap_before = v.snapshot();
 
     // Act
-    let outputs = v.apply(ready(1, TIMELY));
+    let outcomes = match v.apply(ready(1, TIMELY)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
 
     // Assert
-    assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
+    assert_eq!(
+        outcomes,
+        vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]
+    );
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -220,11 +251,14 @@ fn ready_first_timely_no_quorum() {
     );
 
     // Act
-    let outputs = v.apply(ready(1, TIMELY));
+    let outcomes = match v.apply(ready(1, TIMELY)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = v.snapshot();
 
     // Assert
-    assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.phase2_confirmed_count(), 2);
     assert_eq!(
         snap.lifecycle_state(),
@@ -241,11 +275,14 @@ fn ready_first_delayed_no_quorum() {
     assert_eq!(snap_before.phase2_confirmed_count(), 1);
 
     // Act
-    let outputs = v.apply(ready(1, DELAYED));
+    let outcomes = match v.apply(ready(1, DELAYED)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = v.snapshot();
 
     // Assert
-    assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
+    assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.phase2_confirmed_count(), 2);
     assert!(!snap.readiness_exited());
 }
@@ -261,12 +298,15 @@ fn ready_first_timely_triggers_quorum() {
     assert!(!snap_before.readiness_exited());
 
     // Act
-    let outputs = v.apply(ready(3, TIMELY));
+    let outcomes = match v.apply(ready(3, TIMELY)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = v.snapshot();
 
     // Assert
     assert_eq!(
-        outputs,
+        outcomes,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
@@ -295,12 +335,15 @@ fn ready_first_delayed_triggers_quorum() {
     assert!(!snap_before.readiness_exited());
 
     // Act
-    let outputs = v.apply(ready(3, DELAYED));
+    let outcomes = match v.apply(ready(3, DELAYED)) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = v.snapshot();
 
     // Assert
     assert_eq!(
-        outputs,
+        outcomes,
         vec![
             Outcome::DelayedReadyAccepted { peer_id: 3 },
             Outcome::ReadyQuorumReached,
@@ -324,7 +367,10 @@ fn local_completion_in_phase2_is_noop() {
     let snap_before = v.snapshot();
 
     // Act & Assert
-    assert!(v.apply(Command::LocalParticipationCompleted).is_empty());
+    assert!(matches!(
+        v.apply(Command::LocalParticipationCompleted),
+        ApplyStatus::Rejected { .. }
+    ));
     assert_eq!(v.snapshot(), snap_before);
 }
 
@@ -341,12 +387,15 @@ fn deadline_expired_exits_in_phase2() {
     assert!(snap_before.local_participation_complete());
 
     // Act
-    let outputs = v.apply(Command::DeadlineExpired);
+    let outcomes = match v.apply(Command::DeadlineExpired) {
+        ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    };
     let snap = v.snapshot();
 
     // Assert
     assert_eq!(
-        outputs,
+        outcomes,
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::Deadline,
         }]
@@ -381,6 +430,7 @@ fn vibe_check_returns_correct_snapshot() {
 
 #[test]
 fn collecting_state_snapshot_inherits_correctly() {
+    // Arrange
     let phase2 = ConfirmedSet::new(5);
     let (phase2, _) = phase2.confirm(1);
     let (phase2, _) = phase2.confirm(3);
@@ -397,7 +447,11 @@ fn collecting_state_snapshot_inherits_correctly() {
         99,
         4,
     );
+
+    // Act
     let result = collecting.state_snapshot(&prev);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase2Active
