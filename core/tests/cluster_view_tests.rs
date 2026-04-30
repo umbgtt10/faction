@@ -4,15 +4,18 @@
 
 extern crate alloc;
 
+use faction::cluster_view::ClusterView;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::cluster_view::ClusterView;
 
 const BASE: ClusterView = ClusterView::new(ReadinessLifecycleState::Bootstrapped, true, 5, 7, 3);
 
 #[test]
 fn with_lifecycle_state_updates_only_lifecycle_state() {
+    // Arrange & Act
     let result = BASE.with_lifecycle_state(ReadinessLifecycleState::Phase1Active);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -27,7 +30,10 @@ fn with_lifecycle_state_updates_only_lifecycle_state() {
 
 #[test]
 fn with_phase2_count_updates_only_phase2_count() {
+    // Arrange & Act
     let result = BASE.with_phase2_count(99);
+
+    // Assert
     assert_eq!(
         result.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
