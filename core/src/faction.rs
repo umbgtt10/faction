@@ -38,6 +38,7 @@ impl Faction {
         if let Command::Probe = command {
             return ProcessResult::Probed {
                 snapshot: self.snapshot(),
+                admissible: self.state.as_ref().unwrap().admissible_commands(),
             };
         }
 

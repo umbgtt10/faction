@@ -30,7 +30,7 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
 
     // Act
     let snapshot = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot } => snapshot,
+        ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => panic!("expected Probed"),
     };
 
@@ -86,7 +86,7 @@ fn get_snapshot_works_after_valid_inputs() {
 
     // Act
     let snapshot = match faction.process(Command::Probe) {
-        ProcessResult::Probed { snapshot } => snapshot,
+        ProcessResult::Probed { snapshot, .. } => snapshot,
         _ => panic!("expected Probed"),
     };
 

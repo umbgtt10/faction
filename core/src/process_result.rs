@@ -22,5 +22,6 @@ pub enum ProcessResult {
     },
     Probed {
         snapshot: Snapshot,
+        admissible: Vec<Command>,
     },
 }
