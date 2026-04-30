@@ -56,9 +56,9 @@ impl ScenarioNode {
     }
 
     #[must_use]
-    pub fn process(self, input: Command) -> (Self, Vec<Outcome>) {
+    pub fn process(self, command: Command) -> (Self, Vec<Outcome>) {
         let mut readiness = self.readiness;
-        let outputs = match readiness.process(input) {
+        let outputs = match readiness.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),

@@ -35,7 +35,7 @@ use super::helpers::*;
 )]
 fn invalid_transition(
     #[case] init: Init,
-    #[case] input: Command,
+    #[case] command: Command,
     #[case] asserts: &[Assert],
     #[case] expected_admissible: &[Command],
 ) {
@@ -47,7 +47,7 @@ fn invalid_transition(
     };
 
     // Act
-    let result = m.process(input);
+    let result = m.process(command);
 
     // Assert
     let (cluster_view, admissible) = match result {

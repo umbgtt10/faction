@@ -9,8 +9,8 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
+use crate::peer_state::PeerState;
 use crate::state::State;
 use crate::states::pinging::Pinging;
 
@@ -25,14 +25,14 @@ impl State for Initial {
             .with_collecting_peers(Vec::new())
     }
 
-    fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let pinging = Pinging::new(config.peer_count());
-        pinging.step(input, config)
+        pinging.step(command, config)
     }
 
-    fn accept(&self, input: &Command) -> bool {
+    fn accept(&self, command: &Command) -> bool {
         matches!(
-            input,
+            command,
             Command::ParticipationObserved { .. } | Command::ReadyObserved { .. }
         )
     }

@@ -19,11 +19,11 @@ pub struct Bootstrapped {
 }
 
 impl State for Bootstrapped {
-    fn step(&self, _input: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        unreachable!("accept() rejects all inputs for this state")
+    fn step(&self, _command: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+        unreachable!("accept() rejects all commands for this state")
     }
 
-    fn accept(&self, _input: &Command) -> bool {
+    fn accept(&self, _command: &Command) -> bool {
         false
     }
 

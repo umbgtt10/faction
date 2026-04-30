@@ -45,11 +45,11 @@ impl State for Pinging {
             .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
     }
 
-    fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let phase1 = self.phase1.clone();
         let phase2 = self.phase2.clone();
 
-        match input {
+        match command {
             Command::ParticipationObserved {
                 peer_id,
                 freshness,

@@ -19,15 +19,15 @@ pub struct TimedOut {
 }
 
 impl State for TimedOut {
-    fn step(&self, _input: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        unreachable!("accept() rejects all inputs for this state")
+    fn step(&self, _command: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+        unreachable!("accept() rejects all commands for this state")
     }
 
     fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous.clone().with_peer_state(PeerState::TimedOut)
     }
 
-    fn accept(&self, _input: &Command) -> bool {
+    fn accept(&self, _command: &Command) -> bool {
         false
     }
 

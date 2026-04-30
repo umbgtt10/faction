@@ -29,8 +29,8 @@ struct RecordingObserver {
 }
 
 impl Observer for RecordingObserver {
-    fn observe(&mut self, input: Command, transition: Transition) {
-        self.observations.borrow_mut().push((input, transition));
+    fn observe(&mut self, command: Command, transition: Transition) {
+        self.observations.borrow_mut().push((command, transition));
     }
 }
 

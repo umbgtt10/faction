@@ -6,5 +6,5 @@ use crate::command::Command;
 use crate::transition::Transition;
 
 pub trait Observer {
-    fn observe(&mut self, input: Command, transition: Transition);
+    fn observe(&mut self, command: Command, transition: Transition);
 }

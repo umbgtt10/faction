@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use alloc::vec::Vec;
+
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::outcome::Outcome;
@@ -10,8 +12,8 @@ use faction::PeerId;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScenarioTraceEntry {
     node_id: PeerId,
-    input: Command,
-    outputs: alloc::vec::Vec<Outcome>,
+    command: Command,
+    outputs: Vec<Outcome>,
     cluster_view: ClusterView,
 }
 
@@ -19,13 +21,13 @@ impl ScenarioTraceEntry {
     #[must_use]
     pub fn new(
         node_id: PeerId,
-        input: Command,
-        outputs: alloc::vec::Vec<Outcome>,
+        command: Command,
+        outputs: Vec<Outcome>,
         cluster_view: ClusterView,
     ) -> Self {
         Self {
             node_id,
-            input,
+            command,
             outputs,
             cluster_view,
         }
@@ -37,8 +39,8 @@ impl ScenarioTraceEntry {
     }
 
     #[must_use]
-    pub const fn input(&self) -> Command {
-        self.input
+    pub const fn command(&self) -> Command {
+        self.command
     }
 
     #[must_use]

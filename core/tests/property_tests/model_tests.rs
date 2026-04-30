@@ -12,8 +12,8 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::peer_state::PeerState;
 use faction::outcome::Outcome;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
@@ -83,9 +83,9 @@ impl ModelCoordinator {
         }
     }
 
-    fn process(&mut self, input: Command) -> alloc::vec::Vec<Outcome> {
+    fn process(&mut self, command: Command) -> alloc::vec::Vec<Outcome> {
         if self.initial {
-            match input {
+            match command {
                 Command::ParticipationObserved { .. } | Command::ReadyObserved { .. } => {
                     self.initial = false;
                 }
@@ -98,7 +98,7 @@ impl ModelCoordinator {
         }
 
         if self.is_pinging_completed {
-            match input {
+            match command {
                 Command::ParticipationObserved { .. } | Command::LocalParticipationCompleted => {
                     return Vec::new()
                 }
@@ -106,7 +106,7 @@ impl ModelCoordinator {
             }
         }
 
-        match input {
+        match command {
             Command::ParticipationObserved {
                 peer_id,
                 freshness,

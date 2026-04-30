@@ -59,8 +59,8 @@ impl ClusterSimulation {
         self.current_marker = marker;
     }
 
-    fn apply_to(&mut self, index: usize, input: Command) -> Vec<Outcome> {
-        match self.nodes[index].process(input) {
+    fn apply_to(&mut self, index: usize, command: Command) -> Vec<Outcome> {
+        match self.nodes[index].process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
@@ -87,14 +87,14 @@ impl ClusterSimulation {
     }
 
     fn drain_pending(&mut self) {
-        while let Some((target, input)) = self.pending.pop_front() {
-            let outputs = self.apply_to(target, input);
+        while let Some((target, command)) = self.pending.pop_front() {
+            let outputs = self.apply_to(target, command);
             self.enqueue_broadcasts(&outputs, target);
         }
     }
 
-    fn apply_and_drain(&mut self, index: usize, input: Command) {
-        let outputs = self.apply_to(index, input);
+    fn apply_and_drain(&mut self, index: usize, command: Command) {
+        let outputs = self.apply_to(index, command);
         self.enqueue_broadcasts(&outputs, index);
         self.drain_pending();
     }

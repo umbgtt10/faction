@@ -133,7 +133,7 @@ use super::helpers::*;
 )]
 fn valid_transition(
     #[case] init: Init,
-    #[case] input: Command,
+    #[case] command: Command,
     #[case] expected_outputs: &[Outcome],
     #[case] asserts: &[Assert],
 ) {
@@ -141,7 +141,7 @@ fn valid_transition(
     let mut m = build(init);
 
     // Act
-    let outcomes = match m.process(input) {
+    let outcomes = match m.process(command) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],

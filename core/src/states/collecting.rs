@@ -9,8 +9,8 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::peer_state::PeerState;
 use crate::outcome::Outcome;
+use crate::peer_state::PeerState;
 use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::state::State;
 
@@ -26,9 +26,9 @@ pub struct Collecting {
 }
 
 impl State for Collecting {
-    fn accept(&self, input: &Command) -> bool {
+    fn accept(&self, command: &Command) -> bool {
         matches!(
-            input,
+            command,
             Command::ReadyObserved { .. } | Command::DeadlineExpired
         )
     }
@@ -53,13 +53,13 @@ impl State for Collecting {
             .with_collecting_peers(self.phase2.confirmed_peers(config.peer_set()))
     }
 
-    fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         let phase2 = self.phase2.clone();
         let pinging_count = self.pinging_count;
 
-        match input {
+        match command {
             Command::ParticipationObserved { .. } => {
-                unreachable!("accept() rejects this input for Collecting")
+                unreachable!("accept() rejects this command for Collecting")
             }
 
             Command::ReadyObserved {
@@ -111,7 +111,7 @@ impl State for Collecting {
             }
 
             Command::LocalParticipationCompleted => {
-                unreachable!("accept() rejects this input for Collecting")
+                unreachable!("accept() rejects this command for Collecting")
             }
 
             Command::DeadlineExpired => (

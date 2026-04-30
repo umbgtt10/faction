@@ -9,5 +9,5 @@ use crate::transition::Transition;
 pub struct NoOpObserver;
 
 impl Observer for NoOpObserver {
-    fn observe(&mut self, _input: Command, _transition: Transition) {}
+    fn observe(&mut self, _command: Command, _transition: Transition) {}
 }
