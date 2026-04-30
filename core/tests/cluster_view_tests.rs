@@ -6,19 +6,19 @@ extern crate alloc;
 
 use faction::cluster_view::ClusterView;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 
-const BASE: ClusterView = ClusterView::new(ReadinessLifecycleState::Bootstrapped, true, 5, 7, 3);
+const BASE: ClusterView = ClusterView::new(NodeState::Bootstrapped, true, 5, 7, 3);
 
 #[test]
-fn with_lifecycle_state_updates_only_lifecycle_state() {
+fn with_node_state_updates_only_node_state() {
     // Arrange & Act
-    let result = BASE.with_lifecycle_state(ReadinessLifecycleState::Phase1Active);
+    let result = BASE.with_node_state(NodeState::Phase1Active);
 
     // Assert
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        result.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(result.exit_mode(), None);
     assert!(result.local_participation_complete());
@@ -35,8 +35,8 @@ fn with_phase2_count_updates_only_phase2_count() {
 
     // Assert
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        result.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());

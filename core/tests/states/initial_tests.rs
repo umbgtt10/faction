@@ -16,7 +16,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::initial::Initial;
@@ -59,8 +59,8 @@ fn deal_accepts_participation_observed() {
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(snap.phase1_confirmed_count(), 1);
 }
@@ -88,8 +88,8 @@ fn deal_accepts_ready_observed() {
     };
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(snap.phase2_confirmed_count(), 1);
 }
@@ -111,8 +111,8 @@ fn deal_rejects_local_participation_completed() {
         _ => unreachable!(),
     };
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(snap.phase2_confirmed_count(), 0);
 }
@@ -134,8 +134,8 @@ fn deal_rejects_deadline_expired() {
         _ => unreachable!(),
     };
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(snap.exit_mode(), None);
 }
@@ -199,8 +199,8 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
         _ => unreachable!(),
     };
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(snap.phase2_confirmed_count(), 0);
@@ -233,8 +233,8 @@ fn punch_participation_non_member_from_initial() {
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(snap.phase1_confirmed_count(), 0);
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
 }
 
@@ -302,8 +302,8 @@ fn vibe_check_returns_phase1_active_with_zeros() {
 
     // Assert
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(snap.exit_mode(), None);
     assert!(!snap.local_participation_complete());
@@ -316,15 +316,15 @@ fn vibe_check_returns_phase1_active_with_zeros() {
 #[test]
 fn initial_cluster_view_inherits_correctly() {
     // Arrange
-    let prev = ClusterView::new(ReadinessLifecycleState::Phase2Active, true, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Phase2Active, true, 99, 99, 4);
 
     // Act
     let result = Initial.cluster_view(&prev);
 
     // Assert
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        result.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(result.phase1_confirmed_count(), 0);
     assert_eq!(result.phase2_confirmed_count(), 0);

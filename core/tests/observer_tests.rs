@@ -19,7 +19,7 @@ use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::transition::Transition;
 
 type Observations = Rc<RefCell<Vec<(Command, Transition)>>>;
@@ -76,14 +76,14 @@ fn apply_observes_local_participation_completion_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        transition.previous_state().node_state(),
+        NodeState::Phase1Active
     );
     assert!(!transition.previous_state().local_participation_complete());
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.new_state().node_state(),
+        NodeState::Phase2Active
     );
     assert!(transition.new_state().local_participation_complete());
     assert!(!transition.new_state().readiness_exited());
@@ -132,8 +132,8 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase1_confirmed_count(), 1);
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        transition.new_state().node_state(),
+        NodeState::Phase1Active
     );
 }
 
@@ -172,8 +172,8 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.new_state().node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(transition.new_state().phase2_confirmed_count(), 1);
     assert!(!transition.new_state().readiness_exited());
@@ -219,14 +219,14 @@ fn apply_observes_quorum_exit_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.previous_state().node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(transition.previous_state().phase2_confirmed_count(), 3);
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        transition.new_state().node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -272,13 +272,13 @@ fn apply_observes_deadline_exit_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.previous_state().node_state(),
+        NodeState::Phase2Active
     );
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
+        transition.new_state().node_state(),
+        NodeState::TimedOut
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -613,8 +613,8 @@ fn apply_observes_duplicate_ready_from_pinging() {
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(transition.new_state().phase2_confirmed_count(), 1);
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        transition.new_state().node_state(),
+        NodeState::Phase1Active
     );
 }
 
@@ -664,14 +664,14 @@ fn apply_observes_quorum_exit_from_pinging() {
         ]
     );
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        transition.previous_state().node_state(),
+        NodeState::Phase1Active
     );
     assert!(!transition.previous_state().local_participation_complete());
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        transition.new_state().node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -706,8 +706,8 @@ fn apply_observes_deadline_exit_from_pinging() {
     assert_eq!(*observed_input, input);
     assert_eq!(&outcomes, transition.outputs());
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        transition.previous_state().node_state(),
+        NodeState::Phase1Active
     );
     assert!(!transition.previous_state().local_participation_complete());
     assert!(!transition.previous_state().readiness_exited());
@@ -718,8 +718,8 @@ fn apply_observes_deadline_exit_from_pinging() {
         }]
     );
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
+        transition.new_state().node_state(),
+        NodeState::TimedOut
     );
     assert_eq!(
         transition.new_state().exit_mode(),
@@ -768,14 +768,14 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
         &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.previous_state().node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(transition.previous_state().phase2_confirmed_count(), 2);
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.new_state().node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(transition.new_state().phase2_confirmed_count(), 3);
     assert!(!transition.new_state().readiness_exited());
@@ -821,8 +821,8 @@ fn apply_observes_duplicate_ready_from_collecting() {
     );
     assert_eq!(transition.previous_state(), transition.new_state());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.new_state().node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(transition.new_state().phase2_confirmed_count(), 2);
     assert!(!transition.new_state().readiness_exited());
@@ -878,14 +878,14 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         ]
     );
     assert_eq!(
-        transition.previous_state().lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        transition.previous_state().node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(transition.previous_state().phase2_confirmed_count(), 3);
     assert!(!transition.previous_state().readiness_exited());
     assert_eq!(
-        transition.new_state().lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        transition.new_state().node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(
         transition.new_state().exit_mode(),

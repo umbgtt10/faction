@@ -17,7 +17,7 @@ use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
@@ -106,7 +106,7 @@ fn assert_stale_outputs_do_not_mutate_state(
             current.phase2_confirmed_count(),
             previous.phase2_confirmed_count()
         );
-        prop_assert_eq!(current.lifecycle_state(), previous.lifecycle_state());
+        prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.local_participation_complete(),
@@ -131,7 +131,7 @@ fn assert_non_member_outputs_do_not_mutate_state(
             current.phase2_confirmed_count(),
             previous.phase2_confirmed_count()
         );
-        prop_assert_eq!(current.lifecycle_state(), previous.lifecycle_state());
+        prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.local_participation_complete(),
@@ -156,7 +156,7 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
             current.phase2_confirmed_count(),
             previous.phase2_confirmed_count()
         );
-        prop_assert_eq!(current.lifecycle_state(), previous.lifecycle_state());
+        prop_assert_eq!(current.node_state(), previous.node_state());
         prop_assert_eq!(current.exit_mode(), previous.exit_mode());
         prop_assert_eq!(
             current.local_participation_complete(),
@@ -209,16 +209,16 @@ proptest! {
             if cluster_view.readiness_exited() {
                 has_exited = true;
                 prop_assert!(matches!(
-                    cluster_view.lifecycle_state(),
-                    ReadinessLifecycleState::Bootstrapped | ReadinessLifecycleState::TimedOut
+                    cluster_view.node_state(),
+                    NodeState::Bootstrapped | NodeState::TimedOut
                 ));
             }
 
             if has_exited {
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert!(matches!(
-                    cluster_view.lifecycle_state(),
-                    ReadinessLifecycleState::Bootstrapped | ReadinessLifecycleState::TimedOut
+                    cluster_view.node_state(),
+                    NodeState::Bootstrapped | NodeState::TimedOut
                 ));
             }
         }
@@ -400,8 +400,8 @@ proptest! {
                 prop_assert!(cluster_view.local_participation_complete());
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
-                    cluster_view.lifecycle_state(),
-                    ReadinessLifecycleState::Bootstrapped
+                    cluster_view.node_state(),
+                    NodeState::Bootstrapped
                 );
             }
         }
@@ -424,8 +424,8 @@ proptest! {
             if cluster_view.exit_mode() == Some(ReadinessExitMode::TimedOut) {
                 prop_assert!(cluster_view.readiness_exited());
                 prop_assert_eq!(
-                    cluster_view.lifecycle_state(),
-                    ReadinessLifecycleState::TimedOut
+                    cluster_view.node_state(),
+                    NodeState::TimedOut
                 );
             }
         }

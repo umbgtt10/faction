@@ -16,7 +16,7 @@ use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use proptest::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,7 +29,7 @@ enum ModelLifecycleState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ModelClusterView {
-    lifecycle_state: ModelLifecycleState,
+    node_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
     readiness_exited: bool,
@@ -44,7 +44,7 @@ struct ModelCoordinator {
     quorum_threshold: usize,
     max_delay: u64,
     initial: bool,
-    lifecycle_state: ModelLifecycleState,
+    node_state: ModelLifecycleState,
     exit_mode: Option<ReadinessExitMode>,
     local_participation_complete: bool,
     phase1_confirmed: [bool; 5],
@@ -61,7 +61,7 @@ impl ModelCoordinator {
             quorum_threshold: 4,
             max_delay: 2,
             initial: true,
-            lifecycle_state: ModelLifecycleState::Phase1Active,
+            node_state: ModelLifecycleState::Phase1Active,
             exit_mode: None,
             local_participation_complete: false,
             phase1_confirmed: [false; 5],
@@ -73,7 +73,7 @@ impl ModelCoordinator {
 
     fn cluster_view(&self) -> ModelClusterView {
         ModelClusterView {
-            lifecycle_state: self.lifecycle_state,
+            node_state: self.node_state,
             exit_mode: self.exit_mode,
             local_participation_complete: self.local_participation_complete,
             readiness_exited: self.exit_mode.is_some(),
@@ -189,7 +189,7 @@ impl ModelCoordinator {
         if self.local_participation_complete && self.phase2_confirmed_count >= self.quorum_threshold
         {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
-            self.lifecycle_state = ModelLifecycleState::Bootstrapped;
+            self.node_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
                 Outcome::ReadyQuorumReached,
@@ -208,7 +208,7 @@ impl ModelCoordinator {
         }
 
         self.local_participation_complete = true;
-        self.lifecycle_state = ModelLifecycleState::Phase2Active;
+        self.node_state = ModelLifecycleState::Phase2Active;
 
         let local_index = self
             .peer_index(self.local_peer_id)
@@ -225,7 +225,7 @@ impl ModelCoordinator {
 
         if self.phase2_confirmed_count >= self.quorum_threshold {
             self.exit_mode = Some(ReadinessExitMode::Bootstrapped);
-            self.lifecycle_state = ModelLifecycleState::Bootstrapped;
+            self.node_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);
             outputs.push(Outcome::ReadinessExited {
                 mode: ReadinessExitMode::Bootstrapped,
@@ -241,7 +241,7 @@ impl ModelCoordinator {
         }
 
         self.exit_mode = Some(ReadinessExitMode::TimedOut);
-        self.lifecycle_state = ModelLifecycleState::TimedOut;
+        self.node_state = ModelLifecycleState::TimedOut;
 
         vec![Outcome::ReadinessExited {
             mode: ReadinessExitMode::TimedOut,
@@ -273,11 +273,11 @@ impl ModelCoordinator {
 
 fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
     ModelClusterView {
-        lifecycle_state: match cluster_view.lifecycle_state() {
-            ReadinessLifecycleState::Phase1Active => ModelLifecycleState::Phase1Active,
-            ReadinessLifecycleState::Phase2Active => ModelLifecycleState::Phase2Active,
-            ReadinessLifecycleState::Bootstrapped => ModelLifecycleState::Bootstrapped,
-            ReadinessLifecycleState::TimedOut => ModelLifecycleState::TimedOut,
+        node_state: match cluster_view.node_state() {
+            NodeState::Phase1Active => ModelLifecycleState::Phase1Active,
+            NodeState::Phase2Active => ModelLifecycleState::Phase2Active,
+            NodeState::Bootstrapped => ModelLifecycleState::Bootstrapped,
+            NodeState::TimedOut => ModelLifecycleState::TimedOut,
         },
         exit_mode: cluster_view.exit_mode(),
         local_participation_complete: cluster_view.local_participation_complete(),

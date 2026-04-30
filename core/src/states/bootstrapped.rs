@@ -10,7 +10,7 @@ use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::node_state::NodeState;
 use crate::state::State;
 
 pub struct Bootstrapped {
@@ -29,7 +29,7 @@ impl State for Bootstrapped {
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_lifecycle_state(ReadinessLifecycleState::Bootstrapped)
+            .with_node_state(NodeState::Bootstrapped)
             .with_local_participation_complete(true)
             .with_phase1_count(self.phase1_count)
             .with_phase2_count(self.phase2_count)

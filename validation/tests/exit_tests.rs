@@ -8,7 +8,7 @@ use alloc::vec;
 
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
@@ -62,8 +62,8 @@ fn expire_deadline_exits_by_deadline() {
     );
     assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
+        cluster_view.node_state(),
+        NodeState::TimedOut
     );
     assert!(cluster_view.readiness_exited());
 }
@@ -107,8 +107,8 @@ fn repeated_deadline_expiry_remains_idempotent() {
     assert!(outputs.is_empty());
     assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
+        cluster_view.node_state(),
+        NodeState::TimedOut
     );
     assert!(cluster_view.readiness_exited());
 }
@@ -139,8 +139,8 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     let cluster_view = harness.cluster_view(0);
     assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
+        cluster_view.node_state(),
+        NodeState::TimedOut
     );
     assert!(cluster_view.readiness_exited());
     assert_eq!(cluster_view.phase2_confirmed_count(), 3);
@@ -213,8 +213,8 @@ fn deadline_from_phase1() {
     );
     assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::TimedOut
+        cluster_view.node_state(),
+        NodeState::TimedOut
     );
     assert!(cluster_view.readiness_exited());
     assert!(!cluster_view.local_participation_complete());

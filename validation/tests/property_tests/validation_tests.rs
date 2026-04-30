@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::outcome::Outcome;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction_validation::scenario_harness::ScenarioHarness;
 use proptest::prelude::*;
 
@@ -154,7 +154,7 @@ proptest! {
                         current.phase2_confirmed_count(),
                         previous.phase2_confirmed_count()
                     );
-                    prop_assert_eq!(current.lifecycle_state(), previous.lifecycle_state());
+                    prop_assert_eq!(current.node_state(), previous.node_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
                     prop_assert_eq!(
                         current.local_participation_complete(),
@@ -193,7 +193,7 @@ proptest! {
                         current.phase2_confirmed_count(),
                         previous.phase2_confirmed_count()
                     );
-                    prop_assert_eq!(current.lifecycle_state(), previous.lifecycle_state());
+                    prop_assert_eq!(current.node_state(), previous.node_state());
                     prop_assert_eq!(current.exit_mode(), previous.exit_mode());
                     prop_assert_eq!(
                         current.local_participation_complete(),
@@ -223,18 +223,18 @@ proptest! {
                 if cluster_view.readiness_exited() {
                     *has_exited = true;
                     prop_assert!(matches!(
-                        cluster_view.lifecycle_state(),
-                        ReadinessLifecycleState::Bootstrapped
-                            | ReadinessLifecycleState::TimedOut
+                        cluster_view.node_state(),
+                        NodeState::Bootstrapped
+                            | NodeState::TimedOut
                     ));
                 }
 
                 if *has_exited {
                     prop_assert!(cluster_view.readiness_exited());
                     prop_assert!(matches!(
-                        cluster_view.lifecycle_state(),
-                        ReadinessLifecycleState::Bootstrapped
-                            | ReadinessLifecycleState::TimedOut
+                        cluster_view.node_state(),
+                        NodeState::Bootstrapped
+                            | NodeState::TimedOut
                     ));
                 }
             }

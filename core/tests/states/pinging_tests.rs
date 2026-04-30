@@ -17,7 +17,7 @@ use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::pinging::Pinging;
@@ -406,8 +406,8 @@ fn local_completion_no_quorum() {
         _ => unreachable!(),
     };
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        snap.node_state(),
+        NodeState::Phase2Active
     );
     assert!(snap.local_participation_complete());
     assert!(!snap.readiness_exited());
@@ -509,8 +509,8 @@ fn vibe_check_in_phase1() {
 
     // Assert
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        snap.node_state(),
+        NodeState::Phase1Active
     );
     assert!(!snap.readiness_exited());
     assert!(!snap.local_participation_complete());
@@ -524,15 +524,15 @@ fn vibe_check_in_phase1() {
 fn pinging_cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new(5);
-    let prev = ClusterView::new(ReadinessLifecycleState::Phase2Active, true, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Phase2Active, true, 99, 99, 4);
 
     // Act
     let result = pinging.cluster_view(&prev);
 
     // Assert
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        result.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(result.phase1_confirmed_count(), 0);
     assert_eq!(result.phase2_confirmed_count(), 0);

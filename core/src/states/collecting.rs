@@ -11,7 +11,7 @@ use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::node_state::NodeState;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;
@@ -47,7 +47,7 @@ impl State for Collecting {
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_lifecycle_state(ReadinessLifecycleState::Phase2Active)
+            .with_node_state(NodeState::Phase2Active)
             .with_local_participation_complete(true)
             .with_phase1_count(self.phase1_count)
             .with_phase2_count(self.phase2.count())

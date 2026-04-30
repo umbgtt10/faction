@@ -10,7 +10,7 @@ use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::node_state::NodeState;
 use crate::state::State;
 use crate::states::pinging::Pinging;
 
@@ -19,7 +19,7 @@ pub struct Initial;
 impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
+            .with_node_state(NodeState::Phase1Active)
             .with_phase1_count(0)
             .with_phase2_count(0)
     }

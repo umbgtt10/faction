@@ -16,7 +16,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::bootstrapped::Bootstrapped;
@@ -66,8 +66,8 @@ fn deal_rejects_participation_observed() {
 
     // Assert
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        cluster_view.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(
         cluster_view.exit_mode(),
@@ -138,8 +138,8 @@ fn vibe_check_returns_correct_snapshot() {
 
     // Assert
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        cluster_view.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(
         cluster_view.exit_mode(),
@@ -159,15 +159,15 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
         phase1_count: 2,
         phase2_count: 5,
     };
-    let prev = ClusterView::new(ReadinessLifecycleState::Phase1Active, false, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Phase1Active, false, 99, 99, 4);
 
     // Act
     let result = rq.cluster_view(&prev);
 
     // Assert
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        result.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());

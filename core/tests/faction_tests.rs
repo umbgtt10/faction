@@ -14,7 +14,7 @@ use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 
 #[test]
 fn get_snapshot_returns_snapshot_available_with_initial_state() {
@@ -36,8 +36,8 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
 
     // Assert
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        cluster_view.node_state(),
+        NodeState::Phase1Active
     );
     assert_eq!(cluster_view.exit_mode(), None);
     assert!(!cluster_view.local_participation_complete());

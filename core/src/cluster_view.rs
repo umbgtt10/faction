@@ -3,11 +3,11 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::node_state::NodeState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClusterView {
-    lifecycle_state: ReadinessLifecycleState,
+    node_state: NodeState,
     local_participation_complete: bool,
     phase1_confirmed_count: usize,
     phase2_confirmed_count: usize,
@@ -17,14 +17,14 @@ pub struct ClusterView {
 impl ClusterView {
     #[must_use]
     pub const fn new(
-        lifecycle_state: ReadinessLifecycleState,
+        node_state: NodeState,
         local_participation_complete: bool,
         phase1_confirmed_count: usize,
         phase2_confirmed_count: usize,
         quorum_threshold: usize,
     ) -> Self {
         Self {
-            lifecycle_state,
+            node_state,
             local_participation_complete,
             phase1_confirmed_count,
             phase2_confirmed_count,
@@ -33,15 +33,15 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn lifecycle_state(&self) -> ReadinessLifecycleState {
-        self.lifecycle_state
+    pub const fn node_state(&self) -> NodeState {
+        self.node_state
     }
 
     #[must_use]
     pub const fn exit_mode(&self) -> Option<ReadinessExitMode> {
-        match self.lifecycle_state {
-            ReadinessLifecycleState::Bootstrapped => Some(ReadinessExitMode::Bootstrapped),
-            ReadinessLifecycleState::TimedOut => Some(ReadinessExitMode::TimedOut),
+        match self.node_state {
+            NodeState::Bootstrapped => Some(ReadinessExitMode::Bootstrapped),
+            NodeState::TimedOut => Some(ReadinessExitMode::TimedOut),
             _ => None,
         }
     }
@@ -54,8 +54,8 @@ impl ClusterView {
     #[must_use]
     pub const fn readiness_exited(&self) -> bool {
         matches!(
-            self.lifecycle_state,
-            ReadinessLifecycleState::Bootstrapped | ReadinessLifecycleState::TimedOut
+            self.node_state,
+            NodeState::Bootstrapped | NodeState::TimedOut
         )
     }
 
@@ -75,8 +75,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub const fn with_lifecycle_state(mut self, state: ReadinessLifecycleState) -> Self {
-        self.lifecycle_state = state;
+    pub const fn with_node_state(mut self, state: NodeState) -> Self {
+        self.node_state = state;
         self
     }
 

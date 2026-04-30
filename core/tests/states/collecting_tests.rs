@@ -17,7 +17,7 @@ use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::collecting::Collecting;
@@ -341,8 +341,8 @@ fn ready_first_timely_no_quorum() {
     // Act & Assert
     assert_eq!(snap_before.phase2_confirmed_count(), 1);
     assert_eq!(
-        snap_before.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        snap_before.node_state(),
+        NodeState::Phase2Active
     );
 
     // Act
@@ -360,8 +360,8 @@ fn ready_first_timely_no_quorum() {
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.phase2_confirmed_count(), 2);
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        snap.node_state(),
+        NodeState::Phase2Active
     );
     assert!(!snap.readiness_exited());
 }
@@ -434,8 +434,8 @@ fn ready_first_timely_triggers_quorum() {
     );
     assert_eq!(snap.phase2_confirmed_count(), 4);
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        snap.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(snap.readiness_exited());
@@ -480,8 +480,8 @@ fn ready_first_delayed_triggers_quorum() {
     );
     assert_eq!(snap.phase2_confirmed_count(), 4);
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        snap.node_state(),
+        NodeState::Bootstrapped
     );
     assert!(snap.readiness_exited());
 }
@@ -520,8 +520,8 @@ fn deadline_expired_exits_in_phase2() {
 
     // Act & Assert
     assert_eq!(
-        snap_before.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        snap_before.node_state(),
+        NodeState::Phase2Active
     );
     assert!(!snap_before.readiness_exited());
     assert!(snap_before.local_participation_complete());
@@ -544,7 +544,7 @@ fn deadline_expired_exits_in_phase2() {
             mode: ReadinessExitMode::TimedOut,
         }]
     );
-    assert_eq!(snap.lifecycle_state(), ReadinessLifecycleState::TimedOut);
+    assert_eq!(snap.node_state(), NodeState::TimedOut);
     assert_eq!(snap.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(snap.readiness_exited());
     assert!(snap.local_participation_complete());
@@ -561,8 +561,8 @@ fn vibe_check_returns_correct_snapshot() {
 
     // Assert
     assert_eq!(
-        snap.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        snap.node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(snap.exit_mode(), None);
     assert!(snap.local_participation_complete());
@@ -582,15 +582,15 @@ fn collecting_cluster_view_inherits_correctly() {
         phase2,
         phase1_count: 2,
     };
-    let prev = ClusterView::new(ReadinessLifecycleState::Phase1Active, false, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Phase1Active, false, 99, 99, 4);
 
     // Act
     let result = collecting.cluster_view(&prev);
 
     // Assert
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        result.node_state(),
+        NodeState::Phase2Active
     );
     assert!(result.local_participation_complete());
     assert_eq!(result.phase1_confirmed_count(), 2);

@@ -16,7 +16,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::state::State;
 
 use faction::states::timed_out::TimedOut;
@@ -170,7 +170,7 @@ fn vibe_check_after_deadline_from_phase1() {
     };
 
     // Assert
-    assert_eq!(s.lifecycle_state(), ReadinessLifecycleState::TimedOut);
+    assert_eq!(s.node_state(), NodeState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(!s.local_participation_complete());
@@ -188,7 +188,7 @@ fn vibe_check_after_deadline_from_phase2() {
     };
 
     // Assert
-    assert_eq!(s.lifecycle_state(), ReadinessLifecycleState::TimedOut);
+    assert_eq!(s.node_state(), NodeState::TimedOut);
     assert_eq!(s.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(s.readiness_exited());
     assert!(s.local_participation_complete());
@@ -236,13 +236,13 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
         phase1_count: 3,
         phase2_count: 1,
     };
-    let prev = ClusterView::new(ReadinessLifecycleState::Phase1Active, false, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Phase1Active, false, 99, 99, 4);
 
     // Act
     let result = rbd.cluster_view(&prev);
 
     // Assert
-    assert_eq!(result.lifecycle_state(), ReadinessLifecycleState::TimedOut);
+    assert_eq!(result.node_state(), NodeState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(!result.local_participation_complete());
@@ -258,13 +258,13 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
         phase1_count: 2,
         phase2_count: 4,
     };
-    let prev = ClusterView::new(ReadinessLifecycleState::Phase2Active, true, 99, 99, 4);
+    let prev = ClusterView::new(NodeState::Phase2Active, true, 99, 99, 4);
 
     // Act
     let result = rbd.cluster_view(&prev);
 
     // Assert
-    assert_eq!(result.lifecycle_state(), ReadinessLifecycleState::TimedOut);
+    assert_eq!(result.node_state(), NodeState::TimedOut);
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::TimedOut));
     assert!(result.readiness_exited());
     assert!(result.local_participation_complete());

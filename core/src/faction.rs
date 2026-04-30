@@ -9,7 +9,7 @@ use crate::command::Command;
 use crate::config::Config;
 use crate::observer::Observer;
 use crate::process_result::ProcessResult;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::node_state::NodeState;
 use crate::state::State;
 use crate::states::initial::Initial;
 use crate::transition::Transition;
@@ -26,7 +26,7 @@ impl Faction {
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let state: Box<dyn State> = Box::new(Initial);
         let base = ClusterView::new(
-            ReadinessLifecycleState::Phase1Active,
+            NodeState::Phase1Active,
             false,
             0,
             0,

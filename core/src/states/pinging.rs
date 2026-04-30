@@ -11,7 +11,7 @@ use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::readiness_exit_mode::ReadinessExitMode;
-use crate::readiness_lifecycle_state::ReadinessLifecycleState;
+use crate::node_state::NodeState;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;
@@ -39,7 +39,7 @@ impl Pinging {
 impl State for Pinging {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
-            .with_lifecycle_state(ReadinessLifecycleState::Phase1Active)
+            .with_node_state(NodeState::Phase1Active)
             .with_phase1_count(self.phase1.count())
             .with_phase2_count(self.phase2.count())
     }

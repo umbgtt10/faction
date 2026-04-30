@@ -19,7 +19,7 @@ pub mod outcome;
 pub mod process_result;
 pub mod quorum_policy;
 pub mod readiness_exit_mode;
-pub mod readiness_lifecycle_state;
+pub mod node_state;
 pub mod state;
 pub mod states;
 pub mod transition;

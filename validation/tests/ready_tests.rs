@@ -8,7 +8,7 @@ use alloc::vec;
 
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
@@ -26,8 +26,8 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     assert_eq!(outputs, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.phase2_confirmed_count(), 2);
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        cluster_view.node_state(),
+        NodeState::Phase2Active
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -64,8 +64,8 @@ fn apply_ready_rejects_stale_member_observation() {
     assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
     assert_eq!(cluster_view.phase2_confirmed_count(), 1);
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        cluster_view.node_state(),
+        NodeState::Phase2Active
     );
     assert!(!cluster_view.readiness_exited());
 }
@@ -99,8 +99,8 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
         Some(ReadinessExitMode::Bootstrapped)
     );
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        cluster_view.node_state(),
+        NodeState::Bootstrapped
     );
     assert!(cluster_view.readiness_exited());
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
@@ -217,12 +217,12 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     assert!(snapshot_0.readiness_exited());
     assert!(snapshot_1.readiness_exited());
     assert_eq!(
-        snapshot_0.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        snapshot_0.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(
-        snapshot_1.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        snapshot_1.node_state(),
+        NodeState::Bootstrapped
     );
 }
 
@@ -245,8 +245,8 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     assert_eq!(outputs_peer_3, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
     assert_eq!(intermediate_snapshot.phase2_confirmed_count(), 3);
     assert_eq!(
-        intermediate_snapshot.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        intermediate_snapshot.node_state(),
+        NodeState::Phase1Active
     );
     assert!(!intermediate_snapshot.local_participation_complete());
     assert!(!intermediate_snapshot.readiness_exited());

@@ -6,7 +6,7 @@ extern crate alloc;
 
 use alloc::vec;
 use faction::outcome::Outcome;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction_validation::scenario_harness::ScenarioHarness;
 
 #[test]
@@ -28,8 +28,8 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
     );
     assert!(cluster_view.local_participation_complete());
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Phase2Active
+        cluster_view.node_state(),
+        NodeState::Phase2Active
     );
     assert_eq!(cluster_view.phase2_confirmed_count(), 1);
     assert!(!cluster_view.readiness_exited());
@@ -49,8 +49,8 @@ fn apply_participation_accepts_timely_member_observation() {
     assert_eq!(outputs, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.phase1_confirmed_count(), 1);
     assert_eq!(
-        cluster_view.lifecycle_state(),
-        ReadinessLifecycleState::Phase1Active
+        cluster_view.node_state(),
+        NodeState::Phase1Active
     );
     assert!(!cluster_view.readiness_exited());
 }

@@ -9,12 +9,12 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::readiness_lifecycle_state::ReadinessLifecycleState;
+use faction::node_state::NodeState;
 use faction::transition::Transition;
 
 fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
     ClusterView::new(
-        ReadinessLifecycleState::Phase1Active,
+        NodeState::Phase1Active,
         false,
         phase1,
         phase2,
@@ -23,7 +23,7 @@ fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
 }
 
 fn snapshot_exited() -> ClusterView {
-    ClusterView::new(ReadinessLifecycleState::Bootstrapped, true, 3, 5, 4)
+    ClusterView::new(NodeState::Bootstrapped, true, 3, 5, 4)
 }
 
 #[test]
@@ -98,8 +98,8 @@ fn previous_state_preserves_full_snapshot() {
     // Assert
     let result = transition.previous_state();
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        result.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
@@ -120,8 +120,8 @@ fn new_state_preserves_full_snapshot() {
     // Assert
     let result = transition.new_state();
     assert_eq!(
-        result.lifecycle_state(),
-        ReadinessLifecycleState::Bootstrapped
+        result.node_state(),
+        NodeState::Bootstrapped
     );
     assert_eq!(result.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
     assert!(result.local_participation_complete());
