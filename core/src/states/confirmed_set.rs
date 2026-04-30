@@ -2,35 +2,34 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::freshness_classification::FreshnessClassification;
 use crate::PeerId;
 
-#[derive(Debug, Clone)]
+use super::bitmap::Bitmap;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfirmedSet {
-    flags: Vec<bool>,
-    count: usize,
+    bits: Bitmap,
 }
 
 impl ConfirmedSet {
     #[must_use]
     pub fn new(size: usize) -> Self {
         Self {
-            flags: vec![false; size],
-            count: 0,
+            bits: Bitmap::new(size),
         }
     }
 
     #[must_use]
     pub fn count(&self) -> usize {
-        self.count
+        self.bits.count()
     }
 
     #[must_use]
     pub fn is_confirmed(&self, index: usize) -> bool {
-        self.flags.get(index).copied().unwrap_or(false)
+        self.bits.is_set(index)
     }
 
     #[must_use]
@@ -42,17 +41,10 @@ impl ConfirmedSet {
     ) -> (Self, bool) {
         match (index, is_dup, classification) {
             (Some(i), false, Some(c))
-                if c != FreshnessClassification::Stale && i < self.flags.len() =>
+                if c != FreshnessClassification::Stale && i < self.bits.len() =>
             {
-                let mut new_flags = self.flags.clone();
-                new_flags[i] = true;
-                (
-                    Self {
-                        flags: new_flags,
-                        count: self.count + 1,
-                    },
-                    true,
-                )
+                let (bits, confirmed) = self.bits.set(i);
+                (Self { bits }, confirmed)
             }
             _ => (self.clone(), false),
         }
@@ -60,29 +52,12 @@ impl ConfirmedSet {
 
     #[must_use]
     pub fn confirm(&self, index: usize) -> (Self, bool) {
-        match self.flags.get(index) {
-            None | Some(true) => (self.clone(), false),
-            Some(false) => {
-                let mut new_flags = self.flags.clone();
-                new_flags[index] = true;
-                (
-                    Self {
-                        flags: new_flags,
-                        count: self.count + 1,
-                    },
-                    true,
-                )
-            }
-        }
+        let (bits, confirmed) = self.bits.set(index);
+        (Self { bits }, confirmed)
     }
 
     #[must_use]
     pub fn confirmed_peers(&self, peer_set: &[PeerId]) -> Vec<PeerId> {
-        self.flags
-            .iter()
-            .enumerate()
-            .filter(|(_, &confirmed)| confirmed)
-            .map(|(i, _)| peer_set[i])
-            .collect()
+        self.bits.peer_ids(peer_set)
     }
 }
