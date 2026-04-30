@@ -10,6 +10,7 @@ use alloc::vec::Vec;
 
 use faction::process_result::ProcessResult;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -18,7 +19,6 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
-use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 pub struct ClusterSimulation {
@@ -162,7 +162,9 @@ impl ClusterSimulation {
         self.nodes
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
-                ProcessResult::Probed { cluster_view, .. } => cluster_view.exit_mode() == Some(mode),
+                ProcessResult::Probed { cluster_view, .. } => {
+                    cluster_view.exit_mode() == Some(mode)
+                }
                 _ => unreachable!(),
             })
     }

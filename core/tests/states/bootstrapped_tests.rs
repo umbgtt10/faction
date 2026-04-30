@@ -7,6 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -16,7 +17,6 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::cluster_view::ClusterView;
 use faction::state::State;
 
 use faction::states::bootstrapped::Bootstrapped;
@@ -69,7 +69,10 @@ fn deal_rejects_participation_observed() {
         cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(cluster_view.readiness_exited());
 }
 
@@ -138,7 +141,10 @@ fn vibe_check_returns_correct_snapshot() {
         cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(cluster_view.local_participation_complete());
     assert!(cluster_view.readiness_exited());
     assert_eq!(cluster_view.phase1_confirmed_count(), 1);
@@ -153,12 +159,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
         phase1_count: 2,
         phase2_count: 5,
     };
-    let prev = ClusterView::new(
-        ReadinessLifecycleState::Phase1Active,
-        false, 99,
-        99,
-        4,
-    );
+    let prev = ClusterView::new(ReadinessLifecycleState::Phase1Active, false, 99, 99, 4);
 
     // Act
     let result = rq.cluster_view(&prev);

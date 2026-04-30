@@ -121,7 +121,10 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
     );
     let cluster_view = harness.cluster_view(0);
     assert!(cluster_view.readiness_exited());
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
 }
 
 #[test]

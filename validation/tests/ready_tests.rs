@@ -94,7 +94,10 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
             },
         ]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert_eq!(
         cluster_view.lifecycle_state(),
         ReadinessLifecycleState::Bootstrapped
@@ -127,7 +130,10 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
             },
         ]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
@@ -148,7 +154,10 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
@@ -197,8 +206,14 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
     );
     let snapshot_0 = harness.cluster_view(0);
     let snapshot_1 = harness.cluster_view(1);
-    assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
-    assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        snapshot_0.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
+    assert_eq!(
+        snapshot_1.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(snapshot_0.readiness_exited());
     assert!(snapshot_1.readiness_exited());
     assert_eq!(
@@ -247,7 +262,10 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
         ]
     );
     let cluster_view = harness.cluster_view(0);
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(cluster_view.readiness_exited());
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
 }

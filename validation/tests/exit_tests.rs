@@ -35,7 +35,10 @@ fn slow_member_does_not_block_quorum_exit() {
             },
         ]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
@@ -81,7 +84,10 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }
@@ -170,11 +176,20 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     let snapshot_0 = harness.cluster_view(0);
     let snapshot_1 = harness.cluster_view(1);
     let snapshot_2 = harness.cluster_view(2);
-    assert_eq!(snapshot_0.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        snapshot_0.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(snapshot_0.readiness_exited());
-    assert_eq!(snapshot_1.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        snapshot_1.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(snapshot_1.readiness_exited());
-    assert_eq!(snapshot_2.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        snapshot_2.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert!(snapshot_2.readiness_exited());
 }
 
@@ -223,7 +238,10 @@ fn deadline_from_bootstrapped_is_noop() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ReadinessExitMode::Bootstrapped));
+    assert_eq!(
+        cluster_view.exit_mode(),
+        Some(ReadinessExitMode::Bootstrapped)
+    );
     assert_eq!(cluster_view.phase2_confirmed_count(), 4);
     assert!(cluster_view.readiness_exited());
 }

@@ -6,8 +6,8 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use crate::outcome::Outcome;
 use crate::cluster_view::ClusterView;
+use crate::outcome::Outcome;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transition {

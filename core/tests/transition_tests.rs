@@ -6,28 +6,24 @@ extern crate alloc;
 
 use alloc::vec;
 
+use faction::cluster_view::ClusterView;
 use faction::outcome::Outcome;
 use faction::readiness_exit_mode::ReadinessExitMode;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
-use faction::cluster_view::ClusterView;
 use faction::transition::Transition;
 
 fn cluster_view(phase1: usize, phase2: usize) -> ClusterView {
     ClusterView::new(
         ReadinessLifecycleState::Phase1Active,
-        false, phase1,
+        false,
+        phase1,
         phase2,
         4,
     )
 }
 
 fn snapshot_exited() -> ClusterView {
-    ClusterView::new(
-        ReadinessLifecycleState::Bootstrapped,
-        true, 3,
-        5,
-        4,
-    )
+    ClusterView::new(ReadinessLifecycleState::Bootstrapped, true, 3, 5, 4)
 }
 
 #[test]

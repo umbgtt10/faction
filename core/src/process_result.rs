@@ -6,9 +6,9 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
+use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::outcome::Outcome;
-use crate::cluster_view::ClusterView;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessResult {

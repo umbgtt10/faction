@@ -5,6 +5,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -12,7 +13,6 @@ use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
-use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 pub struct ScenarioNode {

@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::cluster_view::ClusterView;
+use crate::readiness_exit_mode::ReadinessExitMode;
 use crate::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

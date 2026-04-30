@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+pub mod bootstrapped_invalid_tests;
 pub mod collecting_invalid_tests;
 pub mod helpers;
 pub mod initial_invalid_tests;
 pub mod pinging_invalid_tests;
-pub mod timed_out_invalid_tests;
-pub mod bootstrapped_invalid_tests;
 pub mod state_transition_matrix_tests;
+pub mod timed_out_invalid_tests;

@@ -4,12 +4,12 @@
 
 use alloc::boxed::Box;
 
+use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::observer::Observer;
 use crate::process_result::ProcessResult;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
-use crate::cluster_view::ClusterView;
 use crate::state::State;
 use crate::states::initial::Initial;
 use crate::transition::Transition;
@@ -27,7 +27,8 @@ impl Faction {
         let state: Box<dyn State> = Box::new(Initial);
         let base = ClusterView::new(
             ReadinessLifecycleState::Phase1Active,
-            false, 0,
+            false,
+            0,
             0,
             config.quorum_threshold(),
         );

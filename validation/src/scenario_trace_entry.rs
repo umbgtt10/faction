@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::outcome::Outcome;
-use faction::cluster_view::ClusterView;
 use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
