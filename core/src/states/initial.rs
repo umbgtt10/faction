@@ -27,8 +27,9 @@ impl StateSnapshot for Initial {
 }
 
 impl State for Initial {
-    fn step(self: Box<Self>, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        Box::new(Pinging::new(config.peer_count())).step(input, config)
+    fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+        let pinging = Pinging::new(config.peer_count());
+        pinging.step(input, config)
     }
 
     fn accept(&self, input: &Command) -> bool {

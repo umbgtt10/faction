@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::freshness_classification::FreshnessClassification;
@@ -16,7 +17,7 @@ impl ConfirmedSet {
     #[must_use]
     pub fn new(size: usize) -> Self {
         Self {
-            flags: alloc::vec![false; size],
+            flags: vec![false; size],
             count: 0,
         }
     }

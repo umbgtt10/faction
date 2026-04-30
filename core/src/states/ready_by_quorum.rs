@@ -33,7 +33,7 @@ impl StateSnapshot for ReadyByQuorum {
 }
 
 impl State for ReadyByQuorum {
-    fn step(self: Box<Self>, _input: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+    fn step(&self, _input: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
         unreachable!("accept() rejects all inputs for this state")
     }
 

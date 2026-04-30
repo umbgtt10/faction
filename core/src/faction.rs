@@ -18,7 +18,7 @@ use crate::transition::Transition;
 pub struct Faction {
     config: Config,
     observer: Box<dyn Observer>,
-    state: Option<Box<dyn State>>,
+    state: Box<dyn State>,
     cached_snapshot: Cell<Option<Snapshot>>,
 }
 
@@ -28,7 +28,7 @@ impl Faction {
         Self {
             config,
             observer,
-            state: Some(Box::new(Initial)),
+            state: Box::new(Initial),
             cached_snapshot: Cell::new(None),
         }
     }
@@ -38,28 +38,23 @@ impl Faction {
         if let Command::Probe = command {
             return ProcessResult::Probed {
                 snapshot: self.snapshot(),
-                admissible: self.state.as_ref().unwrap().admissible_commands(),
+                admissible: self.state.admissible_commands(),
             };
         }
 
-        if !self.state.as_ref().unwrap().accept(&command) {
+        if !self.state.accept(&command) {
             return ProcessResult::Rejected {
                 snapshot: self.snapshot(),
-                admissible: self.state.as_ref().unwrap().admissible_commands(),
+                admissible: self.state.admissible_commands(),
             };
         }
 
         let previous_snapshot = self.snapshot();
 
-        let old_state = self.state.take().unwrap();
-        let (outputs, new_state) = old_state.step(command, &self.config);
-        self.state = Some(new_state);
+        let (outputs, new_state) = self.state.step(command, &self.config);
+        self.state = new_state;
 
-        let new_snapshot = self
-            .state
-            .as_ref()
-            .unwrap()
-            .state_snapshot(&previous_snapshot);
+        let new_snapshot = self.state.state_snapshot(&previous_snapshot);
         self.cached_snapshot.set(Some(new_snapshot));
 
         let transition = Transition::new(previous_snapshot, outputs.clone(), new_snapshot);
@@ -89,7 +84,7 @@ impl Faction {
                     0,
                     self.config.quorum_threshold(),
                 );
-                let snap = self.state.as_ref().unwrap().state_snapshot(&base);
+                let snap = self.state.state_snapshot(&base);
                 self.cached_snapshot.set(Some(snap));
                 snap
             }

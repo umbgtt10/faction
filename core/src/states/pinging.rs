@@ -47,8 +47,9 @@ impl StateSnapshot for Pinging {
 }
 
 impl State for Pinging {
-    fn step(self: Box<Self>, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let Self { phase1, phase2 } = *self;
+    fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+        let phase1 = self.phase1.clone();
+        let phase2 = self.phase2.clone();
 
         match input {
             Command::ParticipationObserved {

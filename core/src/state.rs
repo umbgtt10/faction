@@ -12,7 +12,7 @@ use crate::outcome::Outcome;
 use crate::state_snapshot::StateSnapshot;
 
 pub trait State: StateSnapshot {
-    fn step(self: Box<Self>, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>);
+    fn step(&self, input: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>);
 
     fn accept(&self, _input: &Command) -> bool {
         true
