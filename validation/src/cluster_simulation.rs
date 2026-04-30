@@ -62,6 +62,7 @@ impl ClusterSimulation {
     fn apply_to(&mut self, index: usize, input: Command) -> Vec<Outcome> {
         match self.nodes[index].apply(input) {
             ApplyStatus::Accepted { outcomes, .. } => outcomes,
+            ApplyStatus::Snapshot { .. } => unreachable!(),
             ApplyStatus::Rejected { .. } => Vec::new(),
         }
     }

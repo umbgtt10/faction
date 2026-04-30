@@ -3,14 +3,12 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use alloc::boxed::Box;
-use alloc::vec;
 use core::cell::Cell;
 
 use crate::apply_status::ApplyStatus;
 use crate::command::Command;
 use crate::config::Config;
 use crate::observer::Observer;
-use crate::outcome::Outcome;
 use crate::readiness_lifecycle_state::ReadinessLifecycleState;
 use crate::snapshot::Snapshot;
 use crate::state::State;
@@ -38,10 +36,8 @@ impl Faction {
     #[must_use]
     pub fn apply(&mut self, command: Command) -> ApplyStatus {
         if let Command::GetSnapshot = command {
-            let snapshot = self.snapshot();
-            return ApplyStatus::Accepted {
-                outcomes: vec![Outcome::SnapshotAvailable(snapshot)],
-                snapshot,
+            return ApplyStatus::Snapshot {
+                snapshot: self.snapshot(),
             };
         }
 

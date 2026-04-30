@@ -65,6 +65,7 @@ fn apply_observes_local_participation_completion_transition() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -114,6 +115,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -154,6 +156,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -205,6 +208,7 @@ fn apply_observes_quorum_exit_transition() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -257,6 +261,7 @@ fn apply_observes_deadline_exit_transition() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -300,10 +305,12 @@ fn accepted_delayed_input_is_observable_as_delayed() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let outcomes_1 = match coordinator.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let outcomes_2 = match coordinator.apply(Command::ReadyObserved {
@@ -312,6 +319,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -356,10 +364,12 @@ fn state_transition_outputs_are_fully_observable() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let outcomes_1 = match coordinator.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let outcomes_2 = match coordinator.apply(Command::ReadyObserved {
@@ -368,6 +378,7 @@ fn state_transition_outputs_are_fully_observable() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let outcomes_3 = match coordinator.apply(Command::ReadyObserved {
@@ -376,6 +387,7 @@ fn state_transition_outputs_are_fully_observable() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let outcomes_4 = match coordinator.apply(Command::ReadyObserved {
@@ -384,6 +396,7 @@ fn state_transition_outputs_are_fully_observable() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -450,6 +463,7 @@ fn apply_observes_stale_participation_from_initial() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -481,6 +495,7 @@ fn apply_observes_non_member_participation_from_initial() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -512,6 +527,7 @@ fn apply_observes_stale_ready_from_initial() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -543,6 +559,7 @@ fn apply_observes_non_member_ready_from_initial() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -579,6 +596,7 @@ fn apply_observes_duplicate_ready_from_pinging() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -624,6 +642,7 @@ fn apply_observes_quorum_exit_from_pinging() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -676,6 +695,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -733,6 +753,7 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -784,6 +805,7 @@ fn apply_observes_duplicate_ready_from_collecting() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -835,6 +857,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     // Act
     let outcomes = match coordinator.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 

@@ -72,6 +72,7 @@ fn deal_accepts_ready_observed() {
     let mut v = machine_in_phase2();
     let outcomes = match v.apply(ready(1, TIMELY)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -85,6 +86,7 @@ fn deal_accepts_deadline_expired() {
     let mut v = machine_in_phase2();
     let outcomes = match v.apply(Command::DeadlineExpired) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
@@ -193,6 +195,7 @@ fn ready_non_member_rejected() {
     // Act
     let outcomes = match v.apply(ready(99, TIMELY)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -210,6 +213,7 @@ fn ready_stale_rejected() {
     // Act
     let outcomes = match v.apply(ready(1, STALE)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -228,6 +232,7 @@ fn ready_duplicate_rejected() {
     // Act
     let outcomes = match v.apply(ready(1, TIMELY)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -253,6 +258,7 @@ fn ready_first_timely_no_quorum() {
     // Act
     let outcomes = match v.apply(ready(1, TIMELY)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
@@ -277,6 +283,7 @@ fn ready_first_delayed_no_quorum() {
     // Act
     let outcomes = match v.apply(ready(1, DELAYED)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
@@ -300,6 +307,7 @@ fn ready_first_timely_triggers_quorum() {
     // Act
     let outcomes = match v.apply(ready(3, TIMELY)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
@@ -337,6 +345,7 @@ fn ready_first_delayed_triggers_quorum() {
     // Act
     let outcomes = match v.apply(ready(3, DELAYED)) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();
@@ -389,6 +398,7 @@ fn deadline_expired_exits_in_phase2() {
     // Act
     let outcomes = match v.apply(Command::DeadlineExpired) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     let snap = v.snapshot();

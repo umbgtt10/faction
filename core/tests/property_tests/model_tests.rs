@@ -340,6 +340,7 @@ proptest! {
         for input in inputs {
             let actual_outputs = match coordinator.apply(input) {
                 ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Snapshot { .. } => unreachable!(),
                 ApplyStatus::Rejected { .. } => vec![],
             };
             let actual_snapshot = coordinator.snapshot();

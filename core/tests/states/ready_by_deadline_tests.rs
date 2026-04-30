@@ -69,6 +69,7 @@ fn deal_rejects_participation_observed() {
     }) {
         ApplyStatus::Rejected { .. } => {}
         ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+        ApplyStatus::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -87,6 +88,7 @@ fn deal_rejects_ready_observed() {
     }) {
         ApplyStatus::Rejected { .. } => {}
         ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+        ApplyStatus::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -101,6 +103,7 @@ fn deal_rejects_local_participation_completed() {
     match f.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Rejected { .. } => {}
         ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+        ApplyStatus::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }
@@ -115,6 +118,7 @@ fn deal_rejects_deadline_expired() {
     match f.apply(Command::DeadlineExpired) {
         ApplyStatus::Rejected { .. } => {}
         ApplyStatus::Accepted { .. } => panic!("expected rejected"),
+        ApplyStatus::Snapshot { .. } => unreachable!(),
     };
     assert_eq!(f.snapshot(), snap_before);
 }

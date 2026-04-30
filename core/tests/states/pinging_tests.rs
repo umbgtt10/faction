@@ -66,6 +66,7 @@ fn deal_accepts_participation_observed() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -88,6 +89,7 @@ fn deal_accepts_ready_observed() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -103,6 +105,7 @@ fn deal_accepts_local_participation_completed() {
     // Act
     let outcomes = match faction.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -120,6 +123,7 @@ fn deal_accepts_deadline_expired() {
     // Act
     let outcomes = match faction.apply(Command::DeadlineExpired) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -145,6 +149,7 @@ fn participation_observed_non_member() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -166,6 +171,7 @@ fn participation_observed_stale() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -192,6 +198,7 @@ fn participation_observed_duplicate() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     assert_eq!(
@@ -214,6 +221,7 @@ fn participation_observed_first_timely() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -238,6 +246,7 @@ fn participation_observed_first_delayed() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -262,6 +271,7 @@ fn ready_observed_non_member() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -283,6 +293,7 @@ fn ready_observed_stale() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -309,6 +320,7 @@ fn ready_observed_duplicate() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -333,6 +345,7 @@ fn ready_observed_first_timely() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -354,6 +367,7 @@ fn ready_observed_first_delayed() {
         current_marker: MARKER,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -368,6 +382,7 @@ fn local_completion_no_quorum() {
     let mut faction = machine_in_phase1();
     let outcomes = match faction.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -424,6 +439,7 @@ fn local_completion_triggers_quorum() {
     // Act
     let outcomes = match faction.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
 
@@ -452,6 +468,7 @@ fn deadline_expired_in_phase1() {
     // Act & Assert
     let outcomes = match faction.apply(Command::DeadlineExpired) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => panic!("expected accepted"),
     };
     assert_eq!(

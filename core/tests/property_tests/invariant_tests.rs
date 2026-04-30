@@ -262,6 +262,7 @@ proptest! {
             let previous = coordinator.snapshot();
             let batch = match coordinator.apply(input) {
                 ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Snapshot { .. } => unreachable!(),
                 ApplyStatus::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
@@ -282,6 +283,7 @@ proptest! {
             let previous = coordinator.snapshot();
             let batch = match coordinator.apply(input) {
                 ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Snapshot { .. } => unreachable!(),
                 ApplyStatus::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();
@@ -327,6 +329,7 @@ proptest! {
             let previous = coordinator.snapshot();
             let batch = match coordinator.apply(input) {
                 ApplyStatus::Accepted { outcomes, .. } => outcomes,
+                ApplyStatus::Snapshot { .. } => unreachable!(),
                 ApplyStatus::Rejected { .. } => vec![],
             };
             let current = coordinator.snapshot();

@@ -82,6 +82,7 @@ fn all_inputs_leave_state_unchanged() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => vec![],
     };
     let r2 = match faction.apply(Command::ReadyObserved {
@@ -90,14 +91,17 @@ fn all_inputs_leave_state_unchanged() {
         current_marker: 10,
     }) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => vec![],
     };
     let r3 = match faction.apply(Command::LocalParticipationCompleted) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => vec![],
     };
     let r4 = match faction.apply(Command::DeadlineExpired) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => vec![],
     };
     let snapshot_after = faction.snapshot();

@@ -20,4 +20,7 @@ pub enum ApplyStatus {
         snapshot: Snapshot,
         admissible: Vec<Command>,
     },
+    Snapshot {
+        snapshot: Snapshot,
+    },
 }

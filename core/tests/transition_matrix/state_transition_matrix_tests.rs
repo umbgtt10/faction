@@ -280,6 +280,7 @@ fn valid_transition(
     // Act
     let outcomes = match m.apply(input) {
         ApplyStatus::Accepted { outcomes, .. } => outcomes,
+        ApplyStatus::Snapshot { .. } => unreachable!(),
         ApplyStatus::Rejected { .. } => vec![],
     };
 

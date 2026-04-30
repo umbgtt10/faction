@@ -13,7 +13,6 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
-use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::readiness_lifecycle_state::ReadinessLifecycleState;
 
@@ -30,17 +29,12 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
     let mut faction = Faction::new(config, observer);
 
     // Act
-    let outcomes = match faction.apply(Command::GetSnapshot) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let snapshot = match faction.apply(Command::GetSnapshot) {
+        ApplyStatus::Snapshot { snapshot } => snapshot,
+        _ => panic!("expected Snapshot"),
     };
 
     // Assert
-    assert_eq!(outcomes.len(), 1);
-    let snapshot = match &outcomes[0] {
-        Outcome::SnapshotAvailable(snap) => *snap,
-        other => panic!("expected SnapshotAvailable, got {other:?}"),
-    };
     assert_eq!(
         snapshot.lifecycle_state(),
         ReadinessLifecycleState::Phase1Active
@@ -91,16 +85,11 @@ fn get_snapshot_works_after_valid_inputs() {
     });
 
     // Act
-    let outcomes = match faction.apply(Command::GetSnapshot) {
-        ApplyStatus::Accepted { outcomes, .. } => outcomes,
-        ApplyStatus::Rejected { .. } => panic!("expected accepted"),
+    let snapshot = match faction.apply(Command::GetSnapshot) {
+        ApplyStatus::Snapshot { snapshot } => snapshot,
+        _ => panic!("expected Snapshot"),
     };
 
     // Assert
-    assert_eq!(outcomes.len(), 1);
-    let snapshot = match &outcomes[0] {
-        Outcome::SnapshotAvailable(snap) => *snap,
-        other => panic!("expected SnapshotAvailable, got {other:?}"),
-    };
     assert_eq!(snapshot.phase1_confirmed_count(), 1);
 }
