@@ -71,7 +71,7 @@ impl FactionNode {
             }
         } else {
             match self.transport.recv() {
-                Some((_, transport_msg)) => InputMessage::Transport(transport_msg),
+                Some(transport_msg) => InputMessage::Transport(transport_msg),
                 None => {
                     self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
                     self.observer.on_idle();

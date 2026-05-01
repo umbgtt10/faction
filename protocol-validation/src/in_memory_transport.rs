@@ -11,13 +11,12 @@ use faction::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 
-type Message = (PeerId, TransportMessage);
+type Message = TransportMessage;
 type Inbox = Arc<Mutex<VecDeque<Message>>>;
 
 pub struct InMemoryTransport {
     inbox: Inbox,
     outboxes: Vec<(PeerId, Inbox)>,
-    local_peer_id: PeerId,
 }
 
 impl InMemoryTransport {
@@ -41,14 +40,13 @@ impl InMemoryTransport {
                 InMemoryTransport {
                     inbox: inboxes[i].clone(),
                     outboxes,
-                    local_peer_id: local_id,
                 }
             })
             .collect()
     }
 
-    pub fn push_inbox(&mut self, from: PeerId, message: TransportMessage) {
-        self.inbox.lock().push_back((from, message));
+    pub fn push_inbox(&mut self, message: TransportMessage) {
+        self.inbox.lock().push_back(message);
     }
 }
 
@@ -58,12 +56,12 @@ impl Transport for InMemoryTransport {
             if *peer_id == to {
                 inbox
                     .lock()
-                    .push_back((self.local_peer_id, message.clone()));
+                    .push_back(message.clone());
             }
         }
     }
 
-    fn recv(&mut self) -> Option<(PeerId, TransportMessage)> {
+    fn recv(&mut self) -> Option<TransportMessage> {
         self.inbox.lock().pop_front()
     }
 }

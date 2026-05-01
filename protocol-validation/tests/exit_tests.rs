@@ -81,7 +81,7 @@ fn duplicate_ready_after_bootstrapped_produces_noop() {
     while cluster.step_transport_node(0) {}
     while cluster.step_transport_node(1) {}
 
-    cluster.inject_transport(0, 1, TransportMessage::Ready { from: 1 });
+    cluster.inject_transport(0, TransportMessage::Ready { from: 1 });
     cluster.step_transport_node(0);
 
     assert!(!cluster.step_transport_node(1));

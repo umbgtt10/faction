@@ -9,5 +9,5 @@ use crate::transport_message::TransportMessage;
 pub trait Transport: Send {
     fn send(&mut self, to: PeerId, message: TransportMessage);
 
-    fn recv(&mut self) -> Option<(PeerId, TransportMessage)>;
+    fn recv(&mut self) -> Option<TransportMessage>;
 }

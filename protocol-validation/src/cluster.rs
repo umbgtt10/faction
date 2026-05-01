@@ -100,7 +100,12 @@ impl Cluster {
     }
 
     pub fn step_transport_node(&mut self, index: usize) -> bool {
-        if let Some((from, msg)) = self.transports[index].recv() {
+        if let Some(msg) = self.transports[index].recv() {
+            let from = match &msg {
+                TransportMessage::Ping { from }
+                | TransportMessage::Ready { from }
+                | TransportMessage::Bootstrapped { from } => *from,
+            };
             for decision in self.protocols[index].decide(InputMessage::Transport(msg)) {
                 self.route(decision, from);
             }
@@ -126,8 +131,8 @@ impl Cluster {
         self.timers[index].schedule(TimerEvent::Fire(message));
     }
 
-    pub fn inject_transport(&mut self, index: usize, from: PeerId, message: TransportMessage) {
-        self.transports[index].push_inbox(from, message);
+    pub fn inject_transport(&mut self, index: usize, message: TransportMessage) {
+        self.transports[index].push_inbox(message);
     }
 
     fn route(&mut self, msg: OutputMessage, from: PeerId) {

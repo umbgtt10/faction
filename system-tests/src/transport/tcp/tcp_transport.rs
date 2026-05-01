@@ -12,7 +12,7 @@ pub struct TcpTransport;
 impl Transport for TcpTransport {
     fn send(&mut self, _to: PeerId, _message: TransportMessage) {}
 
-    fn recv(&mut self) -> Option<(PeerId, TransportMessage)> {
+    fn recv(&mut self) -> Option<TransportMessage> {
         None
     }
 }
