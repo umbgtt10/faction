@@ -136,7 +136,11 @@ impl ClusterBuilder {
                     timer,
                     node_observer,
                 );
-                Node::task(Arc::new(Mutex::new(faction_node)))
+                match self.spawn {
+                    Spawn::Task => Node::task(Arc::new(Mutex::new(faction_node))),
+                    Spawn::Thread => Node::spawn_thread(Arc::new(Mutex::new(faction_node))),
+                    _ => unimplemented!(),
+                }
             })
             .collect();
 

@@ -59,6 +59,17 @@ impl FactionNode {
         self.protocol.cluster_view().peer_state()
     }
 
+    pub fn is_terminal(&mut self) -> bool {
+        matches!(self.peer_state(), PeerState::Bootstrapped | PeerState::TimedOut)
+    }
+
+    pub fn run(&mut self) {
+        self.start();
+        while !self.is_terminal() {
+            self.step();
+        }
+    }
+
     pub fn step(&mut self) {
         let message = if self.toggle_timer_and_transport {
             match self.timer.poll() {

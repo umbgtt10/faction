@@ -29,7 +29,11 @@ impl Node {
     }
 
     #[must_use]
-    pub fn thread(node: Arc<Mutex<FactionNode>>, handle: std::thread::JoinHandle<()>) -> Self {
+    pub fn spawn_thread(node: Arc<Mutex<FactionNode>>) -> Self {
+        let node_clone = node.clone();
+        let handle = std::thread::spawn(move || {
+            node_clone.lock().unwrap().run();
+        });
         Self::Thread {
             node,
             _handle: handle,
@@ -42,13 +46,13 @@ impl Node {
     }
 
     pub fn start(&self) {
-        if let Self::Task { node } | Self::Thread { node, .. } = self {
+        if let Self::Task { node } = self {
             node.lock().unwrap().start();
         }
     }
 
     pub fn step(&self) {
-        if let Self::Task { node } | Self::Thread { node, .. } = self {
+        if let Self::Task { node } = self {
             node.lock().unwrap().step();
         }
     }
