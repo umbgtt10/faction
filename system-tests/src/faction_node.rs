@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::PeerId;
+use faction::peer_state::PeerState;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
@@ -46,6 +47,11 @@ impl FactionNode {
         for decision in decisions {
             self.dispatch(decision);
         }
+    }
+
+    #[must_use]
+    pub fn peer_state(&mut self) -> PeerState {
+        self.protocol.cluster_view().peer_state()
     }
 
     pub fn step(&mut self) {

@@ -6,14 +6,15 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use faction::peer_state::PeerState;
-use faction_protocol::protocol::Protocol;
+
+use crate::faction_node::FactionNode;
 
 pub enum Node {
     Task {
-        protocol: Arc<Mutex<Protocol>>,
+        node: Arc<Mutex<FactionNode>>,
     },
     Thread {
-        protocol: Arc<Mutex<Protocol>>,
+        node: Arc<Mutex<FactionNode>>,
         _handle: std::thread::JoinHandle<()>,
     },
     Process {
@@ -23,14 +24,14 @@ pub enum Node {
 
 impl Node {
     #[must_use]
-    pub fn task(protocol: Arc<Mutex<Protocol>>) -> Self {
-        Self::Task { protocol }
+    pub fn task(node: Arc<Mutex<FactionNode>>) -> Self {
+        Self::Task { node }
     }
 
     #[must_use]
-    pub fn thread(protocol: Arc<Mutex<Protocol>>, handle: std::thread::JoinHandle<()>) -> Self {
+    pub fn thread(node: Arc<Mutex<FactionNode>>, handle: std::thread::JoinHandle<()>) -> Self {
         Self::Thread {
-            protocol,
+            node,
             _handle: handle,
         }
     }
@@ -42,9 +43,7 @@ impl Node {
 
     pub fn peer_state(&self) -> PeerState {
         match self {
-            Self::Task { protocol } | Self::Thread { protocol, .. } => {
-                protocol.lock().unwrap().cluster_view().peer_state()
-            }
+            Self::Task { node } | Self::Thread { node, .. } => node.lock().unwrap().peer_state(),
             Self::Process { .. } => PeerState::Fresh,
         }
     }
