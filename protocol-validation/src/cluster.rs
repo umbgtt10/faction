@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::PeerId;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
+use faction::PeerId;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
@@ -17,9 +17,9 @@ use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
-use crate::timer::in_memory::InMemoryTimer;
+use crate::in_memory_timer::InMemoryTimer;
+use crate::in_memory_transport::InMemoryTransport;
 use faction_protocol::timer_trait::Timer;
-use crate::transport::in_memory::InMemoryTransport;
 use faction_protocol::transport_trait::Transport;
 
 pub struct Cluster {
