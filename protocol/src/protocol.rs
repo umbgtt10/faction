@@ -9,19 +9,19 @@ use faction::PeerId;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
-use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 
 use crate::input_message::InputMessage;
+use crate::message_translator::MessageTranslator;
 use crate::output_message::OutputMessage;
 use crate::timer_event::TimerEvent;
 use crate::timer_message::TimerMessage;
-use crate::transport_message::TransportMessage;
 
 pub struct Protocol {
     faction: Faction,
     peers: Vec<PeerId>,
     local_peer_id: PeerId,
+    translator: MessageTranslator,
 }
 
 impl Protocol {
@@ -30,6 +30,7 @@ impl Protocol {
             faction,
             peers,
             local_peer_id,
+            translator: MessageTranslator::new(),
         }
     }
 
@@ -70,66 +71,14 @@ impl Protocol {
             ];
         }
 
-        let command = self.to_command(input_message);
+        let command = self.translator.to_command(input_message);
 
-        let outcomes = match self.faction.process(command) {
+        let results = match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => return vec![OutputMessage::Noop],
         };
 
-        self.to_output_messages(outcomes)
-    }
-
-    fn to_output_messages(&self, outcomes: Vec<Outcome>) -> Vec<OutputMessage> {
-        for outcome in outcomes {
-            match outcome {
-                Outcome::BroadcastLocalReady => {
-                    return vec![
-                        OutputMessage::BroadcastReady,
-                        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
-                    ];
-                }
-                Outcome::Exited { .. } => {
-                    return vec![
-                        OutputMessage::Cancel(TimerEvent::Fire(
-                            TimerMessage::LocalParticipationCompleted,
-                        )),
-                        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
-                    ];
-                }
-                _ => {}
-            }
-        }
-
-        vec![OutputMessage::Noop]
-    }
-
-    fn to_command(&self, message: InputMessage) -> Command {
-        match message {
-            InputMessage::Transport(msg) => match msg {
-                TransportMessage::Ping { from } => Command::ParticipationObserved {
-                    peer_id: from,
-                    freshness: 0,
-                    current_marker: 0,
-                },
-                TransportMessage::Ready { from } => Command::ReadyObserved {
-                    peer_id: from,
-                    freshness: 0,
-                    current_marker: 0,
-                },
-                TransportMessage::Bootstrapped { .. } => Command::Probe,
-            },
-            InputMessage::Timer(msg) => match msg {
-                TimerMessage::ParticipationObserved { peer_id } => Command::ParticipationObserved {
-                    peer_id,
-                    freshness: 0,
-                    current_marker: 0,
-                },
-                TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
-                TimerMessage::RetryReady => unreachable!("handled in decide()"),
-                TimerMessage::DeadlineExpired => Command::DeadlineExpired,
-            },
-        }
+        self.translator.to_output_messages(results)
     }
 }

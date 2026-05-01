@@ -4,7 +4,7 @@
 
 use crate::timer_event::TimerEvent;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum OutputMessage {
     BroadcastReady,
     Schedule(TimerEvent),

@@ -7,6 +7,7 @@
 extern crate alloc;
 
 pub mod input_message;
+pub mod message_translator;
 pub mod output_message;
 pub mod protocol;
 pub mod timer_event;
