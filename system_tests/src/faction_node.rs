@@ -53,13 +53,16 @@ impl FactionNode {
             .schedule(TimerEvent::Fire(Command::LocalParticipationCompleted));
     }
 
-    pub fn tick(&mut self, current_marker: Freshness) {
-        while let Some(event) = self.timer.poll() {
-            let TimerEvent::Fire(command) = event;
-            self.protocol.evaluate(command);
+    pub fn step(&mut self, current_marker: Freshness, use_timer: bool) {
+        if use_timer {
+            if let Some(event) = self.timer.poll() {
+                let TimerEvent::Fire(command) = event;
+                self.protocol.evaluate(command);
+                return;
+            }
         }
 
-        while let Some((_, command)) = self.transport.recv() {
+        if let Some((_, command)) = self.transport.recv() {
             let outcomes = self.protocol.evaluate(command);
 
             for outcome in &outcomes {
