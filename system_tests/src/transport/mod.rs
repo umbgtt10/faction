@@ -1,3 +1,6 @@
+pub mod grpc;
+pub mod tcp;
+
 use faction::PeerId;
 use faction::command::Command;
 
