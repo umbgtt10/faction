@@ -9,37 +9,57 @@ use faction_system_tests::cluster::Cluster;
 #[test]
 fn cluster_converges_via_retry_when_ready_message_is_dropped() {
     // Arrange
-    let mut cluster = Cluster::new(2, 2);
+    let mut cluster = Cluster::new(5, 4);
     cluster.drop_message(0, 1, TransportMessage::Ready { from: 0 }, 1);
     cluster.start_all();
 
-    // Act — drain initial Ping from node 1 to node 0 (node 0→1 Ping was NOT dropped)
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
+    // Act — drain initial Pings from start_all (4 per node)
+    for _ in 0..4 {
+        cluster.step_transport_node(0);
+        cluster.step_transport_node(1);
+        cluster.step_transport_node(2);
+        cluster.step_transport_node(3);
+        cluster.step_transport_node(4);
+    }
 
-    // Act — timer phase 1: ParticipationObserved
+    // Act — timer phases 1-4: ParticipationObserved for all remote peers
+    for _ in 0..4 {
+        cluster.step_timer_node(0);
+        cluster.step_timer_node(1);
+        cluster.step_timer_node(2);
+        cluster.step_timer_node(3);
+        cluster.step_timer_node(4);
+    }
+
+    // Act — timer phase 5: LocalParticipationCompleted
     cluster.step_timer_node(0);
     cluster.step_timer_node(1);
+    cluster.step_timer_node(2);
+    cluster.step_timer_node(3);
+    cluster.step_timer_node(4);
 
-    // Act — timer phase 2: LocalParticipationCompleted
-    // Node 0→1 Ready is dropped; both schedule RetryReady
+    // Act — timer phase 6: RetryPing fires
     cluster.step_timer_node(0);
     cluster.step_timer_node(1);
+    cluster.step_timer_node(2);
+    cluster.step_timer_node(3);
+    cluster.step_timer_node(4);
 
-    // Act — timer phase 3: RetryPing fires
+    // Act — timer phase 7: RetryReady fires (node 0 re-sends Ready, not dropped now)
     cluster.step_timer_node(0);
     cluster.step_timer_node(1);
+    cluster.step_timer_node(2);
+    cluster.step_timer_node(3);
+    cluster.step_timer_node(4);
 
-    // Act — timer phase 4: RetryReady fires
-    // Node 0 re-sends Ready (not dropped this time, counter exhausted)
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-
-    // Act — drain extra transport messages then process Ready → quorum
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(1);
+    // Act — transport phases: drain extra Pings then process Readys → quorum
+    for _ in 0..3 {
+        cluster.step_transport_node(0);
+        cluster.step_transport_node(1);
+        cluster.step_transport_node(2);
+        cluster.step_transport_node(3);
+        cluster.step_transport_node(4);
+    }
 
     // Assert
     assert!(cluster.is_bootstrapped());
