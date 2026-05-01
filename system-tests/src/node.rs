@@ -41,6 +41,18 @@ impl Node {
         Self::Process { child }
     }
 
+    pub fn start(&self) {
+        if let Self::Task { node } | Self::Thread { node, .. } = self {
+            node.lock().unwrap().start();
+        }
+    }
+
+    pub fn step(&self) {
+        if let Self::Task { node } | Self::Thread { node, .. } = self {
+            node.lock().unwrap().step();
+        }
+    }
+
     pub fn peer_state(&self) -> PeerState {
         match self {
             Self::Task { node } | Self::Thread { node, .. } => node.lock().unwrap().peer_state(),
