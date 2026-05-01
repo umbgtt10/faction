@@ -3,8 +3,11 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod cluster;
+pub mod cluster_builder;
 pub mod faction_node;
 pub mod node;
 pub mod shared_file_observer;
+pub mod spawn;
 pub mod timer;
 pub mod transport;
+pub mod transport_kind;
