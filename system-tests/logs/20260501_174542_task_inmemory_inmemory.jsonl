@@ -1,0 +1,169 @@
+{"timestamp":"2026-05-01T17:45:42.895Z","peer_id":0,"event":"start"}
+{"timestamp":"2026-05-01T17:45:42.895Z","peer_id":1,"event":"start"}
+{"timestamp":"2026-05-01T17:45:42.895Z","peer_id":2,"event":"start"}
+{"timestamp":"2026-05-01T17:45:42.895Z","peer_id":3,"event":"start"}
+{"timestamp":"2026-05-01T17:45:42.896Z","peer_id":4,"event":"start"}
+{"timestamp":"2026-05-01T17:45:42.896Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Fresh","is_exited":false,"pinging_peers":0,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.896Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.903Z","peer_id":0,"event":"step","input":"Timer(ParticipationObserved { peer_id: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.903Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":1,"event":"step","input":"Timer(ParticipationObserved { peer_id: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":2,"event":"step","input":"Timer(ParticipationObserved { peer_id: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":3,"event":"step","input":"Timer(ParticipationObserved { peer_id: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.904Z","peer_id":4,"event":"step","input":"Timer(ParticipationObserved { peer_id: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.914Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.914Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.914Z","peer_id":0,"event":"step","input":"Transport(Ping { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.914Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.914Z","peer_id":1,"event":"step","input":"Transport(Ping { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.915Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.915Z","peer_id":2,"event":"step","input":"Transport(Ping { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.915Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.915Z","peer_id":3,"event":"step","input":"Transport(Ping { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.915Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.915Z","peer_id":4,"event":"step","input":"Transport(Ping { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":1,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":0,"event":"step","input":"Timer(ParticipationObserved { peer_id: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":1,"event":"step","input":"Timer(ParticipationObserved { peer_id: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":2,"event":"step","input":"Timer(ParticipationObserved { peer_id: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":3,"event":"step","input":"Timer(ParticipationObserved { peer_id: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.925Z","peer_id":4,"event":"step","input":"Timer(ParticipationObserved { peer_id: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":0,"event":"step","input":"Transport(Ping { from: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":1,"event":"step","input":"Transport(Ping { from: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.935Z","peer_id":2,"event":"step","input":"Transport(Ping { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.936Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.936Z","peer_id":3,"event":"step","input":"Transport(Ping { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.936Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.936Z","peer_id":4,"event":"step","input":"Transport(Ping { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":2,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":0,"event":"step","input":"Timer(ParticipationObserved { peer_id: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":1,"event":"step","input":"Timer(ParticipationObserved { peer_id: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":2,"event":"step","input":"Timer(ParticipationObserved { peer_id: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":3,"event":"step","input":"Timer(ParticipationObserved { peer_id: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.946Z","peer_id":4,"event":"step","input":"Timer(ParticipationObserved { peer_id: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":0,"event":"step","input":"Transport(Ping { from: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":1,"event":"step","input":"Transport(Ping { from: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":2,"event":"step","input":"Transport(Ping { from: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":3,"event":"step","input":"Transport(Ping { from: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.957Z","peer_id":4,"event":"step","input":"Transport(Ping { from: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.967Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":3,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.967Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.967Z","peer_id":0,"event":"step","input":"Timer(ParticipationObserved { peer_id: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.967Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.967Z","peer_id":1,"event":"step","input":"Timer(ParticipationObserved { peer_id: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.967Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.968Z","peer_id":2,"event":"step","input":"Timer(ParticipationObserved { peer_id: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.968Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.968Z","peer_id":3,"event":"step","input":"Timer(ParticipationObserved { peer_id: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.968Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.968Z","peer_id":4,"event":"step","input":"Timer(ParticipationObserved { peer_id: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":0,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":0,"event":"step","input":"Transport(Ping { from: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":1,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":1,"event":"step","input":"Transport(Ping { from: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":2,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":2,"event":"step","input":"Transport(Ping { from: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":3,"event":"accepted","command":"ParticipationObserved { peer_id: 4, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":3,"event":"step","input":"Transport(Ping { from: 4 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":4,"event":"accepted","command":"ParticipationObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.978Z","peer_id":4,"event":"step","input":"Transport(Ping { from: 3 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.988Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Pinging","is_exited":false,"pinging_peers":4,"collecting_peers":0}
+{"timestamp":"2026-05-01T17:45:42.988Z","peer_id":0,"event":"accepted","command":"LocalParticipationCompleted","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":1}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":0,"event":"step","input":"Timer(LocalParticipationCompleted)","decisions":2}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":1,"event":"accepted","command":"LocalParticipationCompleted","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":1}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":1,"event":"step","input":"Timer(LocalParticipationCompleted)","decisions":2}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":2,"event":"accepted","command":"LocalParticipationCompleted","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":1}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":2,"event":"step","input":"Timer(LocalParticipationCompleted)","decisions":2}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":3,"event":"accepted","command":"LocalParticipationCompleted","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":1}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":3,"event":"step","input":"Timer(LocalParticipationCompleted)","decisions":2}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":4,"event":"accepted","command":"LocalParticipationCompleted","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":1}
+{"timestamp":"2026-05-01T17:45:42.989Z","peer_id":4,"event":"step","input":"Timer(LocalParticipationCompleted)","decisions":2}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":1}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":0,"event":"accepted","command":"ReadyObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":0,"event":"step","input":"Transport(Ready { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":1,"event":"accepted","command":"ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":1,"event":"step","input":"Transport(Ready { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":2,"event":"accepted","command":"ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":2,"event":"step","input":"Transport(Ready { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":3,"event":"accepted","command":"ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":3,"event":"step","input":"Transport(Ready { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":4,"event":"accepted","command":"ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:42.999Z","peer_id":4,"event":"step","input":"Transport(Ready { from: 0 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":0,"event":"step","input":"Timer(RetryPing)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":1,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":1,"event":"step","input":"Timer(RetryPing)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":2,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":2,"event":"step","input":"Timer(RetryPing)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":3,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":3,"event":"step","input":"Timer(RetryPing)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":4,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.010Z","peer_id":4,"event":"step","input":"Timer(RetryPing)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.020Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":2}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":0,"event":"accepted","command":"ReadyObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":0,"event":"step","input":"Transport(Ready { from: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":1,"event":"accepted","command":"ReadyObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":1,"event":"step","input":"Transport(Ready { from: 2 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":2,"event":"accepted","command":"ReadyObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":2,"event":"step","input":"Transport(Ready { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":3,"event":"accepted","command":"ReadyObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":3,"event":"step","input":"Transport(Ready { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":4,"event":"accepted","command":"ReadyObserved { peer_id: 1, freshness: 0, current_marker: 0 }","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.021Z","peer_id":4,"event":"step","input":"Transport(Ready { from: 1 })","decisions":1}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":0,"event":"step","input":"Timer(RetryReady)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":1,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":1,"event":"step","input":"Timer(RetryReady)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":2,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":2,"event":"step","input":"Timer(RetryReady)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":3,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":3,"event":"step","input":"Timer(RetryReady)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":4,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.031Z","peer_id":4,"event":"step","input":"Timer(RetryReady)","decisions":2}
+{"timestamp":"2026-05-01T17:45:43.041Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Collecting","is_exited":false,"pinging_peers":4,"collecting_peers":3}
+{"timestamp":"2026-05-01T17:45:43.041Z","peer_id":0,"event":"accepted","command":"ReadyObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":0,"event":"step","input":"Transport(Ready { from: 3 })","decisions":3}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":1,"event":"accepted","command":"ReadyObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":1,"event":"step","input":"Transport(Ready { from: 3 })","decisions":3}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":2,"event":"accepted","command":"ReadyObserved { peer_id: 3, freshness: 0, current_marker: 0 }","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":2,"event":"step","input":"Transport(Ready { from: 3 })","decisions":3}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":3,"event":"accepted","command":"ReadyObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":3,"event":"step","input":"Transport(Ready { from: 2 })","decisions":3}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":4,"event":"accepted","command":"ReadyObserved { peer_id: 2, freshness: 0, current_marker: 0 }","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.042Z","peer_id":4,"event":"step","input":"Transport(Ready { from: 2 })","decisions":3}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":1,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":2,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":3,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":4,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":0,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":1,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":2,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":3,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}
+{"timestamp":"2026-05-01T17:45:43.052Z","peer_id":4,"event":"query","command":"Probe","peer_state":"Bootstrapped","is_exited":true,"pinging_peers":4,"collecting_peers":4}

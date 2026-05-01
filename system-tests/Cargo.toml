@@ -7,11 +7,11 @@ repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"
 
 [dependencies]
+chrono = "0.4"
 faction = { path = "../core" }
 faction-protocol = { path = "../protocol" }
 
 [dev-dependencies]
-chrono = "0.4"
 rstest = { workspace = true }
 
 [[test]]
