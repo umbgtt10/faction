@@ -75,12 +75,13 @@ impl State for Pinging {
 
                 let output = ObservedOutput::new(ObservedKind::Participation, peer_id)
                     .compute_output(is_member, classification, is_dup);
-                let (phase1, _) = pinging_count.try_confirm(peer_id, is_member, classification);
+                let (new_pinging_count, _) =
+                    pinging_count.try_confirm(peer_id, is_member, classification);
 
                 (
                     vec![output],
                     Box::new(Self {
-                        pinging_count: phase1,
+                        pinging_count: new_pinging_count,
                         collecting_count,
                     }),
                 )

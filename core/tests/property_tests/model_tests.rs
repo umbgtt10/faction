@@ -48,8 +48,8 @@ struct ModelCoordinator {
     peer_state: ModelLifecycleState,
     exit_mode: Option<ExitMode>,
     is_pinging_completed: bool,
-    phase1_confirmed: [bool; 5],
-    phase2_confirmed: [bool; 5],
+    pinging_confirmed: [bool; 5],
+    collecting_confirmed: [bool; 5],
     pinging_confirmed_count: usize,
     collecting_confirmed_count: usize,
 }
@@ -65,8 +65,8 @@ impl ModelCoordinator {
             peer_state: ModelLifecycleState::Fresh,
             exit_mode: None,
             is_pinging_completed: false,
-            phase1_confirmed: [false; 5],
-            phase2_confirmed: [false; 5],
+            pinging_confirmed: [false; 5],
+            collecting_confirmed: [false; 5],
             pinging_confirmed_count: 0,
             collecting_confirmed_count: 0,
         }
@@ -143,11 +143,11 @@ impl ModelCoordinator {
             return vec![Outcome::StaleParticipationIgnored { peer_id }];
         }
 
-        if self.phase1_confirmed[index] {
+        if self.pinging_confirmed[index] {
             return vec![Outcome::DuplicateParticipationIgnored { peer_id }];
         }
 
-        self.phase1_confirmed[index] = true;
+        self.pinging_confirmed[index] = true;
         self.pinging_confirmed_count += 1;
 
         if self.is_delayed(current_marker, freshness) {
@@ -175,11 +175,11 @@ impl ModelCoordinator {
             return vec![Outcome::StaleReadyIgnored { peer_id }];
         }
 
-        if self.phase2_confirmed[index] {
+        if self.collecting_confirmed[index] {
             return vec![Outcome::DuplicateReadyIgnored { peer_id }];
         }
 
-        self.phase2_confirmed[index] = true;
+        self.collecting_confirmed[index] = true;
         let prev_collecting = self.collecting_confirmed_count;
         self.collecting_confirmed_count += 1;
 
@@ -216,8 +216,8 @@ impl ModelCoordinator {
         let local_index = self
             .peer_index(self.local_peer_id)
             .expect("local peer must be in peer set");
-        if !self.phase2_confirmed[local_index] {
-            self.phase2_confirmed[local_index] = true;
+        if !self.collecting_confirmed[local_index] {
+            self.collecting_confirmed[local_index] = true;
             self.collecting_confirmed_count += 1;
         }
 

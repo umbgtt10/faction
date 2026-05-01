@@ -32,7 +32,7 @@ const TIMELY: Freshness = 10;
 const DELAYED: Freshness = 8;
 const STALE: Freshness = 7;
 
-fn machine_in_phase2() -> Faction {
+fn machine_in_collecting() -> Faction {
     let mut v = Faction::new(
         Config::new(
             0,
@@ -70,7 +70,7 @@ fn ready(peer_id: PeerId, freshness: Freshness) -> Command {
 #[test]
 fn deal_accepts_ready_observed() {
     // Arrange & Act
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let outcomes = match v.process(ready(1, TIMELY)) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
@@ -84,7 +84,7 @@ fn deal_accepts_ready_observed() {
 #[test]
 fn deal_accepts_deadline_expired() {
     // Arrange & Act
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let outcomes = match v.process(Command::DeadlineExpired) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
@@ -109,7 +109,7 @@ fn deal_accepts_deadline_expired() {
 #[test]
 fn deal_rejects_participation_observed() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -132,7 +132,7 @@ fn deal_rejects_participation_observed() {
 #[test]
 fn deal_rejects_is_pinging_completedd() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -155,7 +155,7 @@ fn deal_rejects_is_pinging_completedd() {
 #[test]
 fn participation_non_member_is_noop() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -178,7 +178,7 @@ fn participation_non_member_is_noop() {
 #[test]
 fn participation_stale_is_noop() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -201,7 +201,7 @@ fn participation_stale_is_noop() {
 #[test]
 fn participation_first_timely_is_noop() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -224,7 +224,7 @@ fn participation_first_timely_is_noop() {
 #[test]
 fn participation_first_delayed_is_noop() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -247,7 +247,7 @@ fn participation_first_delayed_is_noop() {
 #[test]
 fn ready_non_member_rejected() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -274,7 +274,7 @@ fn ready_non_member_rejected() {
 #[test]
 fn ready_stale_rejected() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -301,7 +301,7 @@ fn ready_stale_rejected() {
 #[test]
 fn ready_duplicate_rejected() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let _ = v.process(ready(1, TIMELY));
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
@@ -332,7 +332,7 @@ fn ready_duplicate_rejected() {
 #[test]
 fn ready_first_timely_no_quorum() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -363,7 +363,7 @@ fn ready_first_timely_no_quorum() {
 #[test]
 fn ready_first_delayed_no_quorum() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -392,7 +392,7 @@ fn ready_first_delayed_no_quorum() {
 #[test]
 fn ready_first_timely_triggers_quorum() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let _ = v.process(ready(1, TIMELY));
     let _ = v.process(ready(2, TIMELY));
     let snap_before = match v.process(Command::Probe) {
@@ -435,7 +435,7 @@ fn ready_first_timely_triggers_quorum() {
 #[test]
 fn ready_first_delayed_triggers_quorum() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let _ = v.process(ready(1, TIMELY));
     let _ = v.process(ready(2, TIMELY));
     let snap_before = match v.process(Command::Probe) {
@@ -475,9 +475,9 @@ fn ready_first_delayed_triggers_quorum() {
 }
 
 #[test]
-fn local_completion_in_phase2_is_noop() {
+fn local_completion_in_collecting_is_noop() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -498,9 +498,9 @@ fn local_completion_in_phase2_is_noop() {
 }
 
 #[test]
-fn deadline_expired_exits_in_phase2() {
+fn deadline_expired_exits_in_collecting() {
     // Arrange
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -538,7 +538,7 @@ fn deadline_expired_exits_in_phase2() {
 #[test]
 fn vibe_check_returns_correct_snapshot() {
     // Arrange & Act
-    let mut v = machine_in_phase2();
+    let mut v = machine_in_collecting();
     let snap = match v.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),

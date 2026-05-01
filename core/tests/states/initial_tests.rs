@@ -274,7 +274,7 @@ fn punch_ready_non_member_from_initial() {
 }
 
 #[test]
-fn vibe_check_returns_phase1_active_with_zeros() {
+fn vibe_check_returns_fresh_state_with_zeros() {
     // Arrange & Act
     let mut faction = test_machine();
     let snap = match faction.process(Command::Probe) {

@@ -30,7 +30,7 @@ const TIMELY: u64 = 10;
 const DELAYED: u64 = 8;
 const STALE: u64 = 7;
 
-fn machine_in_phase1() -> Faction {
+fn machine_in_pinging() -> Faction {
     let mut faction = Faction::new(
         Config::new(
             0,
@@ -64,7 +64,7 @@ fn p2(faction: &mut Faction) -> usize {
 #[test]
 fn deal_accepts_participation_observed() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved {
@@ -87,7 +87,7 @@ fn deal_accepts_participation_observed() {
 #[test]
 fn deal_accepts_ready_observed() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved {
@@ -107,7 +107,7 @@ fn deal_accepts_ready_observed() {
 #[test]
 fn deal_accepts_is_pinging_completedd() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {
@@ -125,7 +125,7 @@ fn deal_accepts_is_pinging_completedd() {
 #[test]
 fn deal_accepts_deadline_expired() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::DeadlineExpired) {
@@ -146,7 +146,7 @@ fn deal_accepts_deadline_expired() {
 #[test]
 fn participation_observed_non_member() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p1(&mut faction);
 
     // Act
@@ -168,7 +168,7 @@ fn participation_observed_non_member() {
 #[test]
 fn participation_observed_stale() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p1(&mut faction);
 
     // Act
@@ -192,7 +192,7 @@ fn participation_observed_stale() {
 
 #[test]
 fn participation_observed_duplicate() {
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let _ = faction.process(Command::ParticipationObserved {
         peer_id: 2,
         freshness: TIMELY,
@@ -218,7 +218,7 @@ fn participation_observed_duplicate() {
 #[test]
 fn participation_observed_first_timely() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p1(&mut faction);
 
     // Act
@@ -243,7 +243,7 @@ fn participation_observed_first_timely() {
 #[test]
 fn participation_observed_first_delayed() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p1(&mut faction);
 
     // Act
@@ -268,7 +268,7 @@ fn participation_observed_first_delayed() {
 #[test]
 fn ready_observed_non_member() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
 
     // Act
@@ -290,7 +290,7 @@ fn ready_observed_non_member() {
 #[test]
 fn ready_observed_stale() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
 
     // Act
@@ -312,7 +312,7 @@ fn ready_observed_stale() {
 #[test]
 fn ready_observed_duplicate() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let _ = faction.process(Command::ReadyObserved {
         peer_id: 2,
         freshness: TIMELY,
@@ -342,7 +342,7 @@ fn ready_observed_duplicate() {
 #[test]
 fn ready_observed_first_timely() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
 
     // Act
@@ -364,7 +364,7 @@ fn ready_observed_first_timely() {
 #[test]
 fn ready_observed_first_delayed() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
 
     // Act
@@ -386,7 +386,7 @@ fn ready_observed_first_delayed() {
 #[test]
 fn local_completion_no_quorum() {
     // Arrange & Act
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
@@ -471,9 +471,9 @@ fn local_completion_triggers_quorum() {
 }
 
 #[test]
-fn deadline_expired_in_phase1() {
+fn deadline_expired_in_pinging() {
     // Arrange
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
 
     // Act & Assert
     let outcomes = match faction.process(Command::DeadlineExpired) {
@@ -496,9 +496,9 @@ fn deadline_expired_in_phase1() {
 }
 
 #[test]
-fn vibe_check_in_phase1() {
+fn vibe_check_in_pinging() {
     // Arrange & Act
-    let mut faction = machine_in_phase1();
+    let mut faction = machine_in_pinging();
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
