@@ -46,6 +46,10 @@ impl InMemoryTransport {
             })
             .collect()
     }
+
+    pub fn push_inbox(&mut self, from: PeerId, message: TransportMessage) {
+        self.inbox.lock().unwrap().push_back((from, message));
+    }
 }
 
 impl Transport for InMemoryTransport {

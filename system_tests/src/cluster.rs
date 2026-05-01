@@ -124,6 +124,10 @@ impl Cluster {
         self.timers[index].schedule(TimerEvent::Fire(message));
     }
 
+    pub fn inject_transport(&mut self, index: usize, from: PeerId, message: TransportMessage) {
+        self.transports[index].push_inbox(from, message);
+    }
+
     fn route(&mut self, msg: OutputMessage, from: PeerId) {
         let index = self.peer_ids.iter().position(|&p| p == from).unwrap();
 
