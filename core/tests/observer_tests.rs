@@ -5,9 +5,9 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use std::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use faction::cluster_view::ClusterView;
@@ -31,7 +31,10 @@ struct RecordingObserver {
 
 impl Observer for RecordingObserver {
     fn observe(&mut self, command: Command, transition: Transition) {
-        self.observations.lock().unwrap().push((command, transition));
+        self.observations
+            .lock()
+            .unwrap()
+            .push((command, transition));
     }
 
     fn observe_query(&mut self, _command: Command, _cluster_view: ClusterView) {}
