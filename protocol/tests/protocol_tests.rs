@@ -216,3 +216,31 @@ fn decide_retry_ready_while_exited_produces_noop() {
     assert_eq!(decisions.len(), 1);
     assert!(matches!(decisions[0], OutputMessage::Noop));
 }
+
+#[test]
+fn decide_timer_participation_observed_produces_noop() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::ParticipationObserved {
+        peer_id: 1,
+    }));
+
+    // Assert
+    assert_eq!(decisions.len(), 1);
+    assert!(matches!(decisions[0], OutputMessage::Noop));
+    assert_eq!(protocol.cluster_view().peer_state(), PeerState::Pinging);
+}
+
+#[test]
+#[should_panic(expected = "unreachable")]
+fn decide_bootstrapped_message_panics() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    protocol.decide(InputMessage::Transport(TransportMessage::Bootstrapped {
+        from: 1,
+    }));
+}
