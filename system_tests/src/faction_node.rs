@@ -3,23 +3,36 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::Freshness;
+use faction::PeerId;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::no_op_observer::NoOpObserver;
+use faction::freshness_policy::FreshnessPolicy;
+use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
+use faction::quorum_policy::QuorumPolicy;
 
 use crate::transport::transport_trait::Transport;
 
 pub struct FactionNode {
     faction: Faction,
+    transport: Box<dyn Transport>,
 }
 
 impl FactionNode {
-    pub fn new(config: Config) -> Self {
+    pub fn new(
+        peer_id: PeerId,
+        peers: Vec<PeerId>,
+        quorum_policy: QuorumPolicy,
+        freshness_policy: FreshnessPolicy,
+        observer: Box<dyn Observer>,
+        transport: Box<dyn Transport>,
+    ) -> Self {
+        let config = Config::new(peer_id, peers, quorum_policy, freshness_policy);
         Self {
-            faction: Faction::new(config, Box::new(NoOpObserver)),
+            faction: Faction::new(config, observer),
+            transport,
         }
     }
 
@@ -31,15 +44,15 @@ impl FactionNode {
         }
     }
 
-    pub fn pump(&mut self, transport: &mut dyn Transport, current_marker: Freshness) {
-        while let Some((_, command)) = transport.recv() {
+    pub fn pump(&mut self, current_marker: Freshness) {
+        while let Some((_, command)) = self.transport.recv() {
             let outcomes = self.step(command);
 
             for outcome in &outcomes {
                 if let Outcome::BroadcastLocalReady = outcome {
                     for to in self.faction.config().peers() {
                         if *to != self.faction.config().peer_id() {
-                            transport.send(
+                            self.transport.send(
                                 *to,
                                 Command::ReadyObserved {
                                     peer_id: self.faction.config().peer_id(),
