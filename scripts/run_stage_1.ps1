@@ -34,6 +34,7 @@ Invoke-Step "no_std checks" {
     cargo check `
         -p faction `
         -p faction-validation `
+        -p faction-protocol `
         --no-default-features `
         --lib
 }
@@ -46,8 +47,10 @@ Invoke-Step "faction tests" {
     cargo test `
         -p faction `
         -p faction-validation `
+        -p faction-protocol `
+        -p faction-system-tests `
 }
 
-Write-Host "`nFaction validation tests passed!" -ForegroundColor Green
+Write-Host "`nFaction core, validation, protocol and system tests passed!" -ForegroundColor Green
 Pop-Location
 exit 0

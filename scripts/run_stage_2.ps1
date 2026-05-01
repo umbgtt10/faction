@@ -1,6 +1,9 @@
 # Copyright 2025 Umberto Gotti <umberto.gotti@umbertogotti.dev>
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
+#
+# Install crap4rust:
+#   cargo install crap4rust
 
 $ErrorActionPreference = "Stop"
 Push-Location (Split-Path $PSScriptRoot -Parent)
@@ -16,6 +19,16 @@ function Invoke-Crap4RustGate {
         [switch]$UseProjectThreshold,
         [string[]]$ExcludePaths = @()
     )
+
+    if (-not (Get-Command cargo-crap4rust -ErrorAction SilentlyContinue)) {
+        Write-Host "Installing crap4rust..." -ForegroundColor Cyan
+        cargo install crap4rust
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "`nFailed to install crap4rust" -ForegroundColor Red
+            Pop-Location
+            exit 1
+        }
+    }
 
     Write-Host "$Label..." -ForegroundColor Cyan
 
@@ -158,13 +171,13 @@ function Invoke-FileRiskGate {
 # CRAP gates
 # ---------------------------------------------------------------------------
 
-Invoke-Crap4RustGate "CRAP faction" @("faction", "faction-validation")
+Invoke-Crap4RustGate "CRAP faction" @("faction", "faction-protocol")
 
 # ---------------------------------------------------------------------------
 # File-risk gates
 # ---------------------------------------------------------------------------
 
-Invoke-FileRiskGate "File risk faction" @("faction", "faction-validation") 30 @()
+Invoke-FileRiskGate "File risk faction" @("faction", "faction-protocol") 30 @()
 
 # ---------------------------------------------------------------------------
 
