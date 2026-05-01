@@ -10,6 +10,7 @@ use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::exit_mode::ExitMode;
+use crate::freshness_classification::FreshnessClassification;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
@@ -18,12 +19,11 @@ use crate::PeerId;
 use super::bootstrapped::Bootstrapped;
 use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
-use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
 
 #[derive(Default)]
 pub struct Collecting {
-    pub collecting_count: ConfirmedSet,
+    pub collecting_count: Vec<PeerId>,
     pub pinging_count: usize,
 }
 
@@ -66,18 +66,18 @@ impl State for Collecting {
             .clone()
             .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
-            .with_collecting_peers(self.collecting_count.confirmed_peers().to_vec())
+            .with_collecting_peers(self.collecting_count.clone())
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let collecting_count = self.collecting_count.clone();
+        let mut new_collecting_count = self.collecting_count.clone();
         let pinging_count = self.pinging_count;
 
         if let Some(peer_id) = Self::non_member_peer(&command, config) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Box::new(Self {
-                    collecting_count,
+                    collecting_count: new_collecting_count,
                     pinging_count,
                 }),
             );
@@ -96,16 +96,16 @@ impl State for Collecting {
                 let classification = config
                     .freshness_policy()
                     .classify(current_marker, freshness);
-                let is_dup = collecting_count.is_confirmed(peer_id);
+                let is_dup = new_collecting_count.contains(&peer_id);
 
                 let output = ObservedOutput::new(ObservedKind::Ready, peer_id)
                     .compute_output(classification, is_dup);
 
-                let (new_collecting_count, confirmed_new) =
-                    collecting_count.try_confirm(peer_id, classification);
+                let is_stale = matches!(classification, FreshnessClassification::Stale);
+                let confirmed_new = !is_stale && !is_dup;
 
                 let quorum =
-                    confirmed_new && new_collecting_count.count() >= config.required_count();
+                    confirmed_new && new_collecting_count.len() + 1 >= config.required_count();
                 let outputs = if quorum {
                     vec![
                         output,
@@ -118,10 +118,14 @@ impl State for Collecting {
                     vec![output]
                 };
 
+                if confirmed_new {
+                    new_collecting_count.push(peer_id);
+                }
+
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
+                        collecting_count: new_collecting_count.len(),
                         pinging_count,
-                        collecting_count: new_collecting_count.count(),
                     })
                 } else {
                     Box::new(Self {
@@ -141,8 +145,8 @@ impl State for Collecting {
                     mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
+                    collecting_count: new_collecting_count.len(),
                     pinging_count,
-                    collecting_count: collecting_count.count(),
                 }),
             ),
 

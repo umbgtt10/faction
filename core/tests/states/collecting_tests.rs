@@ -21,7 +21,7 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::state::State;
 
 use faction::states::collecting::Collecting;
-use faction::states::confirmed_set::ConfirmedSet;
+
 use faction::Freshness;
 use faction::PeerId;
 
@@ -557,9 +557,7 @@ fn vibe_check_returns_correct_snapshot() {
 #[test]
 fn collecting_cluster_view_inherits_correctly() {
     // Arrange
-    let collecting_set = ConfirmedSet::new();
-    let (collecting_set, _) = collecting_set.confirm(1);
-    let (collecting_set, _) = collecting_set.confirm(3);
+    let collecting_set = vec![1, 3];
     let collecting = Collecting {
         collecting_count: collecting_set,
         pinging_count: 2,

@@ -6,7 +6,7 @@ pub mod bitmap;
 pub mod bootstrapped;
 pub mod collecting;
 pub mod compute_output;
-pub mod confirmed_set;
+
 pub mod initial;
 pub mod pinging;
 pub mod timed_out;
