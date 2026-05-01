@@ -233,8 +233,8 @@ fn post_deadline_inputs_leave_state_unchanged() {
 fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
     // Arrange
     let rbd = TimedOut {
-        pinging_count: 3,
-        collecting_count: 1,
+        pinged_peers_count: 3,
+        collected_peers_count: 1,
     };
     let prev = ClusterView::new(PeerState::Pinging, false, vec![1, 2, 3], vec![9], 4);
 
@@ -255,8 +255,8 @@ fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
 fn timed_out_cluster_view_inherits_local_completion_from_collecting() {
     // Arrange
     let rbd = TimedOut {
-        pinging_count: 2,
-        collecting_count: 4,
+        pinged_peers_count: 2,
+        collected_peers_count: 4,
     };
     let prev = ClusterView::new(PeerState::Collecting, true, vec![5, 6], vec![1, 2, 3, 4], 4);
 

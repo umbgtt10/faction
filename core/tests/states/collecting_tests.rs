@@ -559,8 +559,8 @@ fn collecting_cluster_view_inherits_correctly() {
     // Arrange
     let collecting_set = vec![1, 3];
     let collecting = Collecting {
-        collecting_count: collecting_set,
-        pinging_count: 2,
+        collected_peers: collecting_set,
+        pinged_peers_count: 2,
     };
     let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
 

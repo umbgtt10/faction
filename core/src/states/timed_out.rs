@@ -15,8 +15,8 @@ use crate::state::State;
 
 #[derive(Default)]
 pub struct TimedOut {
-    pub pinging_count: usize,
-    pub collecting_count: usize,
+    pub pinged_peers_count: usize,
+    pub collected_peers_count: usize,
 }
 
 impl TimedOut {

@@ -144,8 +144,8 @@ fn vibe_check_returns_correct_snapshot() {
 fn bootstrapped_cluster_view_overrides_all_fields() {
     // Arrange
     let rq = Bootstrapped {
-        pinging_count: 2,
-        collecting_count: 5,
+        pinged_peers_count: 2,
+        collected_peers_count: 5,
     };
     let prev = ClusterView::new(
         PeerState::Pinging,

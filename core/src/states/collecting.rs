@@ -22,8 +22,8 @@ use super::timed_out::TimedOut;
 
 #[derive(Default)]
 pub struct Collecting {
-    pub collecting_count: Vec<PeerId>,
-    pub pinging_count: usize,
+    pub collected_peers: Vec<PeerId>,
+    pub pinged_peers_count: usize,
 }
 
 impl Collecting {
@@ -65,19 +65,19 @@ impl State for Collecting {
             .clone()
             .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
-            .with_collecting_peers(self.collecting_count.clone())
+            .with_collecting_peers(self.collected_peers.clone())
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let collecting_count = self.collecting_count.clone();
-        let pinging_count = self.pinging_count;
+        let collected_peers = self.collected_peers.clone();
+        let pinged_peers_count = self.pinged_peers_count;
 
         if let Some(peer_id) = Self::non_member_peer(&command, config) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Box::new(Self {
-                    collecting_count,
-                    pinging_count,
+                    collected_peers,
+                    pinged_peers_count,
                 }),
             );
         }
@@ -97,7 +97,7 @@ impl State for Collecting {
                     .classify(current_marker, freshness);
                 let step = ObservedStep::new(
                     classification,
-                    collecting_count,
+                    collected_peers,
                     peer_id,
                     ObservedKind::Ready,
                     Some(config.required_count()),
@@ -105,13 +105,13 @@ impl State for Collecting {
 
                 let new_state: Box<dyn State> = if step.is_quorum() {
                     Box::new(Bootstrapped {
-                        collecting_count: step.confirmed_peers().len(),
-                        pinging_count,
+                        collected_peers_count: step.confirmed_peers().len(),
+                        pinged_peers_count,
                     })
                 } else {
                     Box::new(Self {
-                        collecting_count: step.confirmed_peers(),
-                        pinging_count,
+                        collected_peers: step.confirmed_peers(),
+                        pinged_peers_count,
                     })
                 };
 
@@ -127,8 +127,8 @@ impl State for Collecting {
                     mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
-                    collecting_count: collecting_count.len(),
-                    pinging_count,
+                    collected_peers_count: collected_peers.len(),
+                    pinged_peers_count,
                 }),
             ),
 

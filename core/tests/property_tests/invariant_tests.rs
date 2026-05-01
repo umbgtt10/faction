@@ -222,7 +222,7 @@ proptest! {
     }
 
     #[test]
-    fn pinging_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
+    fn pinged_peers_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
@@ -245,7 +245,7 @@ proptest! {
     }
 
     #[test]
-    fn collecting_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
+    fn collected_peers_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut coordinator = coordinator();
         let mut previous = match coordinator.process(Command::Probe) {
