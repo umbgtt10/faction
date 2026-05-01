@@ -58,8 +58,8 @@ impl Protocol {
         decisions
     }
 
-    pub fn decide(&mut self, message: InputMessage) -> Vec<OutputMessage> {
-        let command = self.to_command(message);
+    pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
+        let command = self.to_command(input_message);
 
         let outcomes = match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
@@ -67,6 +67,10 @@ impl Protocol {
             ProcessResult::Rejected { .. } => return vec![OutputMessage::Noop],
         };
 
+        self.to_output_messages(outcomes)
+    }
+
+    fn to_output_messages(&self, outcomes: Vec<Outcome>) -> Vec<OutputMessage> {
         for outcome in outcomes {
             match outcome {
                 Outcome::BroadcastLocalReady => return vec![OutputMessage::BroadcastReady],
