@@ -3,4 +3,5 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod dropped_ready_tests;
+pub mod late_arrival_tests;
 pub mod vanilla_convergence_tests;

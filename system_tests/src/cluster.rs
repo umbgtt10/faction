@@ -14,6 +14,7 @@ use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
+use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
 use crate::timer::in_memory::InMemoryTimer;
@@ -86,9 +87,13 @@ impl Cluster {
 
     pub fn start_all(&mut self) {
         for i in 0..self.peer_ids.len() {
-            for decision in self.protocols[i].start_decisions() {
-                self.route(decision, self.peer_ids[i]);
-            }
+            self.start_node(i);
+        }
+    }
+
+    pub fn start_node(&mut self, index: usize) {
+        for decision in self.protocols[index].start_decisions() {
+            self.route(decision, self.peer_ids[index]);
         }
     }
 
@@ -121,6 +126,33 @@ impl Cluster {
         }
 
         any
+    }
+
+    pub fn step_transport_node(&mut self, index: usize) -> bool {
+        if let Some((from, msg)) = self.transports[index].recv() {
+            for decision in self.protocols[index].decide(InputMessage::Transport(msg)) {
+                self.route(decision, from);
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn step_timer_node(&mut self, index: usize) -> bool {
+        if let Some(event) = self.timers[index].poll() {
+            let TimerEvent::Fire(tm) = event;
+            for decision in self.protocols[index].decide(InputMessage::Timer(tm)) {
+                self.route(decision, self.peer_ids[index]);
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn inject_timer(&mut self, index: usize, message: TimerMessage) {
+        self.timers[index].schedule(TimerEvent::Fire(message));
     }
 
     fn route(&mut self, msg: OutputMessage, from: PeerId) {
@@ -163,9 +195,20 @@ impl Cluster {
         self.protocols[index].cluster_view().peer_state()
     }
 
+    pub fn node_collecting_peers_len(&mut self, index: usize) -> usize {
+        self.protocols[index]
+            .cluster_view()
+            .collecting_peers()
+            .len()
+    }
+
     pub fn is_bootstrapped(&mut self) -> bool {
         self.protocols
             .iter_mut()
             .all(|p| p.cluster_view().peer_state() == PeerState::Bootstrapped)
+    }
+
+    pub fn is_timed_out(&mut self, index: usize) -> bool {
+        self.protocols[index].cluster_view().peer_state() == PeerState::TimedOut
     }
 }
