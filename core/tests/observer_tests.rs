@@ -5,10 +5,10 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use alloc::rc::Rc;
+use std::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::cell::RefCell;
+use std::sync::Mutex;
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
@@ -23,7 +23,7 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::transition::Transition;
 
-type Observations = Rc<RefCell<Vec<(Command, Transition)>>>;
+type Observations = Arc<Mutex<Vec<(Command, Transition)>>>;
 
 struct RecordingObserver {
     observations: Observations,
@@ -31,7 +31,7 @@ struct RecordingObserver {
 
 impl Observer for RecordingObserver {
     fn observe(&mut self, command: Command, transition: Transition) {
-        self.observations.borrow_mut().push((command, transition));
+        self.observations.lock().unwrap().push((command, transition));
     }
 
     fn observe_query(&mut self, _command: Command, _cluster_view: ClusterView) {}
@@ -46,9 +46,9 @@ impl Observer for RecordingObserver {
 }
 
 fn recording_coordinator() -> (Faction, Observations) {
-    let observations: Observations = Rc::new(RefCell::new(Vec::new()));
+    let observations: Observations = Arc::new(Mutex::new(Vec::new()));
     let observer = RecordingObserver {
-        observations: Rc::clone(&observations),
+        observations: Arc::clone(&observations),
     };
     let coordinator = Faction::new(
         Config::new(
@@ -81,7 +81,7 @@ fn apply_observes_local_participation_completion_transition() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
@@ -125,7 +125,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
@@ -163,7 +163,7 @@ fn apply_observes_stale_ready_transition_without_state_change() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 3);
     let (observed_input, transition) = &obs[2];
     assert_eq!(*observed_input, input);
@@ -212,7 +212,7 @@ fn apply_observes_quorum_exit_transition() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 5);
     let (observed_input, transition) = &obs[4];
     assert_eq!(*observed_input, input);
@@ -262,7 +262,7 @@ fn apply_observes_deadline_exit_transition() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 3);
     let (observed_input, transition) = &obs[2];
     assert_eq!(*observed_input, input);
@@ -314,7 +314,7 @@ fn accepted_delayed_input_is_observable_as_delayed() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 3);
 
     let (_, transition0) = &obs[0];
@@ -391,7 +391,7 @@ fn state_transition_outputs_are_fully_observable() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 5);
 
     let (_, transition0) = &obs[0];
@@ -458,7 +458,7 @@ fn apply_observes_stale_participation_from_initial() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
@@ -491,7 +491,7 @@ fn apply_observes_non_member_participation_from_initial() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
@@ -524,7 +524,7 @@ fn apply_observes_stale_ready_from_initial() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
@@ -557,7 +557,7 @@ fn apply_observes_non_member_ready_from_initial() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 1);
     let (observed_input, transition) = &obs[0];
     assert_eq!(*observed_input, input);
@@ -595,7 +595,7 @@ fn apply_observes_duplicate_ready_from_pinging() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
@@ -638,7 +638,7 @@ fn apply_observes_quorum_exit_from_pinging() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
@@ -685,7 +685,7 @@ fn apply_observes_deadline_exit_from_pinging() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 2);
     let (observed_input, transition) = &obs[1];
     assert_eq!(*observed_input, input);
@@ -734,7 +734,7 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
@@ -783,7 +783,7 @@ fn apply_observes_duplicate_ready_from_collecting() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 4);
     let (observed_input, transition) = &obs[3];
     assert_eq!(*observed_input, input);
@@ -832,7 +832,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
     };
 
     // Assert
-    let obs = observations.borrow();
+    let obs = observations.lock().unwrap();
     assert_eq!(obs.len(), 5);
     let (observed_input, transition) = &obs[4];
     assert_eq!(*observed_input, input);
