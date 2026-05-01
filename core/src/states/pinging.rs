@@ -17,7 +17,7 @@ use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::collecting::Collecting;
-use super::observed_step::ObservedKind;
+use super::compute_output::ObservedKind;
 use super::observed_step::ObservedStep;
 use super::timed_out::TimedOut;
 

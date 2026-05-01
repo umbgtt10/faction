@@ -6,8 +6,8 @@ extern crate alloc;
 
 use faction::freshness_classification::FreshnessClassification;
 use faction::outcome::Outcome;
-use faction::states::observed_step::ObservedKind;
-use faction::states::observed_step::ObservedOutput;
+use faction::states::compute_output::ObservedKind;
+use faction::states::compute_output::ObservedOutput;
 use faction::PeerId;
 
 const PEER_ID: PeerId = 42;

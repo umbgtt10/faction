@@ -5,6 +5,7 @@
 pub mod bitmap;
 pub mod bootstrapped;
 pub mod collecting;
+pub mod compute_output;
 pub mod observed_step;
 
 pub mod initial;
