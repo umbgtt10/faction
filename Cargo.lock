@@ -75,6 +75,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "faction-core-validation"
+version = "0.2.0"
+dependencies = [
+ "faction",
+ "proptest",
+ "rstest",
+]
+
+[[package]]
 name = "faction-protocol"
 version = "0.1.0"
 dependencies = [
@@ -96,15 +105,6 @@ version = "0.1.0"
 dependencies = [
  "faction",
  "faction-protocol",
- "rstest",
-]
-
-[[package]]
-name = "faction-validation"
-version = "0.2.0"
-dependencies = [
- "faction",
- "proptest",
  "rstest",
 ]
 

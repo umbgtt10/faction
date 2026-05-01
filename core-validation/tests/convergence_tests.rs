@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use faction::exit_mode::ExitMode;
-use faction_validation::cluster_simulation::ClusterSimulation;
+use faction_core_validation::cluster_simulation::ClusterSimulation;
 
 #[test]
 fn five_nodes_converge_on_quorum() {

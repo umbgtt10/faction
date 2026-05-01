@@ -9,7 +9,7 @@ use alloc::vec;
 use faction::exit_mode::ExitMode;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
-use faction_validation::scenario_harness::ScenarioHarness;
+use faction_core_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn apply_ready_accepts_timely_member_observation_after_local_completion() {

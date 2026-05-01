@@ -6,7 +6,7 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction_validation::scenario_harness::ScenarioHarness;
+use faction_core_validation::scenario_harness::ScenarioHarness;
 
 #[test]
 fn new_creates_one_coordinator_per_peer() {

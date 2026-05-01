@@ -33,9 +33,9 @@ Invoke-Step "Clippy" { cargo clippy --workspace -- -D warnings }
 Invoke-Step "no_std checks" {
     cargo check `
         -p faction `
+        -p faction-core-validation `
         -p faction-protocol `
         -p faction-protocol-validation `
-        -p faction-validation `
         --no-default-features `
         --lib
 }
@@ -47,10 +47,10 @@ Invoke-Step "no_std checks" {
 Invoke-Step "faction tests" {
     cargo test `
         -p faction `
+        -p faction-core-validation `
         -p faction-protocol `
         -p faction-protocol-validation `
         -p faction-system-tests `
-        -p faction-validation `
 }
 
 Write-Host "`nFaction core, validation, protocol and system tests passed!" -ForegroundColor Green
