@@ -11,5 +11,6 @@ pub mod node_observer;
 pub mod shared_file_observer;
 pub mod spawn;
 pub mod timer;
+pub mod timer_kind;
 pub mod transport;
 pub mod transport_kind;

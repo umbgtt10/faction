@@ -25,6 +25,7 @@ use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
 use crate::timer::in_memory::in_memory_timer::InMemoryTimer;
+use crate::timer_kind::TimerKind;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport_kind::TransportKind;
 
@@ -33,6 +34,7 @@ pub struct ClusterBuilder {
     required: usize,
     spawn: Spawn,
     transport: TransportKind,
+    timer: TimerKind,
     log_path: Option<PathBuf>,
 }
 
@@ -44,6 +46,7 @@ impl ClusterBuilder {
             required,
             spawn: Spawn::Task,
             transport: TransportKind::InMemory,
+            timer: TimerKind::InMemory,
             log_path: None,
         }
     }
@@ -57,6 +60,12 @@ impl ClusterBuilder {
     #[must_use]
     pub fn transport(mut self, transport: TransportKind) -> Self {
         self.transport = transport;
+        self
+    }
+
+    #[must_use]
+    pub fn timer_kind(mut self, timer: TimerKind) -> Self {
+        self.timer = timer;
         self
     }
 

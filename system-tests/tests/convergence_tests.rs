@@ -7,17 +7,23 @@ use std::path::PathBuf;
 use chrono::Utc;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::spawn::Spawn;
+use faction_system_tests::timer_kind::TimerKind;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
 
 #[rstest]
-#[case::task_in_memory(Spawn::Task, TransportKind::InMemory)]
-fn cluster_reaches_bootstrapped(#[case] spawn: Spawn, #[case] transport: TransportKind) {
+#[case::task_in_memory(Spawn::Task, TimerKind::InMemory, TransportKind::InMemory)]
+fn cluster_reaches_bootstrapped(
+    #[case] spawn: Spawn,
+    #[case] timer: TimerKind,
+    #[case] transport: TransportKind,
+) {
     let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-    let name = format!("{timestamp}_{spawn:?}_{transport:?}.jsonl").to_lowercase();
+    let name = format!("{timestamp}_{spawn:?}_{timer:?}_{transport:?}.jsonl").to_lowercase();
 
     let mut cluster = ClusterBuilder::new(5, 4)
         .spawn(spawn)
+        .timer_kind(timer)
         .transport(transport)
         .log_path(PathBuf::from("logs").join(name))
         .build();
