@@ -15,6 +15,7 @@ use faction::observer::Observer;
 use faction::quorum_policy::QuorumPolicy;
 
 use faction_protocol::protocol::Protocol;
+use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
 
 use crate::cluster::Cluster;
@@ -26,6 +27,7 @@ use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
 use crate::timer::in_memory::in_memory_timer::InMemoryTimer;
+use crate::timer::real::real_timer::RealTimer;
 use crate::timer_kind::TimerKind;
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -122,7 +124,10 @@ impl ClusterBuilder {
                     peer_ids.clone(),
                     protocol,
                     transport,
-                    Box::new(InMemoryTimer::new()),
+                    match self.timer {
+                        TimerKind::InMemory => Box::new(InMemoryTimer::new()) as Box<dyn Timer>,
+                        TimerKind::Real => Box::new(RealTimer::new()) as Box<dyn Timer>,
+                    },
                     node_observer,
                 );
                 Node::task(Arc::new(Mutex::new(faction_node)))

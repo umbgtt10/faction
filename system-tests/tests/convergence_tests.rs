@@ -12,8 +12,10 @@ use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
 
 #[rstest]
-#[case::task_in_memory(Spawn::Task, TimerKind::InMemory, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TimerKind::InMemory, TransportKind::Channels)]
+#[case::task_inmemory_inmemory(Spawn::Task, TimerKind::InMemory, TransportKind::InMemory)]
+#[case::task_real_inmemory(Spawn::Task, TimerKind::Real, TransportKind::InMemory)]
+#[case::task_inmemory_channels(Spawn::Task, TimerKind::InMemory, TransportKind::Channels)]
+#[case::task_real_channels(Spawn::Task, TimerKind::Real, TransportKind::Channels)]
 fn cluster_reaches_bootstrapped(
     #[case] spawn: Spawn,
     #[case] timer: TimerKind,

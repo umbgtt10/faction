@@ -4,7 +4,7 @@
 
 use faction::PeerId;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimerMessage {
     ParticipationObserved { peer_id: PeerId },
     LocalParticipationCompleted,
