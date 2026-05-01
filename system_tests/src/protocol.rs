@@ -8,6 +8,9 @@ use faction::faction::Faction;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 
+use crate::message::Message;
+use crate::message::TimerMessage;
+use crate::message::TransportMessage;
 use crate::timer::TimerEvent;
 
 #[derive(Debug, Clone)]
@@ -33,24 +36,45 @@ impl Protocol {
         for peer in peers {
             if *peer != local_peer_id {
                 decisions.push(Decision::Schedule(TimerEvent::Fire(
-                    Command::ParticipationObserved {
-                        peer_id: *peer,
-                        freshness: 0,
-                        current_marker: 0,
-                    },
+                    TimerMessage::ParticipationObserved { peer_id: *peer },
                 )));
             }
         }
 
         decisions.push(Decision::Schedule(TimerEvent::Fire(
-            Command::LocalParticipationCompleted,
+            TimerMessage::LocalParticipationCompleted,
         )));
 
         decisions
     }
 
-    pub fn decide(&mut self, input_message: Command) -> Decision {
-        let outcomes = match self.faction.process(input_message) {
+    pub fn decide(&mut self, message: Message) -> Decision {
+        let command = match message {
+            Message::Transport(msg) => match msg {
+                TransportMessage::Ping { from } => Command::ParticipationObserved {
+                    peer_id: from,
+                    freshness: 0,
+                    current_marker: 0,
+                },
+                TransportMessage::Ready { from } => Command::ReadyObserved {
+                    peer_id: from,
+                    freshness: 0,
+                    current_marker: 0,
+                },
+                TransportMessage::Bootstrapped { .. } => Command::Probe,
+            },
+            Message::Timer(msg) => match msg {
+                TimerMessage::ParticipationObserved { peer_id } => Command::ParticipationObserved {
+                    peer_id,
+                    freshness: 0,
+                    current_marker: 0,
+                },
+                TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
+                TimerMessage::DeadlineExpired => Command::DeadlineExpired,
+            },
+        };
+
+        let outcomes = match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => return Decision::Noop,
@@ -61,7 +85,7 @@ impl Protocol {
                 Outcome::BroadcastLocalReady => return Decision::BroadcastReady,
                 Outcome::Exited { .. } => {
                     return Decision::Cancel(TimerEvent::Fire(
-                        Command::LocalParticipationCompleted,
+                        TimerMessage::LocalParticipationCompleted,
                     ));
                 }
                 _ => {}

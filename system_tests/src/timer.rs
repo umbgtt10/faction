@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::command::Command;
+use crate::message::TimerMessage;
 
 #[derive(Debug, Clone)]
 pub enum TimerEvent {
-    Fire(Command),
+    Fire(TimerMessage),
 }
 
 pub trait Timer: Send {

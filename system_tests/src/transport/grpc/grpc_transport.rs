@@ -3,16 +3,16 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::PeerId;
-use faction::command::Command;
 
+use crate::message::TransportMessage;
 use crate::transport::transport_trait::Transport;
 
 pub struct GrpcTransport;
 
 impl Transport for GrpcTransport {
-    fn send(&mut self, _to: PeerId, _message: Command) {}
+    fn send(&mut self, _to: PeerId, _message: TransportMessage) {}
 
-    fn recv(&mut self) -> Option<(PeerId, Command)> {
+    fn recv(&mut self) -> Option<(PeerId, TransportMessage)> {
         None
     }
 }

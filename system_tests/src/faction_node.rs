@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::Freshness;
 use faction::PeerId;
-use faction::command::Command;
 
+use crate::message::Message;
+use crate::message::TransportMessage;
 use crate::protocol::Decision;
 use crate::protocol::Protocol;
 use crate::timer::Timer;
@@ -43,14 +43,14 @@ impl FactionNode {
         let decisions = self.protocol.start_decisions(&self.peers, self.peer_id);
 
         for decision in decisions {
-            self.dispatch(decision, 0);
+            self.dispatch(decision);
         }
     }
 
-    pub fn step(&mut self, current_marker: Freshness) {
-        let command = if self.use_timer {
+    pub fn step(&mut self) {
+        let message = if self.use_timer {
             match self.timer.poll() {
-                Some(TimerEvent::Fire(command)) => command,
+                Some(TimerEvent::Fire(timer_msg)) => Message::Timer(timer_msg),
                 None => {
                     self.use_timer = !self.use_timer;
                     return;
@@ -58,7 +58,7 @@ impl FactionNode {
             }
         } else {
             match self.transport.recv() {
-                Some((_, command)) => command,
+                Some((_, transport_msg)) => Message::Transport(transport_msg),
                 None => {
                     self.use_timer = !self.use_timer;
                     return;
@@ -66,24 +66,18 @@ impl FactionNode {
             }
         };
 
-        let decision = self.protocol.decide(command);
-        self.dispatch(decision, current_marker);
+        let decision = self.protocol.decide(message);
+        self.dispatch(decision);
         self.use_timer = !self.use_timer;
     }
 
-    fn dispatch(&mut self, decision: Decision, current_marker: Freshness) {
+    fn dispatch(&mut self, decision: Decision) {
         match decision {
             Decision::BroadcastReady => {
                 for to in &self.peers {
                     if *to != self.peer_id {
-                        self.transport.send(
-                            *to,
-                            Command::ReadyObserved {
-                                peer_id: self.peer_id,
-                                freshness: current_marker,
-                                current_marker,
-                            },
-                        );
+                        self.transport
+                            .send(*to, TransportMessage::Ready { from: self.peer_id });
                     }
                 }
             }
