@@ -36,7 +36,12 @@ impl TcpTransport {
                 all[j].insert(peer_ids[i], b_to_a);
             }
         }
-        all.into_iter().map(|streams| TcpTransport { streams, buf: Vec::new() }).collect()
+        all.into_iter()
+            .map(|streams| TcpTransport {
+                streams,
+                buf: Vec::new(),
+            })
+            .collect()
     }
 
     fn encode(from: PeerId, tag: u8) -> Vec<u8> {
@@ -47,7 +52,9 @@ impl TcpTransport {
     }
 
     fn decode(data: &[u8]) -> Option<TransportMessage> {
-        if data.len() < 9 { return None; }
+        if data.len() < 9 {
+            return None;
+        }
         let from = PeerId::from_le_bytes(data[0..8].try_into().ok()?);
         match data[8] {
             0 => Some(TransportMessage::Ping { from }),

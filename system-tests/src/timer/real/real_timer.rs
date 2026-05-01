@@ -26,6 +26,12 @@ impl RealTimer {
     }
 }
 
+impl Default for RealTimer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Timer for RealTimer {
     fn poll(&mut self) -> Option<TimerEvent> {
         match self.events.peek() {

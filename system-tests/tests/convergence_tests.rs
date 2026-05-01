@@ -35,4 +35,3 @@ fn cluster_reaches_bootstrapped(
     cluster.poll_until_bootstrapped(10);
     assert!(cluster.is_bootstrapped());
 }
-
