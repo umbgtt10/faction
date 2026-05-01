@@ -5,7 +5,7 @@
 faction is a protocol-agnostic state machine primitive that answers one question:  
 *"When is the cluster ready to proceed?"*
 
-It tracks participation and readiness signals across a known set of peers, applies configurable freshness classification, and emits a deterministic exit decision — either **Quorum** or **Deadline**. No network I/O. No consensus algorithm. No opinion on what "ready" means. Just pure, testable state transitions.
+It tracks participation and readiness signals across a known set of peers, applies configurable freshness classification, and emits a deterministic exit decision — either **Bootstrapped** or **TimedOut**. No network I/O. No consensus algorithm. No opinion on what "ready" means. Just pure, testable state transitions.
 
 ---
 
@@ -16,94 +16,58 @@ Most distributed systems bootstrap with ad-hoc coordination — timeouts, magic 
 - **Deterministic** — same inputs always produce the same outputs. Replay any sequence.
 - **Verifiable** — every `(state, input)` pair is explicitly tested. No untested paths.
 - **Embeddable** — `no_std` + `alloc`, zero `unsafe`. Runs on bare metal, WASM, and cloud.
-- **Observable** — every transition reaches a trait-based `MachineObserver`. No instrumentation surprises.
-- **Slim by construction** — each state owns only its active data. Frozen fields are inherited from the previous snapshot. Terminal states are lightweight counters.
+- **Observable** — every transition reaches a trait-based `Observer`. No instrumentation surprises.
+- **Slim by construction** — each state carries only its active data. Terminal states are 8 bytes each.
 
 ---
 
 ## How it works
 
-The machine progresses through four states:
+The machine progresses through five states:
 
 ```
-Initial → Pinging → Collecting → ReadyByQuorum
-                         ↘           ReadyByDeadline
+Initial → Pinging → Collecting → Bootstrapped
+                         ↘           TimedOut
 ```
 
 | State | Carries |
 |---|---|
 | `Initial` | Nothing — unit struct |
-| `Pinging` | Two active `ConfirmedSet`s (phase 1 + phase 2) |
-| `Collecting` | One active `ConfirmedSet` (phase 2) + frozen phase 1 count |
-| `ReadyByQuorum` | Two frozen `usize` counts |
-| `ReadyByDeadline` | Two frozen `usize` counts |
+| `Pinging` | `pinged_peers: Vec<PeerId>`, `collected_peers: Vec<PeerId>` |
+| `Collecting` | `collected_peers: Vec<PeerId>`, `pinged_peers_count: usize` |
+| `Bootstrapped` | `pinged_peers_count: usize`, `collected_peers_count: usize` |
+| `TimedOut` | `pinged_peers_count: usize`, `collected_peers_count: usize` |
 
-Each state implements two traits:
+Each state implements the `State` trait with `step()`, `cluster_view()`, and `accept()`.
+Decision logic is centralized in **`ObservedStep`** — a struct that takes a freshness
+classification, the current confirmed peers, a peer identity, an observation kind, and a
+quorum threshold, and returns the updated peer list plus outputs.
 
-- **`MachineState`** — transition logic (`step`) and input gating (`accept`)
-- **`StateSnapshot`** — returns a delta over the previous snapshot. Fields the state doesn't touch are inherited automatically.
+Five commands drive the machine: `ParticipationObserved`, `ReadyObserved`, `LocalParticipationCompleted`,
+`DeadlineExpired`, and `Probe`. Thirteen outcomes cover acceptance, delay, staleness, duplication,
+non-member rejection, local participation completion, broadcast, quorum, and exit.
 
-```rust
-impl StateSnapshot for ReadyByDeadline {
-    fn state_snapshot(&self, previous: &MachineSnapshot) -> MachineSnapshot {
-        previous
-            .with_lifecycle_state(ReadinessLifecycleState::ReadyByDeadline)
-            .with_exit_mode(Some(ReadinessExitMode::Deadline))
-            .with_readiness_exited(true)
-            .with_phase1_count(self.phase1_count)
-            .with_phase2_count(self.phase2_count)
-            // local_participation_complete is inherited from `previous`
-            // — true if entered from Collecting, false if from Pinging
-    }
-}
-```
+Full specification in [phase-0-specification.md](./docs/phase-0-specification.md).
 
 ---
 
-## Quick start
+## Project status
 
-```rust
-use faction::machine::Machine;
-use faction::machine_config::MachineConfig;
-use faction::machine_input::MachineInput;
-use faction::freshness_policy::FreshnessPolicy;
-use faction::quorum_policy::QuorumPolicy;
-use faction::no_op_machine_observer::NoOpMachineObserver;
-
-let mut machine = Machine::new(
-    MachineConfig::new(
-        0,                           // local peer ID
-        vec![0, 1, 2, 3, 4],         // peer set
-        QuorumPolicy::new(4),        // quorum threshold (of 5)
-        FreshnessPolicy::new(2),     // max delay margin
-    ),
-    Box::new(NoOpMachineObserver),
-);
-
-// Feed observations — outputs are deterministic and replayable
-let outputs = machine.apply(MachineInput::ParticipationObserved {
-    peer_id: 1,
-    freshness: 10,
-    current_marker: 10,
-});
-```
+| Metric | Value |
+|---|---|
+| Productive LOC (core) | 1,312 |
+| Tests (core + validation) | 216 |
+| Crappy functions | 0 / 114 |
+| Code coverage | 99.7% (100% effective) |
+| Unsafe | 0 |
+| `no_std` | Verified |
 
 ---
 
 ## Roadmap
 
-The project is building toward full dynamic membership across five phases.
+The project is building toward full dynamic membership across six phases.
 See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
-
----
-
-## Design principles
-
-- **Pure Mealy** — `output = F(state, input)`. No side effects inside the machine.
-- **Explicit state ownership** — states carry only what they mutate. Frozen data becomes a `usize` count, not a mutable collection.
-- **No dead code** — terminal states return `false` from `accept()`, making `step()` unreachable by construction. No misleading match arms.
-- **Observer, not logger** — the `MachineObserver` trait receives every transition. Wire it to telemetry, audit, or testing assertions.
-- **Protocol-agnostic** — faction does not know what a "peer" is or how the network works. The caller owns network I/O.
 
 ---
 
@@ -111,8 +75,8 @@ See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
 
 | Crate | Description |
 |---|---|
-| `core/` | State machine — 17 source files, 164 tests, zero warnings |
-| `validation/` | Deterministic multi-node scenario harness — 31 tests |
+| `core/` | State machine — 13 source files, 192 tests |
+| `validation/` | Deterministic multi-node scenario harness — 34 tests |
 
 ---
 
@@ -120,8 +84,18 @@ See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
 
 ```powershell
 powershell -File scripts\run_stage_1.ps1   # format, clippy, no_std checks, tests
-powershell -File scripts\run_stage_2.ps1   # coverage and file risk analysis
+powershell -File scripts\run_stage_2.ps1   # CRAP and file risk analysis
 ```
+
+---
+
+## Design principles
+
+- **Pure Mealy** — `output = F(state, input)`. No side effects inside the machine.
+- **Explicit state ownership** — states carry only what they mutate. Counts become `usize`, not mutable collections.
+- **No dead code** — terminal states return `false` from `accept()`, making `step()` unreachable by construction.
+- **Observer, not logger** — the `Observer` trait receives every transition. Wire it to telemetry, audit, or testing assertions.
+- **Protocol-agnostic** — faction does not know what a "peer" is or how the network works. The caller owns network I/O.
 
 ---
 
@@ -137,3 +111,4 @@ Licensed under the MIT License. See [LICENSE](./LICENSE).
 - [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) — community guidelines
 - [DONATE](./DONATE.md) — support the project
 - [ROADMAP](./docs/ROADMAP.md) — future plans
+- [Phase 0 specification](./docs/phase-0-specification.md) — detailed state machine description
