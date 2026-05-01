@@ -3,6 +3,8 @@ name = "faction-protocol"
 version = "0.1.0"
 edition = "2024"
 autotests = false
+repository = "https://github.com/umbgtt10/faction"
+homepage = "https://github.com/umbgtt10/faction"
 
 [dependencies]
 faction = { path = "../core" }

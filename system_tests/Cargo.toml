@@ -2,6 +2,8 @@
 name = "faction-system-tests"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/umbgtt10/faction"
+homepage = "https://github.com/umbgtt10/faction"
 
 [dependencies]
 faction = { path = "../core" }
