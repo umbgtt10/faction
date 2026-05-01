@@ -10,7 +10,6 @@ use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
 use crate::exit_mode::ExitMode;
-use crate::freshness_classification::FreshnessClassification;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
@@ -18,7 +17,7 @@ use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::compute_output::ObservedKind;
-use super::compute_output::ObservedOutput;
+use super::observed_step::ObservedStep;
 use super::timed_out::TimedOut;
 
 #[derive(Default)]
@@ -96,16 +95,17 @@ impl State for Collecting {
                 let classification = config
                     .freshness_policy()
                     .classify(current_marker, freshness);
-                let is_dup = new_collecting_count.contains(&peer_id);
+                let step = ObservedStep::new(
+                    classification,
+                    new_collecting_count,
+                    peer_id,
+                    ObservedKind::Ready,
+                );
+                let output = step.outcome();
+                let confirmed_new = step.is_confirmed_new();
+                new_collecting_count = step.confirmed_peers();
 
-                let output = ObservedOutput::new(ObservedKind::Ready, peer_id)
-                    .compute_output(classification, is_dup);
-
-                let is_stale = matches!(classification, FreshnessClassification::Stale);
-                let confirmed_new = !is_stale && !is_dup;
-
-                let quorum =
-                    confirmed_new && new_collecting_count.len() + 1 >= config.required_count();
+                let quorum = confirmed_new && new_collecting_count.len() >= config.required_count();
                 let outputs = if quorum {
                     vec![
                         output,
@@ -117,10 +117,6 @@ impl State for Collecting {
                 } else {
                     vec![output]
                 };
-
-                if confirmed_new {
-                    new_collecting_count.push(peer_id);
-                }
 
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
