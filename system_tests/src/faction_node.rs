@@ -8,6 +8,8 @@ use faction::command::Command;
 use faction::outcome::Outcome;
 
 use crate::protocol::Protocol;
+use crate::timer::Timer;
+use crate::timer::TimerEvent;
 use crate::transport::transport_trait::Transport;
 
 pub struct FactionNode {
@@ -15,6 +17,7 @@ pub struct FactionNode {
     peers: Vec<PeerId>,
     protocol: Protocol,
     transport: Box<dyn Transport>,
+    timer: Box<dyn Timer>,
 }
 
 impl FactionNode {
@@ -23,30 +26,40 @@ impl FactionNode {
         peers: Vec<PeerId>,
         protocol: Protocol,
         transport: Box<dyn Transport>,
+        timer: Box<dyn Timer>,
     ) -> Self {
         Self {
             peer_id,
             peers,
             protocol,
             transport,
+            timer,
         }
     }
 
     pub fn start(&mut self) {
         for peer in &self.peers {
             if *peer != self.peer_id {
-                self.protocol.evaluate(Command::ParticipationObserved {
-                    peer_id: *peer,
-                    freshness: 0,
-                    current_marker: 0,
-                });
+                self.timer
+                    .schedule(TimerEvent::Fire(Command::ParticipationObserved {
+                        peer_id: *peer,
+                        freshness: 0,
+                        current_marker: 0,
+                    }));
             }
         }
 
-        self.protocol.evaluate(Command::LocalParticipationCompleted);
+        self.timer
+            .schedule(TimerEvent::Fire(Command::LocalParticipationCompleted));
     }
 
     pub fn tick(&mut self, current_marker: Freshness) {
+        while let Some(event) = self.timer.poll() {
+            if let TimerEvent::Fire(command) = event {
+                self.protocol.evaluate(command);
+            }
+        }
+
         while let Some((_, command)) = self.transport.recv() {
             let outcomes = self.protocol.evaluate(command);
 
