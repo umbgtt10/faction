@@ -11,6 +11,7 @@ faction = { path = "../core" }
 faction-protocol = { path = "../protocol" }
 
 [dev-dependencies]
+chrono = "0.4"
 rstest = { workspace = true }
 
 [[test]]
