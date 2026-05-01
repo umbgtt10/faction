@@ -32,7 +32,21 @@ impl FactionNode {
         }
     }
 
-    pub fn pump(&mut self, current_marker: Freshness) {
+    pub fn start(&mut self) {
+        for peer in &self.peers {
+            if *peer != self.peer_id {
+                self.protocol.evaluate(Command::ParticipationObserved {
+                    peer_id: *peer,
+                    freshness: 0,
+                    current_marker: 0,
+                });
+            }
+        }
+
+        self.protocol.evaluate(Command::LocalParticipationCompleted);
+    }
+
+    pub fn tick(&mut self, current_marker: Freshness) {
         while let Some((_, command)) = self.transport.recv() {
             let outcomes = self.protocol.evaluate(command);
 
