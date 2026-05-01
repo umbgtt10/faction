@@ -2,13 +2,13 @@
 
 **Status:** Draft  
 **Crate:** `system-tests`  
-**Depends on:** `faction` (core)
+**Depends on:** `faction` (core), `protocol`
 
 ---
 
 ## Purpose
 
-Validate that N independently running `Faction` instances, communicating over real
+Validate that N independently running `Protocol` instances, communicating over real
 transports, converge to `Bootstrapped`. These tests complement the transition matrix
 (exhaustive `(state, input)` coverage) and property tests (invariant verification).
 Together they validate the full stack: machine correctness → runtime wrapping →
@@ -20,23 +20,23 @@ transport framing → process isolation.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│              test orchestrator                     │
+│              test orchestrator                   │
 │  ┌─────────────────────────────────────────────┐ │
-│  │ spawn nodes, wire transports, poll, assert   │ │
+│  │ spawn nodes, wire transports, poll, assert  │ │
 │  └─────────────────────────────────────────────┘ │
-│                       │                           │
-│              ┌────────▼────────┐                  │
-│              │   Transport     │  ← trait         │
-│              │ send / recv     │                  │
-│              └────────┬────────┘                  │
-│         ┌─────────────┼─────────────┐             │
-│         ▼             ▼             ▼             │
+│                       │                          │
+│              ┌────────▼────────┐                │
+│              │   Transport     │  ← trait        │
+│              │ send / recv     │                 │
+│              └────────┬────────┘                 │
+│         ┌─────────────┼─────────────┐            │
+│         ▼             ▼             ▼           │
 │   ┌──────────┐ ┌──────────┐ ┌───────────┐        │
 │   │in-memory │ │   TCP    │ │   gRPC    │        │
 │   │ channels │ │  sockets │ │  streams  │        │
 │   └────┬─────┘ └────┬─────┘ └─────┬─────┘        │
 │        │            │             │               │
-│   ┌────▼────────────▼─────────────▼────┐          │
+│   ┌────▼────────────▼─────────────▼────┐         │
 │   │         node runtime               │          │
 │   │  ┌──────────────────────────────┐  │          │
 │   │  │ Faction                      │  │          │

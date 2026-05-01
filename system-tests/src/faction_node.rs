@@ -19,7 +19,7 @@ pub struct FactionNode {
     protocol: Protocol,
     transport: Box<dyn Transport>,
     timer: Box<dyn Timer>,
-    use_timer: bool,
+    toggle_timer_and_transport: bool,
 }
 
 impl FactionNode {
@@ -36,7 +36,7 @@ impl FactionNode {
             protocol,
             transport,
             timer,
-            use_timer: true,
+            toggle_timer_and_transport: true,
         }
     }
 
@@ -49,11 +49,11 @@ impl FactionNode {
     }
 
     pub fn step(&mut self) {
-        let message = if self.use_timer {
+        let message = if self.toggle_timer_and_transport {
             match self.timer.poll() {
                 Some(TimerEvent::Fire(timer_msg)) => InputMessage::Timer(timer_msg),
                 None => {
-                    self.use_timer = !self.use_timer;
+                    self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
                     return;
                 }
             }
@@ -61,7 +61,7 @@ impl FactionNode {
             match self.transport.recv() {
                 Some((_, transport_msg)) => InputMessage::Transport(transport_msg),
                 None => {
-                    self.use_timer = !self.use_timer;
+                    self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
                     return;
                 }
             }
@@ -71,7 +71,7 @@ impl FactionNode {
         for decision in decisions {
             self.dispatch(decision);
         }
-        self.use_timer = !self.use_timer;
+        self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
     }
 
     fn dispatch(&mut self, decision: OutputMessage) {
