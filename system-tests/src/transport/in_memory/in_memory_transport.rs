@@ -29,7 +29,7 @@ impl InMemoryTransport {
         peer_ids
             .iter()
             .enumerate()
-            .map(|(i, &local_id)| {
+            .map(|(i, &_)| {
                 let outboxes = peer_ids
                     .iter()
                     .enumerate()
@@ -54,10 +54,7 @@ impl Transport for InMemoryTransport {
     fn send(&mut self, to: PeerId, message: TransportMessage) {
         for (peer_id, inbox) in &self.outboxes {
             if *peer_id == to {
-                inbox
-                    .lock()
-                    .unwrap()
-                    .push_back(message.clone());
+                inbox.lock().unwrap().push_back(message.clone());
             }
         }
     }

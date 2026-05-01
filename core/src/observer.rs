@@ -8,7 +8,7 @@ use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::transition::Transition;
 
-pub trait Observer {
+pub trait Observer: Send {
     fn observe(&mut self, command: Command, transition: Transition);
 
     fn observe_query(&mut self, command: Command, cluster_view: ClusterView);

@@ -87,7 +87,7 @@ impl ClusterBuilder {
 
         let nodes: Vec<Node> = peer_ids
             .iter()
-            .zip(transports.into_iter())
+            .zip(transports)
             .map(|(&id, transport)| {
                 let config = Config::new(
                     id,

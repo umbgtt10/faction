@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::PeerId;
 use crate::node_observer::NodeObserver;
+use faction::PeerId;
 use faction::peer_state::PeerState;
 
 use faction_protocol::input_message::InputMessage;

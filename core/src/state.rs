@@ -11,7 +11,7 @@ use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 
-pub trait State {
+pub trait State: Send {
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>);
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView;
