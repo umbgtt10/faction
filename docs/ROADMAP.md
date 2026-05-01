@@ -30,62 +30,127 @@ bootstrapping, discovery, and dynamic membership. Published independently on cra
 
 ---
 
-## Current state
+## Phase 0 — Static membership (cluster readiness)
 
-`faction` (core) implements a **two-phase cluster readiness state machine** — a startup barrier
-that coordinates when a group of nodes is ready to proceed.
+**Status:** Complete  
+**Lines of code (productive):** 1,312  
+**Tests:** 192 core + 34 validation = 216 total  
+**Crappy functions:** 0 / 114  
+**Code coverage:** 99.7% (100% effective, one `const fn` branch is a coverage tool artifact)
 
-**Pinging phase:** nodes observe participation signals from peers. Once the local node completes
-its own participation, the machine moves to the Collecting phase.
+---
 
-**Collecting phase:** remote readiness signals are collected. Once a quorum of readiness signals
-is reached, the machine exits with `Bootstrapped`.
+### What it can do
 
-**Deadline fallback:** if `DeadlineExpired` is triggered before quorum, the machine exits
-with `TimedOut`.
+`faction` implements a **deterministic, two-phase cluster readiness state machine** — a startup
+barrier that coordinates when a group of nodes is ready to proceed.
 
-**Freshness classification:** each observation carries a freshness marker. The configurable
-`FreshnessPolicy` classifies observations as `Timely`, `DelayedWithinMargin`, or `Stale`.
+**States:**
+| State | Meaning |
+|---|---|
+| `Initial` | Freshly created, no action taken yet |
+| `Pinging` | Collecting participation signals from peers |
+| `Collecting` | Local participation complete, collecting readiness signals |
+| `Bootstrapped` | Quorum reached, cluster is ready |
+| `TimedOut` | Deadline expired before quorum |
 
-**`faction-validation`:** a deterministic scenario harness for multi-node readiness simulation.
+**Inputs (commands):**
+| Command | Effect |
+|---|---|
+| `ParticipationObserved { peer_id, freshness, current_marker }` | A peer sent a participation signal |
+| `ReadyObserved { peer_id, freshness, current_marker }` | A peer sent a readiness signal |
+| `LocalParticipationCompleted` | The local node signals its own participation is done |
+| `DeadlineExpired` | External deadline timer fired |
+| `Probe` | Query current cluster view without mutation |
 
-**Property-based invariants verified by proptest:**
+**Outputs (outcomes):**
+| Outcome | Meaning |
+|---|---|
+| `ParticipationAccepted` | Participation signal from a member, timely |
+| `DelayedParticipationAccepted` | Participation signal, delayed within margin |
+| `StaleParticipationIgnored` | Participation signal too old |
+| `DuplicateParticipationIgnored` | Duplicate signal from already-confirmed peer |
+| `ReadyAccepted` | Readiness signal from a member, timely |
+| `DelayedReadyAccepted` | Readiness signal, delayed within margin |
+| `StaleReadyIgnored` | Readiness signal too old |
+| `DuplicateReadyIgnored` | Duplicate readiness signal |
+| `NonMemberIgnored` | Signal from a peer not in the member set |
+| `LocalParticipationCompleted` | Local node finished its own participation |
+| `BroadcastLocalReady` | Local readiness should be broadcast to peers |
+| `ReadyQuorumReached` | Threshold of readiness signals met |
+| `Exited { mode }` | Machine exited (Bootstrapped or TimedOut) |
+
+**Key behaviors:**
+- Each observation carries a freshness marker. The configurable `FreshnessPolicy` classifies
+  it as `Timely` (matches current marker), `DelayedWithinMargin` (within configurable delay), or
+  `Stale` (too old or future-dated). Stale signals are counted toward quorum, duplicate signals
+  are idempotent.
+- Quorum is a configurable threshold passed at construction. The machine does not know what
+  quorum means — it only checks `count >= threshold`.
+- Non-member signals are rejected with `NonMemberIgnored` and never mutate state.
+- Cluster view (current state, confirmed peers, exit status) is queryable at any time via `Probe`,
+  with zero side effects.
+- Every transition is observable through the `Observer` trait — three methods:
+  `observe(commanded)`, `observe_query(probed)`, `observe_rejection(rejected)`.
+
+**Validation harness** (`faction-validation`):
+- `ScenarioHarness` — multi-node deterministic simulation with configurable peer sets
+- `ClusterSimulation` — event-driven simulation with broadcast queue, marker advancement
+- Property-based tests verify invariants across thousands of random command sequences
+
+**Invariants verified by property tests:**
 - Exit happens at most once
-- Counts never decrease
-- Stale/duplicate/non-member inputs never mutate state
-- Deadline and quorum both lead to correct exited states
+- Confirmed peer counts never decrease
+- Stale, duplicate, and non-member inputs never mutate state
+- Deadline and quorum both lead to correct exited states with matching exit modes
+- Model (pure reference implementation) matches the real machine for all random sequences
+
+---
+
+### Limitations (removed one by one in Phases 1–5)
+
+| # | Limitation | Removed in |
+|---|---|---|
+| L1 | **Static membership.** The peer list is fixed at construction. No peer can join, leave, or be added after initialization. `Config::is_member()` is a constant-time table lookup over an immutable list. | Phase 1 |
+| L2 | **No liveness tracking.** Once the machine exits (bootstrapped or timed out), it is terminal. No ping, no probe, no suspicion, no revival. The cluster either formed or didn't. | Phase 2 |
+| L3 | **Single-node addition requires protocol.** Adding a node mid-flight is not supported. There is no join handshake, no membership snapshot exchange, no reconfiguration state. | Phase 3 |
+| L4 | **Single-node removal requires protocol.** Removing a node mid-flight is not supported. There is no leave signal, no quorum-preserving removal check, no graceful departure. | Phase 4 |
+| L5 | **No epochs, no concurrent changes.** Membership has no version counter. Concurrent additions and removals are not sequenced. There is no split-brain prevention, no rejoin handling. | Phase 5 |
+| L6 | **No durable state.** The machine is in-memory only. No crash recovery, no persisted membership log, no replay from storage. | Future |
+| L7 | **No generic identity.** Peer IDs are `u64`. The machine has no `NodeId` trait, no address resolution, no pluggable identity model. | Future |
 
 ---
 
 ## Roadmap
 
-### Phase 0 — Harden what exists
-**Status:** Complete  
-**Target:** 1–2 weeks  
+### Phase 1 — Dynamic membership: joining
+**Status:** Planned  
+**Target:** 2–3 weeks  
+**Removes:** L1 (static membership)  
 
-Before extending, make the existing machine bulletproof.
+New question: **"Can a new peer join the cluster?"**
 
-**Deliverables:**
-- Complete `(state, input)` matrix coverage — every pair explicitly tested, not just property-based invariants
-- Adversarial inputs — malformed freshness markers, duplicate signals, non-member signals, signals arriving after exit
-- Observer trait coverage — every transition pair verified to reach the observer
-- `faction-validation` harness extended to cover deadline races explicitly
+Phase 1 addresses the first and most fundamental limitation: the peer set is no longer
+immutable. A new peer can send a join signal and be admitted to the cluster's member set
+at runtime.
 
-**Gate:** 100% `(state, input)` coverage. Nothing advances until this is green.
+**Minimal definition of "joining":**
+- A peer sends a `Join { peer_id }` command
+- The machine either admits the peer (adds them to the member set) or rejects them
+- Once admitted, the peer's signals (participation, readiness) are treated as valid member signals
+- A non-admitted peer's signals continue to be ignored
+- No reconfiguration protocol, no epochs, no failure detection
 
-**Results:**
-- **216 tests** (182 core + 34 validation) — all passing, clippy clean, 0 unsafe
-- **0 crappy functions** — complexity gates clean across 114 functions
-- **99.7% code coverage** (100% effective — one `const fn` branch is a coverage tool artifact)
-- **No dead code** — `ConfirmedSet`, `Bitmap`, `compute_output` (as extra module), `is_member`, `Option<classification>` all removed
-- **Architecture simplified:**
-  - `ObservedStep` single struct encapsulates all observation decision logic
-  - `Vec<PeerId>` directly in states — no wrapper types
-  - Pipeline model enforced — no mutation in match arms
-  - `cluster_view` no longer takes `config`
-  - Consistent naming: `pinged_peers`/`collected_peers` instead of phase names
-  - Every state has `#[derive(Default)]` + `new()`
-  - One struct per file, one test file per source file
+**New constraints that emerge:**
+- `is_member` can no longer be computed from a static config — it must be tracked as part of state
+- The `Config` type's `.is_member()` method becomes obsolete as a static query
+- The non-member gate (`non_member_peer`) transitions from returning `NonMemberIgnored` to potentially
+  producing `JoinOffer` or similar
+
+**Key design question — what happens when a non-member sends a signal?**
+- Option A: signal is ignored as before (current behavior, no change)
+- Option B: signal triggers a `JoinRequested` output — the caller decides whether to admit
+- Option C: signal is treated as an implicit join request — the machine admits automatically
 
 ---
 
@@ -284,7 +349,7 @@ computation over that set. The caller wires them together.
 
 | Phase | Focus | Target duration |
 |---|---|---|
-| Phase 0 | Harden existing machine | Complete |
+| Phase 0 | Static membership (cluster readiness) | Complete |
 | Phase 1 | Dynamic membership: joining | 2–3 weeks |
 | Phase 2 | Failure detection (SWIM) | 3–4 weeks |
 | Phase 3 | Single-node addition | 2–3 weeks |
