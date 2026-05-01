@@ -3,4 +3,5 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod faction_node;
+pub mod protocol;
 pub mod transport;
