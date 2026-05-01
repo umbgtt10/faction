@@ -1,0 +1,25 @@
+[package]
+name = "faction-protocol-validation"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+license = "Apache-2.0"
+description = "Validation support crate for deterministic scenario testing of the faction protocol layer"
+repository = "https://github.com/umbgtt10/etheram-ibft"
+homepage = "https://github.com/umbgtt10/etheram-ibft"
+keywords = ["cluster", "readiness", "protocol", "validation", "testing"]
+categories = ["development-tools::testing"]
+autotests = false
+publish = false
+
+[dependencies]
+faction = { path = "../core" }
+faction-protocol = { path = "../protocol" }
+
+[lib]
+name = "faction_protocol_validation"
+path = "src/lib.rs"
+
+[[test]]
+name = "all_tests"
+path = "tests/all_tests.rs"
