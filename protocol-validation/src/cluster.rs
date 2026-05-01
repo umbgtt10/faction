@@ -1,4 +1,6 @@
 // Copyright 2025 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 

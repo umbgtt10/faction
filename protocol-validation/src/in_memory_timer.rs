@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use std::collections::VecDeque;
+use alloc::collections::VecDeque;
 
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_trait::Timer;

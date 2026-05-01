@@ -5,8 +5,8 @@ edition = "2021"
 rust-version = "1.81"
 license = "Apache-2.0"
 description = "Validation support crate for deterministic scenario testing of the faction protocol layer"
-repository = "https://github.com/umbgtt10/etheram-ibft"
-homepage = "https://github.com/umbgtt10/etheram-ibft"
+repository = "https://github.com/umbgtt10/faction"
+homepage = "https://github.com/umbgtt10/faction"
 keywords = ["cluster", "readiness", "protocol", "validation", "testing"]
 categories = ["development-tools::testing"]
 autotests = false
@@ -15,6 +15,7 @@ publish = false
 [dependencies]
 faction = { path = "../core" }
 faction-protocol = { path = "../protocol" }
+spin = "0.9"
 
 [lib]
 name = "faction_protocol_validation"

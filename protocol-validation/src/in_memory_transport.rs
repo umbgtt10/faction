@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::sync::Mutex;
+use alloc::collections::VecDeque;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use spin::Mutex;
 
 use faction::PeerId;
 use faction_protocol::transport_message::TransportMessage;
@@ -47,7 +48,7 @@ impl InMemoryTransport {
     }
 
     pub fn push_inbox(&mut self, from: PeerId, message: TransportMessage) {
-        self.inbox.lock().unwrap().push_back((from, message));
+        self.inbox.lock().push_back((from, message));
     }
 }
 
@@ -57,13 +58,12 @@ impl Transport for InMemoryTransport {
             if *peer_id == to {
                 inbox
                     .lock()
-                    .unwrap()
                     .push_back((self.local_peer_id, message.clone()));
             }
         }
     }
 
     fn recv(&mut self) -> Option<(PeerId, TransportMessage)> {
-        self.inbox.lock().unwrap().pop_front()
+        self.inbox.lock().pop_front()
     }
 }
