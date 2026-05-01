@@ -24,7 +24,7 @@ fn new_stores_provided_values() {
     );
 
     // Assert
-    assert_eq!(config.local_peer_id(), 0);
+    assert_eq!(config.peer_id(), 0);
     assert_eq!(config.peers(), &[0, 1, 2, 3, 4]);
     assert_eq!(config.peer_count(), 5);
     assert_eq!(config.required_count(), 3);
@@ -74,10 +74,10 @@ fn peer_index_returns_some_for_member() {
     );
 
     // Act
-    let index = config.peer_index(20);
+    let is_member = config.is_member(20);
 
     // Assert
-    assert_eq!(index, Some(1));
+    assert!(is_member);
 }
 
 #[test]
@@ -91,10 +91,10 @@ fn peer_index_returns_none_for_non_member() {
     );
 
     // Act
-    let index = config.peer_index(99);
+    let is_member = config.is_member(99);
 
     // Assert
-    assert_eq!(index, None);
+    assert!(!is_member);
 }
 
 #[test]
@@ -108,10 +108,10 @@ fn peer_index_returns_position_of_local_peer() {
     );
 
     // Act
-    let index = config.peer_index(3);
+    let is_member = config.is_member(3);
 
     // Assert
-    assert_eq!(index, Some(3));
+    assert!(is_member);
 }
 
 #[test]

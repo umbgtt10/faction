@@ -517,7 +517,7 @@ fn vibe_check_in_phase1() {
 #[test]
 fn pinging_cluster_view_inherits_correctly() {
     // Arrange
-    let pinging = Pinging::new(5);
+    let pinging = Pinging::new();
     let config = Config::new(
         0,
         vec![0, 1, 2, 3, 4],

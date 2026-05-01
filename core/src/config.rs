@@ -9,7 +9,7 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::PeerId;
 
 pub struct Config {
-    local_peer_id: PeerId,
+    peer_id: PeerId,
     peers: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
     freshness_policy: FreshnessPolicy,
@@ -18,13 +18,13 @@ pub struct Config {
 impl Config {
     #[must_use]
     pub fn new(
-        local_peer_id: PeerId,
+        peer_id: PeerId,
         peers: Vec<PeerId>,
         quorum_policy: QuorumPolicy,
         freshness_policy: FreshnessPolicy,
     ) -> Self {
         Self {
-            local_peer_id,
+            peer_id,
             peers,
             quorum_policy,
             freshness_policy,
@@ -32,8 +32,8 @@ impl Config {
     }
 
     #[must_use]
-    pub const fn local_peer_id(&self) -> PeerId {
-        self.local_peer_id
+    pub const fn peer_id(&self) -> PeerId {
+        self.peer_id
     }
 
     #[must_use]
@@ -63,13 +63,6 @@ impl Config {
 
     #[must_use]
     pub fn is_member(&self, peer_id: PeerId) -> bool {
-        self.peer_index(peer_id).is_some()
-    }
-
-    #[must_use]
-    pub fn peer_index(&self, peer_id: PeerId) -> Option<usize> {
-        self.peers
-            .iter()
-            .position(|candidate| *candidate == peer_id)
+        self.peers.contains(&peer_id)
     }
 }

@@ -557,7 +557,7 @@ fn vibe_check_returns_correct_snapshot() {
 #[test]
 fn collecting_cluster_view_inherits_correctly() {
     // Arrange
-    let phase2 = ConfirmedSet::new(5);
+    let phase2 = ConfirmedSet::new();
     let (phase2, _) = phase2.confirm(1);
     let (phase2, _) = phase2.confirm(3);
     let collecting = Collecting {

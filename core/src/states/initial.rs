@@ -27,7 +27,7 @@ impl State for Initial {
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let pinging = Pinging::new(config.peer_count());
+        let pinging = Pinging::new();
         pinging.step(command, config)
     }
 

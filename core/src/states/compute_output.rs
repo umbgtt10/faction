@@ -26,11 +26,11 @@ impl ObservedOutput {
     #[must_use]
     pub fn compute_output(
         &self,
-        index: Option<usize>,
+        is_member: bool,
         classification: Option<FreshnessClassification>,
         is_dup: bool,
     ) -> Outcome {
-        if index.is_none() {
+        if !is_member {
             return Outcome::NonMemberIgnored {
                 peer_id: self.peer_id,
             };

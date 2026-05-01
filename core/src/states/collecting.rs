@@ -45,12 +45,12 @@ impl State for Collecting {
         ]
     }
 
-    fn cluster_view(&self, previous: &ClusterView, config: &Config) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
         previous
             .clone()
             .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
-            .with_collecting_peers(self.collecting_count.confirmed_peers(config.peers()))
+            .with_collecting_peers(self.collecting_count.confirmed_peers().to_vec())
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
@@ -67,22 +67,26 @@ impl State for Collecting {
                 freshness,
                 current_marker,
             } => {
-                let index = config.peer_index(peer_id);
-                let classification = index.map(|_| {
-                    config
-                        .freshness_policy()
-                        .classify(current_marker, freshness)
-                });
-                let is_dup = index.is_some_and(|i| collecting_count.is_confirmed(i));
+                let is_member = config.is_member(peer_id);
+                let classification = if is_member {
+                    Some(
+                        config
+                            .freshness_policy()
+                            .classify(current_marker, freshness),
+                    )
+                } else {
+                    None
+                };
+                let is_dup = is_member && collecting_count.is_confirmed(peer_id);
 
                 let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
-                    index,
+                    is_member,
                     classification,
                     is_dup,
                 );
 
                 let (new_collecting_count, confirmed_new) =
-                    collecting_count.try_confirm(index, is_dup, classification);
+                    collecting_count.try_confirm(peer_id, is_member, classification);
 
                 let quorum =
                     confirmed_new && new_collecting_count.count() >= config.required_count();
