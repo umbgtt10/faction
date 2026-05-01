@@ -118,43 +118,24 @@ impl State for Pinging {
             }
 
             Command::LocalParticipationCompleted => {
-                let collected_peers = if self.collected_peers.contains(&config.peer_id()) {
-                    self.collected_peers.clone()
-                } else {
-                    let mut peers = self.collected_peers.clone();
-                    peers.push(config.peer_id());
-                    peers
-                };
+                let step = ObservedStep::new_local(
+                    self.collected_peers.clone(),
+                    config.peer_id(),
+                    config.required_count(),
+                );
 
-                let quorum = collected_peers.len() >= config.required_count();
-                let outputs = if quorum {
-                    vec![
-                        Outcome::LocalParticipationCompleted,
-                        Outcome::BroadcastLocalReady,
-                        Outcome::ReadyQuorumReached,
-                        Outcome::Exited {
-                            mode: ExitMode::Bootstrapped,
-                        },
-                    ]
-                } else {
-                    vec![
-                        Outcome::LocalParticipationCompleted,
-                        Outcome::BroadcastLocalReady,
-                    ]
-                };
-
-                let new_state: Box<dyn State> = if quorum {
+                let new_state: Box<dyn State> = if step.is_quorum() {
                     Box::new(Bootstrapped {
                         pinged_peers_count: self.pinged_peers.len(),
-                        collected_peers_count: collected_peers.len(),
+                        collected_peers_count: step.confirmed_peers().len(),
                     })
                 } else {
                     Box::new(Collecting {
-                        collected_peers,
+                        collected_peers: step.confirmed_peers(),
                         pinged_peers_count: self.pinged_peers.len(),
                     })
                 };
-                (outputs, new_state)
+                (step.outputs(), new_state)
             }
 
             Command::DeadlineExpired => (

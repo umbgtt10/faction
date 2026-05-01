@@ -14,7 +14,7 @@ use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
 
 pub struct ObservedStep {
-    outcome: Outcome,
+    outputs_prefix: Vec<Outcome>,
     confirmed_peers: Vec<PeerId>,
     confirmed_new: bool,
     quorum_threshold: Option<usize>,
@@ -41,10 +41,33 @@ impl ObservedStep {
         }
 
         Self {
-            outcome,
+            outputs_prefix: vec![outcome],
             confirmed_peers: new_confirmed_peers,
             confirmed_new,
             quorum_threshold,
+        }
+    }
+
+    #[must_use]
+    pub fn new_local(
+        confirmed_peers: Vec<PeerId>,
+        peer_id: PeerId,
+        quorum_threshold: usize,
+    ) -> Self {
+        let was_present = confirmed_peers.contains(&peer_id);
+        let mut new_confirmed_peers = confirmed_peers;
+        if !was_present {
+            new_confirmed_peers.push(peer_id);
+        }
+
+        Self {
+            outputs_prefix: vec![
+                Outcome::LocalParticipationCompleted,
+                Outcome::BroadcastLocalReady,
+            ],
+            confirmed_peers: new_confirmed_peers,
+            confirmed_new: true,
+            quorum_threshold: Some(quorum_threshold),
         }
     }
 
@@ -63,17 +86,19 @@ impl ObservedStep {
 
     #[must_use]
     pub fn outputs(&self) -> Vec<Outcome> {
-        match self.quorum_threshold {
-            Some(threshold) if self.confirmed_new && self.confirmed_peers.len() >= threshold => {
-                vec![
-                    self.outcome.clone(),
-                    Outcome::ReadyQuorumReached,
-                    Outcome::Exited {
-                        mode: ExitMode::Bootstrapped,
-                    },
-                ]
-            }
-            _ => vec![self.outcome.clone()],
+        let has_quorum = matches!(
+            self.quorum_threshold,
+            Some(threshold) if self.confirmed_new && self.confirmed_peers.len() >= threshold
+        );
+        if has_quorum {
+            let mut v = self.outputs_prefix.clone();
+            v.push(Outcome::ReadyQuorumReached);
+            v.push(Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
+            });
+            v
+        } else {
+            self.outputs_prefix.clone()
         }
     }
 }
