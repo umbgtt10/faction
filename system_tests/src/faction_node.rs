@@ -76,6 +76,14 @@ impl FactionNode {
 
     fn dispatch(&mut self, decision: OutputMessage) {
         match decision {
+            OutputMessage::BroadcastPing => {
+                for to in &self.peers {
+                    if *to != self.peer_id {
+                        self.transport
+                            .send(*to, TransportMessage::Ping { from: self.peer_id });
+                    }
+                }
+            }
             OutputMessage::BroadcastReady => {
                 for to in &self.peers {
                     if *to != self.peer_id {

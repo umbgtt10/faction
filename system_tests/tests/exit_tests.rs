@@ -12,12 +12,16 @@ fn converge_two_nodes(cluster: &mut Cluster) {
 
     cluster.step_timer_node(0);
     cluster.step_timer_node(0);
+    cluster.step_timer_node(0);
+
+    cluster.step_timer_node(1);
     cluster.step_timer_node(1);
     cluster.step_timer_node(1);
     cluster.step_timer_node(1);
 
     cluster.step_transport_node(0);
     cluster.step_transport_node(0);
+    cluster.step_transport_node(1);
     cluster.step_transport_node(1);
 }
 

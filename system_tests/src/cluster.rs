@@ -132,6 +132,18 @@ impl Cluster {
         let index = self.peer_ids.iter().position(|&p| p == from).unwrap();
 
         match msg {
+            OutputMessage::BroadcastPing => {
+                let peers = self.peer_ids.clone();
+                for &to in &peers {
+                    if to != from {
+                        let transport_msg = TransportMessage::Ping { from };
+                        if self.should_drop(from, to, &transport_msg) {
+                            continue;
+                        }
+                        self.transports[index].send(to, transport_msg);
+                    }
+                }
+            }
             OutputMessage::BroadcastReady => {
                 let peers = self.peer_ids.clone();
                 for &to in &peers {

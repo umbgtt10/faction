@@ -8,6 +8,7 @@ use faction::PeerId;
 pub enum TimerMessage {
     ParticipationObserved { peer_id: PeerId },
     LocalParticipationCompleted,
+    RetryPing,
     RetryReady,
     DeadlineExpired,
 }

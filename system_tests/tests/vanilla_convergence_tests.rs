@@ -10,7 +10,29 @@ fn five_nodes_converge_to_bootstrapped() {
     let mut cluster = Cluster::new(5, 4);
     cluster.start_all();
 
-    // Act — 5 timer phases: each node processes 4 ParticipationObserved + 1 LocalParticipationCompleted
+    // Act — drain the initial Pings from start_all (4 per node)
+    cluster.step_transport_node(0);
+    cluster.step_transport_node(1);
+    cluster.step_transport_node(2);
+    cluster.step_transport_node(3);
+    cluster.step_transport_node(4);
+    cluster.step_transport_node(0);
+    cluster.step_transport_node(1);
+    cluster.step_transport_node(2);
+    cluster.step_transport_node(3);
+    cluster.step_transport_node(4);
+    cluster.step_transport_node(0);
+    cluster.step_transport_node(1);
+    cluster.step_transport_node(2);
+    cluster.step_transport_node(3);
+    cluster.step_transport_node(4);
+    cluster.step_transport_node(0);
+    cluster.step_transport_node(1);
+    cluster.step_transport_node(2);
+    cluster.step_transport_node(3);
+    cluster.step_transport_node(4);
+
+    // Act — 5 timer phases: 4 ParticipationObserved + 1 LocalParticipationCompleted
     cluster.step_timer_node(0);
     cluster.step_timer_node(1);
     cluster.step_timer_node(2);
@@ -35,6 +57,13 @@ fn five_nodes_converge_to_bootstrapped() {
     cluster.step_timer_node(3);
     cluster.step_timer_node(4);
 
+    cluster.step_timer_node(0);
+    cluster.step_timer_node(1);
+    cluster.step_timer_node(2);
+    cluster.step_timer_node(3);
+    cluster.step_timer_node(4);
+
+    // Act — RetryPing fires
     cluster.step_timer_node(0);
     cluster.step_timer_node(1);
     cluster.step_timer_node(2);

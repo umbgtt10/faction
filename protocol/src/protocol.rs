@@ -56,10 +56,26 @@ impl Protocol {
             TimerMessage::LocalParticipationCompleted,
         )));
 
+        decisions.push(OutputMessage::BroadcastPing);
+        decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
+            TimerMessage::RetryPing,
+        )));
+
         decisions
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
+        if matches!(input_message, InputMessage::Timer(TimerMessage::RetryPing)) {
+            if self.cluster_view().is_exited() {
+                return vec![OutputMessage::Noop];
+            }
+
+            return vec![
+                OutputMessage::BroadcastPing,
+                OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
+            ];
+        }
+
         if matches!(input_message, InputMessage::Timer(TimerMessage::RetryReady)) {
             if self.cluster_view().is_exited() {
                 return vec![OutputMessage::Noop];

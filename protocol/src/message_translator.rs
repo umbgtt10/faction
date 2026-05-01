@@ -45,6 +45,7 @@ impl MessageTranslator {
                         OutputMessage::Cancel(TimerEvent::Fire(
                             TimerMessage::LocalParticipationCompleted,
                         )),
+                        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
                         OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
                     ];
                 }
@@ -78,6 +79,7 @@ impl MessageTranslator {
                     current_marker: 0,
                 },
                 TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
+                TimerMessage::RetryPing => unreachable!("handled in decide()"),
                 TimerMessage::RetryReady => unreachable!("handled in decide()"),
                 TimerMessage::DeadlineExpired => Command::DeadlineExpired,
             },

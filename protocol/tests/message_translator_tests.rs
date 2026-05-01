@@ -106,6 +106,16 @@ fn to_command_timer_local_participation_completed_maps_to_local_participation_co
 
 #[test]
 #[should_panic(expected = "handled in decide()")]
+fn to_command_timer_retry_ping_panics() {
+    // Arrange
+    let t = translator();
+
+    // Act
+    let _ = t.to_command(InputMessage::Timer(TimerMessage::RetryPing));
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
 fn to_command_timer_retry_ready_panics() {
     // Arrange
     let t = translator();
@@ -156,7 +166,7 @@ fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
 }
 
 #[test]
-fn to_output_messages_exited_returns_cancel_lpc_and_cancel_retry() {
+fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
     // Arrange
     let t = translator();
 
@@ -166,9 +176,10 @@ fn to_output_messages_exited_returns_cancel_lpc_and_cancel_retry() {
     }]);
 
     // Assert
-    assert_eq!(result.len(), 2);
+    assert_eq!(result.len(), 3);
     assert!(matches!(result[0], OutputMessage::Cancel(_)));
     assert!(matches!(result[1], OutputMessage::Cancel(_)));
+    assert!(matches!(result[2], OutputMessage::Cancel(_)));
 }
 
 #[test]
@@ -207,9 +218,10 @@ fn to_output_messages_exited_wins_over_broadcast_local_ready_when_first() {
     ]);
 
     // Assert
-    assert_eq!(result.len(), 2);
+    assert_eq!(result.len(), 3);
     assert!(matches!(result[0], OutputMessage::Cancel(_)));
     assert!(matches!(result[1], OutputMessage::Cancel(_)));
+    assert!(matches!(result[2], OutputMessage::Cancel(_)));
 }
 
 #[test]
@@ -244,7 +256,7 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
     ]);
 
     // Assert
-    assert_eq!(result.len(), 2);
+    assert_eq!(result.len(), 3);
     assert!(matches!(result[0], OutputMessage::Cancel(_)));
 }
 

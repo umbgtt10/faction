@@ -27,7 +27,7 @@ fn start_decisions_with_two_peers() {
     let decisions = protocol().start_decisions();
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 4);
     assert!(matches!(
         decisions[0],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ParticipationObserved {
@@ -37,6 +37,11 @@ fn start_decisions_with_two_peers() {
     assert!(matches!(
         decisions[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted))
+    ));
+    assert!(matches!(decisions[2], OutputMessage::BroadcastPing));
+    assert!(matches!(
+        decisions[3],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
     ));
 }
 
@@ -102,9 +107,10 @@ fn decide_ready_after_local_completion_reaches_quorum() {
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
+    assert!(matches!(decisions[2], OutputMessage::Cancel(_)));
     assert_eq!(
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped
@@ -135,9 +141,10 @@ fn decide_deadline_expired_exits() {
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::DeadlineExpired));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
+    assert!(matches!(decisions[2], OutputMessage::Cancel(_)));
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::TimedOut);
 }
 
@@ -218,6 +225,42 @@ fn decide_retry_ready_while_exited_produces_noop() {
 }
 
 #[test]
+fn decide_retry_ping_while_active_produces_broadcast_and_retry() {
+    // Arrange
+    let mut protocol = protocol();
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
+
+    // Assert
+    assert_eq!(decisions.len(), 2);
+    assert!(matches!(decisions[0], OutputMessage::BroadcastPing));
+    assert!(matches!(
+        decisions[1],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
+    ));
+}
+
+#[test]
+fn decide_retry_ping_while_exited_produces_noop() {
+    // Arrange
+    let mut protocol = protocol();
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
+
+    // Assert
+    assert_eq!(decisions.len(), 1);
+    assert!(matches!(decisions[0], OutputMessage::Noop));
+}
+
+#[test]
 fn decide_timer_participation_observed_produces_noop() {
     // Arrange
     let mut protocol = protocol();
@@ -276,9 +319,10 @@ fn full_convergence_sequence_ping_lpc_ready_reaches_bootstrapped() {
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
+    assert!(matches!(decisions[2], OutputMessage::Cancel(_)));
     assert_eq!(
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped
