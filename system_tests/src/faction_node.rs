@@ -55,9 +55,8 @@ impl FactionNode {
 
     pub fn tick(&mut self, current_marker: Freshness) {
         while let Some(event) = self.timer.poll() {
-            if let TimerEvent::Fire(command) = event {
-                self.protocol.evaluate(command);
-            }
+            let TimerEvent::Fire(command) = event;
+            self.protocol.evaluate(command);
         }
 
         while let Some((_, command)) = self.transport.recv() {
