@@ -185,49 +185,62 @@ A single rstest with 5 variants:
 #[case::process_tcp(Variant::tcp(Spawn::Process))]
 fn cluster_reaches_bootstrapped(#[case] variant: Variant) {
     let observer = SharedFileObserver::new(tempfile());
-    let nodes = variant.spawn(PEER_SET, observer.clone());
-    poll_until_bootstrapped(&nodes, backoff_strategy());
+    let cluster = variant.create_cluster(PEER_SET, observer.clone());
+    cluster.poll_until_bootstrapped(backoff_strategy());
 
-    for node in &nodes {
-        assert_eq!(
-            node.cluster_view().peer_state(),
-            PeerState::Bootstrapped,
-            "node {} failed to bootstrap\nlog:\n{}",
-            node.id(),
-            observer.read_all(),
-        );
-    }
+    assert!(cluster.is_bootstrapped(),
+        "cluster failed to bootstrap\nlog:\n{}",
+        observer.read_all(),
+    );
 }
 ```
 
 The test logic is identical across variants — only the `Variant` value type changes.
-`Variant` bundles transport factory + spawn strategy. `poll_until_bootstrapped` polls
-each node's gRPC endpoint with exponential backoff.
+`Variant` bundles transport factory + spawn strategy. The cluster owns the gRPC endpoints
+of all its nodes and coordinates polling internally.
 
 ---
 
 ## Polling with backoff
 
-```rust
-fn poll_until_bootstrapped(nodes: &[Node], strategy: BackoffStrategy) {
-    let deadline = Instant::now() + strategy.total_timeout();
-    let mut delay = strategy.initial_delay();
+The `Cluster` encapsulates the backoff polling logic:
 
-    loop {
-        if nodes.iter().all(|n| n.cluster_view().peer_state() == PeerState::Bootstrapped) {
-            return;
+```rust
+struct Cluster {
+    endpoints: Vec<PeerEndpoint>,
+    observer: SharedFileObserver,
+}
+
+impl Cluster {
+    fn poll_until_bootstrapped(&self, strategy: BackoffStrategy) {
+        let deadline = Instant::now() + strategy.total_timeout();
+        let mut delay = strategy.initial_delay();
+
+        loop {
+            if self.is_bootstrapped() {
+                return;
+            }
+            if Instant::now() > deadline {
+                break;
+            }
+            sleep(delay);
+            delay = (delay * strategy.multiplier()).min(strategy.max_delay());
         }
-        if Instant::now() > deadline {
-            break;
-        }
-        sleep(delay);
-        delay = (delay * strategy.multiplier()).min(strategy.max_delay());
+    }
+
+    fn is_bootstrapped(&self) -> bool {
+        self.endpoints.iter().all(|ep| {
+            ep.cluster_view().peer_state() == PeerState::Bootstrapped
+        })
     }
 }
 ```
 
 Default backoff: 1s initial, 2× multiplier, 5s max, 30s total timeout. Configurable
 per test case.
+
+The orchestrator never interacts with individual nodes — it delegates polling and
+assertions to the `Cluster`.
 
 ---
 
