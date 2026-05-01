@@ -13,6 +13,7 @@ use rstest::rstest;
 
 #[rstest]
 #[case::task_in_memory(Spawn::Task, TimerKind::InMemory, TransportKind::InMemory)]
+#[case::task_channels(Spawn::Task, TimerKind::InMemory, TransportKind::Channels)]
 fn cluster_reaches_bootstrapped(
     #[case] spawn: Spawn,
     #[case] timer: TimerKind,

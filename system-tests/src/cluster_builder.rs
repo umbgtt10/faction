@@ -15,6 +15,7 @@ use faction::observer::Observer;
 use faction::quorum_policy::QuorumPolicy;
 
 use faction_protocol::protocol::Protocol;
+use faction_protocol::transport_trait::Transport;
 
 use crate::cluster::Cluster;
 use crate::faction_node::FactionNode;
@@ -26,6 +27,7 @@ use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
 use crate::timer::in_memory::in_memory_timer::InMemoryTimer;
 use crate::timer_kind::TimerKind;
+use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport_kind::TransportKind;
 
@@ -82,12 +84,22 @@ impl ClusterBuilder {
     #[must_use]
     pub fn build(self) -> Cluster {
         let peer_ids: Vec<PeerId> = (0..self.node_count as PeerId).collect();
-        let transports = InMemoryTransport::new_mesh(&peer_ids);
+        let transports: Vec<Box<dyn Transport>> = match self.transport {
+            TransportKind::InMemory => InMemoryTransport::new_mesh(&peer_ids)
+                .into_iter()
+                .map(|t| Box::new(t) as Box<dyn Transport>)
+                .collect(),
+            TransportKind::Channels => ChannelsTransport::new_mesh(&peer_ids)
+                .into_iter()
+                .map(|t| Box::new(t) as Box<dyn Transport>)
+                .collect(),
+            _ => unimplemented!(),
+        };
         let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
 
         let nodes: Vec<Node> = peer_ids
             .iter()
-            .zip(transports)
+            .zip(transports.into_iter())
             .map(|(&id, transport)| {
                 let config = Config::new(
                     id,
@@ -109,7 +121,7 @@ impl ClusterBuilder {
                     id,
                     peer_ids.clone(),
                     protocol,
-                    Box::new(transport),
+                    transport,
                     Box::new(InMemoryTimer::new()),
                     node_observer,
                 );
