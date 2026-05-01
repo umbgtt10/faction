@@ -244,3 +244,68 @@ fn decide_bootstrapped_message_panics() {
         from: 1,
     }));
 }
+
+#[test]
+fn full_convergence_sequence_ping_lpc_ready_reaches_bootstrapped() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act — Ping
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+
+    // Assert
+    assert_eq!(decisions.len(), 1);
+    assert!(matches!(decisions[0], OutputMessage::Noop));
+    assert_eq!(protocol.cluster_view().peer_state(), PeerState::Pinging);
+
+    // Act — LocalParticipationCompleted
+    let decisions = protocol.decide(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+
+    // Assert
+    assert_eq!(decisions.len(), 2);
+    assert!(matches!(decisions[0], OutputMessage::BroadcastReady));
+    assert!(matches!(
+        decisions[1],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
+    ));
+    assert_eq!(protocol.cluster_view().peer_state(), PeerState::Collecting);
+
+    // Act — Ready from peer
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+
+    // Assert
+    assert_eq!(decisions.len(), 2);
+    assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
+    assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
+    assert_eq!(
+        protocol.cluster_view().peer_state(),
+        PeerState::Bootstrapped
+    );
+}
+
+#[test]
+fn pre_accumulated_ready_reaches_quorum_on_local_completion() {
+    // Arrange
+    let mut protocol = protocol();
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+
+    // Act — LPC fires with Ready already accumulated
+    let decisions = protocol.decide(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+
+    // Assert
+    assert_eq!(decisions.len(), 2);
+    assert!(matches!(decisions[0], OutputMessage::BroadcastReady));
+    assert!(matches!(
+        decisions[1],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
+    ));
+    assert_eq!(
+        protocol.cluster_view().peer_state(),
+        PeerState::Bootstrapped
+    );
+}
