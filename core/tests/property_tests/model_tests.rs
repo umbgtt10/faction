@@ -180,7 +180,6 @@ impl ModelCoordinator {
         }
 
         self.collecting_confirmed[index] = true;
-        let prev_collecting = self.collecting_confirmed_count;
         self.collecting_confirmed_count += 1;
 
         let accepted_output = if self.is_delayed(current_marker, freshness) {
@@ -190,7 +189,6 @@ impl ModelCoordinator {
         };
 
         if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
-            self.collecting_confirmed_count = prev_collecting;
             self.exit_mode = Some(ExitMode::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
@@ -226,10 +224,7 @@ impl ModelCoordinator {
             Outcome::BroadcastLocalReady,
         ];
 
-        let prev_collecting = self.collecting_confirmed_count;
-
         if self.collecting_confirmed_count >= self.required_count {
-            self.collecting_confirmed_count = prev_collecting;
             self.exit_mode = Some(ExitMode::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::ReadyQuorumReached);

@@ -20,7 +20,7 @@ function Invoke-Crap4RustGate {
         [string[]]$ExcludePaths = @()
     )
 
-    cargo install crap4rust --force
+    cargo install cargo-crap4rust
     if ($LASTEXITCODE -ne 0) {
         Write-Host "`nFailed to install crap4rust" -ForegroundColor Red
         Pop-Location
