@@ -4,11 +4,11 @@
 
 use faction::PeerId;
 
-use faction_protocol::message::Message;
-use faction_protocol::message::TransportMessage;
-use faction_protocol::protocol::Decision;
+use faction_protocol::input_message::InputMessage;
+use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
+use faction_protocol::transport_message::TransportMessage;
 
 use crate::timer::Timer;
 use crate::transport::transport_trait::Transport;
@@ -51,7 +51,7 @@ impl FactionNode {
     pub fn step(&mut self) {
         let message = if self.use_timer {
             match self.timer.poll() {
-                Some(TimerEvent::Fire(timer_msg)) => Message::Timer(timer_msg),
+                Some(TimerEvent::Fire(timer_msg)) => InputMessage::Timer(timer_msg),
                 None => {
                     self.use_timer = !self.use_timer;
                     return;
@@ -59,7 +59,7 @@ impl FactionNode {
             }
         } else {
             match self.transport.recv() {
-                Some((_, transport_msg)) => Message::Transport(transport_msg),
+                Some((_, transport_msg)) => InputMessage::Transport(transport_msg),
                 None => {
                     self.use_timer = !self.use_timer;
                     return;
@@ -72,9 +72,9 @@ impl FactionNode {
         self.use_timer = !self.use_timer;
     }
 
-    fn dispatch(&mut self, decision: Decision) {
+    fn dispatch(&mut self, decision: OutputMessage) {
         match decision {
-            Decision::BroadcastReady => {
+            OutputMessage::BroadcastReady => {
                 for to in &self.peers {
                     if *to != self.peer_id {
                         self.transport
@@ -82,13 +82,13 @@ impl FactionNode {
                     }
                 }
             }
-            Decision::Schedule(event) => {
+            OutputMessage::Schedule(event) => {
                 self.timer.schedule(event);
             }
-            Decision::Cancel(event) => {
+            OutputMessage::Cancel(event) => {
                 self.timer.cancel(event);
             }
-            Decision::Noop => {}
+            OutputMessage::Noop => {}
         }
     }
 }

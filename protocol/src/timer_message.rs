@@ -5,19 +5,6 @@
 use faction::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Message {
-    Transport(TransportMessage),
-    Timer(TimerMessage),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TransportMessage {
-    Ping { from: PeerId },
-    Ready { from: PeerId },
-    Bootstrapped { from: PeerId },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TimerMessage {
     ParticipationObserved { peer_id: PeerId },
     LocalParticipationCompleted,

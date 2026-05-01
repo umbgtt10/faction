@@ -10,18 +10,11 @@ use faction::faction::Faction;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 
-use crate::message::Message;
-use crate::message::TimerMessage;
-use crate::message::TransportMessage;
+use crate::input_message::InputMessage;
+use crate::output_message::OutputMessage;
 use crate::timer_event::TimerEvent;
-
-#[derive(Debug, Clone)]
-pub enum Decision {
-    BroadcastReady,
-    Schedule(TimerEvent),
-    Cancel(TimerEvent),
-    Noop,
-}
+use crate::timer_message::TimerMessage;
+use crate::transport_message::TransportMessage;
 
 pub struct Protocol {
     faction: Faction,
@@ -32,27 +25,27 @@ impl Protocol {
         Self { faction }
     }
 
-    pub fn start_decisions(&self, peers: &[PeerId], local_peer_id: PeerId) -> Vec<Decision> {
+    pub fn start_decisions(&self, peers: &[PeerId], local_peer_id: PeerId) -> Vec<OutputMessage> {
         let mut decisions = Vec::new();
 
         for peer in peers {
             if *peer != local_peer_id {
-                decisions.push(Decision::Schedule(TimerEvent::Fire(
+                decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
                     TimerMessage::ParticipationObserved { peer_id: *peer },
                 )));
             }
         }
 
-        decisions.push(Decision::Schedule(TimerEvent::Fire(
+        decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
             TimerMessage::LocalParticipationCompleted,
         )));
 
         decisions
     }
 
-    pub fn decide(&mut self, message: Message) -> Decision {
+    pub fn decide(&mut self, message: InputMessage) -> OutputMessage {
         let command = match message {
-            Message::Transport(msg) => match msg {
+            InputMessage::Transport(msg) => match msg {
                 TransportMessage::Ping { from } => Command::ParticipationObserved {
                     peer_id: from,
                     freshness: 0,
@@ -65,7 +58,7 @@ impl Protocol {
                 },
                 TransportMessage::Bootstrapped { .. } => Command::Probe,
             },
-            Message::Timer(msg) => match msg {
+            InputMessage::Timer(msg) => match msg {
                 TimerMessage::ParticipationObserved { peer_id } => Command::ParticipationObserved {
                     peer_id,
                     freshness: 0,
@@ -79,14 +72,14 @@ impl Protocol {
         let outcomes = match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
-            ProcessResult::Rejected { .. } => return Decision::Noop,
+            ProcessResult::Rejected { .. } => return OutputMessage::Noop,
         };
 
         for outcome in outcomes {
             match outcome {
-                Outcome::BroadcastLocalReady => return Decision::BroadcastReady,
+                Outcome::BroadcastLocalReady => return OutputMessage::BroadcastReady,
                 Outcome::Exited { .. } => {
-                    return Decision::Cancel(TimerEvent::Fire(
+                    return OutputMessage::Cancel(TimerEvent::Fire(
                         TimerMessage::LocalParticipationCompleted,
                     ));
                 }
@@ -94,6 +87,6 @@ impl Protocol {
             }
         }
 
-        Decision::Noop
+        OutputMessage::Noop
     }
 }

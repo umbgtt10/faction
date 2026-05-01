@@ -3,8 +3,10 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use crate::timer_message::TimerMessage;
+use crate::transport_message::TransportMessage;
 
-#[derive(Debug, Clone)]
-pub enum TimerEvent {
-    Fire(TimerMessage),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InputMessage {
+    Transport(TransportMessage),
+    Timer(TimerMessage),
 }

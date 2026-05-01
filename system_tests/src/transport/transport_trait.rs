@@ -4,7 +4,7 @@
 
 use faction::PeerId;
 
-use faction_protocol::message::TransportMessage;
+use faction_protocol::transport_message::TransportMessage;
 
 pub trait Transport: Send {
     fn send(&mut self, to: PeerId, message: TransportMessage);
