@@ -47,13 +47,9 @@ impl ConfirmedSet {
     pub fn try_confirm(
         &self,
         peer_id: PeerId,
-        is_member: bool,
-        classification: Option<FreshnessClassification>,
+        classification: FreshnessClassification,
     ) -> (Self, bool) {
-        if !is_member {
-            return (self.clone(), false);
-        }
-        if matches!(classification, Some(FreshnessClassification::Stale)) {
+        if matches!(classification, FreshnessClassification::Stale) {
             return (self.clone(), false);
         }
         if self.confirmed.contains(&peer_id) {

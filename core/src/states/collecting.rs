@@ -13,6 +13,7 @@ use crate::exit_mode::ExitMode;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
+use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::compute_output::ObservedKind;
@@ -20,9 +21,24 @@ use super::compute_output::ObservedOutput;
 use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
 
+#[derive(Default)]
 pub struct Collecting {
     pub collecting_count: ConfirmedSet,
     pub pinging_count: usize,
+}
+
+impl Collecting {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn non_member_peer(command: &Command, config: &Config) -> Option<PeerId> {
+        match command {
+            Command::ReadyObserved { peer_id, .. } if !config.is_member(*peer_id) => Some(*peer_id),
+            _ => None,
+        }
+    }
 }
 
 impl State for Collecting {
@@ -57,6 +73,16 @@ impl State for Collecting {
         let collecting_count = self.collecting_count.clone();
         let pinging_count = self.pinging_count;
 
+        if let Some(peer_id) = Self::non_member_peer(&command, config) {
+            return (
+                vec![Outcome::NonMemberIgnored { peer_id }],
+                Box::new(Self {
+                    collecting_count,
+                    pinging_count,
+                }),
+            );
+        }
+
         match command {
             Command::ParticipationObserved { .. } => {
                 unreachable!("accept() rejects this command for Collecting")
@@ -67,26 +93,16 @@ impl State for Collecting {
                 freshness,
                 current_marker,
             } => {
-                let is_member = config.is_member(peer_id);
-                let classification = if is_member {
-                    Some(
-                        config
-                            .freshness_policy()
-                            .classify(current_marker, freshness),
-                    )
-                } else {
-                    None
-                };
-                let is_dup = is_member && collecting_count.is_confirmed(peer_id);
+                let classification = config
+                    .freshness_policy()
+                    .classify(current_marker, freshness);
+                let is_dup = collecting_count.is_confirmed(peer_id);
 
-                let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
-                    is_member,
-                    classification,
-                    is_dup,
-                );
+                let output = ObservedOutput::new(ObservedKind::Ready, peer_id)
+                    .compute_output(classification, is_dup);
 
                 let (new_collecting_count, confirmed_new) =
-                    collecting_count.try_confirm(peer_id, is_member, classification);
+                    collecting_count.try_confirm(peer_id, classification);
 
                 let quorum =
                     confirmed_new && new_collecting_count.count() >= config.required_count();

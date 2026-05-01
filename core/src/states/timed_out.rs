@@ -13,9 +13,17 @@ use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
 
+#[derive(Default)]
 pub struct TimedOut {
     pub pinging_count: usize,
     pub collecting_count: usize,
+}
+
+impl TimedOut {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl State for TimedOut {

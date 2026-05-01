@@ -38,26 +38,12 @@ fn is_confirmed_returns_true_after_confirm() {
 }
 
 #[test]
-fn try_confirm_non_member_returns_no_change() {
-    // Arrange
-    let set = ConfirmedSet::new();
-
-    // Act
-    let (set, was_newly_confirmed) =
-        set.try_confirm(99, false, Some(FreshnessClassification::Timely));
-
-    // Assert
-    assert!(!was_newly_confirmed);
-    assert_eq!(set.count(), 0);
-}
-
-#[test]
 fn try_confirm_stale_returns_no_change() {
     // Arrange
     let set = ConfirmedSet::new();
 
     // Act
-    let (set, was_newly_confirmed) = set.try_confirm(0, true, Some(FreshnessClassification::Stale));
+    let (set, was_newly_confirmed) = set.try_confirm(0, FreshnessClassification::Stale);
 
     // Assert
     assert!(!was_newly_confirmed);
@@ -68,12 +54,11 @@ fn try_confirm_stale_returns_no_change() {
 fn try_confirm_already_confirmed_returns_no_change() {
     // Arrange
     let set = ConfirmedSet::new();
-    let (set, _) = set.try_confirm(0, true, Some(FreshnessClassification::Timely));
+    let (set, _) = set.try_confirm(0, FreshnessClassification::Timely);
     assert_eq!(set.count(), 1);
 
     // Act
-    let (set, was_newly_confirmed) =
-        set.try_confirm(0, true, Some(FreshnessClassification::Timely));
+    let (set, was_newly_confirmed) = set.try_confirm(0, FreshnessClassification::Timely);
 
     // Assert
     assert!(!was_newly_confirmed);
@@ -86,8 +71,7 @@ fn try_confirm_timely_confirms() {
     let set = ConfirmedSet::new();
 
     // Act
-    let (set, was_newly_confirmed) =
-        set.try_confirm(2, true, Some(FreshnessClassification::Timely));
+    let (set, was_newly_confirmed) = set.try_confirm(2, FreshnessClassification::Timely);
 
     // Assert
     assert!(was_newly_confirmed);
@@ -102,25 +86,11 @@ fn try_confirm_delayed_confirms() {
 
     // Act
     let (set, was_newly_confirmed) =
-        set.try_confirm(3, true, Some(FreshnessClassification::DelayedWithinMargin));
+        set.try_confirm(3, FreshnessClassification::DelayedWithinMargin);
 
     // Assert
     assert!(was_newly_confirmed);
     assert!(set.is_confirmed(3));
-    assert_eq!(set.count(), 1);
-}
-
-#[test]
-fn try_confirm_none_classification_confirms() {
-    // Arrange
-    let set = ConfirmedSet::new();
-
-    // Act
-    let (set, was_newly_confirmed) = set.try_confirm(7, true, None);
-
-    // Assert
-    assert!(was_newly_confirmed);
-    assert!(set.is_confirmed(7));
     assert_eq!(set.count(), 1);
 }
 
@@ -130,9 +100,9 @@ fn try_confirm_multiple_distinct_peers_increment_count() {
     let set = ConfirmedSet::new();
 
     // Act
-    let (set, _) = set.try_confirm(10, true, Some(FreshnessClassification::Timely));
-    let (set, _) = set.try_confirm(20, true, Some(FreshnessClassification::Timely));
-    let (set, _) = set.try_confirm(30, true, Some(FreshnessClassification::Timely));
+    let (set, _) = set.try_confirm(10, FreshnessClassification::Timely);
+    let (set, _) = set.try_confirm(20, FreshnessClassification::Timely);
+    let (set, _) = set.try_confirm(30, FreshnessClassification::Timely);
 
     // Assert
     assert_eq!(set.count(), 3);
@@ -148,8 +118,7 @@ fn try_confirm_does_not_mutate_original() {
     let set = ConfirmedSet::new();
 
     // Act
-    let (new_set, was_newly_confirmed) =
-        set.try_confirm(0, true, Some(FreshnessClassification::Timely));
+    let (new_set, was_newly_confirmed) = set.try_confirm(0, FreshnessClassification::Timely);
 
     // Assert
     assert!(was_newly_confirmed);
@@ -213,8 +182,7 @@ fn confirm_then_try_confirm_duplicate_returns_no_change() {
     assert_eq!(set.count(), 1);
 
     // Act
-    let (set, was_newly_confirmed) =
-        set.try_confirm(2, true, Some(FreshnessClassification::Timely));
+    let (set, was_newly_confirmed) = set.try_confirm(2, FreshnessClassification::Timely);
 
     // Assert
     assert!(!was_newly_confirmed);
@@ -225,7 +193,7 @@ fn confirm_then_try_confirm_duplicate_returns_no_change() {
 fn try_confirm_then_confirm_same_peer_returns_no_change() {
     // Arrange
     let set = ConfirmedSet::new();
-    let (set, _) = set.try_confirm(0, true, Some(FreshnessClassification::Timely));
+    let (set, _) = set.try_confirm(0, FreshnessClassification::Timely);
     assert_eq!(set.count(), 1);
 
     // Act

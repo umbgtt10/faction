@@ -30,7 +30,7 @@ fn new_creates_observed_output_with_participation_kind() {
     let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
 
     // Assert
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), false);
+    let result = output.compute_output(FreshnessClassification::Timely, false);
     assert_eq!(result, Outcome::ParticipationAccepted { peer_id: PEER_ID });
 }
 
@@ -40,56 +40,8 @@ fn new_creates_observed_output_with_ready_kind() {
     let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
 
     // Assert
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), false);
+    let result = output.compute_output(FreshnessClassification::Timely, false);
     assert_eq!(result, Outcome::ReadyAccepted { peer_id: PEER_ID });
-}
-
-#[test]
-fn compute_output_participation_non_member_returns_non_member_ignored() {
-    // Arrange
-    let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
-
-    // Act
-    let result = output.compute_output(false, None, false);
-
-    // Assert
-    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
-}
-
-#[test]
-fn compute_output_ready_non_member_returns_non_member_ignored() {
-    // Arrange
-    let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
-
-    // Act
-    let result = output.compute_output(false, None, false);
-
-    // Assert
-    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
-}
-
-#[test]
-fn compute_output_non_member_dominates_over_stale_classification() {
-    // Arrange
-    let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
-
-    // Act
-    let result = output.compute_output(false, Some(FreshnessClassification::Stale), false);
-
-    // Assert
-    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
-}
-
-#[test]
-fn compute_output_non_member_dominates_over_duplicate() {
-    // Arrange
-    let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
-
-    // Act
-    let result = output.compute_output(false, None, true);
-
-    // Assert
-    assert_eq!(result, Outcome::NonMemberIgnored { peer_id: PEER_ID });
 }
 
 #[test]
@@ -98,7 +50,7 @@ fn compute_output_participation_stale_returns_stale_participation_ignored() {
     let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Stale), false);
+    let result = output.compute_output(FreshnessClassification::Stale, false);
 
     // Assert
     assert_eq!(
@@ -113,7 +65,7 @@ fn compute_output_ready_stale_returns_stale_ready_ignored() {
     let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Stale), false);
+    let result = output.compute_output(FreshnessClassification::Stale, false);
 
     // Assert
     assert_eq!(result, Outcome::StaleReadyIgnored { peer_id: PEER_ID });
@@ -125,7 +77,7 @@ fn compute_output_stale_dominates_over_duplicate() {
     let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Stale), true);
+    let result = output.compute_output(FreshnessClassification::Stale, true);
 
     // Assert
     assert_eq!(
@@ -140,7 +92,7 @@ fn compute_output_participation_duplicate_returns_duplicate_participation_ignore
     let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), true);
+    let result = output.compute_output(FreshnessClassification::Timely, true);
 
     // Assert
     assert_eq!(
@@ -155,7 +107,7 @@ fn compute_output_ready_duplicate_returns_duplicate_ready_ignored() {
     let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), true);
+    let result = output.compute_output(FreshnessClassification::Timely, true);
 
     // Assert
     assert_eq!(result, Outcome::DuplicateReadyIgnored { peer_id: PEER_ID });
@@ -167,11 +119,7 @@ fn compute_output_duplicate_with_delayed_classification_still_returns_duplicate(
     let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
 
     // Act
-    let result = output.compute_output(
-        true,
-        Some(FreshnessClassification::DelayedWithinMargin),
-        true,
-    );
+    let result = output.compute_output(FreshnessClassification::DelayedWithinMargin, true);
 
     // Assert
     assert_eq!(result, Outcome::DuplicateReadyIgnored { peer_id: PEER_ID });
@@ -183,7 +131,7 @@ fn compute_output_participation_timely_returns_participation_accepted() {
     let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), false);
+    let result = output.compute_output(FreshnessClassification::Timely, false);
 
     // Assert
     assert_eq!(result, Outcome::ParticipationAccepted { peer_id: PEER_ID });
@@ -195,7 +143,7 @@ fn compute_output_ready_timely_returns_ready_accepted() {
     let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), false);
+    let result = output.compute_output(FreshnessClassification::Timely, false);
 
     // Assert
     assert_eq!(result, Outcome::ReadyAccepted { peer_id: PEER_ID });
@@ -207,11 +155,7 @@ fn compute_output_participation_delayed_returns_delayed_participation_accepted()
     let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
 
     // Act
-    let result = output.compute_output(
-        true,
-        Some(FreshnessClassification::DelayedWithinMargin),
-        false,
-    );
+    let result = output.compute_output(FreshnessClassification::DelayedWithinMargin, false);
 
     // Assert
     assert_eq!(
@@ -226,38 +170,7 @@ fn compute_output_ready_delayed_returns_delayed_ready_accepted() {
     let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
 
     // Act
-    let result = output.compute_output(
-        true,
-        Some(FreshnessClassification::DelayedWithinMargin),
-        false,
-    );
-
-    // Assert
-    assert_eq!(result, Outcome::DelayedReadyAccepted { peer_id: PEER_ID });
-}
-
-#[test]
-fn compute_output_participation_classification_none_with_index_is_treated_as_delayed() {
-    // Arrange
-    let output = ObservedOutput::new(ObservedKind::Participation, PEER_ID);
-
-    // Act
-    let result = output.compute_output(true, None, false);
-
-    // Assert
-    assert_eq!(
-        result,
-        Outcome::DelayedParticipationAccepted { peer_id: PEER_ID }
-    );
-}
-
-#[test]
-fn compute_output_ready_classification_none_with_index_is_treated_as_delayed() {
-    // Arrange
-    let output = ObservedOutput::new(ObservedKind::Ready, PEER_ID);
-
-    // Act
-    let result = output.compute_output(true, None, false);
+    let result = output.compute_output(FreshnessClassification::DelayedWithinMargin, false);
 
     // Assert
     assert_eq!(result, Outcome::DelayedReadyAccepted { peer_id: PEER_ID });
@@ -270,7 +183,7 @@ fn compute_output_preserves_peer_id_in_output() {
     let output = ObservedOutput::new(ObservedKind::Participation, peer_id);
 
     // Act
-    let result = output.compute_output(true, Some(FreshnessClassification::Timely), false);
+    let result = output.compute_output(FreshnessClassification::Timely, false);
 
     // Assert
     assert_eq!(result, Outcome::ParticipationAccepted { peer_id: 99 });

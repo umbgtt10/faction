@@ -14,7 +14,15 @@ use crate::peer_state::PeerState;
 use crate::state::State;
 use crate::states::pinging::Pinging;
 
+#[derive(Default)]
 pub struct Initial;
+
+impl Initial {
+    #[must_use]
+    pub fn new() -> Self {
+        Self
+    }
+}
 
 impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {

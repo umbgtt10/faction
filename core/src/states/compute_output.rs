@@ -24,24 +24,14 @@ impl ObservedOutput {
     }
 
     #[must_use]
-    pub fn compute_output(
-        &self,
-        is_member: bool,
-        classification: Option<FreshnessClassification>,
-        is_dup: bool,
-    ) -> Outcome {
-        if !is_member {
-            return Outcome::NonMemberIgnored {
-                peer_id: self.peer_id,
-            };
-        }
-        if matches!(classification, Some(FreshnessClassification::Stale)) {
+    pub fn compute_output(&self, classification: FreshnessClassification, is_dup: bool) -> Outcome {
+        if matches!(classification, FreshnessClassification::Stale) {
             return self.stale_output();
         }
         if is_dup {
             return self.duplicate_output();
         }
-        let timely = matches!(classification, Some(FreshnessClassification::Timely));
+        let timely = matches!(classification, FreshnessClassification::Timely);
         self.accepted_output(timely)
     }
 

@@ -13,6 +13,7 @@ use crate::exit_mode::ExitMode;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
+use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::collecting::Collecting;
@@ -21,23 +22,27 @@ use super::compute_output::ObservedOutput;
 use super::confirmed_set::ConfirmedSet;
 use super::timed_out::TimedOut;
 
+#[derive(Default)]
 pub struct Pinging {
     pinging_count: ConfirmedSet,
     collecting_count: ConfirmedSet,
 }
 
-impl Default for Pinging {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Pinging {
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            pinging_count: ConfirmedSet::new(),
-            collecting_count: ConfirmedSet::new(),
+        Self::default()
+    }
+
+    fn non_member_peer(command: &Command, config: &Config) -> Option<PeerId> {
+        match command {
+            Command::ParticipationObserved { peer_id, .. }
+            | Command::ReadyObserved { peer_id, .. }
+                if !config.is_member(*peer_id) =>
+            {
+                Some(*peer_id)
+            }
+            _ => None,
         }
     }
 }
@@ -55,28 +60,30 @@ impl State for Pinging {
         let pinging_count = self.pinging_count.clone();
         let collecting_count = self.collecting_count.clone();
 
+        if let Some(peer_id) = Self::non_member_peer(&command, config) {
+            return (
+                vec![Outcome::NonMemberIgnored { peer_id }],
+                Box::new(Self {
+                    pinging_count,
+                    collecting_count,
+                }),
+            );
+        }
+
         match command {
             Command::ParticipationObserved {
                 peer_id,
                 freshness,
                 current_marker,
             } => {
-                let is_member = config.is_member(peer_id);
-                let classification = if is_member {
-                    Some(
-                        config
-                            .freshness_policy()
-                            .classify(current_marker, freshness),
-                    )
-                } else {
-                    None
-                };
-                let is_dup = is_member && pinging_count.is_confirmed(peer_id);
+                let classification = config
+                    .freshness_policy()
+                    .classify(current_marker, freshness);
+                let is_dup = pinging_count.is_confirmed(peer_id);
 
                 let output = ObservedOutput::new(ObservedKind::Participation, peer_id)
-                    .compute_output(is_member, classification, is_dup);
-                let (new_pinging_count, _) =
-                    pinging_count.try_confirm(peer_id, is_member, classification);
+                    .compute_output(classification, is_dup);
+                let (new_pinging_count, _) = pinging_count.try_confirm(peer_id, classification);
 
                 (
                     vec![output],
@@ -92,25 +99,15 @@ impl State for Pinging {
                 freshness,
                 current_marker,
             } => {
-                let is_member = config.is_member(peer_id);
-                let classification = if is_member {
-                    Some(
-                        config
-                            .freshness_policy()
-                            .classify(current_marker, freshness),
-                    )
-                } else {
-                    None
-                };
-                let is_dup = is_member && collecting_count.is_confirmed(peer_id);
+                let classification = config
+                    .freshness_policy()
+                    .classify(current_marker, freshness);
+                let is_dup = collecting_count.is_confirmed(peer_id);
 
-                let output = ObservedOutput::new(ObservedKind::Ready, peer_id).compute_output(
-                    is_member,
-                    classification,
-                    is_dup,
-                );
+                let output = ObservedOutput::new(ObservedKind::Ready, peer_id)
+                    .compute_output(classification, is_dup);
                 let (new_collecting_count, _) =
-                    collecting_count.try_confirm(peer_id, is_member, classification);
+                    collecting_count.try_confirm(peer_id, classification);
 
                 (
                     vec![output],

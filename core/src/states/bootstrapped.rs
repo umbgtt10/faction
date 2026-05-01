@@ -13,9 +13,17 @@ use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
 
+#[derive(Default)]
 pub struct Bootstrapped {
     pub pinging_count: usize,
     pub collecting_count: usize,
+}
+
+impl Bootstrapped {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl State for Bootstrapped {
