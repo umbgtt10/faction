@@ -2,8 +2,8 @@
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Install crap4rust:
-#   cargo install crap4rust
+# Requires crap4rust:
+#   cargo install cargo-crap4rust
 
 $ErrorActionPreference = "Stop"
 Push-Location (Split-Path $PSScriptRoot -Parent)
@@ -20,9 +20,9 @@ function Invoke-Crap4RustGate {
         [string[]]$ExcludePaths = @()
     )
 
-    cargo install cargo-crap4rust
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "`nFailed to install crap4rust" -ForegroundColor Red
+    if (-not (Get-Command cargo-crap4rust -ErrorAction SilentlyContinue)) {
+        Write-Host "`ncrap4rust is not installed." -ForegroundColor Red
+        Write-Host "Install it with: cargo install cargo-crap4rust" -ForegroundColor Red
         Pop-Location
         exit 1
     }
