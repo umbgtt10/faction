@@ -67,8 +67,10 @@ impl FactionNode {
             }
         };
 
-        let decision = self.protocol.decide(message);
-        self.dispatch(decision);
+        let decisions = self.protocol.decide(message);
+        for decision in decisions {
+            self.dispatch(decision);
+        }
         self.use_timer = !self.use_timer;
     }
 

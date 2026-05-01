@@ -3,3 +3,4 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod in_memory_transport;
+pub use in_memory_transport::InMemoryTransport;

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use faction::PeerId;
@@ -49,7 +50,7 @@ impl Protocol {
         decisions
     }
 
-    pub fn decide(&mut self, message: InputMessage) -> OutputMessage {
+    pub fn decide(&mut self, message: InputMessage) -> Vec<OutputMessage> {
         let command = match message {
             InputMessage::Transport(msg) => match msg {
                 TransportMessage::Ping { from } => Command::ParticipationObserved {
@@ -78,21 +79,21 @@ impl Protocol {
         let outcomes = match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
-            ProcessResult::Rejected { .. } => return OutputMessage::Noop,
+            ProcessResult::Rejected { .. } => return vec![OutputMessage::Noop],
         };
 
         for outcome in outcomes {
             match outcome {
-                Outcome::BroadcastLocalReady => return OutputMessage::BroadcastReady,
+                Outcome::BroadcastLocalReady => return vec![OutputMessage::BroadcastReady],
                 Outcome::Exited { .. } => {
-                    return OutputMessage::Cancel(TimerEvent::Fire(
+                    return vec![OutputMessage::Cancel(TimerEvent::Fire(
                         TimerMessage::LocalParticipationCompleted,
-                    ));
+                    ))];
                 }
                 _ => {}
             }
         }
 
-        OutputMessage::Noop
+        vec![OutputMessage::Noop]
     }
 }
