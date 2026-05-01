@@ -4,8 +4,8 @@
 
 use faction::PeerId;
 
-use crate::message::TransportMessage;
 use crate::transport::transport_trait::Transport;
+use faction_protocol::message::TransportMessage;
 
 pub struct TcpTransport;
 

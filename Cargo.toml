@@ -1,5 +1,5 @@
 [workspace]
-members = ["core", "validation", "system_tests"]
+members = ["core", "protocol", "validation", "system_tests"]
 resolver = "2"
 
 [workspace.dependencies]

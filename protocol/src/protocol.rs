@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use alloc::vec::Vec;
+
 use faction::PeerId;
 use faction::command::Command;
 use faction::faction::Faction;
@@ -11,7 +13,7 @@ use faction::process_result::ProcessResult;
 use crate::message::Message;
 use crate::message::TimerMessage;
 use crate::message::TransportMessage;
-use crate::timer::TimerEvent;
+use crate::timer_event::TimerEvent;
 
 #[derive(Debug, Clone)]
 pub enum Decision {

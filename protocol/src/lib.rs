@@ -2,6 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-pub mod faction_node;
-pub mod timer;
-pub mod transport;
+#![no_std]
+
+extern crate alloc;
+
+pub mod message;
+pub mod protocol;
+pub mod timer_event;

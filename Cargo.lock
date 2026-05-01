@@ -75,10 +75,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "faction-protocol"
+version = "0.1.0"
+dependencies = [
+ "faction",
+]
+
+[[package]]
 name = "faction-system-tests"
 version = "0.1.0"
 dependencies = [
  "faction",
+ "faction-protocol",
  "rstest",
 ]
 

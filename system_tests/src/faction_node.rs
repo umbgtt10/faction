@@ -4,12 +4,13 @@
 
 use faction::PeerId;
 
-use crate::message::Message;
-use crate::message::TransportMessage;
-use crate::protocol::Decision;
-use crate::protocol::Protocol;
+use faction_protocol::message::Message;
+use faction_protocol::message::TransportMessage;
+use faction_protocol::protocol::Decision;
+use faction_protocol::protocol::Protocol;
+use faction_protocol::timer_event::TimerEvent;
+
 use crate::timer::Timer;
-use crate::timer::TimerEvent;
 use crate::transport::transport_trait::Transport;
 
 pub struct FactionNode {

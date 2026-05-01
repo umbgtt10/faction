@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 faction = { path = "../core" }
+faction-protocol = { path = "../protocol" }
 
 [dev-dependencies]
 rstest = { workspace = true }

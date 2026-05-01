@@ -2,12 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::message::TimerMessage;
-
-#[derive(Debug, Clone)]
-pub enum TimerEvent {
-    Fire(TimerMessage),
-}
+use faction_protocol::timer_event::TimerEvent;
 
 pub trait Timer: Send {
     fn poll(&mut self) -> Option<TimerEvent>;
