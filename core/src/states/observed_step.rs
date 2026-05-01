@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::exit_mode::ExitMode;
 use crate::freshness_classification::FreshnessClassification;
 use crate::outcome::Outcome;
 use crate::PeerId;
@@ -15,6 +17,7 @@ pub struct ObservedStep {
     outcome: Outcome,
     confirmed_peers: Vec<PeerId>,
     confirmed_new: bool,
+    quorum_threshold: Option<usize>,
 }
 
 impl ObservedStep {
@@ -24,6 +27,7 @@ impl ObservedStep {
         confirmed_peers: Vec<PeerId>,
         peer_id: PeerId,
         kind: ObservedKind,
+        quorum_threshold: Option<usize>,
     ) -> Self {
         let is_dup = confirmed_peers.contains(&peer_id);
         let is_stale = matches!(classification, FreshnessClassification::Stale);
@@ -40,12 +44,8 @@ impl ObservedStep {
             outcome,
             confirmed_peers: new_confirmed_peers,
             confirmed_new,
+            quorum_threshold,
         }
-    }
-
-    #[must_use]
-    pub fn outcome(&self) -> Outcome {
-        self.outcome.clone()
     }
 
     #[must_use]
@@ -54,12 +54,26 @@ impl ObservedStep {
     }
 
     #[must_use]
-    pub fn is_confirmed_new(&self) -> bool {
-        self.confirmed_new
+    pub fn is_quorum(&self) -> bool {
+        matches!(
+            self.quorum_threshold,
+            Some(threshold) if self.confirmed_new && self.confirmed_peers.len() >= threshold
+        )
     }
 
     #[must_use]
-    pub fn is_quorum(&self, threshold: usize) -> bool {
-        self.confirmed_new && self.confirmed_peers.len() >= threshold
+    pub fn outputs(&self) -> Vec<Outcome> {
+        match self.quorum_threshold {
+            Some(threshold) if self.confirmed_new && self.confirmed_peers.len() >= threshold => {
+                vec![
+                    self.outcome.clone(),
+                    Outcome::ReadyQuorumReached,
+                    Outcome::Exited {
+                        mode: ExitMode::Bootstrapped,
+                    },
+                ]
+            }
+            _ => vec![self.outcome.clone()],
+        }
     }
 }

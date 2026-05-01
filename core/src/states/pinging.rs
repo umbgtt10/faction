@@ -83,10 +83,11 @@ impl State for Pinging {
                     pinging_count,
                     peer_id,
                     ObservedKind::Participation,
+                    None,
                 );
 
                 (
-                    vec![step.outcome()],
+                    step.outputs(),
                     Box::new(Self {
                         pinging_count: step.confirmed_peers(),
                         collecting_count: new_collecting_count,
@@ -107,10 +108,11 @@ impl State for Pinging {
                     new_collecting_count,
                     peer_id,
                     ObservedKind::Ready,
+                    None,
                 );
 
                 (
-                    vec![step.outcome()],
+                    step.outputs(),
                     Box::new(Self {
                         pinging_count,
                         collecting_count: step.confirmed_peers(),
