@@ -16,12 +16,14 @@ use rstest::rstest;
 #[case::task_real_inmemory(Spawn::Task, TimerKind::Real, TransportKind::InMemory)]
 #[case::task_inmemory_channels(Spawn::Task, TimerKind::InMemory, TransportKind::Channels)]
 #[case::task_real_channels(Spawn::Task, TimerKind::Real, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TimerKind::Real, TransportKind::Tcp)]
 #[case::thread_inmemory_inmemory(Spawn::Thread, TimerKind::InMemory, TransportKind::InMemory)]
 #[case::thread_inmemory_channels(Spawn::Thread, TimerKind::InMemory, TransportKind::Channels)]
+#[case::thread_inmemory_tcp(Spawn::Thread, TimerKind::InMemory, TransportKind::Tcp)]
 #[case::thread_real_inmemory(Spawn::Thread, TimerKind::Real, TransportKind::InMemory)]
 #[case::thread_real_channels(Spawn::Thread, TimerKind::Real, TransportKind::Channels)]
 #[case::thread_real_tcp(Spawn::Thread, TimerKind::Real, TransportKind::Tcp)]
-#[case::task_real_tcp(Spawn::Task, TimerKind::Real, TransportKind::Tcp)]
+
 fn cluster_reaches_bootstrapped(
     #[case] spawn: Spawn,
     #[case] timer: TimerKind,

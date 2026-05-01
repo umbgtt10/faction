@@ -60,7 +60,10 @@ impl FactionNode {
     }
 
     pub fn is_terminal(&mut self) -> bool {
-        matches!(self.peer_state(), PeerState::Bootstrapped | PeerState::TimedOut)
+        matches!(
+            self.peer_state(),
+            PeerState::Bootstrapped | PeerState::TimedOut
+        )
     }
 
     pub fn run(&mut self) {
