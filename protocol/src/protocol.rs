@@ -6,6 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use faction::PeerId;
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
 use faction::outcome::Outcome;
@@ -24,6 +25,13 @@ pub struct Protocol {
 }
 
 impl Protocol {
+    pub fn cluster_view(&mut self) -> ClusterView {
+        match self.faction.process(Command::Probe) {
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
+            _ => unreachable!(),
+        }
+    }
+
     pub fn new(faction: Faction, peers: Vec<PeerId>, local_peer_id: PeerId) -> Self {
         Self {
             faction,
