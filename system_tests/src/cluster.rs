@@ -97,37 +97,6 @@ impl Cluster {
         }
     }
 
-    pub fn step_transport(&mut self) -> bool {
-        let mut any = false;
-
-        for i in 0..self.peer_ids.len() {
-            if let Some((from, msg)) = self.transports[i].recv() {
-                any = true;
-                for decision in self.protocols[i].decide(InputMessage::Transport(msg)) {
-                    self.route(decision, from);
-                }
-            }
-        }
-
-        any
-    }
-
-    pub fn step_timer(&mut self) -> bool {
-        let mut any = false;
-
-        for i in 0..self.peer_ids.len() {
-            if let Some(event) = self.timers[i].poll() {
-                any = true;
-                let TimerEvent::Fire(tm) = event;
-                for decision in self.protocols[i].decide(InputMessage::Timer(tm)) {
-                    self.route(decision, self.peer_ids[i]);
-                }
-            }
-        }
-
-        any
-    }
-
     pub fn step_transport_node(&mut self, index: usize) -> bool {
         if let Some((from, msg)) = self.transports[index].recv() {
             for decision in self.protocols[index].decide(InputMessage::Transport(msg)) {
