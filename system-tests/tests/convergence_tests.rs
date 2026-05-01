@@ -16,6 +16,7 @@ use rstest::rstest;
 #[case::task_real_inmemory(Spawn::Task, TimerKind::Real, TransportKind::InMemory)]
 #[case::task_inmemory_channels(Spawn::Task, TimerKind::InMemory, TransportKind::Channels)]
 #[case::task_real_channels(Spawn::Task, TimerKind::Real, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TimerKind::Real, TransportKind::Tcp)]
 fn cluster_reaches_bootstrapped(
     #[case] spawn: Spawn,
     #[case] timer: TimerKind,
@@ -34,3 +35,4 @@ fn cluster_reaches_bootstrapped(
     cluster.poll_until_bootstrapped(10);
     assert!(cluster.is_bootstrapped());
 }
+

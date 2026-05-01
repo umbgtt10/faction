@@ -31,6 +31,7 @@ use crate::timer::real::real_timer::RealTimer;
 use crate::timer_kind::TimerKind;
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
+use crate::transport::tcp::tcp_transport::TcpTransport;
 use crate::transport_kind::TransportKind;
 
 pub struct ClusterBuilder {
@@ -92,6 +93,10 @@ impl ClusterBuilder {
                 .map(|t| Box::new(t) as Box<dyn Transport>)
                 .collect(),
             TransportKind::Channels => ChannelsTransport::new_mesh(&peer_ids)
+                .into_iter()
+                .map(|t| Box::new(t) as Box<dyn Transport>)
+                .collect(),
+            TransportKind::Tcp => TcpTransport::new_mesh(&peer_ids)
                 .into_iter()
                 .map(|t| Box::new(t) as Box<dyn Transport>)
                 .collect(),
