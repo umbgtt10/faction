@@ -5,8 +5,8 @@
 use faction::Freshness;
 use faction::PeerId;
 use faction::command::Command;
-use faction::outcome::Outcome;
 
+use crate::protocol::Decision;
 use crate::protocol::Protocol;
 use crate::timer::Timer;
 use crate::timer::TimerEvent;
@@ -56,34 +56,42 @@ impl FactionNode {
     }
 
     pub fn step(&mut self, current_marker: Freshness) {
-        if self.use_timer {
-            if let Some(event) = self.timer.poll() {
-                let TimerEvent::Fire(command) = event;
-                self.protocol.evaluate(command);
-                self.use_timer = !self.use_timer;
-                return;
+        let command = if self.use_timer {
+            match self.timer.poll() {
+                Some(TimerEvent::Fire(command)) => command,
+                None => {
+                    self.use_timer = !self.use_timer;
+                    return;
+                }
             }
-        }
+        } else {
+            match self.transport.recv() {
+                Some((_, command)) => command,
+                None => {
+                    self.use_timer = !self.use_timer;
+                    return;
+                }
+            }
+        };
 
-        if let Some((_, command)) = self.transport.recv() {
-            let outcomes = self.protocol.evaluate(command);
+        let decision = self.protocol.decide(command);
 
-            for outcome in &outcomes {
-                if let Outcome::BroadcastLocalReady = outcome {
-                    for to in &self.peers {
-                        if *to != self.peer_id {
-                            self.transport.send(
-                                *to,
-                                Command::ReadyObserved {
-                                    peer_id: self.peer_id,
-                                    freshness: current_marker,
-                                    current_marker,
-                                },
-                            );
-                        }
+        match decision {
+            Decision::BroadcastReady => {
+                for to in &self.peers {
+                    if *to != self.peer_id {
+                        self.transport.send(
+                            *to,
+                            Command::ReadyObserved {
+                                peer_id: self.peer_id,
+                                freshness: current_marker,
+                                current_marker,
+                            },
+                        );
                     }
                 }
             }
+            Decision::Noop => {}
         }
 
         self.use_timer = !self.use_timer;
