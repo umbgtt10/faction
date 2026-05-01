@@ -2,8 +2,8 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Date:** 2026-04-26  
-**Status:** Phase 0 — Active  
+**Date:** 2026-05-01  
+**Status:** Phase 0 — Complete  
 
 ---
 
@@ -35,14 +35,14 @@ bootstrapping, discovery, and dynamic membership. Published independently on cra
 `faction` (core) implements a **two-phase cluster readiness state machine** — a startup barrier
 that coordinates when a group of nodes is ready to proceed.
 
-**Phase 1 — Participation:** nodes observe participation signals from peers. Once a quorum of
-participation observations is collected, the machine moves to Phase 2.
+**Pinging phase:** nodes observe participation signals from peers. Once the local node completes
+its own participation, the machine moves to the Collecting phase.
 
-**Phase 2 — Readiness:** the node signals its own readiness. Remote readiness signals are
-collected. Once a quorum of readiness signals is reached, the machine exits with `Quorum`.
+**Collecting phase:** remote readiness signals are collected. Once a quorum of readiness signals
+is reached, the machine exits with `Bootstrapped`.
 
 **Deadline fallback:** if `DeadlineExpired` is triggered before quorum, the machine exits
-with `Deadline`.
+with `TimedOut`.
 
 **Freshness classification:** each observation carries a freshness marker. The configurable
 `FreshnessPolicy` classifies observations as `Timely`, `DelayedWithinMargin`, or `Stale`.
@@ -74,39 +74,49 @@ Before extending, make the existing machine bulletproof.
 **Gate:** 100% `(state, input)` coverage. Nothing advances until this is green.
 
 **Results:**
-- 164 core tests + 31 validation tests — all passing, clippy clean
-- `Machine` redesign: `StateSnapshot` trait with `state_snapshot(&self, previous)` — states own only their active data, frozen fields inherited from previous snapshot
-- Terminal states (`ReadyByQuorum`, `ReadyByDeadline`) carry `usize` counts instead of full `ConfirmedSet` — unit-struct design ready for Phase 2+
-- `Collecting` dropped frozen phase1 — only tracks active phase2
+- **216 tests** (182 core + 34 validation) — all passing, clippy clean, 0 unsafe
+- **0 crappy functions** — complexity gates clean across 114 functions
+- **99.7% code coverage** (100% effective — one `const fn` branch is a coverage tool artifact)
+- **No dead code** — `ConfirmedSet`, `Bitmap`, `compute_output` (as extra module), `is_member`, `Option<classification>` all removed
+- **Architecture simplified:**
+  - `ObservedStep` single struct encapsulates all observation decision logic
+  - `Vec<PeerId>` directly in states — no wrapper types
+  - Pipeline model enforced — no mutation in match arms
+  - `cluster_view` no longer takes `config`
+  - Consistent naming: `pinged_peers`/`collected_peers` instead of phase names
+  - Every state has `#[derive(Default)]` + `new()`
+  - One struct per file, one test file per source file
 
 ---
 
-### Phase 1 — Static membership registry
+### Phase 1 — Dynamic membership: joining
 **Status:** Planned  
 **Target:** 2–3 weeks  
 **Depends on:** Phase 0 complete  
 
-New question: **"Who is the cluster?"**
+New question: **"Can a new peer join the cluster?"**
 
-The startup barrier knows when quorum is reached but does not produce a durable membership set.
-Phase 1 extends the machine to emit a `MembershipSnapshot` on exit.
+Membership is currently static — the peer list is fixed at construction and never changes.
+Phase 1 introduces the ability for a new peer to send a join signal and be admitted to the
+cluster's member set.
 
-**New states:**
-- `Forming` — collecting participation/readiness signals
-- `Formed(MembershipSnapshot)` — exited with quorum, membership known
-- `Failed` — exited with deadline
+**Minimal definition of "joining":**
+- A peer sends a `Join { peer_id }` command
+- The machine either admits the peer (adds them to the member set) or rejects them
+- Once admitted, the peer's signals (participation, readiness) are treated as valid member signals
+- A non-admitted peer's signals continue to be ignored
+- No reconfiguration protocol, no epochs, no failure detection
 
-**New inputs:**
-- All existing inputs
-- `QueryMembership` — caller asks for current confirmed set
+**New constraints that emerge:**
+- `is_member` can no longer be computed from a static config — it must be tracked as part of state
+- The `Config` type's `.is_member()` method becomes obsolete as a static query
+- The non-member gate (`non_member_peer`) transitions from returning `NonMemberIgnored` to potentially
+  producing `JoinOffer` or similar
 
-**New outputs:**
-- `MembershipSnapshot` — emitted on quorum exit, contains confirmed node set
-- `MembershipResponse` — response to query
-
-**Key design decision:** node identity and address are generic parameters. `faction` has no
-opinion on what a node is or where it lives. The caller provides a type that implements
-`NodeId` — a trait with minimal bounds (equality, ordering, no `std::net`).
+**Key design question — what happens when a non-member sends a signal?**
+- Option A: signal is ignored as before (current behavior, no change)
+- Option B: signal triggers a `JoinRequested` output — the caller decides whether to admit
+- Option C: signal is treated as an implicit join request — the machine admits automatically
 
 **Gate:** complete `(state, input)` coverage before Phase 2.
 
@@ -119,7 +129,7 @@ opinion on what a node is or where it lives. The caller provides a type that imp
 
 New question: **"Is everyone still alive?"**
 
-The membership set is now known and static. The machine tracks liveness without changing membership.
+The membership set is now known and mutable. The machine tracks liveness without changing membership.
 SWIM-style semantics: suspect → indirect probe → confirm or revive.
 
 **New states:**
@@ -274,13 +284,13 @@ computation over that set. The caller wires them together.
 
 | Phase | Focus | Target duration |
 |---|---|---|
-| Phase 0 | Harden existing machine | 1–2 weeks |
-| Phase 1 | Static membership registry | 2–3 weeks |
+| Phase 0 | Harden existing machine | Complete |
+| Phase 1 | Dynamic membership: joining | 2–3 weeks |
 | Phase 2 | Failure detection (SWIM) | 3–4 weeks |
 | Phase 3 | Single-node addition | 2–3 weeks |
 | Phase 4 | Single-node removal | 2–3 weeks |
 | Phase 5 | Full dynamic membership | 4–6 weeks |
-| **Total** | | **14–21 weeks** |
+| **Total** | | **13–20 weeks** |
 
 ---
 
