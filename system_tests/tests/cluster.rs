@@ -20,77 +20,71 @@ use faction_system_tests::transport::in_memory::InMemoryTransport;
 use faction_system_tests::transport::transport_trait::Transport;
 
 pub struct Cluster {
-    protocol_a: Protocol,
-    protocol_b: Protocol,
-    transport_a: InMemoryTransport,
-    transport_b: InMemoryTransport,
+    peer_ids: Vec<PeerId>,
+    protocols: Vec<Protocol>,
+    transports: Vec<InMemoryTransport>,
 }
 
 impl Cluster {
-    pub fn new() -> Self {
-        let config_a = Config::new(0, vec![0, 1], QuorumPolicy::new(2), FreshnessPolicy::new(2));
-        let config_b = Config::new(1, vec![0, 1], QuorumPolicy::new(2), FreshnessPolicy::new(2));
+    pub fn new(count: usize, required: usize) -> Self {
+        let peer_ids: Vec<PeerId> = (0..count as PeerId).collect();
 
-        let protocol_a = Protocol::new(
-            Faction::new(config_a, Box::new(NoOpObserver)),
-            vec![0, 1],
-            0,
-        );
-        let protocol_b = Protocol::new(
-            Faction::new(config_b, Box::new(NoOpObserver)),
-            vec![0, 1],
-            1,
-        );
+        let protocols = peer_ids
+            .iter()
+            .map(|&id| {
+                let config = Config::new(
+                    id,
+                    peer_ids.clone(),
+                    QuorumPolicy::new(required),
+                    FreshnessPolicy::new(2),
+                );
+                Protocol::new(
+                    Faction::new(config, Box::new(NoOpObserver)),
+                    peer_ids.clone(),
+                    id,
+                )
+            })
+            .collect();
 
-        let (transport_a, transport_b) = InMemoryTransport::new_pair(0, 1);
+        let transports = InMemoryTransport::new_mesh(&peer_ids);
 
         Self {
-            protocol_a,
-            protocol_b,
-            transport_a,
-            transport_b,
+            peer_ids,
+            protocols,
+            transports,
         }
     }
 
     pub fn converge(&mut self) {
-        self.start_node_a();
-        self.drain_to_node_b();
-        self.start_node_b();
-        self.drain_to_node_a();
+        for i in 0..self.peer_ids.len() {
+            self.start_node(i);
+            self.drain_all();
+        }
     }
 
-    fn start_node_a(&mut self) {
-        for decision in self.protocol_a.start_decisions() {
+    fn start_node(&mut self, index: usize) {
+        for decision in self.protocols[index].start_decisions() {
             for input in self.immediate(decision) {
-                for msg in self.protocol_a.decide(input) {
-                    self.route(msg, 0);
+                for msg in self.protocols[index].decide(input) {
+                    self.route(msg, self.peer_ids[index]);
                 }
             }
         }
     }
 
-    fn start_node_b(&mut self) {
-        for decision in self.protocol_b.start_decisions() {
-            for input in self.immediate(decision) {
-                for msg in self.protocol_b.decide(input) {
-                    self.route(msg, 1);
+    fn drain_all(&mut self) {
+        loop {
+            let mut any = false;
+            for i in 0..self.peer_ids.len() {
+                while let Some((from, msg)) = self.transports[i].recv() {
+                    any = true;
+                    for decision in self.protocols[i].decide(InputMessage::Transport(msg)) {
+                        self.route(decision, from);
+                    }
                 }
             }
-        }
-    }
-
-    fn drain_to_node_b(&mut self) {
-        while let Some((from, msg)) = self.transport_b.recv() {
-            for decision in self.protocol_b.decide(InputMessage::Transport(msg)) {
-                self.route(decision, from);
-            }
-        }
-    }
-
-    fn drain_to_node_a(&mut self) {
-        while let Some((from, msg)) = self.transport_a.recv() {
-            for decision in self.protocol_a.decide(InputMessage::Transport(msg)) {
-                self.route(decision, from);
+            if !any {
+                break;
             }
         }
     }
@@ -98,8 +92,13 @@ impl Cluster {
     fn route(&mut self, msg: OutputMessage, from: PeerId) {
         match msg {
             OutputMessage::BroadcastReady => {
-                self.transport(from)
-                    .send(other(from), TransportMessage::Ready { from });
+                let peers = self.peer_ids.clone();
+                for &to in &peers {
+                    if to != from {
+                        self.transport(from)
+                            .send(to, TransportMessage::Ready { from });
+                    }
+                }
             }
             OutputMessage::Noop => {}
             _ => {}
@@ -116,20 +115,14 @@ impl Cluster {
         }
     }
 
-    fn transport(&mut self, from: PeerId) -> &mut InMemoryTransport {
-        if from == 0 {
-            &mut self.transport_a
-        } else {
-            &mut self.transport_b
-        }
+    fn transport(&mut self, peer_id: PeerId) -> &mut InMemoryTransport {
+        let index = self.peer_ids.iter().position(|&p| p == peer_id).unwrap();
+        &mut self.transports[index]
     }
 
     pub fn is_bootstrapped(&mut self) -> bool {
-        self.protocol_a.cluster_view().peer_state() == PeerState::Bootstrapped
-            && self.protocol_b.cluster_view().peer_state() == PeerState::Bootstrapped
+        self.protocols
+            .iter_mut()
+            .all(|p| p.cluster_view().peer_state() == PeerState::Bootstrapped)
     }
-}
-
-fn other(from: PeerId) -> PeerId {
-    if from == 0 { 1 } else { 0 }
 }

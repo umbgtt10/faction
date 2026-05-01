@@ -18,23 +18,30 @@ pub struct InMemoryTransport {
 }
 
 impl InMemoryTransport {
-    pub fn new_pair(peer_a: PeerId, peer_b: PeerId) -> (InMemoryTransport, InMemoryTransport) {
-        let inbox_a = Arc::new(Mutex::new(VecDeque::new()));
-        let inbox_b = Arc::new(Mutex::new(VecDeque::new()));
+    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<InMemoryTransport> {
+        let inboxes: Vec<_> = peer_ids
+            .iter()
+            .map(|_| Arc::new(Mutex::new(VecDeque::new())))
+            .collect();
 
-        let transport_a = InMemoryTransport {
-            inbox: inbox_a.clone(),
-            outboxes: vec![(peer_b, inbox_b.clone())],
-            local_peer_id: peer_a,
-        };
+        peer_ids
+            .iter()
+            .enumerate()
+            .map(|(i, &local_id)| {
+                let outboxes = peer_ids
+                    .iter()
+                    .enumerate()
+                    .filter(|(j, _)| *j != i)
+                    .map(|(j, &peer_id)| (peer_id, inboxes[j].clone()))
+                    .collect();
 
-        let transport_b = InMemoryTransport {
-            inbox: inbox_b,
-            outboxes: vec![(peer_a, inbox_a)],
-            local_peer_id: peer_b,
-        };
-
-        (transport_a, transport_b)
+                InMemoryTransport {
+                    inbox: inboxes[i].clone(),
+                    outboxes,
+                    local_peer_id: local_id,
+                }
+            })
+            .collect()
     }
 }
 

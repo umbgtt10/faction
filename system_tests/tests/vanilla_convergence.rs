@@ -5,9 +5,9 @@
 mod cluster;
 
 #[test]
-fn two_nodes_converge_to_bootstrapped() {
+fn five_nodes_converge_to_bootstrapped() {
     // Arrange & Act
-    let mut cluster = cluster::Cluster::new();
+    let mut cluster = cluster::Cluster::new(5, 4);
     cluster.converge();
 
     // Assert
