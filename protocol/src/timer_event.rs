@@ -4,7 +4,7 @@
 
 use crate::timer_message::TimerMessage;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TimerEvent {
     Fire(TimerMessage),
 }

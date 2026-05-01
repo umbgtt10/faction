@@ -91,7 +91,7 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert!(cluster_view.is_exited());
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
         ]
     );
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
 
@@ -140,7 +140,7 @@ fn post_exit_ready_is_ignored() {
     // Assert
     assert!(outputs.is_empty());
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
 
@@ -231,5 +231,5 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
     let cluster_view = harness.cluster_view(0);
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(cluster_view.is_exited());
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
 }

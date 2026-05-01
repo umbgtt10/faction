@@ -229,7 +229,7 @@ fn apply_observes_quorum_exit_transition() {
         Some(ExitMode::Bootstrapped)
     );
     assert!(transition.new_view().is_exited());
-    assert_eq!(transition.new_view().collecting_peers().len(), 3);
+    assert_eq!(transition.new_view().collecting_peers().len(), 4);
     assert_eq!(
         transition.outputs(),
         &[
@@ -663,7 +663,7 @@ fn apply_observes_quorum_exit_from_pinging() {
         Some(ExitMode::Bootstrapped)
     );
     assert!(transition.new_view().is_exited());
-    assert_eq!(transition.new_view().collecting_peers().len(), 3);
+    assert_eq!(transition.new_view().collecting_peers().len(), 4);
 }
 
 #[test]
@@ -859,5 +859,5 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         Some(ExitMode::Bootstrapped)
     );
     assert!(transition.new_view().is_exited());
-    assert_eq!(transition.new_view().collecting_peers().len(), 3);
+    assert_eq!(transition.new_view().collecting_peers().len(), 4);
 }

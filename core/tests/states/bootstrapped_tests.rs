@@ -136,7 +136,7 @@ fn vibe_check_returns_correct_snapshot() {
     assert!(cluster_view.is_pinging_completed());
     assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert_eq!(cluster_view.required_count(), 4);
 }
 
@@ -144,8 +144,8 @@ fn vibe_check_returns_correct_snapshot() {
 fn bootstrapped_cluster_view_overrides_all_fields() {
     // Arrange
     let rq = Bootstrapped {
-        pinged_peers_count: 2,
-        collected_peers_count: 5,
+        pinged_peers: vec![1, 2],
+        collected_peers: vec![1, 2, 3, 4, 5],
     };
     let prev = ClusterView::new(
         PeerState::Pinging,

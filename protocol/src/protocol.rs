@@ -59,6 +59,17 @@ impl Protocol {
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
+        if matches!(input_message, InputMessage::Timer(TimerMessage::RetryReady)) {
+            if self.cluster_view().is_exited() {
+                return vec![OutputMessage::Noop];
+            }
+
+            return vec![
+                OutputMessage::BroadcastReady,
+                OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+            ];
+        }
+
         let command = self.to_command(input_message);
 
         let outcomes = match self.faction.process(command) {
@@ -73,11 +84,19 @@ impl Protocol {
     fn to_output_messages(&self, outcomes: Vec<Outcome>) -> Vec<OutputMessage> {
         for outcome in outcomes {
             match outcome {
-                Outcome::BroadcastLocalReady => return vec![OutputMessage::BroadcastReady],
+                Outcome::BroadcastLocalReady => {
+                    return vec![
+                        OutputMessage::BroadcastReady,
+                        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+                    ];
+                }
                 Outcome::Exited { .. } => {
-                    return vec![OutputMessage::Cancel(TimerEvent::Fire(
-                        TimerMessage::LocalParticipationCompleted,
-                    ))];
+                    return vec![
+                        OutputMessage::Cancel(TimerEvent::Fire(
+                            TimerMessage::LocalParticipationCompleted,
+                        )),
+                        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+                    ];
                 }
                 _ => {}
             }
@@ -108,6 +127,7 @@ impl Protocol {
                     current_marker: 0,
                 },
                 TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
+                TimerMessage::RetryReady => unreachable!("handled in decide()"),
                 TimerMessage::DeadlineExpired => Command::DeadlineExpired,
             },
         }

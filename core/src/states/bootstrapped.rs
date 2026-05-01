@@ -12,11 +12,12 @@ use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
+use crate::PeerId;
 
 #[derive(Default)]
 pub struct Bootstrapped {
-    pub pinged_peers_count: usize,
-    pub collected_peers_count: usize,
+    pub pinged_peers: Vec<PeerId>,
+    pub collected_peers: Vec<PeerId>,
 }
 
 impl Bootstrapped {
@@ -40,6 +41,8 @@ impl State for Bootstrapped {
             .clone()
             .with_peer_state(PeerState::Bootstrapped)
             .with_is_pinging_completed(true)
+            .with_pinging_peers(self.pinged_peers.clone())
+            .with_collecting_peers(self.collected_peers.clone())
     }
 
     fn admissible_commands(&self) -> alloc::vec::Vec<Command> {

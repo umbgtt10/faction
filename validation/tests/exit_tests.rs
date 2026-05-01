@@ -36,7 +36,7 @@ fn slow_member_does_not_block_quorum_exit() {
         ]
     );
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
 
@@ -79,7 +79,7 @@ fn post_exit_ready_is_ignored() {
     // Assert
     assert!(outputs.is_empty());
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
 
@@ -212,6 +212,6 @@ fn deadline_from_bootstrapped_is_noop() {
     // Assert
     assert!(outputs.is_empty());
     assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert_eq!(cluster_view.collecting_peers().len(), 3);
+    assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }

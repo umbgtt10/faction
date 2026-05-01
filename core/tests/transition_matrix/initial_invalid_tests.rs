@@ -29,7 +29,7 @@ fn invalid_transition(
 ) {
     // Arrange
     let mut m = build(init);
-    let snapshot_before = match m.process(Command::Probe) {
+    let old_cluster_view = match m.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -38,7 +38,7 @@ fn invalid_transition(
     let result = m.process(command);
 
     // Assert
-    let (cluster_view, admissible) = match result {
+    let (new_cluster_view, admissible) = match result {
         ProcessResult::Rejected {
             cluster_view,
             admissible,
@@ -46,6 +46,6 @@ fn invalid_transition(
         other => panic!("expected Rejected, got {other:?}"),
     };
     verify(&mut m, asserts);
-    assert_eq!(cluster_view, snapshot_before);
+    assert_eq!(new_cluster_view, old_cluster_view);
     assert_eq!(admissible, expected_admissible);
 }

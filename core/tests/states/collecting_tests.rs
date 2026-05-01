@@ -426,7 +426,7 @@ fn ready_first_timely_triggers_quorum() {
             },
         ]
     );
-    assert_eq!(snap.collecting_peers().len(), 3);
+    assert_eq!(snap.collecting_peers().len(), 4);
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
     assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
     assert!(snap.is_exited());
@@ -469,7 +469,7 @@ fn ready_first_delayed_triggers_quorum() {
             },
         ]
     );
-    assert_eq!(snap.collecting_peers().len(), 3);
+    assert_eq!(snap.collecting_peers().len(), 4);
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
     assert!(snap.is_exited());
 }
@@ -559,8 +559,8 @@ fn collecting_cluster_view_inherits_correctly() {
     // Arrange
     let collecting_set = vec![1, 3];
     let collecting = Collecting {
-        collected_peers: collecting_set,
-        pinged_peers_count: 2,
+        collecting_peers: collecting_set,
+        pinged_peers: vec![5, 6],
     };
     let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
 
@@ -570,7 +570,7 @@ fn collecting_cluster_view_inherits_correctly() {
     // Assert
     assert_eq!(result.peer_state(), PeerState::Collecting);
     assert!(result.is_pinging_completed());
-    assert_eq!(result.pinging_peers().len(), 0);
+    assert_eq!(result.pinging_peers().len(), 2);
     assert_eq!(result.collecting_peers(), &[1, 3]);
     assert_eq!(result.exit_mode(), None);
     assert!(!result.is_exited());

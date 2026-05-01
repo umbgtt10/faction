@@ -84,7 +84,7 @@ use super::helpers::*;
         ReadyQuorumReached,
         Exited { mode: ExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::ready_delayed_triggers_quorum(
     Init::CollectingAlmostQuorum,
@@ -94,7 +94,7 @@ use super::helpers::*;
         ReadyQuorumReached,
         Exited { mode: ExitMode::Bootstrapped },
     ],
-    &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::local_completion_transitions_to_collecting(
     Init::Fresh,
@@ -134,20 +134,20 @@ use super::helpers::*;
 fn valid_transition(
     #[case] init: Init,
     #[case] command: Command,
-    #[case] expected_outputs: &[Outcome],
+    #[case] expected_results: &[Outcome],
     #[case] asserts: &[Assert],
 ) {
     // Arrange
     let mut m = build(init);
 
     // Act
-    let outcomes = match m.process(command) {
+    let results = match m.process(command) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
 
     // Assert
-    assert_eq!(outcomes.as_slice(), expected_outputs, "output mismatch");
+    assert_eq!(results.as_slice(), expected_results, "output mismatch");
     verify(&mut m, asserts);
 }

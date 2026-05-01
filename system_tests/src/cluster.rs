@@ -16,12 +16,15 @@ use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::transport_message::TransportMessage;
 
+use crate::timer::in_memory::InMemoryTimer;
+use crate::timer::timer_trait::Timer;
 use crate::transport::in_memory::InMemoryTransport;
 use crate::transport::transport_trait::Transport;
 
 pub struct Cluster {
     peer_ids: Vec<PeerId>,
     protocols: Vec<Protocol>,
+    timers: Vec<InMemoryTimer>,
     transports: Vec<InMemoryTransport>,
     drops: Vec<Drop>,
 }
@@ -54,11 +57,13 @@ impl Cluster {
             })
             .collect();
 
+        let timers = (0..count).map(|_| InMemoryTimer::new()).collect();
         let transports = InMemoryTransport::new_mesh(&peer_ids);
 
         Self {
             peer_ids,
             protocols,
+            timers,
             transports,
             drops: Vec::new(),
         }
@@ -79,41 +84,48 @@ impl Cluster {
         });
     }
 
-    pub fn converge(&mut self) {
+    pub fn start_all(&mut self) {
         for i in 0..self.peer_ids.len() {
-            self.start_node(i);
-            self.drain_all();
-        }
-    }
-
-    fn start_node(&mut self, index: usize) {
-        for decision in self.protocols[index].start_decisions() {
-            for input in self.immediate(decision) {
-                for msg in self.protocols[index].decide(input) {
-                    self.route(msg, self.peer_ids[index]);
-                }
+            for decision in self.protocols[i].start_decisions() {
+                self.route(decision, self.peer_ids[i]);
             }
         }
     }
 
-    fn drain_all(&mut self) {
-        loop {
-            let mut any = false;
-            for i in 0..self.peer_ids.len() {
-                while let Some((from, msg)) = self.transports[i].recv() {
-                    any = true;
-                    for decision in self.protocols[i].decide(InputMessage::Transport(msg)) {
-                        self.route(decision, from);
-                    }
+    pub fn step_transport(&mut self) -> bool {
+        let mut any = false;
+
+        for i in 0..self.peer_ids.len() {
+            if let Some((from, msg)) = self.transports[i].recv() {
+                any = true;
+                for decision in self.protocols[i].decide(InputMessage::Transport(msg)) {
+                    self.route(decision, from);
                 }
             }
-            if !any {
-                break;
+        }
+
+        any
+    }
+
+    pub fn step_timer(&mut self) -> bool {
+        let mut any = false;
+
+        for i in 0..self.peer_ids.len() {
+            if let Some(event) = self.timers[i].poll() {
+                any = true;
+                let TimerEvent::Fire(tm) = event;
+                for decision in self.protocols[i].decide(InputMessage::Timer(tm)) {
+                    self.route(decision, self.peer_ids[i]);
+                }
             }
         }
+
+        any
     }
 
     fn route(&mut self, msg: OutputMessage, from: PeerId) {
+        let index = self.peer_ids.iter().position(|&p| p == from).unwrap();
+
         match msg {
             OutputMessage::BroadcastReady => {
                 let peers = self.peer_ids.clone();
@@ -123,12 +135,17 @@ impl Cluster {
                         if self.should_drop(from, to, &transport_msg) {
                             continue;
                         }
-                        self.transport(from).send(to, transport_msg);
+                        self.transports[index].send(to, transport_msg);
                     }
                 }
             }
+            OutputMessage::Schedule(event) => {
+                self.timers[index].schedule(event);
+            }
+            OutputMessage::Cancel(event) => {
+                self.timers[index].cancel(event);
+            }
             OutputMessage::Noop => {}
-            _ => {}
         }
     }
 
@@ -142,19 +159,8 @@ impl Cluster {
         false
     }
 
-    fn immediate(&mut self, msg: OutputMessage) -> Vec<InputMessage> {
-        match msg {
-            OutputMessage::Schedule(event) => {
-                let TimerEvent::Fire(tm) = event;
-                vec![InputMessage::Timer(tm)]
-            }
-            _ => vec![],
-        }
-    }
-
-    fn transport(&mut self, peer_id: PeerId) -> &mut InMemoryTransport {
-        let index = self.peer_ids.iter().position(|&p| p == peer_id).unwrap();
-        &mut self.transports[index]
+    pub fn node_state(&mut self, index: usize) -> PeerState {
+        self.protocols[index].cluster_view().peer_state()
     }
 
     pub fn is_bootstrapped(&mut self) -> bool {

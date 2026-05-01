@@ -7,14 +7,19 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::cluster::Cluster;
 
 #[test]
-fn cluster_fails_when_ready_message_is_dropped() {
+fn cluster_converges_via_retry_when_ready_message_is_dropped() {
     // Arrange
     let mut cluster = Cluster::new(2, 2);
     cluster.drop_message(0, 1, TransportMessage::Ready { from: 0 }, 1);
+    cluster.start_all();
 
     // Act
-    cluster.converge();
+    cluster.step_timer();
+    cluster.step_timer();
+    cluster.step_timer();
+
+    cluster.step_transport();
 
     // Assert
-    assert!(!cluster.is_bootstrapped());
+    assert!(cluster.is_bootstrapped());
 }

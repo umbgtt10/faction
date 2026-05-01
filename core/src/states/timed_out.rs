@@ -12,11 +12,12 @@ use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
+use crate::PeerId;
 
 #[derive(Default)]
 pub struct TimedOut {
-    pub pinged_peers_count: usize,
-    pub collected_peers_count: usize,
+    pub pinging_peers: Vec<PeerId>,
+    pub collecting_peers: Vec<PeerId>,
 }
 
 impl TimedOut {
@@ -32,7 +33,11 @@ impl State for TimedOut {
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous.clone().with_peer_state(PeerState::TimedOut)
+        previous
+            .clone()
+            .with_peer_state(PeerState::TimedOut)
+            .with_pinging_peers(self.pinging_peers.clone())
+            .with_collecting_peers(self.collecting_peers.clone())
     }
 
     fn accept(&self, _command: &Command) -> bool {

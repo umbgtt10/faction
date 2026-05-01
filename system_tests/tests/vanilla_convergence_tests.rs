@@ -6,9 +6,19 @@ use faction_system_tests::cluster::Cluster;
 
 #[test]
 fn five_nodes_converge_to_bootstrapped() {
-    // Arrange & Act
+    // Arrange
     let mut cluster = Cluster::new(5, 4);
-    cluster.converge();
+    cluster.start_all();
+
+    cluster.step_timer();
+    cluster.step_timer();
+    cluster.step_timer();
+    cluster.step_timer();
+    cluster.step_timer();
+
+    cluster.step_transport();
+    cluster.step_transport();
+    cluster.step_transport();
 
     // Assert
     assert!(cluster.is_bootstrapped());
