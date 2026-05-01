@@ -140,15 +140,6 @@ fn vibe_check_returns_correct_snapshot() {
     assert_eq!(cluster_view.required_count(), 4);
 }
 
-fn config() -> Config {
-    Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    )
-}
-
 #[test]
 fn bootstrapped_cluster_view_overrides_all_fields() {
     // Arrange
@@ -165,7 +156,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
     );
 
     // Act
-    let result = rq.cluster_view(&prev, &config());
+    let result = rq.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);

@@ -518,16 +518,10 @@ fn vibe_check_in_pinging() {
 fn pinging_cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new();
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
     let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
 
     // Act
-    let result = pinging.cluster_view(&prev, &config);
+    let result = pinging.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Pinging);

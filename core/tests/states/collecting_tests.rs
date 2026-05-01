@@ -564,16 +564,10 @@ fn collecting_cluster_view_inherits_correctly() {
         collecting_count: collecting_set,
         pinging_count: 2,
     };
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
     let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
 
     // Act
-    let result = collecting.cluster_view(&prev, &config);
+    let result = collecting.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Collecting);

@@ -23,7 +23,7 @@ impl State for TimedOut {
         unreachable!("accept() rejects all commands for this state")
     }
 
-    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous.clone().with_peer_state(PeerState::TimedOut)
     }
 

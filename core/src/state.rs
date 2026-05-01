@@ -14,7 +14,7 @@ use crate::outcome::Outcome;
 pub trait State {
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>);
 
-    fn cluster_view(&self, previous: &ClusterView, config: &Config) -> ClusterView;
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView;
 
     fn accept(&self, _command: &Command) -> bool {
         true

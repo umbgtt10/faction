@@ -17,7 +17,7 @@ use crate::states::pinging::Pinging;
 pub struct Initial;
 
 impl State for Initial {
-    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .clone()
             .with_peer_state(PeerState::Fresh)

@@ -236,16 +236,10 @@ fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
         pinging_count: 3,
         collecting_count: 1,
     };
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
     let prev = ClusterView::new(PeerState::Pinging, false, vec![1, 2, 3], vec![9], 4);
 
     // Act
-    let result = rbd.cluster_view(&prev, &config);
+    let result = rbd.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
@@ -264,16 +258,10 @@ fn timed_out_cluster_view_inherits_local_completion_from_collecting() {
         pinging_count: 2,
         collecting_count: 4,
     };
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
     let prev = ClusterView::new(PeerState::Collecting, true, vec![5, 6], vec![1, 2, 3, 4], 4);
 
     // Act
-    let result = rbd.cluster_view(&prev, &config);
+    let result = rbd.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);

@@ -43,7 +43,7 @@ impl Pinging {
 }
 
 impl State for Pinging {
-    fn cluster_view(&self, previous: &ClusterView, _config: &Config) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         previous
             .clone()
             .with_peer_state(PeerState::Pinging)

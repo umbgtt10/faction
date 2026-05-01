@@ -33,7 +33,7 @@ impl Faction {
             Vec::new(),
             config.required_count(),
         );
-        let cluster_view = state.cluster_view(&base, &config);
+        let cluster_view = state.cluster_view(&base);
         Self {
             config,
             observer,
@@ -70,9 +70,7 @@ impl Faction {
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
-        let new_cluster_view = self
-            .state
-            .cluster_view(&previous_cluster_view, &self.config);
+        let new_cluster_view = self.state.cluster_view(&previous_cluster_view);
         let transition = Transition::new(
             previous_cluster_view,
             outputs.clone(),

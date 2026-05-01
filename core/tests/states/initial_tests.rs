@@ -295,16 +295,10 @@ fn vibe_check_returns_fresh_state_with_zeros() {
 #[test]
 fn initial_cluster_view_inherits_correctly() {
     // Arrange
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
     let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
 
     // Act
-    let result = Initial.cluster_view(&prev, &config);
+    let result = Initial.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Fresh);
