@@ -1,6 +1,6 @@
 # Protocol bootstrapping — Design
 
-**Status:** Draft  
+**Status:** Implemented (partial — see gaps)  
 **Crate:** `faction-protocol`  
 **Depends on:** `faction` (core)
 
@@ -23,10 +23,13 @@ Node A                          Node B
   ├── Schedule(Participation)     ├── Schedule(Participation)
   ├── Schedule(LocalComplete)     ├── Schedule(LocalComplete)
   │                               │
-  │ ◄── Ping(B) ──────────────────┤  Timer fires LocalComplete
+  │ Timer fires Participation     │ Timer fires Participation
+  │ Timer fires LocalComplete     │ Timer fires LocalComplete
   ├── decide → BroadcastReady     │
+  ├── Schedule(RetryReady)        │
   │ ── Ready(A) ─────────────────►│
   │                               ├── decide → BroadcastReady
+  │                               ├── Schedule(RetryReady)
   │                               │ ── Ready(B) ─────────────────►
   │                               │                               │
   │ ◄── Ready(B) ─────────────────┤                               │
@@ -39,56 +42,121 @@ Node A                          Node B
 
 ---
 
+## Architecture
+
+`Protocol` owns a `Faction` state machine and a `MessageTranslator`.
+It does **not** track previous state or detect transitions — it delegates
+outcome→output mapping to `MessageTranslator`.
+
+```rust
+pub struct Protocol {
+    faction: Faction,
+    peers: Vec<PeerId>,
+    local_peer_id: PeerId,
+    translator: MessageTranslator,
+}
+```
+
+### `MessageTranslator`
+
+A pure, stateless translator with two methods:
+
+- **`to_command(InputMessage) -> Command`** — maps every transport/timer message
+  variant to its corresponding Faction command (7 arms, exhaustively tested).
+
+- **`to_output_messages(Vec<Outcome>) -> Vec<OutputMessage>`** — scans the outcome
+  vector and returns on the first meaningful match:
+  | Outcome | Output |
+  |---|---|
+  | `BroadcastLocalReady` | `[BroadcastReady, Schedule(RetryReady)]` |
+  | `Exited { .. }` | `[Cancel(LocalParticipationCompleted), Cancel(RetryReady)]` |
+  | Everything else | `[Noop]` |
+
+### `Protocol::decide()`
+
+```
+decide(input):
+    if input is RetryReady:
+        if exited → [Noop]
+        else      → [BroadcastReady, Schedule(RetryReady)]
+
+    command  = translator.to_command(input)
+    outcomes = faction.process(command)
+    if rejected → [Noop]
+    return translator.to_output_messages(outcomes)
+```
+
+`RetryReady` is intercepted before the Faction sees it — the Faction never
+receives a `RetryReady` command (the `to_command` mapping panics with
+`unreachable!` if it ever does).
+
+### `Protocol::start_decisions()`
+
+Schedules exactly:
+- One `ParticipationObserved` timer per remote peer
+- One `LocalParticipationCompleted` timer
+
+No `DeadlineExpired` is scheduled here — the deadline is injected externally
+by the node runtime when it decides a global timeout is needed.
+
+---
+
 ## Scenarios
 
-### S1 — Normal convergence
+### S1 — Normal convergence ✅
 
-All nodes start, exchange Pings and Ready signals, reach quorum.
+All nodes start, timers fire, nodes exchange Ready signals, reach quorum.
 
-**Expected:** Both nodes reach `Bootstrapped` after exchanging `Ping` + `Ready`.
+**Covered by:** `vanilla_convergence_tests` (5 nodes, quorum 4) and
+`five_nodes_converge_to_bootstrapped` system test.
 
-### S2 — Lost Ping
+### S2 — Lost Ping ❌ (not implemented)
 
-Node A sends Ping to Node B. The message is lost.
+There is no `RetryPing` timer and no `BroadcastPing` output.
+Participation is seeded only by the one-shot `ParticipationObserved` timers
+from `start_decisions()`. If a `Ping` transport message is lost, the
+receiving node misses that peer's participation.
 
-**Expected:** RetryPing timer fires on Node A, Ping is resent. Node B receives the retry.
-Node B eventually receives it and the flow proceeds normally.
+**Gap:** No retry mechanism for participation signals.
 
-### S3 — Lost Ready
+### S3 — Lost Ready ✅
 
-Node A sends Ready to Node B. The message is lost.
+`RetryReady` timer re-broadcasts `Ready` periodically until exit.
 
-**Expected:** RetryReady timer fires on Node A, Ready is resent. Node B receives the retry.
-Quorum is reached eventually.
+**Covered by:** `dropped_ready_tests` (2 nodes, quorum 2, one Ready dropped)
+and `decide_retry_ready_while_active_produces_broadcast_and_retry` protocol test.
 
-### S4 — Late arrival
+### S4 — Late arrival ✅
 
-Node A starts, completes participation, broadcasts Ready. Node B starts later.
+A `Ready` transport message can arrive before `LocalParticipationCompleted`.
+The Faction's `Pinging` state accepts `ReadyObserved` and accumulates it in
+`collected_peers`. When `LocalParticipationCompleted` later fires, those
+pre-collected Ready signals count toward quorum.
 
-**Expected:** Node B receives Ping from its own timer, then receives Ready from Node A
-(who already sent it). Node B processes Node A's Ready and responds with its own Ready.
-Both converge.
+**Covered by:** Protocol test `decide_ready_before_local_completion_is_noop`
+(Ready accepted but produces Noop output in Pinging state).
 
-### S5 — Deadline expired
+### S5 — Deadline expired ✅
 
-No quorum forms within the global deadline.
+The node runtime injects `DeadlineExpired` as a timer message. The Protocol
+maps it to `Command::DeadlineExpired`, the Faction transitions to `TimedOut`,
+and `to_output_messages` returns `[Cancel(LPC), Cancel(RetryReady)]`.
 
-**Expected:** DeadlineExpired fires on each node. Each exits with `TimedOut`.
-All retry timers are cancelled.
+**Covered by:** Protocol test `decide_deadline_expired_exits`.
 
-### S6 — Stale/duplicate suppression
+### S6 — Stale/duplicate suppression ✅
 
-A retry timer fires after the signal was already received and processed.
+Handled entirely by the Faction core state machine. Duplicate and stale
+signals produce `*Ignored` outcomes, which fall through in
+`to_output_messages` → `[Noop]`. No spurious re-broadcasts.
 
-**Expected:** The machine emits `Duplicate*Ignored` and does not change state.
-No additional broadcasts are triggered by the retry.
+### S7 — Premature exit cancellation ✅
 
-### S7 — Premature exit cancellation
+When `Exited` outcome is produced (Bootstrapped or TimedOut),
+`to_output_messages` returns `[Cancel(LPC), Cancel(RetryReady)]`.
+`RetryReady` also short-circuits via `is_exited()` check in `decide()`.
 
-A node reaches Bootstrapped or TimedOut.
-
-**Expected:** All pending timers (RetryPing, RetryReady, DeadlineExpired) are cancelled.
-No further messages are produced.
+**Covered by:** `decide_retry_ready_while_exited_produces_noop` protocol test.
 
 ---
 
@@ -98,25 +166,23 @@ No further messages are produced.
 
 | Message | Meaning | Produced by |
 |---|---|---|
-| `Ping { from }` | "I exist, here's my participation signal" | `BroadcastPing` → dispatcher sends to all peers |
+| `Ping { from }` | "I exist, here's my participation signal" | Node runtime / timer |
 | `Ready { from }` | "I completed local participation" | `BroadcastReady` → dispatcher sends to all peers |
-| `Bootstrapped { from }` | "I reached quorum" | Future: Phase 3+ |
+| `Bootstrapped { from }` | "I reached quorum" | Future (maps to `Probe` — currently panics in `decide()`) |
 
 ### Timer messages (scheduled events)
 
 | Message | Meaning | Scheduled on | Cancelled on |
 |---|---|---|---|
 | `ParticipationObserved { peer_id }` | Seed a participation signal for a peer | `start_decisions()` | Never |
-| `LocalParticipationCompleted` | Fire local completion | `start_decisions()` | Never |
-| `RetryPing` | Resend Ping to all peers | Initial → Pinging transition | Exit or quorum |
-| `RetryReady` | Resend Ready to all peers | Pinging → Collecting transition | Exit or quorum |
-| `DeadlineExpired` | Global timeout fired | `start_decisions()` | Quorum |
+| `LocalParticipationCompleted` | Fire local completion | `start_decisions()` | Exit (`Exited` → Cancel) |
+| `RetryReady` | Resend Ready to all peers | `BroadcastLocalReady` outcome | Exit (`Exited` → Cancel) |
+| `DeadlineExpired` | Global timeout fired | Injected externally by node runtime | Exit (`Exited` → Cancel) |
 
 ### Output messages (Protocol → Dispatcher)
 
 | Output | Meaning | Dispatcher action |
 |---|---|---|
-| `BroadcastPing` | Tell all peers I exist | Send `Ping { from: local_peer_id }` to every other peer |
 | `BroadcastReady` | Tell all peers I'm ready | Send `Ready { from: local_peer_id }` to every other peer |
 | `Schedule(TimerEvent)` | Arm a timer | `timer.schedule(event)` |
 | `Cancel(TimerEvent)` | Disarm a timer | `timer.cancel(event)` |
@@ -126,110 +192,45 @@ No further messages are produced.
 
 ## State transitions that produce outputs
 
-### Initial → Pinging
+### Any → Pinging
 
 Triggered by: `ParticipationObserved` or `ReadyObserved` from a peer.
 
-Produces:
-- `BroadcastPing` — tell peers this node just activated
-- `Schedule(TimerEvent::Fire(RetryPing))` — retry pings
-- `Schedule(TimerEvent::Fire(DeadlineExpired))` — global deadline (if not already scheduled)
+Produces: `[Noop]` — the Faction transitions internally but no protocol-level
+output is emitted. The dispatcher is responsible for broadcasting pings on
+first activation.
 
 ### Pinging → Collecting
 
-Triggered by: `ParticipationObserved` from enough peers + `LocalParticipationCompleted`.
+Triggered by: `LocalParticipationCompleted`.
 
 Produces:
 - `BroadcastReady` — tell peers this node is ready
-- `Schedule(TimerEvent::Fire(RetryReady))` — retry ready broadcasts
-- `Cancel(TimerEvent::Fire(RetryPing))` — no need to retry pings anymore
+- `Schedule(RetryReady)` — periodic retry until exit
 
 ### Collecting → Bootstrapped
 
 Triggered by: `ReadyObserved` from enough peers to meet quorum.
 
 Produces:
-- `Cancel(TimerEvent::Fire(RetryReady))` — quorum reached, stop retrying
-- `Cancel(TimerEvent::Fire(DeadlineExpired))` — quorum reached, no deadline needed
-- `BroadcastBootstrapped` — tell peers (Phase 3+ only)
+- `Cancel(LocalParticipationCompleted)` — no longer needed
+- `Cancel(RetryReady)` — quorum reached, stop retrying
 
 ### Any → TimedOut
 
 Triggered by: `DeadlineExpired`.
 
 Produces:
-- `Cancel(TimerEvent::Fire(RetryPing))`
-- `Cancel(TimerEvent::Fire(RetryReady))`
-- `Cancel(TimerEvent::Fire(DeadlineExpired))`
-
----
-
-## Implication for Protocol::decide()
-
-`decide()` must return `Vec<OutputMessage>` instead of a single `OutputMessage`.
-A single input can trigger multiple outputs (e.g., state transition + timer scheduling).
-
-The Protocol needs to track the previous state internally to detect transitions:
-
-```rust
-pub struct Protocol {
-    faction: Faction,
-    peers: Vec<PeerId>,
-    local_peer_id: PeerId,
-    previous_state: PeerState,
-}
-
-impl Protocol {
-    pub fn decide(&mut self, message: InputMessage) -> Vec<OutputMessage> {
-        let previous = self.previous_state;
-        let outcomes = ...; // process the message
-        let current = self.faction.cluster_view().peer_state();
-        self.previous_state = current;
-
-        let mut outputs = Vec::new();
-
-        // Core decision: what does this specific message produce?
-        match core_outcome {
-            BroadcastLocalReady => outputs.push(OutputMessage::BroadcastReady),
-            Exited { .. } => outputs.push(OutputMessage::Cancel(...)),
-            _ => {}
-        }
-
-        // Transition detection: what changed between previous and current?
-        if previous == PeerState::Fresh && current == PeerState::Pinging {
-            outputs.push(OutputMessage::BroadcastPing);
-            outputs.push(OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)));
-            outputs.push(OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::DeadlineExpired)));
-        }
-        if previous == PeerState::Pinging && current == PeerState::Collecting {
-            outputs.push(OutputMessage::BroadcastReady);
-            outputs.push(OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)));
-            outputs.push(OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)));
-        }
-        if current == PeerState::Bootstrapped {
-            outputs.push(OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)));
-            outputs.push(OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::DeadlineExpired)));
-        }
-        if current == PeerState::TimedOut {
-            outputs.push(OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)));
-            outputs.push(OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)));
-            outputs.push(OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::DeadlineExpired)));
-        }
-
-        outputs
-    }
-}
-```
+- `Cancel(LocalParticipationCompleted)`
+- `Cancel(RetryReady)`
 
 ---
 
 ## Retry strategy
 
-| Timer | Interval | Max retries | Backoff |
-|---|---|---|---|
-| `RetryPing` | 1s | 3 | 2× |
-| `RetryReady` | 1s | 5 | 2× |
-| `DeadlineExpired` | 30s | 1 | N/A |
+| Timer | Mechanism | Termination |
+|---|---|---|
+| `RetryReady` | `BroadcastLocalReady` outcome schedules it; each fire produces `[BroadcastReady, Schedule(RetryReady)]` | Cancelled on exit (`Exited` outcome) or short-circuited by `is_exited()` check |
 
-Retry count tracking is the responsibility of the `Timer` implementation.
-The Protocol only decides *what* to schedule and *when* to cancel.
+Retry interval and backoff are the responsibility of the `Timer` implementation,
+not the Protocol.
