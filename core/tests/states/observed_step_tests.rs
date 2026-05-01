@@ -11,7 +11,6 @@ use faction::freshness_classification::FreshnessClassification;
 use faction::outcome::Outcome;
 use faction::states::compute_output::ObservedKind;
 use faction::states::observed_step::ObservedStep;
-use faction::PeerId;
 
 #[test]
 fn new_adds_peer_when_timely_and_not_dup() {
@@ -182,7 +181,6 @@ fn new_local_always_confirmed_new_even_when_already_present() {
     let step = ObservedStep::new_local(confirmed.clone(), 2, 5);
 
     // Assert
-    // confirmed_new is always true for local, observable via is_quorum
     assert_eq!(step.confirmed_peers(), confirmed);
     assert!(!step.is_quorum());
 }

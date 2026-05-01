@@ -274,6 +274,41 @@ fn punch_ready_non_member_from_initial() {
 }
 
 #[test]
+fn new_returns_initial_state() {
+    // Arrange & Act
+    let initial = Initial::new();
+    let config = Config::new(0, vec![0], QuorumPolicy::new(1), FreshnessPolicy::new(1));
+    let (outcomes, new_state) = initial.step(
+        Command::ParticipationObserved {
+            peer_id: 0,
+            freshness: 10,
+            current_marker: 10,
+        },
+        &config,
+    );
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::ParticipationAccepted { peer_id: 0 }]
+    );
+    assert!(
+        new_state
+            .as_ref()
+            .cluster_view(&ClusterView::new(
+                PeerState::Pinging,
+                false,
+                vec![0],
+                vec![],
+                1
+            ))
+            .pinging_peers()
+            .len()
+            > 0
+    );
+}
+
+#[test]
 fn vibe_check_returns_fresh_state_with_zeros() {
     // Arrange & Act
     let mut faction = test_machine();
