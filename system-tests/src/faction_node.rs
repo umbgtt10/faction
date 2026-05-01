@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::PeerId;
+use crate::node_observer::NodeObserver;
 use faction::peer_state::PeerState;
 
 use faction_protocol::input_message::InputMessage;
@@ -20,6 +21,7 @@ pub struct FactionNode {
     protocol: Protocol,
     transport: Box<dyn Transport>,
     timer: Box<dyn Timer>,
+    observer: Box<dyn NodeObserver>,
     toggle_timer_and_transport: bool,
 }
 
@@ -30,6 +32,7 @@ impl FactionNode {
         protocol: Protocol,
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
+        observer: Box<dyn NodeObserver>,
     ) -> Self {
         Self {
             peer_id,
@@ -37,6 +40,7 @@ impl FactionNode {
             protocol,
             transport,
             timer,
+            observer,
             toggle_timer_and_transport: true,
         }
     }
@@ -44,6 +48,7 @@ impl FactionNode {
     pub fn start(&mut self) {
         let decisions = self.protocol.start_decisions();
 
+        self.observer.on_start();
         for decision in decisions {
             self.dispatch(decision);
         }
@@ -60,6 +65,7 @@ impl FactionNode {
                 Some(TimerEvent::Fire(timer_msg)) => InputMessage::Timer(timer_msg),
                 None => {
                     self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
+                    self.observer.on_idle();
                     return;
                 }
             }
@@ -68,12 +74,14 @@ impl FactionNode {
                 Some((_, transport_msg)) => InputMessage::Transport(transport_msg),
                 None => {
                     self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
+                    self.observer.on_idle();
                     return;
                 }
             }
         };
 
-        let decisions = self.protocol.decide(message);
+        let decisions = self.protocol.decide(message.clone());
+        self.observer.on_step(&message, &decisions);
         for decision in decisions {
             self.dispatch(decision);
         }
