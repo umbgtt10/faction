@@ -12,10 +12,16 @@ use rstest::rstest;
 #[rstest]
 #[case::task_in_memory(Spawn::Task, TransportKind::InMemory)]
 fn cluster_reaches_bootstrapped(#[case] spawn: Spawn, #[case] transport: TransportKind) {
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let name = format!("{timestamp}_{spawn:?}_{transport:?}.jsonl").to_lowercase();
+
     let mut cluster = ClusterBuilder::new(5, 4)
         .spawn(spawn)
         .transport(transport)
-        .log_path(PathBuf::from("logs").join("convergence.jsonl"))
+        .log_path(PathBuf::from("logs").join(name))
         .build();
 
     cluster.poll_until_bootstrapped(10);
