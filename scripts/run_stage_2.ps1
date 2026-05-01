@@ -20,7 +20,8 @@ function Invoke-Crap4RustGate {
         [string[]]$ExcludePaths = @()
     )
 
-    if (-not (Get-Command cargo-crap4rust -ErrorAction SilentlyContinue)) {
+    $null = cargo crap4rust --help 2>$null
+    if ($LASTEXITCODE -ne 0) {
         Write-Host "Installing crap4rust..." -ForegroundColor Cyan
         cargo install crap4rust
         if ($LASTEXITCODE -ne 0) {
