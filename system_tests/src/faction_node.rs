@@ -40,19 +40,11 @@ impl FactionNode {
     }
 
     pub fn start(&mut self) {
-        for peer in &self.peers {
-            if *peer != self.peer_id {
-                self.timer
-                    .schedule(TimerEvent::Fire(Command::ParticipationObserved {
-                        peer_id: *peer,
-                        freshness: 0,
-                        current_marker: 0,
-                    }));
-            }
-        }
+        let decisions = self.protocol.start_decisions(&self.peers, self.peer_id);
 
-        self.timer
-            .schedule(TimerEvent::Fire(Command::LocalParticipationCompleted));
+        for decision in decisions {
+            self.dispatch(decision, 0);
+        }
     }
 
     pub fn step(&mut self, current_marker: Freshness) {
@@ -75,7 +67,11 @@ impl FactionNode {
         };
 
         let decision = self.protocol.decide(command);
+        self.dispatch(decision, current_marker);
+        self.use_timer = !self.use_timer;
+    }
 
+    fn dispatch(&mut self, decision: Decision, current_marker: Freshness) {
         match decision {
             Decision::BroadcastReady => {
                 for to in &self.peers {
@@ -91,9 +87,13 @@ impl FactionNode {
                     }
                 }
             }
+            Decision::Schedule(event) => {
+                self.timer.schedule(event);
+            }
+            Decision::Cancel(event) => {
+                self.timer.cancel(event);
+            }
             Decision::Noop => {}
         }
-
-        self.use_timer = !self.use_timer;
     }
 }
