@@ -16,8 +16,8 @@ use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::transport_message::TransportMessage;
 
-use faction_system_tests::transport::in_memory::InMemoryTransport;
-use faction_system_tests::transport::transport_trait::Transport;
+use crate::transport::in_memory::InMemoryTransport;
+use crate::transport::transport_trait::Transport;
 
 pub struct Cluster {
     peer_ids: Vec<PeerId>,
