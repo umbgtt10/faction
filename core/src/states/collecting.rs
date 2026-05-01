@@ -69,15 +69,12 @@ impl State for Collecting {
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let collected_peers = self.collected_peers.clone();
-        let pinged_peers_count = self.pinged_peers_count;
-
         if let Some(peer_id) = Self::non_member_peer(&command, config) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Box::new(Self {
-                    collected_peers,
-                    pinged_peers_count,
+                    collected_peers: self.collected_peers.clone(),
+                    pinged_peers_count: self.pinged_peers_count,
                 }),
             );
         }
@@ -97,7 +94,7 @@ impl State for Collecting {
                     .classify(current_marker, freshness);
                 let step = ObservedStep::new(
                     classification,
-                    collected_peers,
+                    self.collected_peers.clone(),
                     peer_id,
                     ObservedKind::Ready,
                     Some(config.required_count()),
@@ -106,12 +103,12 @@ impl State for Collecting {
                 let new_state: Box<dyn State> = if step.is_quorum() {
                     Box::new(Bootstrapped {
                         collected_peers_count: step.confirmed_peers().len(),
-                        pinged_peers_count,
+                        pinged_peers_count: self.pinged_peers_count,
                     })
                 } else {
                     Box::new(Self {
                         collected_peers: step.confirmed_peers(),
-                        pinged_peers_count,
+                        pinged_peers_count: self.pinged_peers_count,
                     })
                 };
 
@@ -127,8 +124,8 @@ impl State for Collecting {
                     mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
-                    collected_peers_count: collected_peers.len(),
-                    pinged_peers_count,
+                    collected_peers_count: self.collected_peers.len(),
+                    pinged_peers_count: self.pinged_peers_count,
                 }),
             ),
 

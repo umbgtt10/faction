@@ -56,15 +56,12 @@ impl State for Pinging {
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        let pinged_peers = self.pinged_peers.clone();
-        let mut new_collected_peers = self.collected_peers.clone();
-
         if let Some(peer_id) = Self::non_member_peer(&command, config) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Box::new(Self {
-                    pinged_peers,
-                    collected_peers: new_collected_peers,
+                    pinged_peers: self.pinged_peers.clone(),
+                    collected_peers: self.collected_peers.clone(),
                 }),
             );
         }
@@ -80,7 +77,7 @@ impl State for Pinging {
                     .classify(current_marker, freshness);
                 let step = ObservedStep::new(
                     classification,
-                    pinged_peers,
+                    self.pinged_peers.clone(),
                     peer_id,
                     ObservedKind::Participation,
                     None,
@@ -90,7 +87,7 @@ impl State for Pinging {
                     step.outputs(),
                     Box::new(Self {
                         pinged_peers: step.confirmed_peers(),
-                        collected_peers: new_collected_peers,
+                        collected_peers: self.collected_peers.clone(),
                     }),
                 )
             }
@@ -105,7 +102,7 @@ impl State for Pinging {
                     .classify(current_marker, freshness);
                 let step = ObservedStep::new(
                     classification,
-                    new_collected_peers,
+                    self.collected_peers.clone(),
                     peer_id,
                     ObservedKind::Ready,
                     None,
@@ -114,39 +111,47 @@ impl State for Pinging {
                 (
                     step.outputs(),
                     Box::new(Self {
-                        pinged_peers,
+                        pinged_peers: self.pinged_peers.clone(),
                         collected_peers: step.confirmed_peers(),
                     }),
                 )
             }
 
             Command::LocalParticipationCompleted => {
-                if !new_collected_peers.contains(&config.peer_id()) {
-                    new_collected_peers.push(config.peer_id());
-                }
+                let collected_peers = if self.collected_peers.contains(&config.peer_id()) {
+                    self.collected_peers.clone()
+                } else {
+                    let mut peers = self.collected_peers.clone();
+                    peers.push(config.peer_id());
+                    peers
+                };
 
-                let mut outputs = vec![
-                    Outcome::LocalParticipationCompleted,
-                    Outcome::BroadcastLocalReady,
-                ];
-
-                let quorum = new_collected_peers.len() >= config.required_count();
-                if quorum {
-                    outputs.push(Outcome::ReadyQuorumReached);
-                    outputs.push(Outcome::Exited {
-                        mode: ExitMode::Bootstrapped,
-                    });
-                }
+                let quorum = collected_peers.len() >= config.required_count();
+                let outputs = if quorum {
+                    vec![
+                        Outcome::LocalParticipationCompleted,
+                        Outcome::BroadcastLocalReady,
+                        Outcome::ReadyQuorumReached,
+                        Outcome::Exited {
+                            mode: ExitMode::Bootstrapped,
+                        },
+                    ]
+                } else {
+                    vec![
+                        Outcome::LocalParticipationCompleted,
+                        Outcome::BroadcastLocalReady,
+                    ]
+                };
 
                 let new_state: Box<dyn State> = if quorum {
                     Box::new(Bootstrapped {
-                        pinged_peers_count: pinged_peers.len(),
-                        collected_peers_count: new_collected_peers.len(),
+                        pinged_peers_count: self.pinged_peers.len(),
+                        collected_peers_count: collected_peers.len(),
                     })
                 } else {
                     Box::new(Collecting {
-                        collected_peers: new_collected_peers,
-                        pinged_peers_count: pinged_peers.len(),
+                        collected_peers,
+                        pinged_peers_count: self.pinged_peers.len(),
                     })
                 };
                 (outputs, new_state)
@@ -157,8 +162,8 @@ impl State for Pinging {
                     mode: ExitMode::TimedOut,
                 }],
                 Box::new(TimedOut {
-                    pinged_peers_count: pinged_peers.len(),
-                    collected_peers_count: new_collected_peers.len(),
+                    pinged_peers_count: self.pinged_peers.len(),
+                    collected_peers_count: self.collected_peers.len(),
                 }),
             ),
 
