@@ -4,8 +4,8 @@
 
 use faction::PeerId;
 
-use faction_protocol::transport_trait::Transport;
 use faction_protocol::transport_message::TransportMessage;
+use faction_protocol::transport_trait::Transport;
 
 pub struct GrpcTransport;
 
