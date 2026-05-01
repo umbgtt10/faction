@@ -1,0 +1,10 @@
+syntax = "proto3";
+package faction;
+
+message Envelope {
+    bytes data = 1;
+}
+
+service Transport {
+    rpc Deliver(Envelope) returns (Envelope);
+}
