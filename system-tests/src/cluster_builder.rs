@@ -119,15 +119,16 @@ impl ClusterBuilder {
                 };
                 let protocol =
                     Protocol::new(Faction::new(config, faction_observer), peer_ids.clone(), id);
+                let timer: Box<dyn Timer> = match self.timer {
+                    TimerKind::InMemory => Box::new(InMemoryTimer::new()),
+                    TimerKind::Real => Box::new(RealTimer::new()),
+                };
                 let faction_node = FactionNode::new(
                     id,
                     peer_ids.clone(),
                     protocol,
                     transport,
-                    match self.timer {
-                        TimerKind::InMemory => Box::new(InMemoryTimer::new()) as Box<dyn Timer>,
-                        TimerKind::Real => Box::new(RealTimer::new()) as Box<dyn Timer>,
-                    },
+                    timer,
                     node_observer,
                 );
                 Node::task(Arc::new(Mutex::new(faction_node)))
