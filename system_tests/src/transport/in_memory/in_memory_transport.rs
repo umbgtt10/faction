@@ -11,9 +11,12 @@ use faction_protocol::transport_message::TransportMessage;
 
 use crate::transport::transport_trait::Transport;
 
+type Message = (PeerId, TransportMessage);
+type Inbox = Arc<Mutex<VecDeque<Message>>>;
+
 pub struct InMemoryTransport {
-    inbox: Arc<Mutex<VecDeque<(PeerId, TransportMessage)>>>,
-    outboxes: Vec<(PeerId, Arc<Mutex<VecDeque<(PeerId, TransportMessage)>>>)>,
+    inbox: Inbox,
+    outboxes: Vec<(PeerId, Inbox)>,
     local_peer_id: PeerId,
 }
 
