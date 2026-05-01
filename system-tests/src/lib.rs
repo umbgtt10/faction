@@ -4,6 +4,7 @@
 
 pub mod cluster;
 pub mod faction_node;
+pub mod node;
 pub mod shared_file_observer;
 pub mod timer;
 pub mod transport;
