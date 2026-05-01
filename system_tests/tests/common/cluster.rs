@@ -23,6 +23,14 @@ pub struct Cluster {
     peer_ids: Vec<PeerId>,
     protocols: Vec<Protocol>,
     transports: Vec<InMemoryTransport>,
+    drops: Vec<Drop>,
+}
+
+struct Drop {
+    from: PeerId,
+    to: PeerId,
+    message: TransportMessage,
+    remaining: usize,
 }
 
 impl Cluster {
@@ -52,7 +60,23 @@ impl Cluster {
             peer_ids,
             protocols,
             transports,
+            drops: Vec::new(),
         }
+    }
+
+    pub fn drop_message(
+        &mut self,
+        from: PeerId,
+        to: PeerId,
+        message: TransportMessage,
+        count: usize,
+    ) {
+        self.drops.push(Drop {
+            from,
+            to,
+            message,
+            remaining: count,
+        });
     }
 
     pub fn converge(&mut self) {
@@ -95,14 +119,27 @@ impl Cluster {
                 let peers = self.peer_ids.clone();
                 for &to in &peers {
                     if to != from {
-                        self.transport(from)
-                            .send(to, TransportMessage::Ready { from });
+                        let transport_msg = TransportMessage::Ready { from };
+                        if self.should_drop(from, to, &transport_msg) {
+                            continue;
+                        }
+                        self.transport(from).send(to, transport_msg);
                     }
                 }
             }
             OutputMessage::Noop => {}
             _ => {}
         }
+    }
+
+    fn should_drop(&mut self, from: PeerId, to: PeerId, msg: &TransportMessage) -> bool {
+        for drop in &mut self.drops {
+            if drop.from == from && drop.to == to && drop.message == *msg && drop.remaining > 0 {
+                drop.remaining -= 1;
+                return true;
+            }
+        }
+        false
     }
 
     fn immediate(&mut self, msg: OutputMessage) -> Vec<InputMessage> {
