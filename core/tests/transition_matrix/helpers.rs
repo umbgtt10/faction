@@ -29,11 +29,11 @@ pub const STALE: Freshness = 7;
 pub enum Init {
     Initial,
     Fresh,
-    Phase1Peer1Confirmed,
-    Phase1P2Threshold,
-    Phase2NoReadiness,
-    Phase2Peer1Confirmed,
-    Phase2AlmostQuorum,
+    PingingPeer1Confirmed,
+    PingingP2Threshold,
+    CollectingNoReadiness,
+    CollectingPeer1Confirmed,
+    CollectingAlmostQuorum,
     Bootstrapped,
     TimedOut,
 }
@@ -58,14 +58,14 @@ pub fn build(init: Init) -> Faction {
     match init {
         Init::Initial => {}
         Init::Fresh => {}
-        Init::Phase1Peer1Confirmed => {
+        Init::PingingPeer1Confirmed => {
             let _ = m.process(Command::ParticipationObserved {
                 peer_id: 1,
                 freshness: TIMELY,
                 current_marker: MARKER,
             });
         }
-        Init::Phase1P2Threshold => {
+        Init::PingingP2Threshold => {
             for peer in 0..5 {
                 let _ = m.process(Command::ReadyObserved {
                     peer_id: peer,
@@ -74,10 +74,10 @@ pub fn build(init: Init) -> Faction {
                 });
             }
         }
-        Init::Phase2NoReadiness => {
+        Init::CollectingNoReadiness => {
             let _ = m.process(Command::LocalParticipationCompleted);
         }
-        Init::Phase2Peer1Confirmed => {
+        Init::CollectingPeer1Confirmed => {
             let _ = m.process(Command::LocalParticipationCompleted);
             let _ = m.process(Command::ReadyObserved {
                 peer_id: 1,
@@ -85,7 +85,7 @@ pub fn build(init: Init) -> Faction {
                 current_marker: MARKER,
             });
         }
-        Init::Phase2AlmostQuorum => {
+        Init::CollectingAlmostQuorum => {
             let _ = m.process(Command::LocalParticipationCompleted);
             for peer in 1..4 {
                 let _ = m.process(Command::ReadyObserved {

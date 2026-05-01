@@ -170,7 +170,7 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
 }
 
 #[test]
-fn deadline_from_phase1() {
+fn deadline_from_pinging() {
     // Arrange
     let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
     harness.advance_to(10);

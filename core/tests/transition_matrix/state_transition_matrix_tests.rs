@@ -41,7 +41,7 @@ use super::helpers::*;
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::participation_duplicate(
-    Init::Phase1Peer1Confirmed,
+    Init::PingingPeer1Confirmed,
     participation(1, TIMELY),
     &[DuplicateParticipationIgnored { peer_id: 1 }],
     &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
@@ -71,13 +71,13 @@ use super::helpers::*;
     &[Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_duplicate(
-    Init::Phase2Peer1Confirmed,
+    Init::CollectingPeer1Confirmed,
     ready(1, TIMELY),
     &[DuplicateReadyIgnored { peer_id: 1 }],
     &[Assert::CollectingCount(2), Assert::NotExited, Assert::LocalComplete],
 )]
 #[case::ready_timely_triggers_quorum(
-    Init::Phase2AlmostQuorum,
+    Init::CollectingAlmostQuorum,
     ready(4, TIMELY),
     &[
         ReadyAccepted { peer_id: 4 },
@@ -87,7 +87,7 @@ use super::helpers::*;
     &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::ready_delayed_triggers_quorum(
-    Init::Phase2AlmostQuorum,
+    Init::CollectingAlmostQuorum,
     ready(4, DELAYED),
     &[
         DelayedReadyAccepted { peer_id: 4 },
@@ -96,14 +96,14 @@ use super::helpers::*;
     ],
     &[Assert::CollectingCount(4), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
-#[case::local_completion_transitions_to_phase2(
+#[case::local_completion_transitions_to_collecting(
     Init::Fresh,
     Command::LocalParticipationCompleted,
     &[LocalParticipationCompleted, BroadcastLocalReady],
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
 )]
 #[case::local_completion_with_preloaded_quorum(
-    Init::Phase1P2Threshold,
+    Init::PingingP2Threshold,
     Command::LocalParticipationCompleted,
     &[
         LocalParticipationCompleted,
@@ -114,7 +114,7 @@ use super::helpers::*;
     &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
 )]
 #[case::local_completion_redundant(
-    Init::Phase2NoReadiness,
+    Init::CollectingNoReadiness,
     Command::LocalParticipationCompleted,
     &[],
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
@@ -126,7 +126,7 @@ use super::helpers::*;
     &[Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],
 )]
 #[case::deadline_expired_from_collecting(
-    Init::Phase2NoReadiness,
+    Init::CollectingNoReadiness,
     Command::DeadlineExpired,
     &[Exited { mode: ExitMode::TimedOut }],
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ExitMode::TimedOut)],

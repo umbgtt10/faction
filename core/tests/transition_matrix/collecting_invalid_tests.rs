@@ -10,25 +10,25 @@ use super::helpers::*;
 
 #[rstest]
 #[case::rejects_participation_observed(
-    Init::Phase2NoReadiness,
+    Init::CollectingNoReadiness,
     participation(1, TIMELY),
     &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 #[case::rejects_participation_observed_stale(
-    Init::Phase2Peer1Confirmed,
+    Init::CollectingPeer1Confirmed,
     participation(2, STALE),
     &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 #[case::rejects_is_pinging_completedd(
-    Init::Phase2NoReadiness,
+    Init::CollectingNoReadiness,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],
 )]
 #[case::rejects_is_pinging_completedd_after_ready(
-    Init::Phase2Peer1Confirmed,
+    Init::CollectingPeer1Confirmed,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
     &[Command::ReadyObserved { peer_id: 0, freshness: 0, current_marker: 0 }, Command::DeadlineExpired, Command::Probe],

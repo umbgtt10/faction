@@ -33,7 +33,7 @@ fn make_faction() -> Faction {
     )
 }
 
-fn reach_deadline_from_phase1() -> Faction {
+fn reach_deadline_from_pinging() -> Faction {
     let mut f = make_faction();
     let _ = f.process(Command::ParticipationObserved {
         peer_id: 1,
@@ -44,7 +44,7 @@ fn reach_deadline_from_phase1() -> Faction {
     f
 }
 
-fn reach_deadline_from_phase2() -> Faction {
+fn reach_deadline_from_collecting() -> Faction {
     let mut f = make_faction();
     let _ = f.process(Command::ParticipationObserved {
         peer_id: 1,
@@ -59,7 +59,7 @@ fn reach_deadline_from_phase2() -> Faction {
 #[test]
 fn deal_rejects_participation_observed() {
     // Arrange
-    let mut f = reach_deadline_from_phase1();
+    let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -87,7 +87,7 @@ fn deal_rejects_participation_observed() {
 #[test]
 fn deal_rejects_ready_observed() {
     // Arrange
-    let mut f = reach_deadline_from_phase1();
+    let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -115,7 +115,7 @@ fn deal_rejects_ready_observed() {
 #[test]
 fn deal_rejects_is_pinging_completedd() {
     // Arrange
-    let mut f = reach_deadline_from_phase1();
+    let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -139,7 +139,7 @@ fn deal_rejects_is_pinging_completedd() {
 #[test]
 fn deal_rejects_deadline_expired() {
     // Arrange
-    let mut f = reach_deadline_from_phase1();
+    let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -161,9 +161,9 @@ fn deal_rejects_deadline_expired() {
 }
 
 #[test]
-fn vibe_check_after_deadline_from_phase1() {
+fn vibe_check_after_deadline_from_pinging() {
     // Arrange & Act
-    let mut f = reach_deadline_from_phase1();
+    let mut f = reach_deadline_from_pinging();
     let s = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -179,9 +179,9 @@ fn vibe_check_after_deadline_from_phase1() {
 }
 
 #[test]
-fn vibe_check_after_deadline_from_phase2() {
+fn vibe_check_after_deadline_from_collecting() {
     // Arrange & Act
-    let mut f = reach_deadline_from_phase2();
+    let mut f = reach_deadline_from_collecting();
     let s = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -199,7 +199,7 @@ fn vibe_check_after_deadline_from_phase2() {
 #[test]
 fn post_deadline_inputs_leave_state_unchanged() {
     // Arrange
-    let mut f = reach_deadline_from_phase1();
+    let mut f = reach_deadline_from_pinging();
     let snapshot_before = match f.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -230,7 +230,7 @@ fn post_deadline_inputs_leave_state_unchanged() {
 }
 
 #[test]
-fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
+fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
     // Arrange
     let rbd = TimedOut {
         pinging_count: 3,
@@ -258,7 +258,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_phase1() {
 }
 
 #[test]
-fn timed_out_cluster_view_inherits_local_completion_from_phase2() {
+fn timed_out_cluster_view_inherits_local_completion_from_collecting() {
     // Arrange
     let rbd = TimedOut {
         pinging_count: 2,
