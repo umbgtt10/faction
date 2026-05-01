@@ -18,6 +18,7 @@ pub struct FactionNode {
     protocol: Protocol,
     transport: Box<dyn Transport>,
     timer: Box<dyn Timer>,
+    use_timer: bool,
 }
 
 impl FactionNode {
@@ -34,6 +35,7 @@ impl FactionNode {
             protocol,
             transport,
             timer,
+            use_timer: true,
         }
     }
 
@@ -53,11 +55,12 @@ impl FactionNode {
             .schedule(TimerEvent::Fire(Command::LocalParticipationCompleted));
     }
 
-    pub fn step(&mut self, current_marker: Freshness, use_timer: bool) {
-        if use_timer {
+    pub fn step(&mut self, current_marker: Freshness) {
+        if self.use_timer {
             if let Some(event) = self.timer.poll() {
                 let TimerEvent::Fire(command) = event;
                 self.protocol.evaluate(command);
+                self.use_timer = !self.use_timer;
                 return;
             }
         }
@@ -82,5 +85,7 @@ impl FactionNode {
                 }
             }
         }
+
+        self.use_timer = !self.use_timer;
     }
 }
