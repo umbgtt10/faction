@@ -68,21 +68,24 @@ impl ClusterSimulation {
     }
 
     fn enqueue_broadcasts(&mut self, outputs: &[Outcome], source_index: usize) {
-        for output in outputs {
-            if let Outcome::BroadcastLocalReady = output {
-                for target in 0..self.peers.len() {
-                    if target != source_index {
-                        self.pending.push_back((
-                            target,
-                            Command::ReadyObserved {
-                                peer_id: self.peer_ids[source_index],
-                                freshness: self.current_marker,
-                                current_marker: self.current_marker,
-                            },
-                        ));
-                    }
-                }
+        let broadcast = outputs
+            .iter()
+            .any(|o| matches!(o, Outcome::BroadcastLocalReady));
+        if !broadcast {
+            return;
+        }
+        for target in 0..self.peers.len() {
+            if target == source_index {
+                continue;
             }
+            self.pending.push_back((
+                target,
+                Command::ReadyObserved {
+                    peer_id: self.peer_ids[source_index],
+                    freshness: self.current_marker,
+                    current_marker: self.current_marker,
+                },
+            ));
         }
     }
 
