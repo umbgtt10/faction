@@ -2,7 +2,4 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-pub mod grpc;
-pub mod in_memory;
-pub mod tcp;
-pub mod transport_trait;
+pub mod in_memory_transport;
