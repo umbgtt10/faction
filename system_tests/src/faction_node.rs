@@ -10,8 +10,8 @@ use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::transport_message::TransportMessage;
 
-use crate::timer::timer_trait::Timer;
-use crate::transport::transport_trait::Transport;
+use faction_protocol::timer_trait::Timer;
+use faction_protocol::transport_trait::Transport;
 
 pub struct FactionNode {
     peer_id: PeerId,

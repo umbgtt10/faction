@@ -5,7 +5,7 @@
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
-use faction_system_tests::cluster::Cluster;
+use faction_protocol_validation::cluster::Cluster;
 
 fn converge(cluster: &mut Cluster) {
     cluster.start_all();

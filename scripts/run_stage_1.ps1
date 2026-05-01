@@ -49,8 +49,8 @@ Invoke-Step "faction tests" {
         -p faction `
         -p faction-protocol `
         -p faction-protocol-validation `
-        -p faction-validation `
         -p faction-system-tests `
+        -p faction-validation `
 }
 
 Write-Host "`nFaction core, validation, protocol and system tests passed!" -ForegroundColor Green

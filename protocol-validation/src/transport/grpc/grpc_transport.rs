@@ -4,12 +4,12 @@
 
 use faction::PeerId;
 
-use faction_protocol::transport_trait::Transport;
+use crate::transport::transport_trait::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
-pub struct TcpTransport;
+pub struct GrpcTransport;
 
-impl Transport for TcpTransport {
+impl Transport for GrpcTransport {
     fn send(&mut self, _to: PeerId, _message: TransportMessage) {}
 
     fn recv(&mut self) -> Option<(PeerId, TransportMessage)> {

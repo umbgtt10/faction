@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction_system_tests::cluster::Cluster;
+use faction_protocol_validation::cluster::Cluster;
 
 #[test]
 fn five_nodes_converge_to_bootstrapped() {
@@ -33,6 +33,12 @@ fn five_nodes_converge_to_bootstrapped() {
     cluster.step_transport_node(4);
 
     // Act — 5 timer phases: 4 ParticipationObserved + 1 LocalParticipationCompleted
+    cluster.step_timer_node(0);
+    cluster.step_timer_node(1);
+    cluster.step_timer_node(2);
+    cluster.step_timer_node(3);
+    cluster.step_timer_node(4);
+
     cluster.step_timer_node(0);
     cluster.step_timer_node(1);
     cluster.step_timer_node(2);

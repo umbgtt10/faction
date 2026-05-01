@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction_system_tests::cluster::Cluster;
+use faction_protocol_validation::cluster::Cluster;
 
 #[test]
 fn pre_accumulated_ready_counts_toward_quorum_when_local_completion_fires() {

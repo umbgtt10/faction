@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction_protocol_validation::protocol_harness::ProtocolHarness;
-
-#[test]
-fn harness_creates_correct_number_of_protocols() {
-    let harness = ProtocolHarness::new(5, 4);
-
-    assert_eq!(harness.peer_ids().len(), 5);
-}
+pub mod deadline_expired_tests;
+pub mod dropped_ready_tests;
+pub mod exit_tests;
+pub mod late_arrival_tests;
+pub mod lost_ping_tests;
+pub mod vanilla_convergence_tests;

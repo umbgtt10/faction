@@ -4,7 +4,7 @@
 
 use faction_protocol::timer_message::TimerMessage;
 
-use faction_system_tests::cluster::Cluster;
+use faction_protocol_validation::cluster::Cluster;
 
 #[test]
 fn deadline_expired_exits_with_timed_out_and_cancels_pending_timers() {

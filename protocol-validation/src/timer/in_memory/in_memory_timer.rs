@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 
 use faction_protocol::timer_event::TimerEvent;
 
-use crate::timer::timer_trait::Timer;
+use faction_protocol::timer_trait::Timer;
 
 pub struct InMemoryTimer {
     events: VecDeque<TimerEvent>,

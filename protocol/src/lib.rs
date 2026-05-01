@@ -12,4 +12,6 @@ pub mod output_message;
 pub mod protocol;
 pub mod timer_event;
 pub mod timer_message;
+pub mod timer_trait;
 pub mod transport_message;
+pub mod transport_trait;
