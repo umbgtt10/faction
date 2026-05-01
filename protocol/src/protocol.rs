@@ -18,18 +18,24 @@ use crate::transport_message::TransportMessage;
 
 pub struct Protocol {
     faction: Faction,
+    peers: Vec<PeerId>,
+    local_peer_id: PeerId,
 }
 
 impl Protocol {
-    pub fn new(faction: Faction) -> Self {
-        Self { faction }
+    pub fn new(faction: Faction, peers: Vec<PeerId>, local_peer_id: PeerId) -> Self {
+        Self {
+            faction,
+            peers,
+            local_peer_id,
+        }
     }
 
-    pub fn start_decisions(&self, peers: &[PeerId], local_peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn start_decisions(&self) -> Vec<OutputMessage> {
         let mut decisions = Vec::new();
 
-        for peer in peers {
-            if *peer != local_peer_id {
+        for peer in &self.peers {
+            if *peer != self.local_peer_id {
                 decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
                     TimerMessage::ParticipationObserved { peer_id: *peer },
                 )));

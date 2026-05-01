@@ -41,7 +41,7 @@ impl FactionNode {
     }
 
     pub fn start(&mut self) {
-        let decisions = self.protocol.start_decisions(&self.peers, self.peer_id);
+        let decisions = self.protocol.start_decisions();
 
         for decision in decisions {
             self.dispatch(decision);
