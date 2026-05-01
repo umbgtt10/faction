@@ -3,5 +3,6 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod faction_node;
+pub mod observer;
 pub mod timer;
 pub mod transport;
