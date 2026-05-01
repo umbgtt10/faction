@@ -75,6 +75,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "faction-system-tests"
+version = "0.1.0"
+dependencies = [
+ "faction",
+ "rstest",
+]
+
+[[package]]
 name = "faction-validation"
 version = "0.2.0"
 dependencies = [
