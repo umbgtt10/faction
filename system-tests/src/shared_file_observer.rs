@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::Path;
@@ -63,7 +64,7 @@ impl Observer for SharedFileObserver {
 
 #[must_use]
 pub fn new_shared_writer(path: &Path) -> Arc<Mutex<BufWriter<File>>> {
-    let file = std::fs::OpenOptions::new()
+    let file = OpenOptions::new()
         .create(true)
         .append(true)
         .open(path)
