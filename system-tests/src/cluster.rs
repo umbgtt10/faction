@@ -5,15 +5,15 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use faction::cluster_view::ClusterView;
 use faction::peer_state::PeerState;
+use faction_protocol::protocol::Protocol;
 
 pub enum Node {
     Task {
-        cluster_view: Arc<Mutex<ClusterView>>,
+        protocol: Arc<Mutex<Protocol>>,
     },
     Thread {
-        cluster_view: Arc<Mutex<ClusterView>>,
+        protocol: Arc<Mutex<Protocol>>,
         _handle: std::thread::JoinHandle<()>,
     },
     Process {
@@ -23,17 +23,14 @@ pub enum Node {
 
 impl Node {
     #[must_use]
-    pub fn task(cluster_view: Arc<Mutex<ClusterView>>) -> Self {
-        Self::Task { cluster_view }
+    pub fn task(protocol: Arc<Mutex<Protocol>>) -> Self {
+        Self::Task { protocol }
     }
 
     #[must_use]
-    pub fn thread(
-        cluster_view: Arc<Mutex<ClusterView>>,
-        handle: std::thread::JoinHandle<()>,
-    ) -> Self {
+    pub fn thread(protocol: Arc<Mutex<Protocol>>, handle: std::thread::JoinHandle<()>) -> Self {
         Self::Thread {
-            cluster_view,
+            protocol,
             _handle: handle,
         }
     }
@@ -45,8 +42,8 @@ impl Node {
 
     pub fn peer_state(&self) -> PeerState {
         match self {
-            Self::Task { cluster_view } | Self::Thread { cluster_view, .. } => {
-                cluster_view.lock().unwrap().peer_state()
+            Self::Task { protocol } | Self::Thread { protocol, .. } => {
+                protocol.lock().unwrap().cluster_view().peer_state()
             }
             Self::Process { .. } => PeerState::Fresh,
         }
@@ -55,13 +52,12 @@ impl Node {
 
 pub struct Cluster {
     nodes: Vec<Node>,
-    required: usize,
 }
 
 impl Cluster {
     #[must_use]
-    pub fn new(nodes: Vec<Node>, required: usize) -> Self {
-        Self { nodes, required }
+    pub fn new(nodes: Vec<Node>) -> Self {
+        Self { nodes }
     }
 
     #[must_use]
