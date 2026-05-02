@@ -4,9 +4,9 @@
 
 pub mod bootstrapped;
 pub mod collecting;
-pub mod ready_step;
 pub mod local_completion_step;
 pub mod pinging_step;
+pub mod ready_step;
 
 pub mod initial;
 pub mod pinging;
