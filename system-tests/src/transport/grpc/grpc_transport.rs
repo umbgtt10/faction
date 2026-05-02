@@ -21,26 +21,26 @@ use crate::transport::grpc::grpc_service::GrpcSvc;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 
-fn runtime() -> &'static Runtime {
-    static RT: OnceLock<Runtime> = OnceLock::new();
-    RT.get_or_init(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(2)
-            .enable_all()
-            .build()
-            .unwrap()
-    })
-}
-
 pub struct GrpcTransport {
     inbox: Inbox,
     clients: HashMap<PeerId, TransportClient<Channel>>,
 }
 
 impl GrpcTransport {
+    fn runtime() -> &'static Runtime {
+        static RT: OnceLock<Runtime> = OnceLock::new();
+        RT.get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+                .unwrap()
+        })
+    }
+
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
         let n = peer_ids.len();
-        let rt = runtime();
+        let rt = Self::runtime();
         let mut addrs = Vec::new();
         let mut inboxes = Vec::new();
 
@@ -109,7 +109,7 @@ impl Transport for GrpcTransport {
     fn send(&mut self, to: PeerId, m: TransportMessage) {
         if let Some(c) = self.clients.get_mut(&to) {
             let d = Self::encode(&m);
-            let _ = runtime().block_on(c.deliver(Request::new(Envelope { data: d })));
+            let _ = Self::runtime().block_on(c.deliver(Request::new(Envelope { data: d })));
         }
     }
 
