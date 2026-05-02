@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-pub mod convergence_tests;
-pub mod timer;
-pub mod transport;
+pub mod channels;
+pub mod grpc;
+pub mod in_memory;
+pub mod tcp;
