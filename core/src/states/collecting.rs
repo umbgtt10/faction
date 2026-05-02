@@ -20,18 +20,32 @@ use super::compute_output::ObservedKind;
 use super::observed_step::ObservedStep;
 use super::timed_out::TimedOut;
 
+#[derive(Default)]
 pub struct Collecting {
     pub collecting_peers: Vec<PeerId>,
     pub pinged_peers: Vec<PeerId>,
 }
 
+impl Collecting {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn non_member_peer(command: &Command, config: &Config) -> Option<PeerId> {
+        match command {
+            Command::ReadyObserved { peer_id, .. } if !config.is_member(*peer_id) => Some(*peer_id),
+            _ => None,
+        }
+    }
+}
+
 impl State for Collecting {
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous
-            .clone()
-            .with_peer_state(PeerState::Collecting)
-            .with_pinging_peers(self.pinged_peers.clone())
-            .with_collecting_peers(self.collecting_peers.clone())
+    fn accept(&self, command: &Command) -> bool {
+        matches!(
+            command,
+            Command::ReadyObserved { .. } | Command::DeadlineExpired
+        )
     }
 
     fn admissible_commands(&self) -> Vec<Command> {
@@ -46,15 +60,30 @@ impl State for Collecting {
         ]
     }
 
+    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+        previous
+            .clone()
+            .with_peer_state(PeerState::Collecting)
+            .with_is_pinging_completed(true)
+            .with_pinging_peers(self.pinged_peers.clone())
+            .with_collecting_peers(self.collecting_peers.clone())
+    }
+
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        match command {
-            Command::ParticipationObserved { peer_id, .. } => (
+        if let Some(peer_id) = Self::non_member_peer(&command, config) {
+            return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Box::new(Self {
                     collecting_peers: self.collecting_peers.clone(),
                     pinged_peers: self.pinged_peers.clone(),
                 }),
-            ),
+            );
+        }
+
+        match command {
+            Command::ParticipationObserved { .. } => {
+                unreachable!("accept() rejects this command for Collecting")
+            }
 
             Command::ReadyObserved {
                 peer_id,
