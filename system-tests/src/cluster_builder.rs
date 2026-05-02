@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use std::fs::File;
 use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
-use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -181,9 +179,6 @@ impl ClusterBuilder {
     }
 
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
-        let dir = std::env::temp_dir().join("faction-process-logs");
-        let _ = std::fs::create_dir_all(&dir);
-
         let addrs: Vec<SocketAddr> = peer_ids
             .iter()
             .map(|_| {
@@ -237,8 +232,6 @@ impl ClusterBuilder {
                 TimerKind::Real => "real",
             };
 
-            let log = File::create(dir.join(format!("peer_{id}.log"))).unwrap();
-
             let mut cmd = Command::new(bin.clone());
             cmd.arg("--peer-id")
                 .arg(id.to_string())
@@ -264,10 +257,7 @@ impl ClusterBuilder {
                     .arg(log_path.to_string_lossy().to_string());
             }
 
-            let child = cmd
-                .stderr(Stdio::from(log))
-                .spawn()
-                .expect("failed to spawn faction-node");
+            let child = cmd.spawn().expect("failed to spawn faction-node");
 
             if self.transport == TransportKind::Tcp {
                 wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
