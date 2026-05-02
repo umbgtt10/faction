@@ -82,6 +82,8 @@ fn main() {
         ))),
     };
 
+    let delay = Duration::from_millis(config.timer_delay_ms);
+
     let node = FactionNode::new(
         config.peer_id,
         config.peers,
@@ -89,6 +91,7 @@ fn main() {
         transport,
         timer,
         node_observer,
+        delay,
     );
 
     let state = run::run(node);

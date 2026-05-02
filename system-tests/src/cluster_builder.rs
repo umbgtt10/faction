@@ -92,6 +92,12 @@ impl ClusterBuilder {
     }
 
     #[must_use]
+    pub fn timer_delay(mut self, timer_delay: TimerDelay) -> Self {
+        self.timer_delay = timer_delay;
+        self
+    }
+
+    #[must_use]
     pub fn log_path(mut self, path: PathBuf) -> Self {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
@@ -161,6 +167,7 @@ impl ClusterBuilder {
                     transport,
                     timer,
                     node_observer,
+                    delay,
                 );
                 match self.spawn {
                     Spawn::Task => Node::task(Arc::new(Mutex::new(faction_node))),
@@ -170,7 +177,7 @@ impl ClusterBuilder {
             })
             .collect();
 
-        Cluster::new(nodes, self.spawn)
+        Cluster::new(nodes, self.spawn, self.timer_delay)
     }
 
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
@@ -262,12 +269,14 @@ impl ClusterBuilder {
                 .spawn()
                 .expect("failed to spawn faction-node");
 
-            wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
+            if self.transport == TransportKind::Tcp {
+                wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
+            }
 
             nodes.push(Node::process(child));
         }
 
-        Cluster::new(nodes, self.spawn)
+        Cluster::new(nodes, self.spawn, self.timer_delay)
     }
 }
 

@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use std::thread;
+use std::time::Duration;
+
 use crate::node_observer::NodeObserver;
 use faction::PeerId;
 use faction::peer_state::PeerState;
@@ -23,6 +26,7 @@ pub struct FactionNode {
     timer: Box<dyn Timer>,
     observer: Box<dyn NodeObserver>,
     toggle_timer_and_transport: bool,
+    idle_delay: Duration,
 }
 
 impl FactionNode {
@@ -33,6 +37,7 @@ impl FactionNode {
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
         observer: Box<dyn NodeObserver>,
+        idle_delay: Duration,
     ) -> Self {
         Self {
             peer_id,
@@ -42,6 +47,7 @@ impl FactionNode {
             timer,
             observer,
             toggle_timer_and_transport: true,
+            idle_delay,
         }
     }
 
@@ -68,19 +74,25 @@ impl FactionNode {
 
     pub fn run(&mut self) {
         self.start();
-        while !self.is_terminal() {
-            self.step();
+        loop {
+            let had_work = self.step_internal();
+            if self.is_terminal() {
+                break;
+            }
+            if !had_work {
+                thread::sleep(self.idle_delay);
+            }
         }
     }
 
-    pub fn step(&mut self) {
+    fn step_internal(&mut self) -> bool {
         let message = if self.toggle_timer_and_transport {
             match self.timer.poll() {
                 Some(TimerEvent::Fire(timer_msg)) => InputMessage::Timer(timer_msg),
                 None => {
                     self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
                     self.observer.on_idle();
-                    return;
+                    return false;
                 }
             }
         } else {
@@ -89,7 +101,7 @@ impl FactionNode {
                 None => {
                     self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
                     self.observer.on_idle();
-                    return;
+                    return false;
                 }
             }
         };
@@ -100,6 +112,11 @@ impl FactionNode {
             self.dispatch(decision);
         }
         self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
+        true
+    }
+
+    pub fn step(&mut self) {
+        self.step_internal();
     }
 
     fn dispatch(&mut self, decision: OutputMessage) {
