@@ -12,6 +12,7 @@ faction = { path = "../core" }
 faction-protocol = { path = "../protocol" }
 prost = "0.13"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+tokio-stream = "0.1"
 tonic = "0.12"
 tonic-build = "0.12"
 

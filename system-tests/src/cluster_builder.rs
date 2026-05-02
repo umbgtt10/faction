@@ -30,6 +30,7 @@ use crate::timer::in_memory::in_memory_timer::InMemoryTimer;
 use crate::timer::real::real_timer::RealTimer;
 use crate::timer_kind::TimerKind;
 use crate::transport::channels::channels_transport::ChannelsTransport;
+use crate::transport::grpc::grpc_transport::GrpcTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport::tcp::tcp_transport::TcpTransport;
 use crate::transport_kind::TransportKind;
@@ -100,7 +101,10 @@ impl ClusterBuilder {
                 .into_iter()
                 .map(|t| Box::new(t) as Box<dyn Transport>)
                 .collect(),
-            _ => unimplemented!(),
+            TransportKind::Grpc => GrpcTransport::new_mesh(&peer_ids)
+                .into_iter()
+                .map(|t| Box::new(t) as Box<dyn Transport>)
+                .collect(),
         };
         let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
 

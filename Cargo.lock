@@ -257,6 +257,7 @@ dependencies = [
  "prost",
  "rstest",
  "tokio",
+ "tokio-stream",
  "tonic",
  "tonic-build",
 ]

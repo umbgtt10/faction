@@ -23,6 +23,8 @@ use rstest::rstest;
 #[case::thread_real_inmemory(Spawn::Thread, TimerKind::Real, TransportKind::InMemory)]
 #[case::thread_real_channels(Spawn::Thread, TimerKind::Real, TransportKind::Channels)]
 #[case::thread_real_tcp(Spawn::Thread, TimerKind::Real, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TimerKind::Real, TransportKind::Grpc)]
+#[case::task_real_grpc(Spawn::Task, TimerKind::Real, TransportKind::Grpc)]
 
 fn cluster_reaches_bootstrapped(
     #[case] spawn: Spawn,
