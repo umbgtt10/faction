@@ -8,7 +8,7 @@ use alloc::vec;
 
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
-use faction::states::collecting_step::CollectingStep;
+use faction::states::ready_step::ReadyStep;
 
 #[test]
 fn new_adds_peer_when_not_dup() {
@@ -16,10 +16,11 @@ fn new_adds_peer_when_not_dup() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = CollectingStep::new(confirmed, 3, None);
+    let step = ReadyStep::new(confirmed, 3, 10);
 
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
+    assert!(!step.is_quorum());
     assert_eq!(step.outcomes(), vec![Outcome::ReadyAccepted { peer_id: 3 }]);
 }
 
@@ -29,10 +30,11 @@ fn new_does_not_add_when_duplicate() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = CollectingStep::new(confirmed.clone(), 2, None);
+    let step = ReadyStep::new(confirmed.clone(), 2, 10);
 
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);
+    assert!(!step.is_quorum());
     assert_eq!(
         step.outcomes(),
         vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]
@@ -40,19 +42,9 @@ fn new_does_not_add_when_duplicate() {
 }
 
 #[test]
-fn new_with_none_threshold_never_quorum() {
-    // Arrange
-    let step = CollectingStep::new(vec![], 0, None);
-
-    // Act & Assert
-    assert!(!step.is_quorum());
-    assert_eq!(step.outcomes().len(), 1);
-}
-
-#[test]
 fn new_reaches_quorum_when_threshold_is_met() {
     // Arrange
-    let step = CollectingStep::new(vec![1, 2, 3], 99, Some(4));
+    let step = ReadyStep::new(vec![1, 2, 3], 99, 4);
 
     // Act & Assert
     assert!(step.is_quorum());

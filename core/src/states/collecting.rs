@@ -16,7 +16,7 @@ use crate::state::State;
 use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
-use super::collecting_step::CollectingStep;
+use super::ready_step::ReadyStep;
 use super::timed_out::TimedOut;
 
 #[derive(Default)]
@@ -26,11 +26,6 @@ pub struct Collecting {
 }
 
 impl Collecting {
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     fn compute_new_state(&self, is_quorum: bool, confirmed_peers: Vec<PeerId>) -> Box<dyn State> {
         if is_quorum {
             Box::new(Bootstrapped {
@@ -95,10 +90,10 @@ impl State for Collecting {
             }
 
             Command::ReadyObserved { peer_id } => {
-                let step = CollectingStep::new(
+                let step = ReadyStep::new(
                     self.collecting_peers.clone(),
                     peer_id,
-                    Some(config.required_count()),
+                    config.required_count(),
                 );
 
                 (

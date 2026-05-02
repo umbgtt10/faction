@@ -9,19 +9,15 @@ use crate::conclusion::Conclusion;
 use crate::outcome::Outcome;
 use crate::PeerId;
 
-pub struct CollectingStep {
+pub struct ReadyStep {
     outcomes: Vec<Outcome>,
     confirmed_peers: Vec<PeerId>,
     is_quorum: bool,
 }
 
-impl CollectingStep {
+impl ReadyStep {
     #[must_use]
-    pub fn new(
-        confirmed_peers: Vec<PeerId>,
-        peer_id: PeerId,
-        quorum_threshold: Option<usize>,
-    ) -> Self {
+    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId, quorum_threshold: usize) -> Self {
         let is_dup = confirmed_peers.contains(&peer_id);
         let confirmed_new = !is_dup;
 
@@ -30,8 +26,7 @@ impl CollectingStep {
             new_confirmed_peers.push(peer_id);
         }
 
-        let is_quorum =
-            quorum_threshold.is_some_and(|t| confirmed_new && new_confirmed_peers.len() >= t);
+        let is_quorum = confirmed_new && new_confirmed_peers.len() >= quorum_threshold;
 
         let outcome = if is_dup {
             Outcome::DuplicateReadyIgnored { peer_id }

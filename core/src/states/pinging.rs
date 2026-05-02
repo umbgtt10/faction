@@ -17,7 +17,6 @@ use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::collecting::Collecting;
-use super::collecting_step::CollectingStep;
 use super::local_completion_step::LocalCompletionStep;
 use super::pinging_step::PingingStep;
 use super::timed_out::TimedOut;
@@ -95,13 +94,23 @@ impl State for Pinging {
             }
 
             Command::ReadyObserved { peer_id } => {
-                let step = CollectingStep::new(self.collecting_peers.clone(), peer_id, None);
+                let is_dup = self.collecting_peers.contains(&peer_id);
+                let mut new_collecting = self.collecting_peers.clone();
+                if !is_dup {
+                    new_collecting.push(peer_id);
+                }
+
+                let outcome = if is_dup {
+                    Outcome::DuplicateReadyIgnored { peer_id }
+                } else {
+                    Outcome::ReadyAccepted { peer_id }
+                };
 
                 (
-                    step.outcomes().to_vec(),
+                    vec![outcome],
                     Box::new(Self {
                         pinging_peers: self.pinging_peers.clone(),
-                        collecting_peers: step.confirmed_peers().to_vec(),
+                        collecting_peers: new_collecting,
                     }),
                 )
             }
