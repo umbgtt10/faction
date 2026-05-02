@@ -27,8 +27,8 @@ type Tx = mpsc::UnboundedSender<(PeerId, TransportMessage)>;
 
 pub struct GrpcTransport {
     inbox: Inbox,
-    _tx: Tx,
     _shutdown_tx: Option<oneshot::Sender<()>>,
+    _tx: Tx,
 }
 
 impl Drop for GrpcTransport {
@@ -79,42 +79,42 @@ impl GrpcTransport {
         })
     }
 
-    fn build_server(inbox: Inbox, listen_addr: SocketAddr) -> oneshot::Sender<()> {
+    fn spawn_server(inbox: Inbox, stream: TcpListenerStream) -> oneshot::Sender<()> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
-        let rt = Self::runtime();
-        let l = std::net::TcpListener::bind(listen_addr).unwrap();
-        l.set_nonblocking(true).unwrap();
-        let tl = tokio::net::TcpListener::from_std(l).unwrap();
-        rt.spawn(async move {
+        Self::runtime().spawn(async move {
             tokio::select! {
                 _ = Server::builder()
                     .add_service(TransportServer::new(GrpcSvc(inbox)))
-                    .serve_with_incoming(TcpListenerStream::new(tl)) => {},
+                    .serve_with_incoming(stream) => {},
                 _ = shutdown_rx => {},
             }
         });
         shutdown_tx
     }
 
+    fn build_server(inbox: Inbox, listen_addr: SocketAddr) -> oneshot::Sender<()> {
+        let l = std::net::TcpListener::bind(listen_addr).unwrap();
+        l.set_nonblocking(true).unwrap();
+        let tl = tokio::net::TcpListener::from_std(l).unwrap();
+        Self::spawn_server(inbox, TcpListenerStream::new(tl))
+    }
+
     fn build_clients(peer_id: PeerId, peer_addrs: &[(PeerId, SocketAddr)]) -> Clients {
         let rt = Self::runtime();
-        let clients: Clients = Arc::new(AsyncMutex::new(HashMap::new()));
-        {
-            let mut guard = rt.block_on(clients.lock());
-            for &(pid, addr) in peer_addrs {
-                if pid != peer_id {
-                    let ch = rt.block_on(async {
-                        Endpoint::from_shared(format!("http://{addr}"))
-                            .unwrap()
-                            .connect()
-                            .await
-                            .unwrap()
-                    });
-                    guard.insert(pid, TransportClient::new(ch));
-                }
+        let mut map = HashMap::new();
+        for &(pid, addr) in peer_addrs {
+            if pid != peer_id {
+                let ch = rt.block_on(async {
+                    Endpoint::from_shared(format!("http://{addr}"))
+                        .unwrap()
+                        .connect()
+                        .await
+                        .unwrap()
+                });
+                map.insert(pid, TransportClient::new(ch));
             }
         }
-        clients
+        Arc::new(AsyncMutex::new(map))
     }
 
     pub fn new(
@@ -133,8 +133,8 @@ impl GrpcTransport {
 
         Self {
             inbox,
-            _tx: tx,
             _shutdown_tx: Some(shutdown_tx),
+            _tx: tx,
         }
     }
 
@@ -155,15 +155,7 @@ impl GrpcTransport {
                 let a = l.local_addr().unwrap();
                 peer_addrs.push((PeerId::default(), a));
                 let tl = tokio::net::TcpListener::from_std(l).unwrap();
-                let (stx, srx) = oneshot::channel();
-                rt.spawn(async move {
-                    tokio::select! {
-                        _ = Server::builder()
-                            .add_service(TransportServer::new(GrpcSvc(ib_for_server)))
-                            .serve_with_incoming(TcpListenerStream::new(tl)) => {},
-                        _ = srx => {},
-                    }
-                });
+                let stx = Self::spawn_server(ib_for_server, TcpListenerStream::new(tl));
                 shutdown_txs.push(stx);
                 inboxes.push(ib);
             }
@@ -189,8 +181,8 @@ impl GrpcTransport {
                 Self::spawn_sender(rx, clients);
                 GrpcTransport {
                     inbox: ib,
-                    _tx: tx,
                     _shutdown_tx: Some(stx),
+                    _tx: tx,
                 }
             })
             .collect()
