@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use faction::PeerId;
 
@@ -30,6 +31,7 @@ impl Args {
         let mut timer: Option<TimerKind> = None;
         let mut listen_addr: Option<SocketAddr> = None;
         let mut peer_addrs: Option<Vec<(PeerId, SocketAddr)>> = None;
+        let mut log_path: Option<PathBuf> = None;
 
         let mut i = 1;
         while i < self.args.len() {
@@ -93,6 +95,10 @@ impl Args {
                             .collect(),
                     );
                 }
+                "--log-path" => {
+                    i += 1;
+                    log_path = Some(PathBuf::from(&self.args[i]));
+                }
                 other => panic!("unknown argument: {other}"),
             }
             i += 1;
@@ -107,6 +113,7 @@ impl Args {
             timer: timer.expect("missing --timer"),
             listen_addr: listen_addr.expect("missing --listen-addr"),
             peer_addrs: peer_addrs.expect("missing --peer-addrs"),
+            log_path,
         }
     }
 }

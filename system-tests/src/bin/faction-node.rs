@@ -19,6 +19,8 @@ use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
 use faction_system_tests::node_observer::NodeObserver;
 use faction_system_tests::process_node::args::Args;
 use faction_system_tests::process_node::run;
+use faction_system_tests::shared_file_observer::SharedFileObserver;
+use faction_system_tests::shared_file_observer::new_shared_writer;
 use faction_system_tests::timer::in_memory::in_memory_timer::InMemoryTimer;
 use faction_system_tests::timer::real::real_timer::RealTimer;
 use faction_system_tests::timer_kind::TimerKind;
@@ -30,8 +32,19 @@ fn main() {
     let args = Args::from_env();
     let config = args.parse();
 
-    let observer: Box<dyn Observer> = Box::new(NoOpObserver);
-    let node_observer: Box<dyn NodeObserver> = Box::new(NoOpNodeObserver);
+    let (observer, node_observer): (Box<dyn Observer>, Box<dyn NodeObserver>) =
+        match &config.log_path {
+            Some(path) => {
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                let writer = new_shared_writer(path);
+                let obs = Box::new(SharedFileObserver::new(writer.clone(), config.peer_id));
+                let node_obs = Box::new(SharedFileObserver::new(writer, config.peer_id));
+                (obs, node_obs)
+            }
+            None => (Box::new(NoOpObserver), Box::new(NoOpNodeObserver)),
+        };
 
     let cfg = Config::new(
         config.peer_id,

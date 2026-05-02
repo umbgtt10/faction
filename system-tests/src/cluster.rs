@@ -54,3 +54,11 @@ impl Cluster {
         }
     }
 }
+
+impl Drop for Cluster {
+    fn drop(&mut self) {
+        for node in &mut self.nodes {
+            node.shutdown();
+        }
+    }
+}

@@ -221,8 +221,8 @@ impl ClusterBuilder {
 
             let log = File::create(dir.join(format!("peer_{id}.log"))).unwrap();
 
-            let child = Command::new(bin.clone())
-                .arg("--peer-id")
+            let mut cmd = Command::new(bin.clone());
+            cmd.arg("--peer-id")
                 .arg(id.to_string())
                 .arg("--peers")
                 .arg(&peers_arg)
@@ -237,7 +237,14 @@ impl ClusterBuilder {
                 .arg("--listen-addr")
                 .arg(addrs[i].to_string())
                 .arg("--peer-addrs")
-                .arg(&peer_addrs_arg)
+                .arg(&peer_addrs_arg);
+
+            if let Some(ref log_path) = self.log_path {
+                cmd.arg("--log-path")
+                    .arg(log_path.to_string_lossy().to_string());
+            }
+
+            let child = cmd
                 .stderr(Stdio::from(log))
                 .spawn()
                 .expect("failed to spawn faction-node");

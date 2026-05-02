@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use faction::PeerId;
 
@@ -18,4 +19,5 @@ pub struct ProcessNodeConfig {
     pub timer: TimerKind,
     pub listen_addr: SocketAddr,
     pub peer_addrs: Vec<(PeerId, SocketAddr)>,
+    pub log_path: Option<PathBuf>,
 }

@@ -76,4 +76,12 @@ impl Node {
             let _ = child.lock().unwrap().wait();
         }
     }
+
+    pub fn shutdown(&mut self) {
+        if let Self::Process { child } = self {
+            let mut c = child.lock().unwrap();
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+    }
 }
