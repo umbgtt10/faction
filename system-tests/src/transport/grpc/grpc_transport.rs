@@ -3,8 +3,8 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::collections::{HashMap, VecDeque};
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::Duration;
 
 use faction::PeerId;
 use faction_protocol::transport_message::TransportMessage;
@@ -38,6 +38,44 @@ impl GrpcTransport {
         })
     }
 
+    pub fn new(
+        listen_addr: SocketAddr,
+        peer_id: PeerId,
+        peer_addrs: &[(PeerId, SocketAddr)],
+    ) -> Self {
+        let rt = Self::runtime();
+        let _guard = rt.enter();
+        let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
+
+        let l = std::net::TcpListener::bind(listen_addr).unwrap();
+        l.set_nonblocking(true).unwrap();
+        let tl = tokio::net::TcpListener::from_std(l).unwrap();
+        let ib_clone = inbox.clone();
+        rt.spawn(async move {
+            Server::builder()
+                .add_service(TransportServer::new(GrpcSvc(ib_clone)))
+                .serve_with_incoming(TcpListenerStream::new(tl))
+                .await
+                .unwrap();
+        });
+
+        let mut clients = HashMap::new();
+        for &(pid, addr) in peer_addrs {
+            if pid != peer_id {
+                let ch = rt.block_on(async {
+                    Endpoint::from_shared(format!("http://{addr}"))
+                        .unwrap()
+                        .connect()
+                        .await
+                        .unwrap()
+                });
+                clients.insert(pid, TransportClient::new(ch));
+            }
+        }
+
+        Self { inbox, clients }
+    }
+
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
         let n = peer_ids.len();
         let rt = Self::runtime();
@@ -64,8 +102,6 @@ impl GrpcTransport {
                 inboxes.push(ib.clone());
             }
         }
-
-        std::thread::sleep(Duration::from_millis(500));
 
         inboxes
             .into_iter()

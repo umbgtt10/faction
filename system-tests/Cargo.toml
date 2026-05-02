@@ -22,6 +22,10 @@ tonic-build = "0.12"
 [dev-dependencies]
 rstest = { workspace = true }
 
+[[bin]]
+name = "faction-node"
+path = "src/bin/faction-node.rs"
+
 [[test]]
 name = "all_tests"
 path = "tests/all_tests.rs"

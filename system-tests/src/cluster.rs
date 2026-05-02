@@ -8,15 +8,17 @@ use std::time::Duration;
 use faction::peer_state::PeerState;
 
 use crate::node::Node;
+use crate::spawn::Spawn;
 
 pub struct Cluster {
     nodes: Vec<Node>,
+    spawn: Spawn,
 }
 
 impl Cluster {
     #[must_use]
-    pub fn new(nodes: Vec<Node>) -> Self {
-        Self { nodes }
+    pub fn new(nodes: Vec<Node>, spawn: Spawn) -> Self {
+        Self { nodes, spawn }
     }
 
     pub fn start_all(&mut self) {
@@ -40,9 +42,15 @@ impl Cluster {
 
     pub fn poll_until_bootstrapped(&mut self, delay_ms: u64) {
         self.start_all();
-        while !self.is_bootstrapped() {
-            self.step_all();
-            sleep(Duration::from_millis(delay_ms));
+        if matches!(self.spawn, Spawn::Process) {
+            for node in &mut self.nodes {
+                node.wait();
+            }
+        } else {
+            while !self.is_bootstrapped() {
+                self.step_all();
+                sleep(Duration::from_millis(delay_ms));
+            }
         }
     }
 }

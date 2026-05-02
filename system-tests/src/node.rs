@@ -18,7 +18,7 @@ pub enum Node {
         _handle: std::thread::JoinHandle<()>,
     },
     Process {
-        child: std::process::Child,
+        child: Mutex<std::process::Child>,
     },
 }
 
@@ -42,7 +42,9 @@ impl Node {
 
     #[must_use]
     pub fn process(child: std::process::Child) -> Self {
-        Self::Process { child }
+        Self::Process {
+            child: Mutex::new(child),
+        }
     }
 
     pub fn start(&self) {
@@ -60,7 +62,18 @@ impl Node {
     pub fn peer_state(&self) -> PeerState {
         match self {
             Self::Task { node } | Self::Thread { node, .. } => node.lock().unwrap().peer_state(),
-            Self::Process { .. } => PeerState::Fresh,
+            Self::Process { child } => match child.lock().unwrap().try_wait() {
+                Ok(Some(status)) if status.success() => PeerState::Bootstrapped,
+                Ok(Some(_)) => PeerState::TimedOut,
+                Ok(None) => PeerState::Fresh,
+                Err(_) => PeerState::TimedOut,
+            },
+        }
+    }
+
+    pub fn wait(&self) {
+        if let Self::Process { child } = self {
+            let _ = child.lock().unwrap().wait();
         }
     }
 }

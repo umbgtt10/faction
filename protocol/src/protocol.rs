@@ -91,7 +91,7 @@ impl Protocol {
 
         let results = match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Probed { .. } => unreachable!(),
+            ProcessResult::Probed { .. } => return vec![OutputMessage::Noop],
             ProcessResult::Rejected { .. } => return vec![OutputMessage::Noop],
         };
 

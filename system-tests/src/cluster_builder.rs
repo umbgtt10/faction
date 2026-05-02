@@ -2,7 +2,11 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use std::fs::File;
+use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::process::Command;
+use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -88,6 +92,11 @@ impl ClusterBuilder {
     #[must_use]
     pub fn build(self) -> Cluster {
         let peer_ids: Vec<PeerId> = (0..self.node_count as PeerId).collect();
+
+        if matches!(self.spawn, Spawn::Process) {
+            return self.build_process(&peer_ids);
+        }
+
         let transports: Vec<Box<dyn Transport>> = match self.transport {
             TransportKind::InMemory => InMemoryTransport::new_mesh(&peer_ids)
                 .into_iter()
@@ -143,11 +152,98 @@ impl ClusterBuilder {
                 match self.spawn {
                     Spawn::Task => Node::task(Arc::new(Mutex::new(faction_node))),
                     Spawn::Thread => Node::spawn_thread(Arc::new(Mutex::new(faction_node))),
-                    _ => unimplemented!(),
+                    Spawn::Process => unreachable!(),
                 }
             })
             .collect();
 
-        Cluster::new(nodes)
+        Cluster::new(nodes, self.spawn)
+    }
+
+    fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
+        let dir = std::env::temp_dir().join("faction-process-logs");
+        let _ = std::fs::create_dir_all(&dir);
+
+        let addrs: Vec<SocketAddr> = peer_ids
+            .iter()
+            .map(|_| {
+                let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+                let a = l.local_addr().unwrap();
+                drop(l);
+                a
+            })
+            .collect();
+
+        let peer_addrs: Vec<(PeerId, SocketAddr)> = peer_ids
+            .iter()
+            .copied()
+            .zip(addrs.iter().copied())
+            .collect();
+
+        let bin = std::env::var("CARGO_BIN_EXE_faction_node")
+            .ok()
+            .unwrap_or_else(|| {
+                let mut path =
+                    std::env::current_exe().expect("cannot determine current executable path");
+                path.pop();
+                path.pop();
+                path.push("faction-node");
+                path.set_extension(std::env::consts::EXE_EXTENSION);
+                path.to_string_lossy().to_string()
+            });
+
+        let nodes: Vec<Node> = peer_ids
+            .iter()
+            .enumerate()
+            .map(|(i, &id)| {
+                let peer_addrs_arg = peer_addrs
+                    .iter()
+                    .map(|(pid, a)| format!("{pid}={a}"))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let peers_arg = peer_ids
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",");
+
+                let transport_arg = match self.transport {
+                    TransportKind::Grpc => "grpc",
+                    TransportKind::Tcp => "tcp",
+                    _ => panic!("unsupported transport for process node"),
+                };
+                let timer_arg = match self.timer {
+                    TimerKind::InMemory => "inmemory",
+                    TimerKind::Real => "real",
+                };
+
+                let log = File::create(dir.join(format!("peer_{id}.log"))).unwrap();
+
+                let child = Command::new(bin.clone())
+                    .arg("--peer-id")
+                    .arg(id.to_string())
+                    .arg("--peers")
+                    .arg(&peers_arg)
+                    .arg("--required")
+                    .arg(self.required.to_string())
+                    .arg("--freshness-margin")
+                    .arg("2")
+                    .arg("--transport")
+                    .arg(transport_arg)
+                    .arg("--timer")
+                    .arg(timer_arg)
+                    .arg("--listen-addr")
+                    .arg(addrs[i].to_string())
+                    .arg("--peer-addrs")
+                    .arg(&peer_addrs_arg)
+                    .stderr(Stdio::from(log))
+                    .spawn()
+                    .expect("failed to spawn faction-node");
+
+                Node::process(child)
+            })
+            .collect();
+
+        Cluster::new(nodes, self.spawn)
     }
 }

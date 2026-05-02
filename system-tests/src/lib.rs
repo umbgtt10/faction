@@ -8,6 +8,7 @@ pub mod faction_node;
 pub mod no_op_node_observer;
 pub mod node;
 pub mod node_observer;
+pub mod process_node;
 pub mod shared_file_observer;
 pub mod spawn;
 pub mod timer;

@@ -277,15 +277,18 @@ fn decide_timer_participation_observed_produces_noop() {
 }
 
 #[test]
-#[should_panic(expected = "unreachable")]
-fn decide_bootstrapped_message_panics() {
+fn decide_bootstrapped_message_produces_noop() {
     // Arrange
     let mut protocol = protocol();
 
     // Act
-    protocol.decide(InputMessage::Transport(TransportMessage::Bootstrapped {
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Bootstrapped {
         from: 1,
     }));
+
+    // Assert
+    assert_eq!(decisions.len(), 1);
+    assert!(matches!(decisions[0], OutputMessage::Noop));
 }
 
 #[test]
