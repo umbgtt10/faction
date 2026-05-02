@@ -16,6 +16,7 @@ pub struct TcpTransport {
     outbound: HashMap<PeerId, TcpStream>,
     inbound: Arc<Mutex<Vec<TcpStream>>>,
     buf: Vec<u8>,
+    _listener: TcpListener,
 }
 
 impl TcpTransport {
@@ -37,10 +38,11 @@ impl TcpTransport {
 
         eprintln!("[tcp] peer {peer_id} bound, spawning acceptor");
 
+        let thread_listener = listener.try_clone().unwrap();
         let ib = inbound.clone();
         thread::spawn(move || {
             eprintln!("[tcp] peer {peer_id} acceptor thread started");
-            for incoming in listener.incoming() {
+            for incoming in thread_listener.incoming() {
                 match incoming {
                     Ok(stream) => {
                         eprintln!(
@@ -97,6 +99,7 @@ impl TcpTransport {
             outbound,
             inbound,
             buf: Vec::new(),
+            _listener: listener,
         }
     }
 
@@ -125,6 +128,7 @@ impl TcpTransport {
                 outbound: streams,
                 inbound: Arc::new(Mutex::new(Vec::new())),
                 buf: Vec::new(),
+                _listener: TcpListener::bind("127.0.0.1:0").unwrap(),
             })
             .collect()
     }
