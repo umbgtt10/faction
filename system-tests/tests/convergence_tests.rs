@@ -25,7 +25,6 @@ use rstest::rstest;
 #[case::thread_real_tcp(Spawn::Thread, TimerKind::Real, TransportKind::Tcp)]
 #[case::thread_real_grpc(Spawn::Thread, TimerKind::Real, TransportKind::Grpc)]
 #[case::task_real_grpc(Spawn::Task, TimerKind::Real, TransportKind::Grpc)]
-
 fn cluster_reaches_bootstrapped(
     #[case] spawn: Spawn,
     #[case] timer: TimerKind,

@@ -11,13 +11,13 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use tokio::runtime::Runtime;
 use tokio_stream::wrappers::TcpListenerStream;
+use tonic::Request;
 use tonic::transport::{Channel, Endpoint, Server};
-use tonic::{Request, Response, Status};
 
 use crate::faction::Envelope;
 use crate::faction::transport_client::TransportClient;
-use crate::faction::transport_server::Transport as GrpcService;
 use crate::faction::transport_server::TransportServer;
+use crate::transport::grpc::grpc_service::GrpcSvc;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 
@@ -30,26 +30,6 @@ fn runtime() -> &'static Runtime {
             .build()
             .unwrap()
     })
-}
-
-struct Svc(Inbox);
-
-#[tonic::async_trait]
-impl GrpcService for Svc {
-    async fn deliver(&self, r: Request<Envelope>) -> Result<Response<Envelope>, Status> {
-        let d = r.into_inner().data;
-        if d.len() == 9 {
-            let from = PeerId::from_le_bytes(d[0..8].try_into().unwrap());
-            let msg = match d[8] {
-                0 => TransportMessage::Ping { from },
-                1 => TransportMessage::Ready { from },
-                2 => TransportMessage::Bootstrapped { from },
-                _ => return Ok(Response::new(Envelope { data: vec![] })),
-            };
-            self.0.lock().unwrap().push_back(msg);
-        }
-        Ok(Response::new(Envelope { data: vec![] }))
-    }
 }
 
 fn enc(m: &TransportMessage) -> Vec<u8> {
@@ -88,7 +68,7 @@ impl GrpcTransport {
                 let ib_clone = ib.clone();
                 rt.spawn(async move {
                     Server::builder()
-                        .add_service(TransportServer::new(Svc(ib_clone)))
+                        .add_service(TransportServer::new(GrpcSvc(ib_clone)))
                         .serve_with_incoming(TcpListenerStream::new(tl))
                         .await
                         .unwrap();
