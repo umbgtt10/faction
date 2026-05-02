@@ -81,7 +81,7 @@ use super::helpers::*;
     ready(4, TIMELY),
     &[
         ReadyAccepted { peer_id: 4 },
-        ReadyQuorumReached,
+        
         Exited { mode: ExitMode::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
@@ -91,7 +91,7 @@ use super::helpers::*;
     ready(4, DELAYED),
     &[
         DelayedReadyAccepted { peer_id: 4 },
-        ReadyQuorumReached,
+        
         Exited { mode: ExitMode::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
@@ -108,7 +108,7 @@ use super::helpers::*;
     &[
         LocalParticipationCompleted,
         BroadcastLocalReady,
-        ReadyQuorumReached,
+        
         Exited { mode: ExitMode::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],

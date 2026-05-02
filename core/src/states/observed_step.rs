@@ -32,8 +32,6 @@ impl ObservedStep {
         let is_stale = matches!(classification, FreshnessClassification::Stale);
         let confirmed_new = !is_dup && !is_stale;
 
-        let outcome = ObservedOutput::new(kind, peer_id, classification, is_dup).outcome().clone();
-
         let mut new_confirmed_peers = confirmed_peers;
         if confirmed_new {
             new_confirmed_peers.push(peer_id);
@@ -41,7 +39,16 @@ impl ObservedStep {
 
         let is_quorum =
             quorum_threshold.is_some_and(|t| confirmed_new && new_confirmed_peers.len() >= t);
-        let outcomes = Self::build_outcomes(vec![outcome], is_quorum);
+
+        let mut outcomes = vec![ObservedOutput::new(kind, peer_id, classification, is_dup)
+            .outcome()
+            .clone()];
+        if is_quorum {
+            outcomes.push(Outcome::ReadyQuorumReached);
+            outcomes.push(Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
+            });
+        }
 
         Self {
             outcomes,
@@ -63,13 +70,17 @@ impl ObservedStep {
         }
 
         let is_quorum = new_confirmed_peers.len() >= quorum_threshold;
-        let outcomes = Self::build_outcomes(
-            vec![
-                Outcome::LocalParticipationCompleted,
-                Outcome::BroadcastLocalReady,
-            ],
-            is_quorum,
-        );
+        let mut outcomes = vec![
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+        ];
+
+        if is_quorum {
+            outcomes.push(Outcome::ReadyQuorumReached);
+            outcomes.push(Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
+            });
+        }
 
         Self {
             outcomes,
@@ -91,15 +102,5 @@ impl ObservedStep {
     #[must_use]
     pub fn outcomes(&self) -> &[Outcome] {
         &self.outcomes
-    }
-
-    fn build_outcomes(mut base: Vec<Outcome>, is_quorum: bool) -> Vec<Outcome> {
-        if is_quorum {
-            base.push(Outcome::ReadyQuorumReached);
-            base.push(Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
-            });
-        }
-        base
     }
 }

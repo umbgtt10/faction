@@ -29,7 +29,7 @@ fn slow_member_does_not_block_quorum_exit() {
         outputs,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::ReadyQuorumReached,
+            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },

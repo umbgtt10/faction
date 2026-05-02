@@ -456,7 +456,7 @@ fn local_completion_triggers_quorum() {
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            Outcome::ReadyQuorumReached,
+            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },

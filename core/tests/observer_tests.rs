@@ -237,7 +237,7 @@ fn apply_observes_quorum_exit_transition() {
         transition.outputs(),
         &[
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::ReadyQuorumReached,
+            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped
             },
@@ -433,7 +433,7 @@ fn state_transition_outputs_are_fully_observable() {
         transition4.outputs(),
         &[
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::ReadyQuorumReached,
+            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -651,7 +651,7 @@ fn apply_observes_quorum_exit_from_pinging() {
         &[
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            Outcome::ReadyQuorumReached,
+            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -844,7 +844,7 @@ fn apply_observes_delayed_quorum_exit_from_collecting() {
         transition.outputs(),
         &[
             Outcome::DelayedReadyAccepted { peer_id: 3 },
-            Outcome::ReadyQuorumReached,
+            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },

@@ -40,8 +40,6 @@ impl ObservedOutput {
         &self.outcome
     }
 
-    #[must_use]
-
     fn stale_output(kind: ObservedKind, peer_id: PeerId) -> Outcome {
         match kind {
             ObservedKind::Participation => Outcome::StaleParticipationIgnored { peer_id },

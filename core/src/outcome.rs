@@ -18,6 +18,5 @@ pub enum Outcome {
     NonMemberIgnored { peer_id: PeerId },
     LocalParticipationCompleted,
     BroadcastLocalReady,
-    ReadyQuorumReached,
     Exited { mode: ExitMode },
 }

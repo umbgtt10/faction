@@ -155,7 +155,7 @@ fn clone_produces_equal_transition() {
     let next = cluster_view(vec![1], vec![1, 2]);
     let outputs = vec![
         Outcome::ReadyAccepted { peer_id: 3 },
-        Outcome::ReadyQuorumReached,
+        
         Outcome::Exited {
             mode: ExitMode::Bootstrapped,
         },

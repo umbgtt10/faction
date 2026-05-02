@@ -193,7 +193,7 @@ impl ModelCoordinator {
             self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
-                Outcome::ReadyQuorumReached,
+                
                 Outcome::Exited {
                     mode: ExitMode::Bootstrapped,
                 },
@@ -227,7 +227,7 @@ impl ModelCoordinator {
         if self.collecting_confirmed_count >= self.required_count {
             self.exit_mode = Some(ExitMode::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
-            outputs.push(Outcome::ReadyQuorumReached);
+            outputs.push(Outcome::);
             outputs.push(Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             });
