@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use std::thread::sleep;
+use std::time::Duration;
+
 use faction::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
@@ -22,7 +25,7 @@ fn mesh_send_and_recv_between_two_peers() {
 
     // Act
     transports[0].send(1, msg_ping(0));
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    sleep(Duration::from_millis(100));
 
     // Assert
     assert_eq!(transports[1].recv(), Some(msg_ping(0)));
@@ -37,7 +40,7 @@ fn mesh_fifo_order_preserved() {
     // Act
     transports[0].send(1, msg_ping(0));
     transports[0].send(1, msg_ready(0));
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    sleep(Duration::from_millis(100));
 
     // Assert
     assert_eq!(transports[1].recv(), Some(msg_ping(0)));
@@ -61,7 +64,7 @@ fn mesh_three_peer_all_deliver() {
     // Act
     transports[0].send(1, msg_ping(0));
     transports[0].send(2, msg_ready(0));
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    sleep(Duration::from_millis(100));
 
     // Assert
     assert_eq!(transports[1].recv(), Some(msg_ping(0)));
@@ -77,7 +80,7 @@ fn mesh_send_all_message_types() {
     transports[0].send(1, TransportMessage::Ping { from: 0 });
     transports[0].send(1, TransportMessage::Ready { from: 0 });
     transports[0].send(1, TransportMessage::Bootstrapped { from: 0 });
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    sleep(Duration::from_millis(100));
 
     // Assert
     assert_eq!(
@@ -92,4 +95,23 @@ fn mesh_send_all_message_types() {
         transports[1].recv(),
         Some(TransportMessage::Bootstrapped { from: 0 })
     );
+}
+
+#[test]
+fn drop_does_not_hang() {
+    // Arrange & Act & Assert — drop at end of scope
+    let transports = GrpcTransport::new_mesh(&[0, 1]);
+    drop(transports);
+}
+
+#[test]
+fn drop_releases_server_port() {
+    // Arrange
+    let transports = GrpcTransport::new_mesh(&[0, 1]);
+
+    // Act — drop frees the server
+    drop(transports);
+
+    // Assert — creating a new mesh on same ports should not conflict
+    let _transports2 = GrpcTransport::new_mesh(&[0, 1]);
 }

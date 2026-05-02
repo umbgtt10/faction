@@ -11,7 +11,7 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use tokio::runtime::Runtime;
 use tokio::sync::Mutex as AsyncMutex;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::Request;
 use tonic::transport::{Channel, Endpoint, Server};
@@ -28,6 +28,15 @@ type Tx = mpsc::UnboundedSender<(PeerId, TransportMessage)>;
 pub struct GrpcTransport {
     inbox: Inbox,
     _tx: Tx,
+    _shutdown_tx: Option<oneshot::Sender<()>>,
+}
+
+impl Drop for GrpcTransport {
+    fn drop(&mut self) {
+        if let Some(tx) = self._shutdown_tx.take() {
+            let _ = tx.send(());
+        }
+    }
 }
 
 impl GrpcTransport {
@@ -66,18 +75,21 @@ impl GrpcTransport {
         })
     }
 
-    fn build_server(inbox: Inbox, listen_addr: SocketAddr) {
+    fn build_server(inbox: Inbox, listen_addr: SocketAddr) -> oneshot::Sender<()> {
+        let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let rt = Self::runtime();
         let l = std::net::TcpListener::bind(listen_addr).unwrap();
         l.set_nonblocking(true).unwrap();
         let tl = tokio::net::TcpListener::from_std(l).unwrap();
         rt.spawn(async move {
-            Server::builder()
-                .add_service(TransportServer::new(GrpcSvc(inbox)))
-                .serve_with_incoming(TcpListenerStream::new(tl))
-                .await
-                .unwrap();
+            tokio::select! {
+                _ = Server::builder()
+                    .add_service(TransportServer::new(GrpcSvc(inbox)))
+                    .serve_with_incoming(TcpListenerStream::new(tl)) => {},
+                _ = shutdown_rx => {},
+            }
         });
+        shutdown_tx
     }
 
     fn build_clients(peer_id: PeerId, peer_addrs: &[(PeerId, SocketAddr)]) -> Clients {
@@ -109,13 +121,17 @@ impl GrpcTransport {
         let _guard = Self::runtime().enter();
         let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
 
-        Self::build_server(inbox.clone(), listen_addr);
+        let shutdown_tx = Self::build_server(inbox.clone(), listen_addr);
         let clients = Self::build_clients(peer_id, peer_addrs);
 
         let (tx, rx) = mpsc::unbounded_channel();
         Self::spawn_sender(rx, clients);
 
-        Self { inbox, _tx: tx }
+        Self {
+            inbox,
+            _tx: tx,
+            _shutdown_tx: Some(shutdown_tx),
+        }
     }
 
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
@@ -124,6 +140,7 @@ impl GrpcTransport {
         let mut addrs = Vec::new();
         let mut inboxes = Vec::new();
         let mut client_lists = Vec::new();
+        let mut shutdown_txs = Vec::new();
 
         {
             let _guard = rt.enter();
@@ -135,13 +152,16 @@ impl GrpcTransport {
                 let a = l.local_addr().unwrap();
                 addrs.push(a);
                 let tl = tokio::net::TcpListener::from_std(l).unwrap();
+                let (stx, srx) = oneshot::channel();
                 rt.spawn(async move {
-                    Server::builder()
-                        .add_service(TransportServer::new(GrpcSvc(ib_for_server)))
-                        .serve_with_incoming(TcpListenerStream::new(tl))
-                        .await
-                        .unwrap();
+                    tokio::select! {
+                        _ = Server::builder()
+                            .add_service(TransportServer::new(GrpcSvc(ib_for_server)))
+                            .serve_with_incoming(TcpListenerStream::new(tl)) => {},
+                        _ = srx => {},
+                    }
                 });
+                shutdown_txs.push(stx);
                 inboxes.push(ib);
             }
         }
@@ -169,10 +189,15 @@ impl GrpcTransport {
         inboxes
             .into_iter()
             .zip(client_lists)
-            .map(|(ib, clients)| {
+            .zip(shutdown_txs)
+            .map(|((ib, clients), stx)| {
                 let (tx, rx) = mpsc::unbounded_channel();
                 Self::spawn_sender(rx, clients);
-                GrpcTransport { inbox: ib, _tx: tx }
+                GrpcTransport {
+                    inbox: ib,
+                    _tx: tx,
+                    _shutdown_tx: Some(stx),
+                }
             })
             .collect()
     }
