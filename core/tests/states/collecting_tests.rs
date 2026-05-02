@@ -420,7 +420,6 @@ fn ready_first_timely_triggers_quorum() {
         outcomes,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -463,7 +462,6 @@ fn ready_first_delayed_triggers_quorum() {
         outcomes,
         vec![
             Outcome::DelayedReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },

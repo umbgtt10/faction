@@ -61,7 +61,6 @@ containers with minimal trait implementations.
 | `NonMemberIgnored { peer_id }` | Signal from a peer not in the member set |
 | `LocalParticipationCompleted` | Local node finished its own participation |
 | `BroadcastLocalReady` | Local readiness should be broadcast to peers |
-| `ReadyQuorumReached` | Threshold of readiness signals met |
 | `Exited { mode }` | Machine exited (`Bootstrapped` or `TimedOut`) |
 
 ---

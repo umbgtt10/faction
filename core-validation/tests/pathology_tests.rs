@@ -104,7 +104,6 @@ fn observability_trace_captures_accept_ignore_delay_and_exit_decisions() {
         step5,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },

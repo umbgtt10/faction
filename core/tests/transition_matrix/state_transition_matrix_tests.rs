@@ -81,7 +81,6 @@ use super::helpers::*;
     ready(4, TIMELY),
     &[
         ReadyAccepted { peer_id: 4 },
-        
         Exited { mode: ExitMode::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
@@ -91,7 +90,6 @@ use super::helpers::*;
     ready(4, DELAYED),
     &[
         DelayedReadyAccepted { peer_id: 4 },
-        
         Exited { mode: ExitMode::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
@@ -108,7 +106,6 @@ use super::helpers::*;
     &[
         LocalParticipationCompleted,
         BroadcastLocalReady,
-        
         Exited { mode: ExitMode::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],

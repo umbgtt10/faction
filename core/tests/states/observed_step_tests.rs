@@ -200,7 +200,6 @@ fn new_local_reaches_quorum_when_count_meets_threshold() {
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },

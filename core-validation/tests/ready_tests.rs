@@ -82,7 +82,6 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
         outputs,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -112,7 +111,6 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
         outputs,
         vec![
             Outcome::DelayedReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -170,7 +168,6 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
         outputs_0,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -180,7 +177,6 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
         outputs_1,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
@@ -222,7 +218,6 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            
             Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             },
