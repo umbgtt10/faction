@@ -10,6 +10,8 @@ use faction::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use tokio::runtime::Runtime;
+use tokio::sync::Mutex as AsyncMutex;
+use tokio::sync::mpsc;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::Request;
 use tonic::transport::{Channel, Endpoint, Server};
@@ -20,114 +22,15 @@ use crate::faction::transport_server::TransportServer;
 use crate::transport::grpc::grpc_service::GrpcSvc;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
+type Clients = Arc<AsyncMutex<HashMap<PeerId, TransportClient<Channel>>>>;
+type Tx = mpsc::UnboundedSender<(PeerId, TransportMessage)>;
 
 pub struct GrpcTransport {
     inbox: Inbox,
-    clients: HashMap<PeerId, TransportClient<Channel>>,
+    _tx: Tx,
 }
 
 impl GrpcTransport {
-    fn runtime() -> &'static Runtime {
-        static RT: OnceLock<Runtime> = OnceLock::new();
-        RT.get_or_init(|| {
-            tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(2)
-                .enable_all()
-                .build()
-                .unwrap()
-        })
-    }
-
-    pub fn new(
-        listen_addr: SocketAddr,
-        peer_id: PeerId,
-        peer_addrs: &[(PeerId, SocketAddr)],
-    ) -> Self {
-        let rt = Self::runtime();
-        let _guard = rt.enter();
-        let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
-
-        let l = std::net::TcpListener::bind(listen_addr).unwrap();
-        l.set_nonblocking(true).unwrap();
-        let tl = tokio::net::TcpListener::from_std(l).unwrap();
-        let ib_clone = inbox.clone();
-        rt.spawn(async move {
-            Server::builder()
-                .add_service(TransportServer::new(GrpcSvc(ib_clone)))
-                .serve_with_incoming(TcpListenerStream::new(tl))
-                .await
-                .unwrap();
-        });
-
-        let mut clients = HashMap::new();
-        for &(pid, addr) in peer_addrs {
-            if pid != peer_id {
-                let ch = rt.block_on(async {
-                    Endpoint::from_shared(format!("http://{addr}"))
-                        .unwrap()
-                        .connect()
-                        .await
-                        .unwrap()
-                });
-                clients.insert(pid, TransportClient::new(ch));
-            }
-        }
-
-        Self { inbox, clients }
-    }
-
-    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
-        let n = peer_ids.len();
-        let rt = Self::runtime();
-        let mut addrs = Vec::new();
-        let mut inboxes = Vec::new();
-
-        {
-            let _guard = rt.enter();
-            for _ in 0..n {
-                let ib: Inbox = Arc::new(Mutex::new(VecDeque::new()));
-                let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-                l.set_nonblocking(true).unwrap();
-                let a = l.local_addr().unwrap();
-                addrs.push(a);
-                let tl = tokio::net::TcpListener::from_std(l).unwrap();
-                let ib_clone = ib.clone();
-                rt.spawn(async move {
-                    Server::builder()
-                        .add_service(TransportServer::new(GrpcSvc(ib_clone)))
-                        .serve_with_incoming(TcpListenerStream::new(tl))
-                        .await
-                        .unwrap();
-                });
-                inboxes.push(ib.clone());
-            }
-        }
-
-        inboxes
-            .into_iter()
-            .enumerate()
-            .map(|(i, ib)| {
-                let mut cl = HashMap::new();
-                for (j, &p) in peer_ids.iter().enumerate() {
-                    if i != j {
-                        let ch = rt.block_on(async {
-                            Endpoint::from_shared(format!("http://{}", addrs[j]))
-                                .unwrap()
-                                .connect()
-                                .await
-                                .unwrap()
-                        });
-                        cl.insert(p, TransportClient::new(ch));
-                    }
-                }
-                GrpcTransport {
-                    inbox: ib,
-                    clients: cl,
-                }
-            })
-            .collect()
-    }
-
     fn encode(m: &TransportMessage) -> Vec<u8> {
         let (f, t): (PeerId, u8) = match m {
             TransportMessage::Ping { from } => (*from, 0),
@@ -139,14 +42,145 @@ impl GrpcTransport {
         d.push(t);
         d
     }
+
+    fn spawn_sender(mut rx: mpsc::UnboundedReceiver<(PeerId, TransportMessage)>, clients: Clients) {
+        Self::runtime().spawn(async move {
+            while let Some((to, msg)) = rx.recv().await {
+                let mut guard = clients.lock().await;
+                if let Some(c) = guard.get_mut(&to) {
+                    let d = Self::encode(&msg);
+                    let _ = c.deliver(Request::new(Envelope { data: d })).await;
+                }
+            }
+        });
+    }
+
+    fn runtime() -> &'static Runtime {
+        static RT: OnceLock<Runtime> = OnceLock::new();
+        RT.get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build()
+                .unwrap()
+        })
+    }
+
+    fn build_server(inbox: Inbox, listen_addr: SocketAddr) {
+        let rt = Self::runtime();
+        let l = std::net::TcpListener::bind(listen_addr).unwrap();
+        l.set_nonblocking(true).unwrap();
+        let tl = tokio::net::TcpListener::from_std(l).unwrap();
+        rt.spawn(async move {
+            Server::builder()
+                .add_service(TransportServer::new(GrpcSvc(inbox)))
+                .serve_with_incoming(TcpListenerStream::new(tl))
+                .await
+                .unwrap();
+        });
+    }
+
+    fn build_clients(peer_id: PeerId, peer_addrs: &[(PeerId, SocketAddr)]) -> Clients {
+        let rt = Self::runtime();
+        let clients: Clients = Arc::new(AsyncMutex::new(HashMap::new()));
+        {
+            let mut guard = rt.block_on(clients.lock());
+            for &(pid, addr) in peer_addrs {
+                if pid != peer_id {
+                    let ch = rt.block_on(async {
+                        Endpoint::from_shared(format!("http://{addr}"))
+                            .unwrap()
+                            .connect()
+                            .await
+                            .unwrap()
+                    });
+                    guard.insert(pid, TransportClient::new(ch));
+                }
+            }
+        }
+        clients
+    }
+
+    pub fn new(
+        listen_addr: SocketAddr,
+        peer_id: PeerId,
+        peer_addrs: &[(PeerId, SocketAddr)],
+    ) -> Self {
+        let _guard = Self::runtime().enter();
+        let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
+
+        Self::build_server(inbox.clone(), listen_addr);
+        let clients = Self::build_clients(peer_id, peer_addrs);
+
+        let (tx, rx) = mpsc::unbounded_channel();
+        Self::spawn_sender(rx, clients);
+
+        Self { inbox, _tx: tx }
+    }
+
+    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
+        let n = peer_ids.len();
+        let rt = Self::runtime();
+        let mut addrs = Vec::new();
+        let mut inboxes = Vec::new();
+        let mut client_lists = Vec::new();
+
+        {
+            let _guard = rt.enter();
+            for _ in 0..n {
+                let ib: Inbox = Arc::new(Mutex::new(VecDeque::new()));
+                let ib_for_server = ib.clone();
+                let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+                l.set_nonblocking(true).unwrap();
+                let a = l.local_addr().unwrap();
+                addrs.push(a);
+                let tl = tokio::net::TcpListener::from_std(l).unwrap();
+                rt.spawn(async move {
+                    Server::builder()
+                        .add_service(TransportServer::new(GrpcSvc(ib_for_server)))
+                        .serve_with_incoming(TcpListenerStream::new(tl))
+                        .await
+                        .unwrap();
+                });
+                inboxes.push(ib);
+            }
+        }
+
+        for i in 0..n {
+            let clients: Clients = Arc::new(AsyncMutex::new(HashMap::new()));
+            {
+                let mut guard = rt.block_on(clients.lock());
+                for (j, &p) in peer_ids.iter().enumerate() {
+                    if i != j {
+                        let ch = rt.block_on(async {
+                            Endpoint::from_shared(format!("http://{}", addrs[j]))
+                                .unwrap()
+                                .connect()
+                                .await
+                                .unwrap()
+                        });
+                        guard.insert(p, TransportClient::new(ch));
+                    }
+                }
+            }
+            client_lists.push(clients);
+        }
+
+        inboxes
+            .into_iter()
+            .zip(client_lists)
+            .map(|(ib, clients)| {
+                let (tx, rx) = mpsc::unbounded_channel();
+                Self::spawn_sender(rx, clients);
+                GrpcTransport { inbox: ib, _tx: tx }
+            })
+            .collect()
+    }
 }
 
 impl Transport for GrpcTransport {
     fn send(&mut self, to: PeerId, m: TransportMessage) {
-        if let Some(c) = self.clients.get_mut(&to) {
-            let d = Self::encode(&m);
-            let _ = Self::runtime().block_on(c.deliver(Request::new(Envelope { data: d })));
-        }
+        let _ = self._tx.send((to, m));
     }
 
     fn recv(&mut self) -> Option<TransportMessage> {
