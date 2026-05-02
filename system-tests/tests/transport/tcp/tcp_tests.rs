@@ -93,3 +93,22 @@ fn mesh_send_all_message_types() {
         Some(TransportMessage::Bootstrapped { from: 0 })
     );
 }
+
+#[test]
+fn mesh_drop_does_not_hang() {
+    // Arrange & Act & Assert
+    let transports = TcpTransport::new_mesh(&[0, 1]);
+    drop(transports);
+}
+
+#[test]
+fn mesh_drop_releases_ports() {
+    // Arrange
+    let transports = TcpTransport::new_mesh(&[0, 1]);
+
+    // Act
+    drop(transports);
+
+    // Assert — new mesh should not have port conflicts
+    let _transports2 = TcpTransport::new_mesh(&[0, 1]);
+}

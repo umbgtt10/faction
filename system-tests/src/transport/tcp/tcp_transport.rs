@@ -8,6 +8,7 @@ use faction_protocol::transport_trait::Transport;
 use std::collections::HashMap;
 use std::io::{ErrorKind, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -17,6 +18,21 @@ pub struct TcpTransport {
     inbound: Arc<Mutex<Vec<TcpStream>>>,
     buf: Vec<u8>,
     _listener: TcpListener,
+    _shutdown: Arc<AtomicBool>,
+    _accept_thread: Option<thread::JoinHandle<()>>,
+}
+
+impl Drop for TcpTransport {
+    fn drop(&mut self) {
+        self._shutdown.store(true, Ordering::Relaxed);
+        if let Some(handle) = self._accept_thread.take() {
+            // Wake up accept() by connecting to our own listener
+            if let Ok(addr) = self._listener.local_addr() {
+                let _ = TcpStream::connect(addr);
+            }
+            let _ = handle.join();
+        }
+    }
 }
 
 impl TcpTransport {
@@ -35,10 +51,15 @@ impl TcpTransport {
             drop(conn);
         }
 
+        let shutdown = Arc::new(AtomicBool::new(false));
         let thread_listener = listener.try_clone().unwrap();
         let ib = inbound.clone();
-        thread::spawn(move || {
+        let sd = shutdown.clone();
+        let accept_thread = thread::spawn(move || {
             for incoming in thread_listener.incoming() {
+                if sd.load(Ordering::Relaxed) {
+                    break;
+                }
                 match incoming {
                     Ok(stream) => {
                         stream.set_nonblocking(true).unwrap();
@@ -73,6 +94,8 @@ impl TcpTransport {
             inbound,
             buf: Vec::new(),
             _listener: listener,
+            _shutdown: shutdown,
+            _accept_thread: Some(accept_thread),
         }
     }
 
@@ -102,6 +125,8 @@ impl TcpTransport {
                 inbound: Arc::new(Mutex::new(Vec::new())),
                 buf: Vec::new(),
                 _listener: TcpListener::bind("127.0.0.1:0").unwrap(),
+                _shutdown: Arc::new(AtomicBool::new(false)),
+                _accept_thread: None,
             })
             .collect()
     }
