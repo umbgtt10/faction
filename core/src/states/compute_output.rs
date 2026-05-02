@@ -41,9 +41,6 @@ impl ObservedOutput {
     }
 
     #[must_use]
-    pub fn into_outcome(self) -> Outcome {
-        self.outcome
-    }
 
     fn stale_output(kind: ObservedKind, peer_id: PeerId) -> Outcome {
         match kind {

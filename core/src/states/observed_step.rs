@@ -32,7 +32,7 @@ impl ObservedStep {
         let is_stale = matches!(classification, FreshnessClassification::Stale);
         let confirmed_new = !is_dup && !is_stale;
 
-        let outcome = ObservedOutput::new(kind, peer_id, classification, is_dup).into_outcome();
+        let outcome = ObservedOutput::new(kind, peer_id, classification, is_dup).outcome().clone();
 
         let mut new_confirmed_peers = confirmed_peers;
         if confirmed_new {

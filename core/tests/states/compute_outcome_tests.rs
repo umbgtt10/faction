@@ -36,7 +36,7 @@ fn new_creates_observed_output_with_participation_kind() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::ParticipationAccepted { peer_id: PEER_ID }
     );
 }
@@ -53,7 +53,7 @@ fn new_creates_observed_output_with_ready_kind() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::ReadyAccepted { peer_id: PEER_ID }
     );
 }
@@ -70,7 +70,7 @@ fn compute_output_participation_stale_returns_stale_participation_ignored() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::StaleParticipationIgnored { peer_id: PEER_ID }
     );
 }
@@ -87,7 +87,7 @@ fn compute_output_ready_stale_returns_stale_ready_ignored() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::StaleReadyIgnored { peer_id: PEER_ID }
     );
 }
@@ -104,7 +104,7 @@ fn compute_output_stale_dominates_over_duplicate() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::StaleParticipationIgnored { peer_id: PEER_ID }
     );
 }
@@ -121,7 +121,7 @@ fn compute_output_participation_duplicate_returns_duplicate_participation_ignore
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::DuplicateParticipationIgnored { peer_id: PEER_ID }
     );
 }
@@ -138,7 +138,7 @@ fn compute_output_ready_duplicate_returns_duplicate_ready_ignored() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::DuplicateReadyIgnored { peer_id: PEER_ID }
     );
 }
@@ -155,7 +155,7 @@ fn compute_output_duplicate_with_delayed_classification_still_returns_duplicate(
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::DuplicateReadyIgnored { peer_id: PEER_ID }
     );
 }
@@ -172,7 +172,7 @@ fn compute_output_participation_timely_returns_participation_accepted() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::ParticipationAccepted { peer_id: PEER_ID }
     );
 }
@@ -189,7 +189,7 @@ fn compute_output_ready_timely_returns_ready_accepted() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::ReadyAccepted { peer_id: PEER_ID }
     );
 }
@@ -206,7 +206,7 @@ fn compute_output_participation_delayed_returns_delayed_participation_accepted()
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::DelayedParticipationAccepted { peer_id: PEER_ID }
     );
 }
@@ -223,7 +223,7 @@ fn compute_output_ready_delayed_returns_delayed_ready_accepted() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::DelayedReadyAccepted { peer_id: PEER_ID }
     );
 }
@@ -243,7 +243,7 @@ fn compute_output_preserves_peer_id_in_output() {
 
     // Assert
     assert_eq!(
-        output.into_outcome(),
+        output.outcome().clone(),
         Outcome::ParticipationAccepted { peer_id: 99 }
     );
 }
