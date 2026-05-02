@@ -9,8 +9,8 @@ use alloc::vec;
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
-use faction::config::Config;
 use faction::conclusion::Conclusion;
+use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;

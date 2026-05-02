@@ -12,8 +12,8 @@ use std::sync::Mutex;
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
-use faction::config::Config;
 use faction::conclusion::Conclusion;
+use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::observer::Observer;
@@ -275,7 +275,10 @@ fn apply_observes_deadline_exit_transition() {
     );
     assert!(!transition.previous_view().is_exited());
     assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
-    assert_eq!(transition.new_view().exit_mode(), Some(Conclusion::TimedOut));
+    assert_eq!(
+        transition.new_view().exit_mode(),
+        Some(Conclusion::TimedOut)
+    );
     assert!(transition.new_view().is_exited());
     assert_eq!(
         transition.outputs(),
@@ -700,7 +703,10 @@ fn apply_observes_deadline_exit_from_pinging() {
         }]
     );
     assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
-    assert_eq!(transition.new_view().exit_mode(), Some(Conclusion::TimedOut));
+    assert_eq!(
+        transition.new_view().exit_mode(),
+        Some(Conclusion::TimedOut)
+    );
     assert!(transition.new_view().is_exited());
     assert!(!transition.new_view().is_pinging_completed());
 }
