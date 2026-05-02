@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use std::time::Duration;
+
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
@@ -75,7 +77,9 @@ fn main() {
 
     let timer: Box<dyn Timer> = match config.timer {
         TimerKind::InMemory => Box::new(InMemoryTimer::new()),
-        TimerKind::Real => Box::new(RealTimer::new()),
+        TimerKind::Real => Box::new(RealTimer::with_delay(Duration::from_millis(
+            config.timer_delay_ms,
+        ))),
     };
 
     let node = FactionNode::new(

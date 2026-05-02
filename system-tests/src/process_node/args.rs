@@ -32,6 +32,7 @@ impl Args {
         let mut listen_addr: Option<SocketAddr> = None;
         let mut peer_addrs: Option<Vec<(PeerId, SocketAddr)>> = None;
         let mut log_path: Option<PathBuf> = None;
+        let mut timer_delay_ms: Option<u64> = None;
 
         let mut i = 1;
         while i < self.args.len() {
@@ -74,6 +75,10 @@ impl Args {
                         other => panic!("unknown timer: {other}"),
                     });
                 }
+                "--timer-delay" => {
+                    i += 1;
+                    timer_delay_ms = Some(self.args[i].parse().expect("invalid --timer-delay"));
+                }
                 "--listen-addr" => {
                     i += 1;
                     listen_addr = Some(self.args[i].parse().expect("invalid --listen-addr"));
@@ -114,6 +119,7 @@ impl Args {
             listen_addr: listen_addr.expect("missing --listen-addr"),
             peer_addrs: peer_addrs.expect("missing --peer-addrs"),
             log_path,
+            timer_delay_ms: timer_delay_ms.expect("missing --timer-delay"),
         }
     }
 }

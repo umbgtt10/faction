@@ -10,18 +10,25 @@ use std::time::Instant;
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_trait::Timer;
 
-const DEFAULT_DELAY: Duration = Duration::from_millis(1);
-
 type Entry = (Reverse<Instant>, TimerEvent);
 
 pub struct RealTimer {
     events: BinaryHeap<Entry>,
+    delay: Duration,
 }
 
 impl RealTimer {
     pub fn new() -> Self {
         Self {
             events: BinaryHeap::new(),
+            delay: Duration::from_millis(50),
+        }
+    }
+
+    pub fn with_delay(delay: Duration) -> Self {
+        Self {
+            events: BinaryHeap::new(),
+            delay,
         }
     }
 }
@@ -43,7 +50,7 @@ impl Timer for RealTimer {
     }
 
     fn schedule(&mut self, event: TimerEvent) {
-        let deadline = Instant::now() + DEFAULT_DELAY;
+        let deadline = Instant::now() + self.delay;
         self.events.push((Reverse(deadline), event));
     }
 

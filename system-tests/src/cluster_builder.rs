@@ -36,6 +36,7 @@ use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
 use crate::timer::in_memory::in_memory_timer::InMemoryTimer;
 use crate::timer::real::real_timer::RealTimer;
+use crate::timer_delay::TimerDelay;
 use crate::timer_kind::TimerKind;
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::grpc::grpc_transport::GrpcTransport;
@@ -49,6 +50,7 @@ pub struct ClusterBuilder {
     spawn: Spawn,
     transport: TransportKind,
     timer: TimerKind,
+    timer_delay: TimerDelay,
     log_path: Option<PathBuf>,
 }
 
@@ -61,12 +63,18 @@ impl ClusterBuilder {
             spawn: Spawn::Task,
             transport: TransportKind::InMemory,
             timer: TimerKind::InMemory,
+            timer_delay: TimerDelay::Minimal,
             log_path: None,
         }
     }
 
     #[must_use]
     pub fn spawn(mut self, spawn: Spawn) -> Self {
+        self.timer_delay = match spawn {
+            Spawn::Task => TimerDelay::Minimal,
+            Spawn::Thread => TimerDelay::Moderate,
+            Spawn::Process => TimerDelay::Generous,
+        };
         self.spawn = spawn;
         self
     }
@@ -120,6 +128,7 @@ impl ClusterBuilder {
                 .collect(),
         };
         let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
+        let delay = self.timer_delay.duration();
 
         let nodes: Vec<Node> = peer_ids
             .iter()
@@ -143,7 +152,7 @@ impl ClusterBuilder {
                     Protocol::new(Faction::new(config, faction_observer), peer_ids.clone(), id);
                 let timer: Box<dyn Timer> = match self.timer {
                     TimerKind::InMemory => Box::new(InMemoryTimer::new()),
-                    TimerKind::Real => Box::new(RealTimer::new()),
+                    TimerKind::Real => Box::new(RealTimer::with_delay(delay)),
                 };
                 let faction_node = FactionNode::new(
                     id,
@@ -196,6 +205,8 @@ impl ClusterBuilder {
                 path.to_string_lossy().to_string()
             });
 
+        let timer_delay_arg = format!("{}", self.timer_delay.duration().as_millis());
+
         let mut nodes = Vec::new();
         for (i, &id) in peer_ids.iter().enumerate() {
             let peer_addrs_arg = peer_addrs
@@ -234,6 +245,8 @@ impl ClusterBuilder {
                 .arg(transport_arg)
                 .arg("--timer")
                 .arg(timer_arg)
+                .arg("--timer-delay")
+                .arg(&timer_delay_arg)
                 .arg("--listen-addr")
                 .arg(addrs[i].to_string())
                 .arg("--peer-addrs")
