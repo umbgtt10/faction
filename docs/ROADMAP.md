@@ -74,6 +74,11 @@ at runtime.
 - Option B: signal triggers a `JoinRequested` output — the caller decides whether to admit
 - Option C: signal is treated as an implicit join request — the machine admits automatically
 
+**How this differs from Phase 3:** Phase 1 is a lightweight admission gate —
+a peer either joins or doesn't. There is no commit/abort protocol, no membership
+snapshot exchange, and no in-flight reconfiguration state. Phase 3 adds proper
+reconfiguration with atomic commit and structural single-change enforcement.
+
 **Gate:** complete `(state, input)` coverage before Phase 2.
 
 ---
