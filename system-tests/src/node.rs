@@ -79,7 +79,7 @@ impl Node {
 
     pub fn shutdown(&mut self) {
         if let Self::Process { child } = self {
-            let mut c = child.lock().unwrap();
+            let c = child.get_mut().unwrap();
             let _ = c.kill();
             let _ = c.wait();
         }
