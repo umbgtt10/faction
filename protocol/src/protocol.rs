@@ -41,60 +41,59 @@ impl Protocol {
         }
     }
 
-    pub fn start_decisions(&self) -> Vec<OutputMessage> {
-        let mut decisions = Vec::new();
+    pub fn initialize(&self) -> Vec<OutputMessage> {
+        let mut actions = Vec::new();
 
         for peer in &self.peers {
             if *peer != self.local_peer_id {
-                decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
+                actions.push(OutputMessage::Schedule(TimerEvent::Fire(
                     TimerMessage::ParticipationObserved { peer_id: *peer },
                 )));
             }
         }
 
-        decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
+        actions.push(OutputMessage::Schedule(TimerEvent::Fire(
             TimerMessage::LocalParticipationCompleted,
         )));
 
-        decisions.push(OutputMessage::BroadcastPing);
-        decisions.push(OutputMessage::Schedule(TimerEvent::Fire(
+        actions.push(OutputMessage::BroadcastPing);
+        actions.push(OutputMessage::Schedule(TimerEvent::Fire(
             TimerMessage::RetryPing,
         )));
 
-        decisions
+        actions
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
-        if matches!(input_message, InputMessage::Timer(TimerMessage::RetryPing)) {
+        if let InputMessage::Timer(TimerMessage::RetryPing) = &input_message {
             if self.cluster_view().is_exited() {
-                return vec![OutputMessage::Noop];
+                vec![OutputMessage::Noop]
+            } else {
+                vec![
+                    OutputMessage::BroadcastPing,
+                    OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
+                ]
             }
-
-            return vec![
-                OutputMessage::BroadcastPing,
-                OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
-            ];
-        }
-
-        if matches!(input_message, InputMessage::Timer(TimerMessage::RetryReady)) {
+        } else if let InputMessage::Timer(TimerMessage::RetryReady) = &input_message {
             if self.cluster_view().is_exited() {
-                return vec![OutputMessage::Noop];
+                vec![OutputMessage::Noop]
+            } else {
+                vec![
+                    OutputMessage::BroadcastReady,
+                    OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+                ]
             }
+        } else {
+            let command = self.translator.to_command(input_message);
 
-            return vec![
-                OutputMessage::BroadcastReady,
-                OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
-            ];
+            match self.faction.process(command) {
+                ProcessResult::Accepted { outcomes, .. } => {
+                    self.translator.to_output_messages(outcomes)
+                }
+                ProcessResult::Probed { .. } | ProcessResult::Rejected { .. } => {
+                    vec![OutputMessage::Noop]
+                }
+            }
         }
-
-        let command = self.translator.to_command(input_message);
-
-        let results = match self.faction.process(command) {
-            ProcessResult::Accepted { outcomes, .. } => outcomes,
-            ProcessResult::Probed { .. } => return vec![OutputMessage::Noop],
-            ProcessResult::Rejected { .. } => return vec![OutputMessage::Noop],
-        };
-
-        self.translator.to_output_messages(results)
     }
 }

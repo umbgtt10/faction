@@ -94,7 +94,7 @@ impl Cluster {
     }
 
     pub fn start_node(&mut self, index: usize) {
-        for decision in self.protocols[index].start_decisions() {
+        for decision in self.protocols[index].initialize() {
             self.route(decision, self.peer_ids[index]);
         }
     }

@@ -24,7 +24,7 @@ fn protocol() -> Protocol {
 #[test]
 fn start_decisions_with_two_peers() {
     // Arrange & Act
-    let decisions = protocol().start_decisions();
+    let decisions = protocol().initialize();
 
     // Assert
     assert_eq!(decisions.len(), 4);

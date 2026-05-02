@@ -52,7 +52,7 @@ impl FactionNode {
     }
 
     pub fn start(&mut self) {
-        let decisions = self.protocol.start_decisions();
+        let decisions = self.protocol.initialize();
 
         self.observer.on_start();
         for decision in decisions {
