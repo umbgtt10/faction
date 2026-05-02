@@ -4,15 +4,11 @@
 
 use std::fs::File;
 use std::net::SocketAddr;
-use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::thread;
-use std::time::Duration;
-use std::time::Instant;
 
 use faction::PeerId;
 use faction::config::Config;
@@ -196,68 +192,58 @@ impl ClusterBuilder {
                 path.to_string_lossy().to_string()
             });
 
-        let mut nodes = Vec::new();
-        for (i, &id) in peer_ids.iter().enumerate() {
-            let peer_addrs_arg = peer_addrs
-                .iter()
-                .map(|(pid, a)| format!("{pid}={a}"))
-                .collect::<Vec<_>>()
-                .join(",");
-            let peers_arg = peer_ids
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
+        let nodes: Vec<Node> = peer_ids
+            .iter()
+            .enumerate()
+            .map(|(i, &id)| {
+                let peer_addrs_arg = peer_addrs
+                    .iter()
+                    .map(|(pid, a)| format!("{pid}={a}"))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let peers_arg = peer_ids
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",");
 
-            let transport_arg = match self.transport {
-                TransportKind::Grpc => "grpc",
-                TransportKind::Tcp => "tcp",
-                _ => panic!("unsupported transport for process node"),
-            };
-            let timer_arg = match self.timer {
-                TimerKind::InMemory => "inmemory",
-                TimerKind::Real => "real",
-            };
+                let transport_arg = match self.transport {
+                    TransportKind::Grpc => "grpc",
+                    TransportKind::Tcp => "tcp",
+                    _ => panic!("unsupported transport for process node"),
+                };
+                let timer_arg = match self.timer {
+                    TimerKind::InMemory => "inmemory",
+                    TimerKind::Real => "real",
+                };
 
-            let log = File::create(dir.join(format!("peer_{id}.log"))).unwrap();
+                let log = File::create(dir.join(format!("peer_{id}.log"))).unwrap();
 
-            let child = Command::new(bin.clone())
-                .arg("--peer-id")
-                .arg(id.to_string())
-                .arg("--peers")
-                .arg(&peers_arg)
-                .arg("--required")
-                .arg(self.required.to_string())
-                .arg("--freshness-margin")
-                .arg("2")
-                .arg("--transport")
-                .arg(transport_arg)
-                .arg("--timer")
-                .arg(timer_arg)
-                .arg("--listen-addr")
-                .arg(addrs[i].to_string())
-                .arg("--peer-addrs")
-                .arg(&peer_addrs_arg)
-                .stderr(Stdio::from(log))
-                .spawn()
-                .expect("failed to spawn faction-node");
+                let child = Command::new(bin.clone())
+                    .arg("--peer-id")
+                    .arg(id.to_string())
+                    .arg("--peers")
+                    .arg(&peers_arg)
+                    .arg("--required")
+                    .arg(self.required.to_string())
+                    .arg("--freshness-margin")
+                    .arg("2")
+                    .arg("--transport")
+                    .arg(transport_arg)
+                    .arg("--timer")
+                    .arg(timer_arg)
+                    .arg("--listen-addr")
+                    .arg(addrs[i].to_string())
+                    .arg("--peer-addrs")
+                    .arg(&peer_addrs_arg)
+                    .stderr(Stdio::from(log))
+                    .spawn()
+                    .expect("failed to spawn faction-node");
 
-            wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
-
-            nodes.push(Node::process(child));
-        }
+                Node::process(child)
+            })
+            .collect();
 
         Cluster::new(nodes, self.spawn)
     }
-}
-
-fn wait_for_tcp_ready(addr: SocketAddr, timeout: Duration) {
-    let deadline = Instant::now() + timeout;
-    while Instant::now() < deadline {
-        if TcpStream::connect(addr).is_ok() {
-            return;
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-    panic!("Process TCP listener not ready within timeout");
 }
