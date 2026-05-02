@@ -24,7 +24,11 @@ impl ObservedOutput {
     }
 
     #[must_use]
-    pub fn compute_output(&self, classification: FreshnessClassification, is_dup: bool) -> Outcome {
+    pub fn compute_outcome(
+        &self,
+        classification: FreshnessClassification,
+        is_dup: bool,
+    ) -> Outcome {
         if matches!(classification, FreshnessClassification::Stale) {
             return self.stale_output();
         }

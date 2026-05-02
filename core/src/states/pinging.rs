@@ -84,7 +84,7 @@ impl State for Pinging {
                 );
 
                 (
-                    step.outcomes(),
+                    step.outcomes().to_vec(),
                     Box::new(Self {
                         pinging_peers: step.confirmed_peers().to_vec(),
                         collecting_peers: self.collecting_peers.clone(),
@@ -109,7 +109,7 @@ impl State for Pinging {
                 );
 
                 (
-                    step.outcomes(),
+                    step.outcomes().to_vec(),
                     Box::new(Self {
                         pinging_peers: self.pinging_peers.clone(),
                         collecting_peers: step.confirmed_peers().to_vec(),
@@ -135,7 +135,7 @@ impl State for Pinging {
                         pinged_peers: self.pinging_peers.clone(),
                     })
                 };
-                (step.outcomes(), new_state)
+                (step.outcomes().to_vec(), new_state)
             }
 
             Command::DeadlineExpired => (

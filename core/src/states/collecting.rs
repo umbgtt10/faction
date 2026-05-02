@@ -113,7 +113,7 @@ impl State for Collecting {
                     })
                 };
 
-                (step.outcomes(), new_state)
+                (step.outcomes().to_vec(), new_state)
             }
 
             Command::LocalParticipationCompleted => {

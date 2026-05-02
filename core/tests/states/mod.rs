@@ -1,6 +1,10 @@
+// Copyright 2025 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Licensed under the Apache License, Version 2.0
+// http://www.apache.org/licenses/LICENSE-2.0
+
 pub mod bootstrapped_tests;
 pub mod collecting_tests;
-pub mod compute_output_tests;
+pub mod compute_outcome_tests;
 pub mod observed_step_tests;
 
 pub mod initial_tests;
