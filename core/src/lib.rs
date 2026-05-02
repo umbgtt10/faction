@@ -21,5 +21,6 @@ pub mod quorum_policy;
 pub mod state;
 pub mod states;
 pub mod transition;
+pub mod types;
 
-pub type PeerId = u64;
+pub use types::PeerId;

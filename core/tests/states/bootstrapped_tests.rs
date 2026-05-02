@@ -113,10 +113,7 @@ fn vibe_check_returns_correct_snapshot() {
 #[test]
 fn bootstrapped_cluster_view_overrides_all_fields() {
     // Arrange
-    let rq = Bootstrapped {
-        pinged_peers: vec![1, 2],
-        collected_peers: vec![1, 2, 3, 4, 5],
-    };
+    let rq = Bootstrapped::new(vec![1, 2], vec![1, 2, 3, 4, 5]);
     let prev = ClusterView::new(
         PeerState::Pinging,
         false,

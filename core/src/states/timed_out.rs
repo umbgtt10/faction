@@ -16,14 +16,17 @@ use crate::PeerId;
 
 #[derive(Default)]
 pub struct TimedOut {
-    pub pinging_peers: Vec<PeerId>,
-    pub collecting_peers: Vec<PeerId>,
+    pinging_peers: Vec<PeerId>,
+    collecting_peers: Vec<PeerId>,
 }
 
 impl TimedOut {
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(pinging_peers: Vec<PeerId>, collecting_peers: Vec<PeerId>) -> Self {
+        Self {
+            pinging_peers,
+            collecting_peers,
+        }
     }
 }
 

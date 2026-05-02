@@ -35,15 +35,12 @@ impl Pinging {
 
     fn compute_new_state(&self, is_quorum: bool, confirmed_peers: Vec<PeerId>) -> Box<dyn State> {
         if is_quorum {
-            Box::new(Bootstrapped {
-                pinged_peers: self.pinging_peers.clone(),
-                collected_peers: confirmed_peers,
-            })
+            Box::new(Bootstrapped::new(
+                self.pinging_peers.clone(),
+                confirmed_peers,
+            ))
         } else {
-            Box::new(Collecting {
-                collecting_peers: confirmed_peers,
-                pinged_peers: self.pinging_peers.clone(),
-            })
+            Box::new(Collecting::new(confirmed_peers, self.pinging_peers.clone()))
         }
     }
 
@@ -132,10 +129,10 @@ impl State for Pinging {
                 vec![Outcome::Concluded {
                     mode: Conclusion::TimedOut,
                 }],
-                Box::new(TimedOut {
-                    pinging_peers: self.pinging_peers.clone(),
-                    collecting_peers: self.collecting_peers.clone(),
-                }),
+                Box::new(TimedOut::new(
+                    self.pinging_peers.clone(),
+                    self.collecting_peers.clone(),
+                )),
             ),
 
             Command::Probe => unreachable!("Probe handled in Faction::process"),

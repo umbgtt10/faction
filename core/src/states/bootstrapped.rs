@@ -16,14 +16,17 @@ use crate::PeerId;
 
 #[derive(Default)]
 pub struct Bootstrapped {
-    pub pinged_peers: Vec<PeerId>,
-    pub collected_peers: Vec<PeerId>,
+    pinged_peers: Vec<PeerId>,
+    collected_peers: Vec<PeerId>,
 }
 
 impl Bootstrapped {
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(pinged_peers: Vec<PeerId>, collected_peers: Vec<PeerId>) -> Self {
+        Self {
+            pinged_peers,
+            collected_peers,
+        }
     }
 }
 

@@ -21,22 +21,27 @@ use super::timed_out::TimedOut;
 
 #[derive(Default)]
 pub struct Collecting {
-    pub collecting_peers: Vec<PeerId>,
-    pub pinged_peers: Vec<PeerId>,
+    collecting_peers: Vec<PeerId>,
+    pinged_peers: Vec<PeerId>,
 }
 
 impl Collecting {
+    #[must_use]
+    pub fn new(collecting_peers: Vec<PeerId>, pinged_peers: Vec<PeerId>) -> Self {
+        Self {
+            collecting_peers,
+            pinged_peers,
+        }
+    }
+
     fn compute_new_state(&self, is_quorum: bool, confirmed_peers: Vec<PeerId>) -> Box<dyn State> {
         if is_quorum {
-            Box::new(Bootstrapped {
-                collected_peers: confirmed_peers,
-                pinged_peers: self.pinged_peers.clone(),
-            })
+            Box::new(Bootstrapped::new(
+                self.pinged_peers.clone(),
+                confirmed_peers,
+            ))
         } else {
-            Box::new(Self {
-                collecting_peers: confirmed_peers,
-                pinged_peers: self.pinged_peers.clone(),
-            })
+            Box::new(Self::new(confirmed_peers, self.pinged_peers.clone()))
         }
     }
 
@@ -77,10 +82,10 @@ impl State for Collecting {
         if let Some(peer_id) = Self::non_member_peer(&command, config) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
-                Box::new(Self {
-                    collecting_peers: self.collecting_peers.clone(),
-                    pinged_peers: self.pinged_peers.clone(),
-                }),
+                Box::new(Self::new(
+                    self.collecting_peers.clone(),
+                    self.pinged_peers.clone(),
+                )),
             );
         }
 
@@ -110,10 +115,10 @@ impl State for Collecting {
                 vec![Outcome::Concluded {
                     mode: Conclusion::TimedOut,
                 }],
-                Box::new(TimedOut {
-                    collecting_peers: self.collecting_peers.clone(),
-                    pinging_peers: self.pinged_peers.clone(),
-                }),
+                Box::new(TimedOut::new(
+                    self.pinged_peers.clone(),
+                    self.collecting_peers.clone(),
+                )),
             ),
 
             Command::Probe => {
