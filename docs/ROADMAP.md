@@ -39,7 +39,7 @@ bootstrapping, discovery, and dynamic membership. Published independently on cra
 **Code coverage (productive):** 100%
 
 Full specification, state machine description, and limitations
-in [phase-0-specification.md](./phase-0-specification.md).
+in [PHASE-0-SPECIFICATION.md](./PHASE-0-SPECIFICATION.md).
 
 ---
 

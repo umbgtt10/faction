@@ -1,6 +1,6 @@
 # Protocol bootstrapping — Design
 
-**Status:** Implemented (partial — see gaps)  
+**Status:** Implemented  
 **Crate:** `faction-protocol`  
 **Depends on:** `faction` (core)
 
@@ -110,14 +110,15 @@ All nodes start, timers fire, nodes exchange Ready signals, reach quorum.
 **Covered by:** `vanilla_convergence_tests` (5 nodes, quorum 4) and
 `five_nodes_converge_to_bootstrapped` system test.
 
-### S2 — Lost Ping ❌ (not implemented)
+### S2 — Lost Ping ✅
 
-There is no `RetryPing` timer and no `BroadcastPing` output.
-Participation is seeded only by the one-shot `ParticipationObserved` timers
-from `start_decisions()`. If a `Ping` transport message is lost, the
-receiving node misses that peer's participation.
+`RetryPing` timer scheduled on `initialize()`; each fire produces
+`[BroadcastPing, Schedule(RetryPing)]`. If a `Ping` transport message
+is lost, the periodic retry ensures the peer's participation eventually
+reaches all nodes.
 
-**Gap:** No retry mechanism for participation signals.
+**Covered by:** `decide_retry_ping_while_active_produces_broadcast_and_retry`
+protocol test.
 
 ### S3 — Lost Ready ✅
 
