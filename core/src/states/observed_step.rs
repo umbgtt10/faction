@@ -44,7 +44,6 @@ impl ObservedStep {
             .outcome()
             .clone()];
         if is_quorum {
-            outcomes.push(Outcome::ReadyQuorumReached);
             outcomes.push(Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             });
@@ -76,7 +75,6 @@ impl ObservedStep {
         ];
 
         if is_quorum {
-            outcomes.push(Outcome::ReadyQuorumReached);
             outcomes.push(Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             });

@@ -249,7 +249,6 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
     // Act
     let result = t.to_output_messages(vec![
         Outcome::ReadyAccepted { peer_id: 2 },
-        Outcome::ReadyQuorumReached,
         Outcome::Exited {
             mode: ExitMode::Bootstrapped,
         },
@@ -275,7 +274,6 @@ fn to_output_messages_all_non_matching_returns_noop() {
         Outcome::DelayedParticipationAccepted { peer_id: 3 },
         Outcome::DelayedReadyAccepted { peer_id: 4 },
         Outcome::LocalParticipationCompleted,
-        Outcome::ReadyQuorumReached,
     ]);
 
     // Assert
