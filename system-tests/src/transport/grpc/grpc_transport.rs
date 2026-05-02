@@ -32,18 +32,6 @@ fn runtime() -> &'static Runtime {
     })
 }
 
-fn enc(m: &TransportMessage) -> Vec<u8> {
-    let (f, t): (PeerId, u8) = match m {
-        TransportMessage::Ping { from } => (*from, 0),
-        TransportMessage::Ready { from } => (*from, 1),
-        TransportMessage::Bootstrapped { from } => (*from, 2),
-    };
-    let mut d = Vec::with_capacity(9);
-    d.extend(&f.to_le_bytes());
-    d.push(t);
-    d
-}
-
 pub struct GrpcTransport {
     inbox: Inbox,
     clients: HashMap<PeerId, TransportClient<Channel>>,
@@ -103,12 +91,24 @@ impl GrpcTransport {
             })
             .collect()
     }
+
+    fn encode(m: &TransportMessage) -> Vec<u8> {
+        let (f, t): (PeerId, u8) = match m {
+            TransportMessage::Ping { from } => (*from, 0),
+            TransportMessage::Ready { from } => (*from, 1),
+            TransportMessage::Bootstrapped { from } => (*from, 2),
+        };
+        let mut d = Vec::with_capacity(9);
+        d.extend(&f.to_le_bytes());
+        d.push(t);
+        d
+    }
 }
 
 impl Transport for GrpcTransport {
     fn send(&mut self, to: PeerId, m: TransportMessage) {
         if let Some(c) = self.clients.get_mut(&to) {
-            let d = enc(&m);
+            let d = Self::encode(&m);
             let _ = runtime().block_on(c.deliver(Request::new(Envelope { data: d })));
         }
     }
