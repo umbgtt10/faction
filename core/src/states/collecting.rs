@@ -31,6 +31,20 @@ impl Collecting {
         Self::default()
     }
 
+    fn compute_new_state(&self, is_quorum: bool, confirmed_peers: Vec<PeerId>) -> Box<dyn State> {
+        if is_quorum {
+            Box::new(Bootstrapped {
+                collected_peers: confirmed_peers,
+                pinged_peers: self.pinged_peers.clone(),
+            })
+        } else {
+            Box::new(Self {
+                collecting_peers: confirmed_peers,
+                pinged_peers: self.pinged_peers.clone(),
+            })
+        }
+    }
+
     fn non_member_peer(command: &Command, config: &Config) -> Option<PeerId> {
         match command {
             Command::ReadyObserved { peer_id, .. } if !config.is_member(*peer_id) => Some(*peer_id),
@@ -87,19 +101,10 @@ impl State for Collecting {
                     Some(config.required_count()),
                 );
 
-                let new_state: Box<dyn State> = if step.is_quorum() {
-                    Box::new(Bootstrapped {
-                        collected_peers: step.confirmed_peers().to_vec(),
-                        pinged_peers: self.pinged_peers.clone(),
-                    })
-                } else {
-                    Box::new(Self {
-                        collecting_peers: step.confirmed_peers().to_vec(),
-                        pinged_peers: self.pinged_peers.clone(),
-                    })
-                };
-
-                (step.outcomes().to_vec(), new_state)
+                (
+                    step.outcomes().to_vec(),
+                    self.compute_new_state(step.is_quorum(), step.confirmed_peers().to_vec()),
+                )
             }
 
             Command::LocalParticipationCompleted => {
