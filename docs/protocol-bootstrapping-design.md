@@ -19,8 +19,9 @@ messages after startup.
 ```
 Node A                          Node B
   │                               │
-  │ start_decisions()             │ start_decisions()
-  ├── Schedule(Participation)     ├── Schedule(Participation)
+  │ initialize()                  │ initialize()
+  ├── BroadcastPing               ├── BroadcastPing
+  ├── Schedule(Participation*)    ├── Schedule(Participation*)
   ├── Schedule(LocalComplete)     ├── Schedule(LocalComplete)
   │                               │
   │ Timer fires Participation     │ Timer fires Participation
@@ -175,10 +176,10 @@ When `Concluded` outcome is produced (Bootstrapped or TimedOut),
 
 | Message | Meaning | Scheduled on | Cancelled on |
 |---|---|---|---|
-| `ParticipationObserved { peer_id }` | Seed a participation signal for a peer | `start_decisions()` | Never |
-| `LocalParticipationCompleted` | Fire local completion | `start_decisions()` | Exit (`Exited` → Cancel) |
-| `RetryReady` | Resend Ready to all peers | `BroadcastLocalReady` outcome | Exit (`Exited` → Cancel) |
-| `DeadlineExpired` | Global timeout fired | Injected externally by node runtime | Exit (`Exited` → Cancel) |
+| `ParticipationObserved { peer_id }` | Seed a participation signal for a peer | `initialize()` | Never |
+| `LocalParticipationCompleted` | Fire local completion | `initialize()` | Exit (`Concluded` → Cancel) |
+| `RetryReady` | Resend Ready to all peers | `BroadcastLocalReady` outcome | Exit (`Concluded` → Cancel) |
+| `DeadlineExpired` | Global timeout fired | Injected externally by node runtime | Exit (`Concluded` → Cancel) |
 
 ### Output messages (Protocol → Dispatcher)
 
