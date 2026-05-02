@@ -16,8 +16,7 @@ use crate::state::State;
 use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
-use super::observed_step::ObservedKind;
-use super::observed_step::ObservedStep;
+use super::collecting_step::CollectingStep;
 use super::timed_out::TimedOut;
 
 #[derive(Default)]
@@ -82,10 +81,9 @@ impl State for Collecting {
             }
 
             Command::ReadyObserved { peer_id } => {
-                let step = ObservedStep::new(
+                let step = CollectingStep::new(
                     self.collecting_peers.clone(),
                     peer_id,
-                    ObservedKind::Ready,
                     Some(config.required_count()),
                 );
 

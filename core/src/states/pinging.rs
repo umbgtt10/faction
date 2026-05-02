@@ -17,8 +17,9 @@ use crate::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::collecting::Collecting;
-use super::observed_step::ObservedKind;
-use super::observed_step::ObservedStep;
+use super::collecting_step::CollectingStep;
+use super::local_completion_step::LocalCompletionStep;
+use super::pinging_step::PingingStep;
 use super::timed_out::TimedOut;
 
 #[derive(Default)]
@@ -68,12 +69,7 @@ impl State for Pinging {
 
         match command {
             Command::ParticipationObserved { peer_id } => {
-                let step = ObservedStep::new(
-                    self.pinging_peers.clone(),
-                    peer_id,
-                    ObservedKind::Participation,
-                    None,
-                );
+                let step = PingingStep::new(self.pinging_peers.clone(), peer_id);
 
                 (
                     step.outcomes().to_vec(),
@@ -85,12 +81,7 @@ impl State for Pinging {
             }
 
             Command::ReadyObserved { peer_id } => {
-                let step = ObservedStep::new(
-                    self.collecting_peers.clone(),
-                    peer_id,
-                    ObservedKind::Ready,
-                    None,
-                );
+                let step = CollectingStep::new(self.collecting_peers.clone(), peer_id, None);
 
                 (
                     step.outcomes().to_vec(),
@@ -102,7 +93,7 @@ impl State for Pinging {
             }
 
             Command::LocalParticipationCompleted => {
-                let step = ObservedStep::new_local(
+                let step = LocalCompletionStep::new(
                     self.collecting_peers.clone(),
                     config.peer_id(),
                     config.required_count(),
