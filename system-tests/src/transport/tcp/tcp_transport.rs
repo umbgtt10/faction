@@ -25,7 +25,6 @@ impl TcpTransport {
         peer_id: PeerId,
         peer_addrs: &[(PeerId, SocketAddr)],
     ) -> Self {
-        eprintln!("[tcp] peer {peer_id} binding to {listen_addr}");
         let inbound = Arc::new(Mutex::new(Vec::new()));
         let listener = TcpListener::bind(listen_addr).unwrap();
 
@@ -36,64 +35,38 @@ impl TcpTransport {
             drop(conn);
         }
 
-        eprintln!("[tcp] peer {peer_id} bound, spawning acceptor");
-
         let thread_listener = listener.try_clone().unwrap();
         let ib = inbound.clone();
         thread::spawn(move || {
-            eprintln!("[tcp] peer {peer_id} acceptor thread started");
             for incoming in thread_listener.incoming() {
                 match incoming {
                     Ok(stream) => {
-                        eprintln!(
-                            "[tcp] peer {peer_id} accepted connection from {:?}",
-                            stream.peer_addr()
-                        );
                         stream.set_nonblocking(true).unwrap();
                         ib.lock().unwrap().push(stream);
                     }
-                    Err(e) => {
-                        eprintln!("[tcp] peer {peer_id} accept error: {e}");
-                        break;
-                    }
+                    Err(_) => break,
                 }
             }
-            eprintln!("[tcp] peer {peer_id} acceptor thread exiting");
         });
 
         let mut outbound = HashMap::new();
         for &(pid, addr) in peer_addrs {
             if pid != peer_id {
-                eprintln!("[tcp] peer {peer_id} connecting to peer {pid} at {addr}");
                 let mut attempts = 0;
                 let stream = loop {
                     match TcpStream::connect(addr) {
-                        Ok(s) => {
-                            eprintln!(
-                                "[tcp] peer {peer_id} connected to peer {pid} (attempt {attempts})"
-                            );
-                            break s;
-                        }
-                        Err(ref e) if attempts < 150 => {
-                            if attempts % 10 == 0 {
-                                eprintln!(
-                                    "[tcp] peer {peer_id} retry {attempts} to peer {pid}: {e} ({e:?})"
-                                );
-                            }
+                        Ok(s) => break s,
+                        Err(_) if attempts < 150 => {
                             attempts += 1;
                             std::thread::sleep(Duration::from_millis(100));
                         }
-                        Err(e) => panic!(
-                            "[tcp] peer {peer_id} failed to connect to peer {pid} at {addr}: {e}"
-                        ),
+                        Err(e) => panic!("failed to connect to {addr}: {e}"),
                     }
                 };
                 stream.set_nonblocking(true).unwrap();
                 outbound.insert(pid, stream);
             }
         }
-
-        eprintln!("[tcp] peer {peer_id} all outbound connected, ready");
 
         Self {
             outbound,
