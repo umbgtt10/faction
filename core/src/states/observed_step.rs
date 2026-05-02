@@ -9,8 +9,11 @@ use crate::conclusion::Conclusion;
 use crate::outcome::Outcome;
 use crate::PeerId;
 
-use super::compute_output::ObservedKind;
-use super::compute_output::ObservedOutput;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservedKind {
+    Participation,
+    Ready,
+}
 
 pub struct ObservedStep {
     outcomes: Vec<Outcome>,
@@ -37,7 +40,18 @@ impl ObservedStep {
         let is_quorum =
             quorum_threshold.is_some_and(|t| confirmed_new && new_confirmed_peers.len() >= t);
 
-        let mut outcomes = vec![ObservedOutput::new(kind, peer_id, is_dup).outcome().clone()];
+        let outcome = if is_dup {
+            match kind {
+                ObservedKind::Participation => Outcome::DuplicateParticipationIgnored { peer_id },
+                ObservedKind::Ready => Outcome::DuplicateReadyIgnored { peer_id },
+            }
+        } else {
+            match kind {
+                ObservedKind::Participation => Outcome::ParticipationAccepted { peer_id },
+                ObservedKind::Ready => Outcome::ReadyAccepted { peer_id },
+            }
+        };
+        let mut outcomes = vec![outcome];
         if is_quorum {
             outcomes.push(Outcome::Concluded {
                 mode: Conclusion::Bootstrapped,

@@ -8,7 +8,7 @@ use alloc::vec;
 
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
-use faction::states::compute_output::ObservedKind;
+use faction::states::observed_step::ObservedKind;
 use faction::states::observed_step::ObservedStep;
 
 #[test]
