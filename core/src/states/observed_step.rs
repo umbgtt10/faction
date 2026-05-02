@@ -32,7 +32,7 @@ impl ObservedStep {
         let is_stale = matches!(classification, FreshnessClassification::Stale);
         let confirmed_new = !is_dup && !is_stale;
 
-        let outcome = ObservedOutput::new(kind, peer_id).compute_outcome(classification, is_dup);
+        let outcome = ObservedOutput::new(kind, peer_id, classification, is_dup).into_outcome();
 
         let mut new_confirmed_peers = confirmed_peers;
         if confirmed_new {
@@ -41,7 +41,7 @@ impl ObservedStep {
 
         let is_quorum =
             quorum_threshold.is_some_and(|t| confirmed_new && new_confirmed_peers.len() >= t);
-        let outcomes = build_outcomes(vec![outcome], is_quorum);
+        let outcomes = Self::build_outcomes(vec![outcome], is_quorum);
 
         Self {
             outcomes,
@@ -63,7 +63,7 @@ impl ObservedStep {
         }
 
         let is_quorum = new_confirmed_peers.len() >= quorum_threshold;
-        let outcomes = build_outcomes(
+        let outcomes = Self::build_outcomes(
             vec![
                 Outcome::LocalParticipationCompleted,
                 Outcome::BroadcastLocalReady,
@@ -92,14 +92,14 @@ impl ObservedStep {
     pub fn outcomes(&self) -> &[Outcome] {
         &self.outcomes
     }
-}
 
-fn build_outcomes(mut base: Vec<Outcome>, is_quorum: bool) -> Vec<Outcome> {
-    if is_quorum {
-        base.push(Outcome::ReadyQuorumReached);
-        base.push(Outcome::Exited {
-            mode: ExitMode::Bootstrapped,
-        });
+    fn build_outcomes(mut base: Vec<Outcome>, is_quorum: bool) -> Vec<Outcome> {
+        if is_quorum {
+            base.push(Outcome::ReadyQuorumReached);
+            base.push(Outcome::Exited {
+                mode: ExitMode::Bootstrapped,
+            });
+        }
+        base
     }
-    base
 }
