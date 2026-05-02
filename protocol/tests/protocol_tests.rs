@@ -4,7 +4,6 @@
 
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
@@ -17,7 +16,7 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
 fn protocol() -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), FreshnessPolicy::new(2));
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2));
     Protocol::new(Faction::new(config, Box::new(NoOpObserver)), vec![0, 1], 0)
 }
 

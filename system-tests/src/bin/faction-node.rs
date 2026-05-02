@@ -6,7 +6,6 @@ use std::time::Duration;
 
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
@@ -52,7 +51,6 @@ fn main() {
         config.peer_id,
         config.peers.clone(),
         QuorumPolicy::new(config.required),
-        FreshnessPolicy::new(config.freshness_margin),
     );
 
     let protocol = Protocol::new(

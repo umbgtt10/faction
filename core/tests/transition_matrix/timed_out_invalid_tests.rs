@@ -12,37 +12,25 @@ use super::helpers::*;
 #[rstest]
 #[case::rejects_participation_observed(
     Init::TimedOut,
-    participation(1, TIMELY),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
-    &[Command::Probe],
-)]
-#[case::rejects_participation_observed_delayed(
-    Init::TimedOut,
-    participation(1, DELAYED),
+    participation(1),
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::TimedOut,
-    participation(99, TIMELY),
+    participation(99),
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::TimedOut,
-    ready(1, TIMELY),
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
-    &[Command::Probe],
-)]
-#[case::rejects_ready_observed_delayed(
-    Init::TimedOut,
-    ready(1, DELAYED),
+    ready(1),
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::TimedOut,
-    ready(99, TIMELY),
+    ready(99),
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
     &[Command::Probe],
 )]

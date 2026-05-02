@@ -6,7 +6,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::conclusion::Conclusion;
-use crate::freshness_classification::FreshnessClassification;
 use crate::outcome::Outcome;
 use crate::PeerId;
 
@@ -22,15 +21,13 @@ pub struct ObservedStep {
 impl ObservedStep {
     #[must_use]
     pub fn new(
-        classification: FreshnessClassification,
         confirmed_peers: Vec<PeerId>,
         peer_id: PeerId,
         kind: ObservedKind,
         quorum_threshold: Option<usize>,
     ) -> Self {
         let is_dup = confirmed_peers.contains(&peer_id);
-        let is_stale = matches!(classification, FreshnessClassification::Stale);
-        let confirmed_new = !is_dup && !is_stale;
+        let confirmed_new = !is_dup;
 
         let mut new_confirmed_peers = confirmed_peers;
         if confirmed_new {
@@ -40,9 +37,7 @@ impl ObservedStep {
         let is_quorum =
             quorum_threshold.is_some_and(|t| confirmed_new && new_confirmed_peers.len() >= t);
 
-        let mut outcomes = vec![ObservedOutput::new(kind, peer_id, classification, is_dup)
-            .outcome()
-            .clone()];
+        let mut outcomes = vec![ObservedOutput::new(kind, peer_id, is_dup).outcome().clone()];
         if is_quorum {
             outcomes.push(Outcome::Concluded {
                 mode: Conclusion::Bootstrapped,

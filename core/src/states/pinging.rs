@@ -67,16 +67,8 @@ impl State for Pinging {
         }
 
         match command {
-            Command::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            } => {
-                let classification = config
-                    .freshness_policy()
-                    .classify(current_marker, freshness);
+            Command::ParticipationObserved { peer_id } => {
                 let step = ObservedStep::new(
-                    classification,
                     self.pinging_peers.clone(),
                     peer_id,
                     ObservedKind::Participation,
@@ -92,16 +84,8 @@ impl State for Pinging {
                 )
             }
 
-            Command::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            } => {
-                let classification = config
-                    .freshness_policy()
-                    .classify(current_marker, freshness);
+            Command::ReadyObserved { peer_id } => {
                 let step = ObservedStep::new(
-                    classification,
                     self.collecting_peers.clone(),
                     peer_id,
                     ObservedKind::Ready,

@@ -4,7 +4,6 @@
 
 use alloc::vec::Vec;
 
-use crate::freshness_policy::FreshnessPolicy;
 use crate::quorum_policy::QuorumPolicy;
 use crate::PeerId;
 
@@ -12,22 +11,15 @@ pub struct Config {
     peer_id: PeerId,
     peers: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
-    freshness_policy: FreshnessPolicy,
 }
 
 impl Config {
     #[must_use]
-    pub fn new(
-        peer_id: PeerId,
-        peers: Vec<PeerId>,
-        quorum_policy: QuorumPolicy,
-        freshness_policy: FreshnessPolicy,
-    ) -> Self {
+    pub fn new(peer_id: PeerId, peers: Vec<PeerId>, quorum_policy: QuorumPolicy) -> Self {
         Self {
             peer_id,
             peers,
             quorum_policy,
-            freshness_policy,
         }
     }
 
@@ -56,12 +48,6 @@ impl Config {
         self.quorum_policy
     }
 
-    #[must_use]
-    pub const fn freshness_policy(&self) -> FreshnessPolicy {
-        self.freshness_policy
-    }
-
-    #[must_use]
     pub fn is_member(&self, peer_id: PeerId) -> bool {
         self.peers.contains(&peer_id)
     }

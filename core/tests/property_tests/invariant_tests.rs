@@ -12,7 +12,6 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -21,12 +20,7 @@ use faction::quorum_policy::QuorumPolicy;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
-    Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    )
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
 }
 
 fn coordinator() -> Faction {
@@ -34,22 +28,8 @@ fn coordinator() -> Faction {
 }
 
 fn command_strategy() -> impl Strategy<Value = Command> {
-    let participation =
-        (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            Command::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            }
-        });
-    let ready =
-        (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            Command::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            }
-        });
+    let participation = (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id });
+    let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id });
 
     prop_oneof![
         participation,
@@ -57,15 +37,6 @@ fn command_strategy() -> impl Strategy<Value = Command> {
         Just(Command::LocalParticipationCompleted),
         Just(Command::DeadlineExpired),
     ]
-}
-
-fn outputs_contain_stale(outputs: &[Outcome]) -> bool {
-    outputs.iter().any(|output| {
-        matches!(
-            output,
-            Outcome::StaleParticipationIgnored { .. } | Outcome::StaleReadyIgnored { .. }
-        )
-    })
 }
 
 fn outputs_contain_non_member(outputs: &[Outcome]) -> bool {
@@ -89,30 +60,6 @@ fn assert_counts_do_not_decrease(
 ) -> Result<(), TestCaseError> {
     prop_assert!(current.pinging_peers().len() >= previous.pinging_peers().len());
     prop_assert!(current.collecting_peers().len() >= previous.collecting_peers().len());
-    Ok(())
-}
-
-fn assert_stale_outputs_do_not_mutate_state(
-    previous: ClusterView,
-    current: ClusterView,
-    outputs: &[Outcome],
-) -> Result<(), TestCaseError> {
-    if outputs_contain_stale(outputs) {
-        prop_assert_eq!(
-            current.pinging_peers().len(),
-            previous.pinging_peers().len()
-        );
-        prop_assert_eq!(
-            current.collecting_peers().len(),
-            previous.collecting_peers().len()
-        );
-        prop_assert_eq!(current.exit_mode(), previous.exit_mode());
-        prop_assert_eq!(
-            current.is_pinging_completed(),
-            previous.is_pinging_completed()
-        );
-        prop_assert_eq!(current.is_exited(), previous.is_exited());
-    }
     Ok(())
 }
 
@@ -264,33 +211,6 @@ proptest! {
             // Assert
             prop_assert!(current.collecting_peers().len() >= previous.collecting_peers().len());
             previous = current;
-        }
-    }
-
-    #[test]
-    fn stale_commands_never_mutate_counts(commands in prop::collection::vec(command_strategy(), 0..128)) {
-        // Arrange
-        let mut coordinator = coordinator();
-
-        // Act
-        for command in commands {
-            let previous = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { cluster_view, .. } => cluster_view,
-                _ => unreachable!(),
-            };
-            let batch = match coordinator.process(command) {
-                ProcessResult::Accepted { outcomes, .. } => outcomes,
-                ProcessResult::Probed { .. } => unreachable!(),
-                ProcessResult::Rejected { .. } => vec![],
-            };
-            let current = match coordinator.process(Command::Probe) {
-                ProcessResult::Probed { cluster_view, .. } => cluster_view,
-                _ => unreachable!(),
-            };
-
-            // Assert
-            assert_counts_do_not_decrease(previous.clone(), current.clone())?;
-            assert_stale_outputs_do_not_mutate_state(previous, current, &batch)?;
         }
     }
 

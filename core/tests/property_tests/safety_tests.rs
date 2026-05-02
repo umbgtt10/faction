@@ -11,19 +11,13 @@ use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use proptest::prelude::*;
 
 fn test_config() -> Config {
-    Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    )
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
 }
 
 fn coordinator() -> Faction {
@@ -31,22 +25,8 @@ fn coordinator() -> Faction {
 }
 
 fn input_strategy() -> impl Strategy<Value = Command> {
-    let participation =
-        (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            Command::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            }
-        });
-    let ready =
-        (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            Command::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            }
-        });
+    let participation = (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id });
+    let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id });
 
     prop_oneof![
         participation,

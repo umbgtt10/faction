@@ -12,7 +12,8 @@ use faction_core_validation::scenario_harness::ScenarioHarness;
 #[test]
 fn complete_local_participation_updates_snapshot_and_outputs() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
 
     // Act
     let outputs = harness.complete_local_participation(0);
@@ -35,55 +36,15 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
 #[test]
 fn apply_participation_accepts_timely_member_observation() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
 
     // Act
-    let outputs = harness.apply_participation(0, 1, 10);
+    let outputs = harness.apply_participation(0, 1);
     let cluster_view = harness.cluster_view(0);
 
     // Assert
     assert_eq!(outputs, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
-    assert!(!cluster_view.is_exited());
-}
-
-#[test]
-fn apply_participation_accepts_delayed_member_observation_within_margin() {
-    // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-
-    // Act
-    let outputs = harness.apply_participation(0, 1, 8);
-    let cluster_view = harness.cluster_view(0);
-
-    // Assert
-    assert_eq!(
-        outputs,
-        vec![Outcome::DelayedParticipationAccepted { peer_id: 1 }]
-    );
-    assert_eq!(cluster_view.pinging_peers().len(), 1);
-    assert!(!cluster_view.is_exited());
-}
-
-#[test]
-fn apply_participation_rejects_stale_member_observation() {
-    // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-
-    // Act
-    let outputs = harness.apply_participation(0, 1, 7);
-    let cluster_view = harness.cluster_view(0);
-
-    // Assert
-    assert_eq!(
-        outputs,
-        vec![Outcome::StaleParticipationIgnored { peer_id: 1 }]
-    );
-    assert_eq!(cluster_view.pinging_peers().len(), 0);
-    assert_eq!(cluster_view.collecting_peers().len(), 0);
     assert!(!cluster_view.is_exited());
 }

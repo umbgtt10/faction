@@ -10,7 +10,6 @@ use alloc::vec;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -19,12 +18,7 @@ use faction::quorum_policy::QuorumPolicy;
 #[test]
 fn get_snapshot_returns_snapshot_available_with_initial_state() {
     // Arrange
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
 
@@ -46,12 +40,7 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
 #[test]
 fn get_snapshot_does_not_mutate_state() {
     // Arrange
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
 
@@ -73,19 +62,10 @@ fn get_snapshot_does_not_mutate_state() {
 #[test]
 fn get_snapshot_works_after_valid_inputs() {
     // Arrange
-    let config = Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    );
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
-    let _ = faction.process(Command::ParticipationObserved {
-        peer_id: 0,
-        freshness: 5,
-        current_marker: 5,
-    });
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 0 });
 
     // Act
     let cluster_view = match faction.process(Command::Probe) {

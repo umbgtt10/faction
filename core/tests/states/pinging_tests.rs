@@ -12,7 +12,6 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -24,27 +23,13 @@ use faction::states::pinging::Pinging;
 
 const PEER_SET: &[u64] = &[0, 1, 2, 3, 4];
 const THRESHOLD: usize = 4;
-const MAX_DELAY: u64 = 2;
-const MARKER: u64 = 10;
-const TIMELY: u64 = 10;
-const DELAYED: u64 = 8;
-const STALE: u64 = 7;
 
 fn machine_in_pinging() -> Faction {
     let mut faction = Faction::new(
-        Config::new(
-            0,
-            PEER_SET.to_vec(),
-            QuorumPolicy::new(THRESHOLD),
-            FreshnessPolicy::new(MAX_DELAY),
-        ),
+        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(THRESHOLD)),
         Box::new(NoOpObserver),
     );
-    let _ = faction.process(Command::ParticipationObserved {
-        peer_id: 1,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
     faction
 }
 
@@ -67,11 +52,7 @@ fn deal_accepts_participation_observed() {
     let mut faction = machine_in_pinging();
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -90,11 +71,7 @@ fn deal_accepts_ready_observed() {
     let mut faction = machine_in_pinging();
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -150,11 +127,7 @@ fn participation_observed_non_member() {
     let before = p1(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 99,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -166,44 +139,11 @@ fn participation_observed_non_member() {
 }
 
 #[test]
-fn participation_observed_stale() {
-    // Arrange
-    let mut faction = machine_in_pinging();
-    let before = p1(&mut faction);
-
-    // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 2,
-        freshness: STALE,
-        current_marker: MARKER,
-    }) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(
-        outcomes,
-        vec![Outcome::StaleParticipationIgnored { peer_id: 2 }]
-    );
-    assert_eq!(p1(&mut faction), before);
-}
-
-#[test]
 fn participation_observed_duplicate() {
     let mut faction = machine_in_pinging();
-    let _ = faction.process(Command::ParticipationObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 2 });
     let before = p1(&mut faction);
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -222,11 +162,7 @@ fn participation_observed_first_timely() {
     let before = p1(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 3,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 3 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -241,42 +177,13 @@ fn participation_observed_first_timely() {
 }
 
 #[test]
-fn participation_observed_first_delayed() {
-    // Arrange
-    let mut faction = machine_in_pinging();
-    let before = p1(&mut faction);
-
-    // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 3,
-        freshness: DELAYED,
-        current_marker: MARKER,
-    }) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(
-        outcomes,
-        vec![Outcome::DelayedParticipationAccepted { peer_id: 3 }]
-    );
-    assert_eq!(p1(&mut faction), before + 1);
-}
-
-#[test]
 fn ready_observed_non_member() {
     // Arrange
     let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 99,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 99 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -288,44 +195,14 @@ fn ready_observed_non_member() {
 }
 
 #[test]
-fn ready_observed_stale() {
-    // Arrange
-    let mut faction = machine_in_pinging();
-    let before = p2(&mut faction);
-
-    // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: STALE,
-        current_marker: MARKER,
-    }) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(outcomes, vec![Outcome::StaleReadyIgnored { peer_id: 2 }]);
-    assert_eq!(p2(&mut faction), before);
-}
-
-#[test]
 fn ready_observed_duplicate() {
     // Arrange
     let mut faction = machine_in_pinging();
-    let _ = faction.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
     let before = p2(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -346,11 +223,7 @@ fn ready_observed_first_timely() {
     let before = p2(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 3,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    }) {
+    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 3 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -358,28 +231,6 @@ fn ready_observed_first_timely() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
-    assert_eq!(p2(&mut faction), before + 1);
-}
-
-#[test]
-fn ready_observed_first_delayed() {
-    // Arrange
-    let mut faction = machine_in_pinging();
-    let before = p2(&mut faction);
-
-    // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 3,
-        freshness: DELAYED,
-        current_marker: MARKER,
-    }) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(outcomes, vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]);
     assert_eq!(p2(&mut faction), before + 1);
 }
 
@@ -414,34 +265,13 @@ fn local_completion_no_quorum() {
 fn local_completion_triggers_quorum() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(
-            0,
-            PEER_SET.to_vec(),
-            QuorumPolicy::new(4),
-            FreshnessPolicy::new(MAX_DELAY),
-        ),
+        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(4)),
         Box::new(NoOpObserver),
     );
-    let _ = faction.process(Command::ParticipationObserved {
-        peer_id: 1,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
-    let _ = faction.process(Command::ReadyObserved {
-        peer_id: 1,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
-    let _ = faction.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
-    let _ = faction.process(Command::ReadyObserved {
-        peer_id: 3,
-        freshness: TIMELY,
-        current_marker: MARKER,
-    });
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 3 });
 
     // Act
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {

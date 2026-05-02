@@ -16,12 +16,10 @@ enum ScenarioOperation {
     Participation {
         coordinator_index: usize,
         peer_id: u64,
-        freshness: u64,
     },
     Ready {
         coordinator_index: usize,
         peer_id: u64,
-        freshness: u64,
     },
     CompleteLocalParticipation {
         coordinator_index: usize,
@@ -29,28 +27,20 @@ enum ScenarioOperation {
     ExpireDeadline {
         coordinator_index: usize,
     },
-    AdvanceTo {
-        marker: u64,
-    },
-    AdvanceBy {
-        delta: u64,
-    },
 }
 
 fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
     prop_oneof![
-        (0usize..5, 0u64..=6, 0u64..=12).prop_map(|(coordinator_index, peer_id, freshness)| {
+        (0usize..5, 0u64..=6).prop_map(|(coordinator_index, peer_id)| {
             ScenarioOperation::Participation {
                 coordinator_index,
                 peer_id,
-                freshness,
             }
         }),
-        (0usize..5, 0u64..=6, 0u64..=12).prop_map(|(coordinator_index, peer_id, freshness)| {
+        (0usize..5, 0u64..=6).prop_map(|(coordinator_index, peer_id)| {
             ScenarioOperation::Ready {
                 coordinator_index,
                 peer_id,
-                freshness,
             }
         }),
         (0usize..5).prop_map(|coordinator_index| {
@@ -59,13 +49,11 @@ fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
         (0usize..5).prop_map(|coordinator_index| {
             ScenarioOperation::ExpireDeadline { coordinator_index }
         }),
-        (0u64..=12).prop_map(|marker| ScenarioOperation::AdvanceTo { marker }),
-        (0u64..=3).prop_map(|delta| ScenarioOperation::AdvanceBy { delta }),
     ]
 }
 
 fn harness() -> ScenarioHarness {
-    ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2)
+    ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4)
 }
 
 fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
@@ -73,15 +61,6 @@ fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
         matches!(
             output,
             Outcome::DuplicateParticipationIgnored { .. } | Outcome::DuplicateReadyIgnored { .. }
-        )
-    })
-}
-
-fn outputs_contain_stale(outputs: &[Outcome]) -> bool {
-    outputs.iter().any(|output| {
-        matches!(
-            output,
-            Outcome::StaleParticipationIgnored { .. } | Outcome::StaleReadyIgnored { .. }
         )
     })
 }
@@ -94,18 +73,16 @@ fn apply_operation(
         ScenarioOperation::Participation {
             coordinator_index,
             peer_id,
-            freshness,
         } => Some((
             coordinator_index,
-            harness.apply_participation(coordinator_index, peer_id, freshness),
+            harness.apply_participation(coordinator_index, peer_id),
         )),
         ScenarioOperation::Ready {
             coordinator_index,
             peer_id,
-            freshness,
         } => Some((
             coordinator_index,
-            harness.apply_ready(coordinator_index, peer_id, freshness),
+            harness.apply_ready(coordinator_index, peer_id),
         )),
         ScenarioOperation::CompleteLocalParticipation { coordinator_index } => Some((
             coordinator_index,
@@ -115,14 +92,6 @@ fn apply_operation(
             coordinator_index,
             harness.expire_deadline(coordinator_index),
         )),
-        ScenarioOperation::AdvanceTo { marker } => {
-            harness.advance_to(marker);
-            None
-        }
-        ScenarioOperation::AdvanceBy { delta } => {
-            harness.advance_by(delta);
-            None
-        }
     }
 }
 
@@ -144,45 +113,6 @@ proptest! {
             // Assert
             if let Some((coordinator_index, outputs)) = result {
                 if outputs_contain_duplicate(&outputs) {
-                    let previous = &previous_snapshots[coordinator_index];
-                    let current = harness.cluster_view(coordinator_index);
-                    prop_assert_eq!(
-                        current.pinging_peers().len(),
-                        previous.pinging_peers().len()
-                    );
-                    prop_assert_eq!(
-                        current.collecting_peers().len(),
-                        previous.collecting_peers().len()
-                    );
-                    prop_assert_eq!(current.peer_state(), previous.peer_state());
-                    prop_assert_eq!(current.exit_mode(), previous.exit_mode());
-                    prop_assert_eq!(
-                        current.is_pinging_completed(),
-                        previous.is_pinging_completed()
-                    );
-                    prop_assert_eq!(current.is_exited(), previous.is_exited());
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn stale_signals_across_nodes_never_mutate_state(
-        operations in prop::collection::vec(operation_strategy(), 0..128)
-    ) {
-        // Arrange
-        let mut harness = harness();
-
-        // Act
-        for operation in operations {
-            let previous_snapshots = (0..5)
-                .map(|index| harness.cluster_view(index))
-                .collect::<Vec<_>>();
-            let result = apply_operation(&mut harness, operation);
-
-            // Assert
-            if let Some((coordinator_index, outputs)) = result {
-                if outputs_contain_stale(&outputs) {
                     let previous = &previous_snapshots[coordinator_index];
                     let current = harness.cluster_view(coordinator_index);
                     prop_assert_eq!(

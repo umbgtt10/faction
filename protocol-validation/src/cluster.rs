@@ -6,7 +6,6 @@ use alloc::vec::Vec;
 
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
@@ -46,12 +45,7 @@ impl Cluster {
         let protocols = peer_ids
             .iter()
             .map(|&id| {
-                let config = Config::new(
-                    id,
-                    peer_ids.clone(),
-                    QuorumPolicy::new(required),
-                    FreshnessPolicy::new(2),
-                );
+                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(required));
                 Protocol::new(
                     Faction::new(config, Box::new(NoOpObserver)),
                     peer_ids.clone(),

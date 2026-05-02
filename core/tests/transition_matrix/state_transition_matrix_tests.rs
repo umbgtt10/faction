@@ -18,78 +18,45 @@ use super::helpers::*;
 #[rstest]
 #[case::participation_timely_member(
     Init::Fresh,
-    participation(1, TIMELY),
+    participation(1),
     &[ParticipationAccepted { peer_id: 1 }],
     &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
-#[case::participation_delayed_member(
-    Init::Fresh,
-    participation(1, DELAYED),
-    &[DelayedParticipationAccepted { peer_id: 1 }],
-    &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
-)]
-#[case::participation_stale_member(
-    Init::Fresh,
-    participation(1, STALE),
-    &[StaleParticipationIgnored { peer_id: 1 }],
-    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-)]
 #[case::participation_non_member(
     Init::Fresh,
-    participation(99, TIMELY),
+    participation(99),
     &[NonMemberIgnored { peer_id: 99 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::participation_duplicate(
     Init::PingingPeer1Confirmed,
-    participation(1, TIMELY),
+    participation(1),
     &[DuplicateParticipationIgnored { peer_id: 1 }],
     &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_timely_member(
     Init::Fresh,
-    ready(1, TIMELY),
+    ready(1),
     &[ReadyAccepted { peer_id: 1 }],
     &[Assert::CollectingCount(1), Assert::NotExited, Assert::NotLocalComplete],
 )]
-#[case::ready_delayed_member(
-    Init::Fresh,
-    ready(1, DELAYED),
-    &[DelayedReadyAccepted { peer_id: 1 }],
-    &[Assert::CollectingCount(1), Assert::NotExited, Assert::NotLocalComplete],
-)]
-#[case::ready_stale_member(
-    Init::Fresh,
-    ready(1, STALE),
-    &[StaleReadyIgnored { peer_id: 1 }],
-    &[Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-)]
 #[case::ready_non_member(
     Init::Fresh,
-    ready(99, TIMELY),
+    ready(99),
     &[NonMemberIgnored { peer_id: 99 }],
     &[Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
 )]
 #[case::ready_duplicate(
     Init::CollectingPeer1Confirmed,
-    ready(1, TIMELY),
+    ready(1),
     &[DuplicateReadyIgnored { peer_id: 1 }],
     &[Assert::CollectingCount(2), Assert::NotExited, Assert::LocalComplete],
 )]
 #[case::ready_timely_triggers_quorum(
     Init::CollectingAlmostQuorum,
-    ready(4, TIMELY),
+    ready(4),
     &[
         ReadyAccepted { peer_id: 4 },
-        Concluded { mode: Conclusion::Bootstrapped },
-    ],
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-)]
-#[case::ready_delayed_triggers_quorum(
-    Init::CollectingAlmostQuorum,
-    ready(4, DELAYED),
-    &[
-        DelayedReadyAccepted { peer_id: 4 },
         Concluded { mode: Conclusion::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],

@@ -6,8 +6,6 @@
 
 extern crate alloc;
 
-pub mod freshness_classification;
-pub mod freshness_policy;
 pub mod no_op_observer;
 
 pub mod cluster_view;
@@ -25,4 +23,3 @@ pub mod states;
 pub mod transition;
 
 pub type PeerId = u64;
-pub type Freshness = u64;

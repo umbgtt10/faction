@@ -7,24 +7,17 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::conclusion::Conclusion;
-use faction::freshness_classification::FreshnessClassification;
 use faction::outcome::Outcome;
 use faction::states::compute_output::ObservedKind;
 use faction::states::observed_step::ObservedStep;
 
 #[test]
-fn new_adds_peer_when_timely_and_not_dup() {
+fn new_adds_peer_when_not_dup() {
     // Arrange
     let confirmed = vec![1, 2];
 
     // Act
-    let step = ObservedStep::new(
-        FreshnessClassification::Timely,
-        confirmed,
-        3,
-        ObservedKind::Participation,
-        None,
-    );
+    let step = ObservedStep::new(confirmed, 3, ObservedKind::Participation, None);
 
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
@@ -35,40 +28,12 @@ fn new_adds_peer_when_timely_and_not_dup() {
 }
 
 #[test]
-fn new_does_not_add_when_stale() {
-    // Arrange
-    let confirmed = vec![1, 2];
-
-    // Act
-    let step = ObservedStep::new(
-        FreshnessClassification::Stale,
-        confirmed.clone(),
-        3,
-        ObservedKind::Participation,
-        None,
-    );
-
-    // Assert
-    assert_eq!(step.confirmed_peers(), confirmed);
-    assert_eq!(
-        step.outcomes(),
-        vec![Outcome::StaleParticipationIgnored { peer_id: 3 }]
-    );
-}
-
-#[test]
 fn new_does_not_add_when_duplicate() {
     // Arrange
     let confirmed = vec![1, 2];
 
     // Act
-    let step = ObservedStep::new(
-        FreshnessClassification::Timely,
-        confirmed.clone(),
-        2,
-        ObservedKind::Ready,
-        None,
-    );
+    let step = ObservedStep::new(confirmed.clone(), 2, ObservedKind::Ready, None);
 
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);
@@ -79,77 +44,13 @@ fn new_does_not_add_when_duplicate() {
 }
 
 #[test]
-fn new_with_delayed_adds_peer() {
-    // Arrange
-    let confirmed = vec![1];
-
-    // Act
-    let step = ObservedStep::new(
-        FreshnessClassification::DelayedWithinMargin,
-        confirmed,
-        3,
-        ObservedKind::Ready,
-        None,
-    );
-
-    // Assert
-    assert_eq!(step.confirmed_peers(), vec![1, 3]);
-    assert_eq!(
-        step.outcomes(),
-        vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]
-    );
-}
-
-#[test]
 fn new_with_none_threshold_never_quorum() {
     // Arrange
-    let step = ObservedStep::new(
-        FreshnessClassification::Timely,
-        vec![],
-        0,
-        ObservedKind::Participation,
-        None,
-    );
+    let step = ObservedStep::new(vec![], 0, ObservedKind::Participation, None);
 
     // Act & Assert
     assert!(!step.is_quorum());
     assert_eq!(step.outcomes().len(), 1);
-}
-
-#[test]
-fn new_outputs_reuses_compute_output_for_all_classifications() {
-    // Arrange
-    let classifications = [
-        (
-            FreshnessClassification::Timely,
-            false,
-            Outcome::ParticipationAccepted { peer_id: 0 },
-        ),
-        (
-            FreshnessClassification::Stale,
-            true,
-            Outcome::StaleParticipationIgnored { peer_id: 0 },
-        ),
-        (
-            FreshnessClassification::DelayedWithinMargin,
-            false,
-            Outcome::DelayedParticipationAccepted { peer_id: 0 },
-        ),
-    ];
-
-    for (classification, is_dup, expected) in &classifications {
-        let confirmed = if *is_dup { vec![0] } else { vec![] };
-        let step = ObservedStep::new(
-            *classification,
-            confirmed,
-            0,
-            ObservedKind::Participation,
-            None,
-        );
-
-        // Act & Assert
-        assert_eq!(step.outcomes(), vec![expected.clone()]);
-    }
 }
 
 #[test]

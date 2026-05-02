@@ -9,11 +9,10 @@ use faction_core_validation::cluster_simulation::ClusterSimulation;
 
 #[test]
 fn five_nodes_converge_on_quorum() {
-    let mut sim = ClusterSimulation::new(5, 4, 2);
-    sim.advance_to(10);
+    let mut sim = ClusterSimulation::new(5, 4);
 
     for peer in 1..5 {
-        sim.inject_participation(peer, 10);
+        sim.inject_participation(peer);
     }
 
     for peer in 0..5 {
@@ -25,12 +24,11 @@ fn five_nodes_converge_on_quorum() {
 
 #[test]
 fn not_enough_signals_triggers_deadline() {
-    let mut sim = ClusterSimulation::new(5, 4, 2);
-    sim.advance_to(10);
+    let mut sim = ClusterSimulation::new(5, 4);
 
-    sim.inject_participation(1, 10);
+    sim.inject_participation(1);
     sim.complete_local(0);
-    sim.inject_ready(1, 10);
+    sim.inject_ready(1);
 
     for peer in 0..5 {
         sim.expire_deadline(peer);
@@ -41,12 +39,11 @@ fn not_enough_signals_triggers_deadline() {
 
 #[test]
 fn duplicate_signals_dont_disrupt_convergence() {
-    let mut sim = ClusterSimulation::new(5, 4, 2);
-    sim.advance_to(10);
+    let mut sim = ClusterSimulation::new(5, 4);
 
     for peer in 1..5 {
-        sim.inject_participation(peer, 10);
-        sim.inject_participation(peer, 10);
+        sim.inject_participation(peer);
+        sim.inject_participation(peer);
     }
 
     for peer in 0..5 {

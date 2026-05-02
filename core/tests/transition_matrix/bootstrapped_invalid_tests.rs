@@ -12,37 +12,25 @@ use super::helpers::*;
 #[rstest]
 #[case::rejects_participation_observed(
     Init::Bootstrapped,
-    participation(1, TIMELY),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
-)]
-#[case::rejects_participation_observed_delayed(
-    Init::Bootstrapped,
-    participation(1, DELAYED),
+    participation(1),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::Bootstrapped,
-    participation(99, TIMELY),
+    participation(99),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::Bootstrapped,
-    ready(1, TIMELY),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
-)]
-#[case::rejects_ready_observed_delayed(
-    Init::Bootstrapped,
-    ready(1, DELAYED),
+    ready(1),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::Bootstrapped,
-    ready(99, TIMELY),
+    ready(99),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]

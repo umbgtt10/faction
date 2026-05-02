@@ -50,11 +50,7 @@ impl State for Collecting {
 
     fn admissible_commands(&self) -> Vec<Command> {
         vec![
-            Command::ReadyObserved {
-                peer_id: 0,
-                freshness: 0,
-                current_marker: 0,
-            },
+            Command::ReadyObserved { peer_id: 0 },
             Command::DeadlineExpired,
             Command::Probe,
         ]
@@ -85,16 +81,8 @@ impl State for Collecting {
                 unreachable!("accept() rejects this command for Collecting")
             }
 
-            Command::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            } => {
-                let classification = config
-                    .freshness_policy()
-                    .classify(current_marker, freshness);
+            Command::ReadyObserved { peer_id } => {
                 let step = ObservedStep::new(
-                    classification,
                     self.collecting_peers.clone(),
                     peer_id,
                     ObservedKind::Ready,

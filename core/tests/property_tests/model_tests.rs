@@ -11,7 +11,6 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -43,7 +42,6 @@ struct ModelCoordinator {
     local_peer_id: u64,
     peer_set: [u64; 5],
     required_count: usize,
-    max_delay: u64,
     initial: bool,
     peer_state: ModelLifecycleState,
     exit_mode: Option<Conclusion>,
@@ -60,7 +58,6 @@ impl ModelCoordinator {
             local_peer_id: 0,
             peer_set: [0, 1, 2, 3, 4],
             required_count: 4,
-            max_delay: 2,
             initial: true,
             peer_state: ModelLifecycleState::Fresh,
             exit_mode: None,
@@ -109,39 +106,24 @@ impl ModelCoordinator {
         }
 
         match command {
-            Command::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            } => self.apply_participation_observed(peer_id, freshness, current_marker),
-            Command::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            } => self.apply_ready_observed(peer_id, freshness, current_marker),
+            Command::ParticipationObserved { peer_id } => {
+                self.apply_participation_observed(peer_id)
+            }
+            Command::ReadyObserved { peer_id } => self.apply_ready_observed(peer_id),
             Command::LocalParticipationCompleted => self.apply_is_pinging_completedd(),
             Command::DeadlineExpired => self.apply_deadline_expired(),
             Command::Probe => unreachable!("Probe handled in Faction::process"),
         }
     }
 
-    fn apply_participation_observed(
-        &mut self,
-        peer_id: u64,
-        freshness: u64,
-        current_marker: u64,
-    ) -> alloc::vec::Vec<Outcome> {
+    fn apply_participation_observed(&mut self, peer_id: u64) -> alloc::vec::Vec<Outcome> {
         if self.has_exited() {
-            return vec![Outcome::StaleParticipationIgnored { peer_id }];
+            return vec![];
         }
 
         let Some(index) = self.peer_index(peer_id) else {
             return vec![Outcome::NonMemberIgnored { peer_id }];
         };
-
-        if self.is_stale(current_marker, freshness) {
-            return vec![Outcome::StaleParticipationIgnored { peer_id }];
-        }
 
         if self.pinging_confirmed[index] {
             return vec![Outcome::DuplicateParticipationIgnored { peer_id }];
@@ -150,30 +132,17 @@ impl ModelCoordinator {
         self.pinging_confirmed[index] = true;
         self.pinging_confirmed_count += 1;
 
-        if self.is_delayed(current_marker, freshness) {
-            vec![Outcome::DelayedParticipationAccepted { peer_id }]
-        } else {
-            vec![Outcome::ParticipationAccepted { peer_id }]
-        }
+        vec![Outcome::ParticipationAccepted { peer_id }]
     }
 
-    fn apply_ready_observed(
-        &mut self,
-        peer_id: u64,
-        freshness: u64,
-        current_marker: u64,
-    ) -> alloc::vec::Vec<Outcome> {
+    fn apply_ready_observed(&mut self, peer_id: u64) -> alloc::vec::Vec<Outcome> {
         if self.has_exited() {
-            return vec![Outcome::StaleReadyIgnored { peer_id }];
+            return vec![];
         }
 
         let Some(index) = self.peer_index(peer_id) else {
             return vec![Outcome::NonMemberIgnored { peer_id }];
         };
-
-        if self.is_stale(current_marker, freshness) {
-            return vec![Outcome::StaleReadyIgnored { peer_id }];
-        }
 
         if self.collecting_confirmed[index] {
             return vec![Outcome::DuplicateReadyIgnored { peer_id }];
@@ -182,23 +151,17 @@ impl ModelCoordinator {
         self.collecting_confirmed[index] = true;
         self.collecting_confirmed_count += 1;
 
-        let accepted_output = if self.is_delayed(current_marker, freshness) {
-            Outcome::DelayedReadyAccepted { peer_id }
-        } else {
-            Outcome::ReadyAccepted { peer_id }
-        };
-
         if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
             self.exit_mode = Some(Conclusion::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
-                accepted_output,
+                Outcome::ReadyAccepted { peer_id },
                 Outcome::Concluded {
                     mode: Conclusion::Bootstrapped,
                 },
             ]
         } else {
-            vec![accepted_output]
+            vec![Outcome::ReadyAccepted { peer_id }]
         }
     }
 
@@ -256,18 +219,6 @@ impl ModelCoordinator {
     fn has_exited(&self) -> bool {
         self.exit_mode.is_some()
     }
-
-    fn is_stale(&self, current_marker: u64, freshness: u64) -> bool {
-        if freshness > current_marker {
-            return true;
-        }
-
-        current_marker.saturating_sub(freshness) > self.max_delay
-    }
-
-    fn is_delayed(&self, current_marker: u64, freshness: u64) -> bool {
-        !self.is_stale(current_marker, freshness) && freshness < current_marker
-    }
 }
 
 fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
@@ -289,12 +240,7 @@ fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
 }
 
 fn test_config() -> Config {
-    Config::new(
-        0,
-        vec![0, 1, 2, 3, 4],
-        QuorumPolicy::new(4),
-        FreshnessPolicy::new(2),
-    )
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
 }
 
 fn coordinator() -> Faction {
@@ -302,22 +248,8 @@ fn coordinator() -> Faction {
 }
 
 fn input_strategy() -> impl Strategy<Value = Command> {
-    let participation =
-        (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            Command::ParticipationObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            }
-        });
-    let ready =
-        (0u64..=6, 0u64..=12, 0u64..=12).prop_map(|(peer_id, freshness, current_marker)| {
-            Command::ReadyObserved {
-                peer_id,
-                freshness,
-                current_marker,
-            }
-        });
+    let participation = (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id });
+    let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id });
 
     prop_oneof![
         participation,

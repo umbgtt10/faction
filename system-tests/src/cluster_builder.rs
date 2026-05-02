@@ -15,7 +15,6 @@ use std::time::Instant;
 use faction::PeerId;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::quorum_policy::QuorumPolicy;
@@ -138,12 +137,7 @@ impl ClusterBuilder {
             .iter()
             .zip(transports)
             .map(|(&id, transport)| {
-                let config = Config::new(
-                    id,
-                    peer_ids.clone(),
-                    QuorumPolicy::new(self.required),
-                    FreshnessPolicy::new(2),
-                );
+                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(self.required));
                 let faction_observer: Box<dyn Observer> = match &writer {
                     Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                     None => Box::new(NoOpObserver),

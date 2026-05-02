@@ -12,7 +12,6 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -23,34 +22,21 @@ use faction::states::timed_out::TimedOut;
 
 fn make_faction() -> Faction {
     Faction::new(
-        Config::new(
-            0,
-            vec![0, 1, 2, 3, 4],
-            QuorumPolicy::new(4),
-            FreshnessPolicy::new(2),
-        ),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
         Box::new(NoOpObserver),
     )
 }
 
 fn reach_deadline_from_pinging() -> Faction {
     let mut f = make_faction();
-    let _ = f.process(Command::ParticipationObserved {
-        peer_id: 1,
-        freshness: 10,
-        current_marker: 10,
-    });
+    let _ = f.process(Command::ParticipationObserved { peer_id: 1 });
     let _ = f.process(Command::DeadlineExpired);
     f
 }
 
 fn reach_deadline_from_collecting() -> Faction {
     let mut f = make_faction();
-    let _ = f.process(Command::ParticipationObserved {
-        peer_id: 1,
-        freshness: 10,
-        current_marker: 10,
-    });
+    let _ = f.process(Command::ParticipationObserved { peer_id: 1 });
     let _ = f.process(Command::LocalParticipationCompleted);
     let _ = f.process(Command::DeadlineExpired);
     f
@@ -66,11 +52,7 @@ fn deal_rejects_participation_observed() {
     };
 
     // Act & Assert
-    match f.process(Command::ParticipationObserved {
-        peer_id: 2,
-        freshness: 10,
-        current_marker: 10,
-    }) {
+    match f.process(Command::ParticipationObserved { peer_id: 2 }) {
         ProcessResult::Rejected { .. } => {}
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
         ProcessResult::Probed { .. } => unreachable!(),
@@ -94,11 +76,7 @@ fn deal_rejects_ready_observed() {
     };
 
     // Act & Assert
-    match f.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: 10,
-        current_marker: 10,
-    }) {
+    match f.process(Command::ReadyObserved { peer_id: 2 }) {
         ProcessResult::Rejected { .. } => {}
         ProcessResult::Accepted { .. } => panic!("expected rejected"),
         ProcessResult::Probed { .. } => unreachable!(),
@@ -206,16 +184,8 @@ fn post_deadline_inputs_leave_state_unchanged() {
     };
 
     // Act
-    let _ = f.process(Command::ParticipationObserved {
-        peer_id: 2,
-        freshness: 10,
-        current_marker: 10,
-    });
-    let _ = f.process(Command::ReadyObserved {
-        peer_id: 2,
-        freshness: 10,
-        current_marker: 10,
-    });
+    let _ = f.process(Command::ParticipationObserved { peer_id: 2 });
+    let _ = f.process(Command::ReadyObserved { peer_id: 2 });
     let _ = f.process(Command::LocalParticipationCompleted);
     let _ = f.process(Command::DeadlineExpired);
 

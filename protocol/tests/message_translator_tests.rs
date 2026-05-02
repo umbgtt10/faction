@@ -26,14 +26,7 @@ fn to_command_transport_ping_maps_to_participation_observed() {
     let command = t.to_command(InputMessage::Transport(TransportMessage::Ping { from: 42 }));
 
     // Assert
-    assert_eq!(
-        command,
-        Command::ParticipationObserved {
-            peer_id: 42,
-            freshness: 0,
-            current_marker: 0,
-        }
-    );
+    assert_eq!(command, Command::ParticipationObserved { peer_id: 42 });
 }
 
 #[test]
@@ -45,14 +38,7 @@ fn to_command_transport_ready_maps_to_ready_observed() {
     let command = t.to_command(InputMessage::Transport(TransportMessage::Ready { from: 7 }));
 
     // Assert
-    assert_eq!(
-        command,
-        Command::ReadyObserved {
-            peer_id: 7,
-            freshness: 0,
-            current_marker: 0,
-        }
-    );
+    assert_eq!(command, Command::ReadyObserved { peer_id: 7 });
 }
 
 #[test]
@@ -80,14 +66,7 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
     }));
 
     // Assert
-    assert_eq!(
-        command,
-        Command::ParticipationObserved {
-            peer_id: 3,
-            freshness: 0,
-            current_marker: 0,
-        }
-    );
+    assert_eq!(command, Command::ParticipationObserved { peer_id: 3 });
 }
 
 #[test]
@@ -269,10 +248,7 @@ fn to_output_messages_all_non_matching_returns_noop() {
         Outcome::ParticipationAccepted { peer_id: 0 },
         Outcome::ReadyAccepted { peer_id: 1 },
         Outcome::DuplicateParticipationIgnored { peer_id: 0 },
-        Outcome::StaleReadyIgnored { peer_id: 2 },
         Outcome::NonMemberIgnored { peer_id: 99 },
-        Outcome::DelayedParticipationAccepted { peer_id: 3 },
-        Outcome::DelayedReadyAccepted { peer_id: 4 },
         Outcome::LocalParticipationCompleted,
     ]);
 

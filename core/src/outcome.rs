@@ -9,8 +9,6 @@ use crate::PeerId;
 pub enum Outcome {
     ParticipationAccepted { peer_id: PeerId },
     ReadyAccepted { peer_id: PeerId },
-    DelayedParticipationAccepted { peer_id: PeerId },
-    DelayedReadyAccepted { peer_id: PeerId },
     DuplicateParticipationIgnored { peer_id: PeerId },
     DuplicateReadyIgnored { peer_id: PeerId },
     StaleParticipationIgnored { peer_id: PeerId },

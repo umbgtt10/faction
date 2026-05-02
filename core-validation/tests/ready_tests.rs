@@ -14,12 +14,12 @@ use faction_core_validation::scenario_harness::ScenarioHarness;
 #[test]
 fn apply_ready_accepts_timely_member_observation_after_local_completion() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
 
     // Act
-    let outputs = harness.apply_ready(0, 1, 10);
+    let outputs = harness.apply_ready(0, 1);
     let cluster_view = harness.cluster_view(0);
 
     // Assert
@@ -30,51 +30,16 @@ fn apply_ready_accepts_timely_member_observation_after_local_completion() {
 }
 
 #[test]
-fn apply_ready_accepts_delayed_member_observation_within_margin() {
-    // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-    let _ = harness.complete_local_participation(0);
-
-    // Act
-    let outputs = harness.apply_ready(0, 1, 8);
-    let cluster_view = harness.cluster_view(0);
-
-    // Assert
-    assert_eq!(outputs, vec![Outcome::DelayedReadyAccepted { peer_id: 1 }]);
-    assert_eq!(cluster_view.collecting_peers().len(), 2);
-    assert!(!cluster_view.is_exited());
-}
-
-#[test]
-fn apply_ready_rejects_stale_member_observation() {
-    // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-    let _ = harness.complete_local_participation(0);
-
-    // Act
-    let outputs = harness.apply_ready(0, 1, 7);
-    let cluster_view = harness.cluster_view(0);
-
-    // Assert
-    assert_eq!(outputs, vec![Outcome::StaleReadyIgnored { peer_id: 1 }]);
-    assert_eq!(cluster_view.collecting_peers().len(), 1);
-    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.is_exited());
-}
-
-#[test]
 fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
 
     // Act
-    let outputs = harness.apply_ready(0, 3, 10);
+    let outputs = harness.apply_ready(0, 3);
     let cluster_view = harness.cluster_view(0);
 
     // Assert
@@ -94,45 +59,17 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
 }
 
 #[test]
-fn delayed_signals_within_margin_still_allow_quorum_exit() {
-    // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-    let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 8);
-    let _ = harness.apply_ready(0, 2, 9);
-
-    // Act
-    let outputs = harness.apply_ready(0, 3, 8);
-    let cluster_view = harness.cluster_view(0);
-
-    // Assert
-    assert_eq!(
-        outputs,
-        vec![
-            Outcome::DelayedReadyAccepted { peer_id: 3 },
-            Outcome::Concluded {
-                mode: Conclusion::Bootstrapped,
-            },
-        ]
-    );
-    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
-    assert_eq!(cluster_view.collecting_peers().len(), 4);
-    assert!(cluster_view.is_exited());
-}
-
-#[test]
 fn post_exit_ready_is_ignored() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
-    let _ = harness.apply_ready(0, 3, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
+    let _ = harness.apply_ready(0, 3);
 
     // Act
-    let outputs = harness.apply_ready(0, 4, 10);
+    let outputs = harness.apply_ready(0, 4);
     let cluster_view = harness.cluster_view(0);
 
     // Assert
@@ -145,23 +82,25 @@ fn post_exit_ready_is_ignored() {
 #[test]
 fn five_node_asymmetric_startup_reaches_quorum_exit() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(5);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(2, 1);
     let _ = harness.complete_local_participation(2);
+    let _ = harness.apply_participation(3, 1);
     let _ = harness.complete_local_participation(3);
-    harness.advance_to(8);
+    let _ = harness.apply_participation(1, 0);
     let _ = harness.complete_local_participation(1);
+    let _ = harness.apply_participation(4, 0);
     let _ = harness.complete_local_participation(4);
-    harness.advance_to(10);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
-    let _ = harness.apply_ready(1, 0, 10);
-    let _ = harness.apply_ready(1, 2, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
+    let _ = harness.apply_ready(1, 0);
+    let _ = harness.apply_ready(1, 2);
 
     // Act
-    let outputs_0 = harness.apply_ready(0, 3, 10);
-    let outputs_1 = harness.apply_ready(1, 3, 10);
+    let outputs_0 = harness.apply_ready(0, 3);
+    let outputs_1 = harness.apply_ready(1, 3);
 
     // Assert
     assert_eq!(
@@ -195,11 +134,10 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
 #[test]
 fn early_ready_signals_accumulate_before_local_participation_completion() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-    let outputs_peer_1 = harness.apply_ready(0, 1, 10);
-    let outputs_peer_2 = harness.apply_ready(0, 2, 10);
-    let outputs_peer_3 = harness.apply_ready(0, 3, 10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let outputs_peer_1 = harness.apply_ready(0, 1);
+    let outputs_peer_2 = harness.apply_ready(0, 2);
+    let outputs_peer_3 = harness.apply_ready(0, 3);
     let intermediate_snapshot = harness.cluster_view(0);
 
     // Act

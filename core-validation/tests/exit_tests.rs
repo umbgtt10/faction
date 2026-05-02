@@ -14,14 +14,14 @@ use faction_core_validation::scenario_harness::ScenarioHarness;
 #[test]
 fn slow_member_does_not_block_quorum_exit() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
 
     // Act
-    let outputs = harness.apply_ready(0, 3, 10);
+    let outputs = harness.apply_ready(0, 3);
     let cluster_view = harness.cluster_view(0);
 
     // Assert
@@ -42,7 +42,8 @@ fn slow_member_does_not_block_quorum_exit() {
 #[test]
 fn expire_deadline_exits_by_deadline() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
 
     // Act
@@ -64,15 +65,15 @@ fn expire_deadline_exits_by_deadline() {
 #[test]
 fn post_exit_ready_is_ignored() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
-    let _ = harness.apply_ready(0, 3, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
+    let _ = harness.apply_ready(0, 3);
 
     // Act
-    let outputs = harness.apply_ready(0, 4, 10);
+    let outputs = harness.apply_ready(0, 4);
     let cluster_view = harness.cluster_view(0);
 
     // Assert
@@ -85,7 +86,8 @@ fn post_exit_ready_is_ignored() {
 #[test]
 fn repeated_deadline_expiry_remains_idempotent() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
     let _ = harness.expire_deadline(0);
 
@@ -103,15 +105,15 @@ fn repeated_deadline_expiry_remains_idempotent() {
 #[test]
 fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
     let _ = harness.complete_local_participation(1);
     let _ = harness.complete_local_participation(2);
     let _ = harness.complete_local_participation(3);
     let _ = harness.complete_local_participation(4);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
 
     // Act
     let outputs = harness.expire_deadline(0);
@@ -133,25 +135,25 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
 #[test]
 fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
     for i in 0..5 {
+        let _ = harness.apply_participation(i, 1);
         let _ = harness.complete_local_participation(i);
     }
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
-    let _ = harness.apply_ready(0, 3, 10);
-    let _ = harness.apply_ready(1, 0, 10);
-    let _ = harness.apply_ready(1, 2, 10);
-    let _ = harness.apply_ready(1, 3, 10);
-    let _ = harness.apply_ready(2, 0, 10);
-    let _ = harness.apply_ready(2, 1, 10);
-    let _ = harness.apply_ready(2, 3, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
+    let _ = harness.apply_ready(0, 3);
+    let _ = harness.apply_ready(1, 0);
+    let _ = harness.apply_ready(1, 2);
+    let _ = harness.apply_ready(1, 3);
+    let _ = harness.apply_ready(2, 0);
+    let _ = harness.apply_ready(2, 1);
+    let _ = harness.apply_ready(2, 3);
 
     // Act
-    let outputs_0 = harness.apply_ready(0, 4, 10);
-    let outputs_1 = harness.apply_ready(1, 4, 10);
-    let outputs_2 = harness.apply_ready(2, 4, 10);
+    let outputs_0 = harness.apply_ready(0, 4);
+    let outputs_1 = harness.apply_ready(1, 4);
+    let outputs_2 = harness.apply_ready(2, 4);
 
     // Assert
     assert!(outputs_0.is_empty());
@@ -171,9 +173,8 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
 #[test]
 fn deadline_from_pinging() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
-    let _ = harness.apply_participation(0, 1, 10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
 
     // Act
     let outputs = harness.expire_deadline(0);
@@ -197,12 +198,12 @@ fn deadline_from_pinging() {
 #[test]
 fn deadline_from_bootstrapped_is_noop() {
     // Arrange
-    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4, 2);
-    harness.advance_to(10);
+    let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
+    let _ = harness.apply_participation(0, 1);
     let _ = harness.complete_local_participation(0);
-    let _ = harness.apply_ready(0, 1, 10);
-    let _ = harness.apply_ready(0, 2, 10);
-    let _ = harness.apply_ready(0, 3, 10);
+    let _ = harness.apply_ready(0, 1);
+    let _ = harness.apply_ready(0, 2);
+    let _ = harness.apply_ready(0, 3);
 
     // Act
     let outputs = harness.expire_deadline(0);

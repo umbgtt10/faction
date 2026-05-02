@@ -15,7 +15,6 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
@@ -24,24 +23,18 @@ use faction::PeerId;
 pub struct ClusterSimulation {
     peers: Vec<Faction>,
     peer_ids: Vec<PeerId>,
-    current_marker: u64,
     pending: VecDeque<(usize, Command)>,
 }
 
 impl ClusterSimulation {
     #[must_use]
-    pub fn new(peer_count: usize, required_count: usize, max_delay: u64) -> Self {
+    pub fn new(peer_count: usize, required_count: usize) -> Self {
         let peer_ids: Vec<PeerId> = (0..peer_count as PeerId).collect();
         let peers = peer_ids
             .iter()
             .map(|&peer_id| {
                 Faction::new(
-                    Config::new(
-                        peer_id,
-                        peer_ids.clone(),
-                        QuorumPolicy::new(required_count),
-                        FreshnessPolicy::new(max_delay),
-                    ),
+                    Config::new(peer_id, peer_ids.clone(), QuorumPolicy::new(required_count)),
                     Box::new(NoOpObserver),
                 )
             })
@@ -50,13 +43,8 @@ impl ClusterSimulation {
         Self {
             peers,
             peer_ids,
-            current_marker: 0,
             pending: VecDeque::new(),
         }
-    }
-
-    pub fn advance_to(&mut self, marker: u64) {
-        self.current_marker = marker;
     }
 
     fn apply_to(&mut self, index: usize, command: Command) -> Vec<Outcome> {
@@ -82,8 +70,6 @@ impl ClusterSimulation {
                 target,
                 Command::ReadyObserved {
                     peer_id: self.peer_ids[source_index],
-                    freshness: self.current_marker,
-                    current_marker: self.current_marker,
                 },
             ));
         }
@@ -102,31 +88,17 @@ impl ClusterSimulation {
         self.drain_pending();
     }
 
-    pub fn inject_participation(&mut self, peer_id: PeerId, freshness: u64) {
+    pub fn inject_participation(&mut self, peer_id: PeerId) {
         for index in 0..self.peers.len() {
-            let outputs = self.apply_to(
-                index,
-                Command::ParticipationObserved {
-                    peer_id,
-                    freshness,
-                    current_marker: self.current_marker,
-                },
-            );
+            let outputs = self.apply_to(index, Command::ParticipationObserved { peer_id });
             self.enqueue_broadcasts(&outputs, index);
         }
         self.drain_pending();
     }
 
-    pub fn inject_ready(&mut self, peer_id: PeerId, freshness: u64) {
+    pub fn inject_ready(&mut self, peer_id: PeerId) {
         for index in 0..self.peers.len() {
-            let outputs = self.apply_to(
-                index,
-                Command::ReadyObserved {
-                    peer_id,
-                    freshness,
-                    current_marker: self.current_marker,
-                },
-            );
+            let outputs = self.apply_to(index, Command::ReadyObserved { peer_id });
             self.enqueue_broadcasts(&outputs, index);
         }
         self.drain_pending();
