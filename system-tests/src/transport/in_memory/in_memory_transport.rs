@@ -19,6 +19,10 @@ pub struct InMemoryTransport {
     outboxes: Vec<(PeerId, Inbox)>,
 }
 
+impl Drop for InMemoryTransport {
+    fn drop(&mut self) {}
+}
+
 impl InMemoryTransport {
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<InMemoryTransport> {
         let inboxes: Vec<_> = peer_ids

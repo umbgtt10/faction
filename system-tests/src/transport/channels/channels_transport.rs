@@ -13,6 +13,10 @@ pub struct ChannelsTransport {
     outboxes: Vec<(PeerId, mpsc::Sender<TransportMessage>)>,
 }
 
+impl Drop for ChannelsTransport {
+    fn drop(&mut self) {}
+}
+
 impl ChannelsTransport {
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<ChannelsTransport> {
         let n = peer_ids.len();

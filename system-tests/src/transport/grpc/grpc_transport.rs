@@ -68,7 +68,11 @@ impl GrpcTransport {
         static RT: OnceLock<Runtime> = OnceLock::new();
         RT.get_or_init(|| {
             tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(2)
+                .worker_threads(
+                    std::thread::available_parallelism()
+                        .map(|p| p.get())
+                        .unwrap_or(2),
+                )
                 .enable_all()
                 .build()
                 .unwrap()
@@ -137,9 +141,8 @@ impl GrpcTransport {
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
         let n = peer_ids.len();
         let rt = Self::runtime();
-        let mut addrs = Vec::new();
+        let mut peer_addrs = Vec::new();
         let mut inboxes = Vec::new();
-        let mut client_lists = Vec::new();
         let mut shutdown_txs = Vec::new();
 
         {
@@ -150,7 +153,7 @@ impl GrpcTransport {
                 let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
                 l.set_nonblocking(true).unwrap();
                 let a = l.local_addr().unwrap();
-                addrs.push(a);
+                peer_addrs.push((PeerId::default(), a));
                 let tl = tokio::net::TcpListener::from_std(l).unwrap();
                 let (stx, srx) = oneshot::channel();
                 rt.spawn(async move {
@@ -166,25 +169,16 @@ impl GrpcTransport {
             }
         }
 
-        for i in 0..n {
-            let clients: Clients = Arc::new(AsyncMutex::new(HashMap::new()));
-            {
-                let mut guard = rt.block_on(clients.lock());
-                for (j, &p) in peer_ids.iter().enumerate() {
-                    if i != j {
-                        let ch = rt.block_on(async {
-                            Endpoint::from_shared(format!("http://{}", addrs[j]))
-                                .unwrap()
-                                .connect()
-                                .await
-                                .unwrap()
-                        });
-                        guard.insert(p, TransportClient::new(ch));
-                    }
-                }
-            }
-            client_lists.push(clients);
-        }
+        let peer_addrs: Vec<(PeerId, SocketAddr)> = peer_ids
+            .iter()
+            .zip(peer_addrs.iter().map(|(_, a)| a))
+            .map(|(&id, &a)| (id, a))
+            .collect();
+
+        let client_lists: Vec<Clients> = peer_ids
+            .iter()
+            .map(|&pid| Self::build_clients(pid, &peer_addrs))
+            .collect();
 
         inboxes
             .into_iter()

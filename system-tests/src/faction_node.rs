@@ -65,7 +65,7 @@ impl FactionNode {
         self.protocol.cluster_view().peer_state()
     }
 
-    pub fn is_terminal(&mut self) -> bool {
+    pub fn is_concluded(&mut self) -> bool {
         matches!(
             self.peer_state(),
             PeerState::Bootstrapped | PeerState::TimedOut
@@ -76,7 +76,7 @@ impl FactionNode {
         self.start();
         loop {
             let had_work = self.step_internal();
-            if self.is_terminal() {
+            if self.is_concluded() {
                 break;
             }
             if !had_work {
