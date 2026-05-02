@@ -105,7 +105,8 @@ fn node_observer_on_step_writes_step_event_with_decision_count() {
     // Assert
     let content = read_file(tmp.path());
     assert!(content.contains("\"event\":\"step\""));
-    assert!(content.contains("\"decisions\":3"));
+    assert!(content.contains("Noop"));
+    assert!(content.contains("BroadcastReady"));
     assert!(content.contains("RetryPing"));
 }
 

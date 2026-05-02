@@ -61,9 +61,8 @@ impl NodeObserver for SharedFileObserver {
         write_json(
             &self.writer,
             format!(
-                r#"{{"timestamp":"{ts}","peer_id":{},"event":"step","input":"{input:?}","decisions":{}}}"#,
+                r#"{{"timestamp":"{ts}","peer_id":{},"event":"step","input":"{input:?}","decisions":{decisions:?}}}"#,
                 self.peer_id,
-                decisions.len(),
             ),
         );
     }
