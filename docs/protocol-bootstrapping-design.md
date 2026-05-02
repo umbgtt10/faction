@@ -69,7 +69,7 @@ A pure, stateless translator with two methods:
   | Outcome | Output |
   |---|---|
   | `BroadcastLocalReady` | `[BroadcastReady, Schedule(RetryReady)]` |
-  | `Exited { .. }` | `[Cancel(LocalParticipationCompleted), Cancel(RetryReady)]` |
+  | `Concluded { .. }` | `[Cancel(LocalParticipationCompleted), Cancel(RetryReady)]` |
   | Everything else | `[Noop]` |
 
 ### `Protocol::decide()`
@@ -90,7 +90,7 @@ decide(input):
 receives a `RetryReady` command (the `to_command` mapping panics with
 `unreachable!` if it ever does).
 
-### `Protocol::start_decisions()`
+### `Protocol::initialize()`
 
 Schedules exactly:
 - One `ParticipationObserved` timer per remote peer
@@ -144,15 +144,15 @@ and `to_output_messages` returns `[Cancel(LPC), Cancel(RetryReady)]`.
 
 **Covered by:** Protocol test `decide_deadline_expired_exits`.
 
-### S6 — Stale/duplicate suppression ✅
+### S6 — Duplicate suppression ✅
 
-Handled entirely by the Faction core state machine. Duplicate and stale
+Handled entirely by the Faction core state machine. Duplicate
 signals produce `*Ignored` outcomes, which fall through in
 `to_output_messages` → `[Noop]`. No spurious re-broadcasts.
 
-### S7 — Premature exit cancellation ✅
+### S7 — Concluded exit cancellation ✅
 
-When `Exited` outcome is produced (Bootstrapped or TimedOut),
+When `Concluded` outcome is produced (Bootstrapped or TimedOut),
 `to_output_messages` returns `[Cancel(LPC), Cancel(RetryReady)]`.
 `RetryReady` also short-circuits via `is_exited()` check in `decide()`.
 
@@ -215,6 +215,7 @@ Triggered by: `ReadyObserved` from enough peers to meet quorum.
 Produces:
 - `Cancel(LocalParticipationCompleted)` — no longer needed
 - `Cancel(RetryReady)` — quorum reached, stop retrying
+- `Cancel(RetryPing)` — no longer needed
 
 ### Any → TimedOut
 

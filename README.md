@@ -1,23 +1,28 @@
 # faction
 
-**A `no_std`, 0-unsafe Mealy machine for two-phase cluster readiness coordination.**
+**A `no_std`, 0-unsafe Mealy machine for cluster bootstrapping.**
 
 faction is a protocol-agnostic state machine primitive that answers one question:  
 *"When is the cluster ready to proceed?"*
 
-It tracks participation and readiness signals across a known set of peers, applies configurable freshness classification, and emits a deterministic exit decision — either **Bootstrapped** or **TimedOut**. No network I/O. No consensus algorithm. No opinion on what "ready" means. Just pure, testable state transitions.
+It tracks participation and readiness signals across a known set of peers and emits a
+deterministic exit decision — either **Bootstrapped** or **TimedOut**. No network I/O.
+No consensus algorithm. No opinion on what "ready" means. Just pure, testable state
+transitions.
 
 ---
 
 ## Why faction?
 
-Most distributed systems bootstrap with ad-hoc coordination — timeouts, magic numbers, and implicit assumptions that are never tested in isolation. faction replaces that with a **Mealy machine** that is:
+Most distributed systems bootstrap with ad-hoc coordination — timeouts, magic numbers,
+and implicit assumptions that are never tested in isolation. faction replaces that with a
+**Mealy machine** that is:
 
 - **Deterministic** — same inputs always produce the same outputs. Replay any sequence.
-- **Verifiable** — every `(state, input)` pair is explicitly tested. No untested paths.
+- **Verifiable** — every `(state, command)` pair is explicitly tested. No untested paths.
 - **Embeddable** — `no_std` + `alloc`, zero `unsafe`. Runs on bare metal, WASM, and cloud.
 - **Observable** — every transition reaches a trait-based `Observer`. No instrumentation surprises.
-- **Slim by construction** — each state carries only its active data. Terminal states are 8 bytes each.
+- **Slim by construction** — each state carries only its active data. Terminal states carry counts, not collections.
 
 ---
 
@@ -33,19 +38,20 @@ Initial → Pinging → Collecting → Bootstrapped
 | State | Carries |
 |---|---|
 | `Initial` | Nothing — unit struct |
-| `Pinging` | `pinged_peers: Vec<PeerId>`, `collected_peers: Vec<PeerId>` |
-| `Collecting` | `collected_peers: Vec<PeerId>`, `pinged_peers_count: usize` |
-| `Bootstrapped` | `pinged_peers_count: usize`, `collected_peers_count: usize` |
-| `TimedOut` | `pinged_peers_count: usize`, `collected_peers_count: usize` |
+| `Pinging` | `pinging_peers: Vec<PeerId>`, `collecting_peers: Vec<PeerId>` |
+| `Collecting` | `collecting_peers: Vec<PeerId>`, `pinged_peers: Vec<PeerId>` |
+| `Bootstrapped` | `pinged_peers: Vec<PeerId>`, `collected_peers: Vec<PeerId>` |
+| `TimedOut` | `pinging_peers: Vec<PeerId>`, `collecting_peers: Vec<PeerId>` |
 
 Each state implements the `State` trait with `step()`, `cluster_view()`, and `accept()`.
-Decision logic is centralized in **`ObservedStep`** — a struct that takes a freshness
-classification, the current confirmed peers, a peer identity, an observation kind, and a
-quorum threshold, and returns the updated peer list plus outputs.
+Decision logic is split into focused step structs — `PingingStep`, `ReadyStep`, and
+`LocalCompletionStep` — each handling exactly one kind of observation without branching
+on a kind enum.
 
-Five commands drive the machine: `ParticipationObserved`, `ReadyObserved`, `LocalParticipationCompleted`,
-`DeadlineExpired`, and `Probe`. Thirteen outcomes cover acceptance, delay, staleness, duplication,
-non-member rejection, local participation completion, broadcast, quorum, and exit.
+Five commands drive the machine: `ParticipationObserved`, `ReadyObserved`,
+`LocalParticipationCompleted`, `DeadlineExpired`, and `Probe`. Outcomes cover acceptance,
+duplication, non-member rejection, local participation completion, broadcast, quorum,
+and exit.
 
 Full specification in [phase-0-specification.md](./docs/phase-0-specification.md).
 
@@ -55,12 +61,13 @@ Full specification in [phase-0-specification.md](./docs/phase-0-specification.md
 
 | Metric | Value |
 |---|---|
-| Productive LOC (core) | 1,312 |
-| Tests (core + validation) | 216 |
-| Crappy functions | 0 / 114 |
-| Code coverage | 99.7% (100% effective) |
+| Productive LOC (core) | 1,165 |
+| Tests (entire codebase) | 275 |
+| Crappy functions | 0 |
+| Code coverage (productive) | 100% |
 | Unsafe | 0 |
 | `no_std` | Verified |
+| Drop impls (transports) | 4/4 |
 
 ---
 
@@ -75,8 +82,11 @@ See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
 
 | Crate | Description |
 |---|---|
-| `core/` | State machine — 13 source files, 192 tests |
-| `validation/` | Deterministic multi-node scenario harness — 34 tests |
+| `core/` | State machine — 13 source files, 145 tests |
+| `core-validation/` | Deterministic multi-node scenario harness — 23 tests |
+| `protocol/` | Message translator and protocol runtime — 33 tests |
+| `protocol-validation/` | In-process protocol cluster — 9 tests |
+| `system-tests/` | Multi-process convergence + timer + transport + observer tests — 65 tests |
 
 ---
 
@@ -92,10 +102,12 @@ powershell -File scripts\run_stage_2.ps1   # CRAP and file risk analysis
 ## Design principles
 
 - **Pure Mealy** — `output = F(state, input)`. No side effects inside the machine.
-- **Explicit state ownership** — states carry only what they mutate. Counts become `usize`, not mutable collections.
+- **Explicit state ownership** — states carry only what they mutate.
 - **No dead code** — terminal states return `false` from `accept()`, making `step()` unreachable by construction.
 - **Observer, not logger** — the `Observer` trait receives every transition. Wire it to telemetry, audit, or testing assertions.
 - **Protocol-agnostic** — faction does not know what a "peer" is or how the network works. The caller owns network I/O.
+- **One struct per file** — each step, state, and policy is its own file.
+- **No `&mut` parameters** — prefer return values over in-place mutation.
 
 ---
 
@@ -112,3 +124,5 @@ Licensed under the MIT License. See [LICENSE](./LICENSE).
 - [DONATE](./DONATE.md) — support the project
 - [ROADMAP](./docs/ROADMAP.md) — future plans
 - [Phase 0 specification](./docs/phase-0-specification.md) — detailed state machine description
+- [Protocol bootstrapping design](./docs/protocol-bootstrapping-design.md) — protocol layer design
+- [System tests design](./docs/system-tests-design.md) — multi-process test infrastructure

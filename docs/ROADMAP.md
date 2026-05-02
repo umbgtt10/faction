@@ -33,10 +33,10 @@ bootstrapping, discovery, and dynamic membership. Published independently on cra
 ## Phase 0 — Static membership (cluster readiness)
 
 **Status:** Complete  
-**Lines of code (productive):** 1,312  
-**Tests:** 192 core + 34 validation = 216 total  
-**Crappy functions:** 0 / 114  
-**Code coverage:** 99.7% (100% effective, one `const fn` branch is a coverage tool artifact)
+**Lines of code (productive):** 1,165  
+**Tests:** 275 total  
+**Crappy functions:** 0  
+**Code coverage (productive):** 100%
 
 Full specification, state machine description, and limitations
 in [phase-0-specification.md](./phase-0-specification.md).
@@ -55,37 +55,6 @@ New question: **"Can a new peer join the cluster?"**
 Phase 1 addresses the first and most fundamental limitation: the peer set is no longer
 immutable. A new peer can send a join signal and be admitted to the cluster's member set
 at runtime.
-
-**Minimal definition of "joining":**
-- A peer sends a `Join { peer_id }` command
-- The machine either admits the peer (adds them to the member set) or rejects them
-- Once admitted, the peer's signals (participation, readiness) are treated as valid member signals
-- A non-admitted peer's signals continue to be ignored
-- No reconfiguration protocol, no epochs, no failure detection
-
-**New constraints that emerge:**
-- `is_member` can no longer be computed from a static config — it must be tracked as part of state
-- The `Config` type's `.is_member()` method becomes obsolete as a static query
-- The non-member gate (`non_member_peer`) transitions from returning `NonMemberIgnored` to potentially
-  producing `JoinOffer` or similar
-
-**Key design question — what happens when a non-member sends a signal?**
-- Option A: signal is ignored as before (current behavior, no change)
-- Option B: signal triggers a `JoinRequested` output — the caller decides whether to admit
-- Option C: signal is treated as an implicit join request — the machine admits automatically
-
----
-
-### Phase 1 — Dynamic membership: joining
-**Status:** Planned  
-**Target:** 2–3 weeks  
-**Depends on:** Phase 0 complete  
-
-New question: **"Can a new peer join the cluster?"**
-
-Membership is currently static — the peer list is fixed at construction and never changes.
-Phase 1 introduces the ability for a new peer to send a join signal and be admitted to the
-cluster's member set.
 
 **Minimal definition of "joining":**
 - A peer sends a `Join { peer_id }` command
@@ -252,7 +221,7 @@ serialized by the machine into a bounded queue. The caller provides the bound.
 - [ ] README written as a standalone document — no EtheRAM references except in examples section
 - [ ] At least one sample integration (Raft or IBFT) published as a companion crate
 - [ ] crates.io metadata complete — description, keywords, categories, license
-- [ ] CHANGELOG.md from Phase 0
+- [ ] CHANGELOG.md from Phase 0 through publication
 
 ---
 
@@ -271,7 +240,7 @@ computation over that set. The caller wires them together.
 
 | Phase | Focus | Target duration |
 |---|---|---|
-| Phase 0 | Static membership (cluster readiness) | Complete |
+| Phase 0 | Static membership (cluster bootstrapping) | Complete |
 | Phase 1 | Dynamic membership: joining | 2–3 weeks |
 | Phase 2 | Failure detection (SWIM) | 3–4 weeks |
 | Phase 3 | Single-node addition | 2–3 weeks |

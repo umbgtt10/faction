@@ -1,4 +1,4 @@
-# Support Etheram
+# Support faction
 
 | Method | Link |
 |--------|------|
@@ -7,4 +7,3 @@
 | **Swiss IBAN** | `CH 35 0900 0000 1677 62180` |
 | **Bitcoin** | ![BTC](BTC_QR.png) |
 | **Ethereum** | ![ETH](ETH_QR.png) |
-
