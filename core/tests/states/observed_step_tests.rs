@@ -29,7 +29,7 @@ fn new_adds_peer_when_timely_and_not_dup() {
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
     assert_eq!(
-        step.outputs(),
+        step.outcomes(),
         vec![Outcome::ParticipationAccepted { peer_id: 3 }]
     );
 }
@@ -51,7 +51,7 @@ fn new_does_not_add_when_stale() {
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);
     assert_eq!(
-        step.outputs(),
+        step.outcomes(),
         vec![Outcome::StaleParticipationIgnored { peer_id: 3 }]
     );
 }
@@ -73,7 +73,7 @@ fn new_does_not_add_when_duplicate() {
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);
     assert_eq!(
-        step.outputs(),
+        step.outcomes(),
         vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]
     );
 }
@@ -95,7 +95,7 @@ fn new_with_delayed_adds_peer() {
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 3]);
     assert_eq!(
-        step.outputs(),
+        step.outcomes(),
         vec![Outcome::DelayedReadyAccepted { peer_id: 3 }]
     );
 }
@@ -113,7 +113,7 @@ fn new_with_none_threshold_never_quorum() {
 
     // Act & Assert
     assert!(!step.is_quorum());
-    assert_eq!(step.outputs().len(), 1);
+    assert_eq!(step.outcomes().len(), 1);
 }
 
 #[test]
@@ -148,7 +148,7 @@ fn new_outputs_reuses_compute_output_for_all_classifications() {
         );
 
         // Act & Assert
-        assert_eq!(step.outputs(), vec![expected.clone()]);
+        assert_eq!(step.outcomes(), vec![expected.clone()]);
     }
 }
 
@@ -164,7 +164,7 @@ fn new_local_adds_peer_when_not_present() {
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
     assert!(!step.is_quorum());
     assert_eq!(
-        step.outputs(),
+        step.outcomes(),
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
@@ -196,7 +196,7 @@ fn new_local_reaches_quorum_when_count_meets_threshold() {
     // Assert
     assert!(step.is_quorum());
     assert_eq!(
-        step.outputs(),
+        step.outcomes(),
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
@@ -218,5 +218,5 @@ fn new_local_does_not_reach_quorum_below_threshold() {
 
     // Assert
     assert!(!step.is_quorum());
-    assert_eq!(step.outputs().len(), 2);
+    assert_eq!(step.outcomes().len(), 2);
 }

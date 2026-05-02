@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 29ebaf0af29695b0e8f3b9ae0ffafe61d2e7e6d3512a2e5e55ab5275042b5da1 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc e2383bf66381e69fa60cd1d3d079f39055ce28fddf28ed7c5f010d72ec288687 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }]
+cc ec9b3d45c84ff95d29d18c972a41867ea4a5e8e553fa01c40af0b9161486ccfd # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 9b669e2c8608361586dc7e21bacfb2ee4ca1599090f148e3c7e32a281520dca5 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]

@@ -1,0 +1,16 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 5437a94029f857cb6a2bcd9eb9490714958220bbc1c6ece3333b7a2c18d158a3 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc ca37ff39abab027882da469ac62b7d4c4f7c1314f2f1b57bcb8bec2e3e8b7dd4 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 5333f7558e064e2aeb51c17e5586c13f56ab969b1cc8280d6285eda79024ae92 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 432b6d0ed8debd0750a0184423360e124608793c7e740e30b3ed8747d30cf908 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 8a797e48e7eb0d10ce3114695f804663bc35511e7027e407fcb34a8ce1e0ba1c # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc d6c8819a3de9072cf86b54a5e6165d5f30cf714590ef149237ebaa497a8be6b1 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 672873363065ba8b35f493cb0ae30a6c293b5caf81cf30feb9184fb905c3c9db # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 3b6fe72c7077fa7a7a1b4edcc489b93eba04d81240e202dc415e7aa275ce64fd # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 0077a953f5b6a1cdfc9cee2cab4b6f9598e09d058540a242728cb6f9306f3af5 # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]
+cc 82f27ec12dd441ab725fd50037eed2a1f5742cbc08816f69ea75a1b5dad8e4fc # shrinks to commands = [ParticipationObserved { peer_id: 0, freshness: 0, current_marker: 0 }, LocalParticipationCompleted, LocalParticipationCompleted]

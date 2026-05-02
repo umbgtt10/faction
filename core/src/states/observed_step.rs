@@ -14,7 +14,7 @@ use super::compute_output::ObservedKind;
 use super::compute_output::ObservedOutput;
 
 pub struct ObservedStep {
-    outputs_prefix: Vec<Outcome>,
+    outcomes: Vec<Outcome>,
     confirmed_peers: Vec<PeerId>,
     confirmed_new: bool,
     quorum_threshold: Option<usize>,
@@ -41,7 +41,7 @@ impl ObservedStep {
         }
 
         Self {
-            outputs_prefix: vec![outcome],
+            outcomes: vec![outcome],
             confirmed_peers: new_confirmed_peers,
             confirmed_new,
             quorum_threshold,
@@ -61,7 +61,7 @@ impl ObservedStep {
         }
 
         Self {
-            outputs_prefix: vec![
+            outcomes: vec![
                 Outcome::LocalParticipationCompleted,
                 Outcome::BroadcastLocalReady,
             ],
@@ -72,8 +72,8 @@ impl ObservedStep {
     }
 
     #[must_use]
-    pub fn confirmed_peers(&self) -> Vec<PeerId> {
-        self.confirmed_peers.to_vec()
+    pub fn confirmed_peers(&self) -> &[PeerId] {
+        &self.confirmed_peers
     }
 
     #[must_use]
@@ -85,20 +85,16 @@ impl ObservedStep {
     }
 
     #[must_use]
-    pub fn outputs(&self) -> Vec<Outcome> {
-        let has_quorum = matches!(
-            self.quorum_threshold,
-            Some(threshold) if self.confirmed_new && self.confirmed_peers.len() >= threshold
-        );
-        if has_quorum {
-            let mut v = self.outputs_prefix.clone();
+    pub fn outcomes(&self) -> Vec<Outcome> {
+        if self.is_quorum() {
+            let mut v = self.outcomes.clone();
             v.push(Outcome::ReadyQuorumReached);
             v.push(Outcome::Exited {
                 mode: ExitMode::Bootstrapped,
             });
             v
         } else {
-            self.outputs_prefix.clone()
+            self.outcomes.clone()
         }
     }
 }

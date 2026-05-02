@@ -84,9 +84,9 @@ impl State for Pinging {
                 );
 
                 (
-                    step.outputs(),
+                    step.outcomes(),
                     Box::new(Self {
-                        pinging_peers: step.confirmed_peers(),
+                        pinging_peers: step.confirmed_peers().to_vec(),
                         collecting_peers: self.collecting_peers.clone(),
                     }),
                 )
@@ -109,10 +109,10 @@ impl State for Pinging {
                 );
 
                 (
-                    step.outputs(),
+                    step.outcomes(),
                     Box::new(Self {
                         pinging_peers: self.pinging_peers.clone(),
-                        collecting_peers: step.confirmed_peers(),
+                        collecting_peers: step.confirmed_peers().to_vec(),
                     }),
                 )
             }
@@ -127,15 +127,15 @@ impl State for Pinging {
                 let new_state: Box<dyn State> = if step.is_quorum() {
                     Box::new(Bootstrapped {
                         pinged_peers: self.pinging_peers.clone(),
-                        collected_peers: step.confirmed_peers(),
+                        collected_peers: step.confirmed_peers().to_vec(),
                     })
                 } else {
                     Box::new(Collecting {
-                        collecting_peers: step.confirmed_peers(),
+                        collecting_peers: step.confirmed_peers().to_vec(),
                         pinged_peers: self.pinging_peers.clone(),
                     })
                 };
-                (step.outputs(), new_state)
+                (step.outcomes(), new_state)
             }
 
             Command::DeadlineExpired => (
