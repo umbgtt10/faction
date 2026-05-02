@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::command::Command;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
 
@@ -13,49 +13,49 @@ use super::helpers::*;
 #[case::rejects_participation_observed(
     Init::Bootstrapped,
     participation(1, TIMELY),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_delayed(
     Init::Bootstrapped,
     participation(1, DELAYED),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_participation_observed_non_member(
     Init::Bootstrapped,
     participation(99, TIMELY),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed(
     Init::Bootstrapped,
     ready(1, TIMELY),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_delayed(
     Init::Bootstrapped,
     ready(1, DELAYED),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::Bootstrapped,
     ready(99, TIMELY),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_is_pinging_completedd(
     Init::Bootstrapped,
     Command::LocalParticipationCompleted,
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::Bootstrapped,
     Command::DeadlineExpired,
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::ExitMode(ExitMode::Bootstrapped)],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     &[Command::Probe],
 )]
 fn invalid_transition(

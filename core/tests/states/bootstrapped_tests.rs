@@ -10,7 +10,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -66,7 +66,7 @@ fn deal_rejects_participation_observed() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(cluster_view.is_exited());
 }
 
@@ -132,7 +132,7 @@ fn vibe_check_returns_correct_snapshot() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(cluster_view.is_pinging_completed());
     assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
@@ -160,7 +160,7 @@ fn bootstrapped_cluster_view_overrides_all_fields() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.is_exited());
     assert_eq!(result.pinging_peers(), &[1, 2]);

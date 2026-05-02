@@ -10,7 +10,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -171,7 +171,7 @@ fn vibe_check_after_deadline_from_pinging() {
 
     // Assert
     assert_eq!(s.peer_state(), PeerState::TimedOut);
-    assert_eq!(s.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(s.exit_mode(), Some(Conclusion::TimedOut));
     assert!(s.is_exited());
     assert!(!s.is_pinging_completed());
     assert_eq!(s.pinging_peers().len(), 1);
@@ -189,7 +189,7 @@ fn vibe_check_after_deadline_from_collecting() {
 
     // Assert
     assert_eq!(s.peer_state(), PeerState::TimedOut);
-    assert_eq!(s.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(s.exit_mode(), Some(Conclusion::TimedOut));
     assert!(s.is_exited());
     assert!(s.is_pinging_completed());
     assert_eq!(s.pinging_peers().len(), 1);
@@ -243,7 +243,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert_eq!(result.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(result.exit_mode(), Some(Conclusion::TimedOut));
     assert!(result.is_exited());
     assert!(!result.is_pinging_completed());
     assert_eq!(result.pinging_peers(), &[1, 2, 3]);
@@ -265,7 +265,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_collecting() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert_eq!(result.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(result.exit_mode(), Some(Conclusion::TimedOut));
     assert!(result.is_exited());
     assert!(result.is_pinging_completed());
     assert_eq!(result.pinging_peers().len(), 2);

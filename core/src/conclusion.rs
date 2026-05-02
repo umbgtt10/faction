@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExitMode {
+pub enum Conclusion {
     Bootstrapped,
     TimedOut,
 }

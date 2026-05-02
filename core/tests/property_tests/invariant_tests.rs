@@ -10,7 +10,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -393,7 +393,7 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.exit_mode() == Some(ExitMode::Bootstrapped) {
+            if cluster_view.exit_mode() == Some(Conclusion::Bootstrapped) {
                 prop_assert!(cluster_view.is_pinging_completed());
                 prop_assert!(cluster_view.is_exited());
                 prop_assert_eq!(
@@ -418,7 +418,7 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.exit_mode() == Some(ExitMode::TimedOut) {
+            if cluster_view.exit_mode() == Some(Conclusion::TimedOut) {
                 prop_assert!(cluster_view.is_exited());
                 prop_assert_eq!(
                     cluster_view.peer_state(),

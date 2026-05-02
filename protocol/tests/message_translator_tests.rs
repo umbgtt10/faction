@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::command::Command;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 
 use faction_protocol::input_message::InputMessage;
@@ -171,8 +171,8 @@ fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
     let t = translator();
 
     // Act
-    let result = t.to_output_messages(vec![Outcome::Exited {
-        mode: ExitMode::Bootstrapped,
+    let result = t.to_output_messages(vec![Outcome::Concluded {
+        mode: Conclusion::Bootstrapped,
     }]);
 
     // Assert
@@ -190,8 +190,8 @@ fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
     // Act
     let result = t.to_output_messages(vec![
         Outcome::BroadcastLocalReady,
-        Outcome::Exited {
-            mode: ExitMode::Bootstrapped,
+        Outcome::Concluded {
+            mode: Conclusion::Bootstrapped,
         },
     ]);
 
@@ -211,8 +211,8 @@ fn to_output_messages_exited_wins_over_broadcast_local_ready_when_first() {
 
     // Act
     let result = t.to_output_messages(vec![
-        Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         },
         Outcome::BroadcastLocalReady,
     ]);
@@ -249,8 +249,8 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
     // Act
     let result = t.to_output_messages(vec![
         Outcome::ReadyAccepted { peer_id: 2 },
-        Outcome::Exited {
-            mode: ExitMode::Bootstrapped,
+        Outcome::Concluded {
+            mode: Conclusion::Bootstrapped,
         },
     ]);
 

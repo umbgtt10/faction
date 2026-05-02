@@ -40,7 +40,7 @@ impl MessageTranslator {
                         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
                     ];
                 }
-                Outcome::Exited { .. } => {
+                Outcome::Concluded { .. } => {
                     return vec![
                         OutputMessage::Cancel(TimerEvent::Fire(
                             TimerMessage::LocalParticipationCompleted,

@@ -13,7 +13,7 @@ use faction::process_result::ProcessResult;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -161,7 +161,7 @@ impl ClusterSimulation {
     }
 
     #[must_use]
-    pub fn all_exited_with(&mut self, mode: ExitMode) -> bool {
+    pub fn all_exited_with(&mut self, mode: Conclusion) -> bool {
         self.peers
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {

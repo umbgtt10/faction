@@ -6,7 +6,7 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction_core_validation::scenario_harness::ScenarioHarness;
@@ -29,12 +29,12 @@ fn slow_member_does_not_block_quorum_exit() {
         outputs,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
@@ -52,11 +52,11 @@ fn expire_deadline_exits_by_deadline() {
     // Assert
     assert_eq!(
         outputs,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::TimedOut));
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
     assert!(cluster_view.is_exited());
 }
@@ -77,7 +77,7 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
@@ -95,7 +95,7 @@ fn repeated_deadline_expiry_remains_idempotent() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::TimedOut));
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
     assert!(cluster_view.is_exited());
 }
@@ -119,12 +119,12 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     // Assert
     assert_eq!(
         outputs,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     );
     let cluster_view = harness.cluster_view(0);
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::TimedOut));
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
     assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.collecting_peers().len(), 3);
@@ -160,11 +160,11 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     let snapshot_0 = harness.cluster_view(0);
     let snapshot_1 = harness.cluster_view(1);
     let snapshot_2 = harness.cluster_view(2);
-    assert_eq!(snapshot_0.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(snapshot_0.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(snapshot_0.is_exited());
-    assert_eq!(snapshot_1.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(snapshot_1.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(snapshot_1.is_exited());
-    assert_eq!(snapshot_2.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(snapshot_2.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(snapshot_2.is_exited());
 }
 
@@ -182,11 +182,11 @@ fn deadline_from_pinging() {
     // Assert
     assert_eq!(
         outputs,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::TimedOut));
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
     assert!(cluster_view.is_exited());
     assert!(!cluster_view.is_pinging_completed());
@@ -210,7 +210,7 @@ fn deadline_from_bootstrapped_is_noop() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }

@@ -6,7 +6,7 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction_core_validation::scenario_harness::ScenarioHarness;
@@ -82,12 +82,12 @@ fn apply_ready_reaches_quorum_exit_in_asymmetric_startup_sequence() {
         outputs,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.collecting_peers().len(), 4);
@@ -111,12 +111,12 @@ fn delayed_signals_within_margin_still_allow_quorum_exit() {
         outputs,
         vec![
             Outcome::DelayedReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
@@ -137,7 +137,7 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert!(cluster_view.is_exited());
 }
@@ -168,8 +168,8 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
         outputs_0,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
@@ -177,15 +177,15 @@ fn five_node_asymmetric_startup_reaches_quorum_exit() {
         outputs_1,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
     let snapshot_0 = harness.cluster_view(0);
     let snapshot_1 = harness.cluster_view(1);
-    assert_eq!(snapshot_0.exit_mode(), Some(ExitMode::Bootstrapped));
-    assert_eq!(snapshot_1.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(snapshot_0.exit_mode(), Some(Conclusion::Bootstrapped));
+    assert_eq!(snapshot_1.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(snapshot_0.is_exited());
     assert!(snapshot_1.is_exited());
     assert_eq!(snapshot_0.peer_state(), PeerState::Bootstrapped);
@@ -218,13 +218,13 @@ fn early_ready_signals_accumulate_before_local_participation_completion() {
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
     let cluster_view = harness.cluster_view(0);
-    assert_eq!(cluster_view.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(cluster_view.is_exited());
     assert_eq!(cluster_view.collecting_peers().len(), 4);
 }

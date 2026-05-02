@@ -10,7 +10,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -137,8 +137,8 @@ fn deal_accepts_deadline_expired() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut
         }]
     );
 }
@@ -456,8 +456,8 @@ fn local_completion_triggers_quorum() {
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
@@ -466,7 +466,7 @@ fn local_completion_triggers_quorum() {
         _ => unreachable!(),
     };
     assert!(snap.is_exited());
-    assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(snap.exit_mode(), Some(Conclusion::Bootstrapped));
 }
 
 #[test]
@@ -482,8 +482,8 @@ fn deadline_expired_in_pinging() {
     };
     assert_eq!(
         outcomes,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     );
     let snap = match faction.process(Command::Probe) {
@@ -491,7 +491,7 @@ fn deadline_expired_in_pinging() {
         _ => unreachable!(),
     };
     assert!(snap.is_exited());
-    assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(snap.exit_mode(), Some(Conclusion::TimedOut));
 }
 
 #[test]

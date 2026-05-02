@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::peer_state::PeerState;
 
 fn base() -> ClusterView {
@@ -42,7 +42,7 @@ fn with_collecting_peers_updates_only_collecting_peers() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.is_exited());
     assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);

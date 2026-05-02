@@ -13,7 +13,7 @@ pub mod no_op_observer;
 pub mod cluster_view;
 pub mod command;
 pub mod config;
-pub mod exit_mode;
+pub mod conclusion;
 pub mod faction;
 pub mod observer;
 pub mod outcome;

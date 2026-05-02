@@ -4,7 +4,7 @@
 
 use alloc::vec::Vec;
 
-use crate::exit_mode::ExitMode;
+use crate::conclusion::Conclusion;
 use crate::peer_state::PeerState;
 use crate::PeerId;
 
@@ -41,10 +41,10 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn exit_mode(&self) -> Option<ExitMode> {
+    pub fn exit_mode(&self) -> Option<Conclusion> {
         match self.peer_state {
-            PeerState::Bootstrapped => Some(ExitMode::Bootstrapped),
-            PeerState::TimedOut => Some(ExitMode::TimedOut),
+            PeerState::Bootstrapped => Some(Conclusion::Bootstrapped),
+            PeerState::TimedOut => Some(Conclusion::TimedOut),
             _ => None,
         }
     }

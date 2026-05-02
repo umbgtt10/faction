@@ -9,7 +9,7 @@ use alloc::vec;
 
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -118,7 +118,7 @@ pub enum Assert {
     CollectingCount(usize),
     Exited,
     NotExited,
-    ExitMode(ExitMode),
+    Conclusion(Conclusion),
     LocalComplete,
     NotLocalComplete,
 }
@@ -134,7 +134,7 @@ pub fn verify(m: &mut Faction, checks: &[Assert]) {
             Assert::CollectingCount(n) => assert_eq!(s.collecting_peers().len(), n),
             Assert::Exited => assert!(s.is_exited()),
             Assert::NotExited => assert!(!s.is_exited()),
-            Assert::ExitMode(mode) => assert_eq!(s.exit_mode(), Some(mode)),
+            Assert::Conclusion(mode) => assert_eq!(s.exit_mode(), Some(mode)),
             Assert::LocalComplete => assert!(s.is_pinging_completed()),
             Assert::NotLocalComplete => assert!(!s.is_pinging_completed()),
         }

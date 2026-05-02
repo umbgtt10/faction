@@ -9,7 +9,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -31,7 +31,7 @@ enum ModelLifecycleState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ModelClusterView {
     peer_state: ModelLifecycleState,
-    exit_mode: Option<ExitMode>,
+    exit_mode: Option<Conclusion>,
     is_pinging_completed: bool,
     readiness_exited: bool,
     pinging_confirmed_count: usize,
@@ -46,7 +46,7 @@ struct ModelCoordinator {
     max_delay: u64,
     initial: bool,
     peer_state: ModelLifecycleState,
-    exit_mode: Option<ExitMode>,
+    exit_mode: Option<Conclusion>,
     is_pinging_completed: bool,
     pinging_confirmed: [bool; 5],
     collecting_confirmed: [bool; 5],
@@ -189,12 +189,12 @@ impl ModelCoordinator {
         };
 
         if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
-            self.exit_mode = Some(ExitMode::Bootstrapped);
+            self.exit_mode = Some(Conclusion::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
                 accepted_output,
-                Outcome::Exited {
-                    mode: ExitMode::Bootstrapped,
+                Outcome::Concluded {
+                    mode: Conclusion::Bootstrapped,
                 },
             ]
         } else {
@@ -224,10 +224,10 @@ impl ModelCoordinator {
         ];
 
         if self.collecting_confirmed_count >= self.required_count {
-            self.exit_mode = Some(ExitMode::Bootstrapped);
+            self.exit_mode = Some(Conclusion::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
-            outputs.push(Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            outputs.push(Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             });
         }
 
@@ -239,11 +239,11 @@ impl ModelCoordinator {
             return vec![];
         }
 
-        self.exit_mode = Some(ExitMode::TimedOut);
+        self.exit_mode = Some(Conclusion::TimedOut);
         self.peer_state = ModelLifecycleState::TimedOut;
 
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     }
 

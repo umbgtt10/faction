@@ -5,7 +5,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::exit_mode::ExitMode;
+use crate::conclusion::Conclusion;
 use crate::freshness_classification::FreshnessClassification;
 use crate::outcome::Outcome;
 use crate::PeerId;
@@ -44,8 +44,8 @@ impl ObservedStep {
             .outcome()
             .clone()];
         if is_quorum {
-            outcomes.push(Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            outcomes.push(Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             });
         }
 
@@ -75,8 +75,8 @@ impl ObservedStep {
         ];
 
         if is_quorum {
-            outcomes.push(Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            outcomes.push(Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             });
         }
 

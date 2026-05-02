@@ -6,7 +6,7 @@ extern crate alloc;
 
 use alloc::vec;
 
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::freshness_classification::FreshnessClassification;
 use faction::outcome::Outcome;
 use faction::states::compute_output::ObservedKind;
@@ -200,8 +200,8 @@ fn new_local_reaches_quorum_when_count_meets_threshold() {
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );

@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::transition::Transition;
@@ -104,7 +104,7 @@ fn previous_state_preserves_full_snapshot() {
     // Assert
     let result = transition.previous_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.is_exited());
     assert_eq!(result.pinging_peers().len(), 3);
@@ -123,7 +123,7 @@ fn new_state_preserves_full_snapshot() {
     // Assert
     let result = transition.new_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
     assert!(result.is_exited());
     assert_eq!(result.pinging_peers().len(), 3);
@@ -155,8 +155,8 @@ fn clone_produces_equal_transition() {
     let next = cluster_view(vec![1], vec![1, 2]);
     let outputs = vec![
         Outcome::ReadyAccepted { peer_id: 3 },
-        Outcome::Exited {
-            mode: ExitMode::Bootstrapped,
+        Outcome::Concluded {
+            mode: Conclusion::Bootstrapped,
         },
     ];
     let transition = Transition::new(prev, outputs.clone(), next);

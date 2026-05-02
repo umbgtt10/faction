@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
-use crate::exit_mode::ExitMode;
+use crate::conclusion::Conclusion;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
@@ -139,8 +139,8 @@ impl State for Pinging {
             }
 
             Command::DeadlineExpired => (
-                vec![Outcome::Exited {
-                    mode: ExitMode::TimedOut,
+                vec![Outcome::Concluded {
+                    mode: Conclusion::TimedOut,
                 }],
                 Box::new(TimedOut {
                     pinging_peers: self.pinging_peers.clone(),

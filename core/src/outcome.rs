@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use crate::exit_mode::ExitMode;
+use crate::conclusion::Conclusion;
 use crate::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,5 +18,5 @@ pub enum Outcome {
     NonMemberIgnored { peer_id: PeerId },
     LocalParticipationCompleted,
     BroadcastLocalReady,
-    Exited { mode: ExitMode },
+    Concluded { mode: Conclusion },
 }

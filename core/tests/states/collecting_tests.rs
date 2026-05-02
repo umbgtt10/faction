@@ -10,7 +10,7 @@ use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::freshness_policy::FreshnessPolicy;
 use faction::no_op_observer::NoOpObserver;
@@ -98,11 +98,11 @@ fn deal_accepts_deadline_expired() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     );
-    assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(snap.exit_mode(), Some(Conclusion::TimedOut));
     assert!(snap.is_exited());
 }
 
@@ -420,14 +420,14 @@ fn ready_first_timely_triggers_quorum() {
         outcomes,
         vec![
             Outcome::ReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
     assert_eq!(snap.collecting_peers().len(), 4);
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(snap.exit_mode(), Some(ExitMode::Bootstrapped));
+    assert_eq!(snap.exit_mode(), Some(Conclusion::Bootstrapped));
     assert!(snap.is_exited());
 }
 
@@ -462,8 +462,8 @@ fn ready_first_delayed_triggers_quorum() {
         outcomes,
         vec![
             Outcome::DelayedReadyAccepted { peer_id: 3 },
-            Outcome::Exited {
-                mode: ExitMode::Bootstrapped,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
             },
         ]
     );
@@ -523,12 +523,12 @@ fn deadline_expired_exits_in_collecting() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::Exited {
-            mode: ExitMode::TimedOut,
+        vec![Outcome::Concluded {
+            mode: Conclusion::TimedOut,
         }]
     );
     assert_eq!(snap.peer_state(), PeerState::TimedOut);
-    assert_eq!(snap.exit_mode(), Some(ExitMode::TimedOut));
+    assert_eq!(snap.exit_mode(), Some(Conclusion::TimedOut));
     assert!(snap.is_exited());
     assert!(snap.is_pinging_completed());
 }

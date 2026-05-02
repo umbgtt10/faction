@@ -4,7 +4,7 @@
 
 extern crate alloc;
 
-use faction::exit_mode::ExitMode;
+use faction::conclusion::Conclusion;
 use faction_core_validation::cluster_simulation::ClusterSimulation;
 
 #[test]
@@ -20,7 +20,7 @@ fn five_nodes_converge_on_quorum() {
         sim.complete_local(peer);
     }
 
-    assert!(sim.all_exited_with(ExitMode::Bootstrapped));
+    assert!(sim.all_exited_with(Conclusion::Bootstrapped));
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn not_enough_signals_triggers_deadline() {
         sim.expire_deadline(peer);
     }
 
-    assert!(sim.all_exited_with(ExitMode::TimedOut));
+    assert!(sim.all_exited_with(Conclusion::TimedOut));
 }
 
 #[test]
@@ -54,5 +54,5 @@ fn duplicate_signals_dont_disrupt_convergence() {
     }
 
     assert!(sim.pending_count() == 0);
-    assert!(sim.all_exited_with(ExitMode::Bootstrapped));
+    assert!(sim.all_exited_with(Conclusion::Bootstrapped));
 }
