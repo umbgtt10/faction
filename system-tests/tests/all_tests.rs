@@ -3,5 +3,6 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 pub mod convergence_tests;
+pub mod shared_file_observer_tests;
 pub mod timer;
 pub mod transport;
