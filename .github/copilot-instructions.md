@@ -43,18 +43,20 @@ Specifically:
 
 ### User coding standards
 
-- one struct per file
-- unit tests are not allowed. Only integration tests are
-- no unnecessary comments in code
-- consolidate scattered functions inside structs as appropriate
-- no `&mut` input parameters; prefer return values
-- only use `pub mod` in `mod.rs` and `lib.rs`
-- split test files so there is one test file per source file, named `<source file name>_tests.rs`
-- in `all_tests.rs`, reference test files one by one without `#[path = ...]`
-- apply AAA (`Arrange`, `Act`, `Assert`) structure to tests with blank-line separation between the three sections
-- use `// Arrange & Act` if there is no separate `Arrange`
-- use `// Act & Assert` if there is no separate `Act`
-- add the repository copyright and license header to every Rust source file
+- **one struct per file** — each struct gets its own file
+- **no unit tests** — only integration tests are allowed
+- **no unnecessary comments** — code should be self-documenting
+- **consolidate functions** — place scattered functions inside structs
+- **no `&mut` parameters** — prefer return values over mutation
+- **`pub mod` only in `mod.rs` and `lib.rs`** — no nested `pub mod`
+- **test file naming** — one test file per source file, named `<source file name>_tests.rs`
+- **`all_tests.rs`** — reference test files one by one, no `#[path = ...]`
+- **AAA structure** — arrange tests with `Arrange`, `Act`, `Assert` sections separated by blank lines
+- **`// Arrange & Act`** — use if there is no separate `Arrange`
+- **`// Act & Assert`** — use if there is no separate `Act`
+- **copyright header** — add the repository copyright and license header to every Rust source file
+- **test naming**: `<method>_<description>_<outcome>` where `<method>` is the function called in the Act section. Property tests are exempt.
+- **variable naming**: match the type. `<StructName>` → `<name>`, `Config` → `config`. No single-letter vars. No legacy or cryptic names.
 
 ### State transition test coverage — invariant
 
