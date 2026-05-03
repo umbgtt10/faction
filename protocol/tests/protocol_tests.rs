@@ -21,7 +21,7 @@ fn protocol() -> Protocol {
 }
 
 #[test]
-fn start_decisions_with_two_peers() {
+fn initialize_with_two_peers_produces_decisions() {
     // Arrange & Act
     let decisions = protocol().initialize();
 
@@ -45,7 +45,7 @@ fn start_decisions_with_two_peers() {
 }
 
 #[test]
-fn decide_ping_from_member() {
+fn decide_ping_from_member_produces_broadcast() {
     // Arrange
     let mut protocol = protocol();
 
@@ -291,7 +291,7 @@ fn decide_bootstrapped_message_produces_noop() {
 }
 
 #[test]
-fn full_convergence_sequence_ping_lpc_ready_reaches_bootstrapped() {
+fn decide_convergence_sequence_reaches_bootstrapped() {
     // Arrange
     let mut protocol = protocol();
 
@@ -332,7 +332,7 @@ fn full_convergence_sequence_ping_lpc_ready_reaches_bootstrapped() {
 }
 
 #[test]
-fn pre_accumulated_ready_reaches_quorum_on_local_completion() {
+fn decide_pre_accumulated_ready_quorum_on_completion() {
     // Arrange
     let mut protocol = protocol();
     protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));

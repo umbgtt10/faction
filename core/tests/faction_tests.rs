@@ -16,7 +16,7 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 
 #[test]
-fn get_snapshot_returns_snapshot_available_with_initial_state() {
+fn process_probe_returns_cluster_view_with_initial_state() {
     // Arrange
     let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
     let observer = Box::new(NoOpObserver);
@@ -38,7 +38,7 @@ fn get_snapshot_returns_snapshot_available_with_initial_state() {
 }
 
 #[test]
-fn get_snapshot_does_not_mutate_state() {
+fn process_probe_does_not_mutate_state() {
     // Arrange
     let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
     let observer = Box::new(NoOpObserver);
@@ -60,7 +60,7 @@ fn get_snapshot_does_not_mutate_state() {
 }
 
 #[test]
-fn get_snapshot_works_after_valid_inputs() {
+fn process_probe_works_after_valid_inputs() {
     // Arrange
     let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
     let observer = Box::new(NoOpObserver);

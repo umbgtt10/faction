@@ -60,7 +60,7 @@ fn recording_coordinator() -> (Faction, Observations) {
 }
 
 #[test]
-fn apply_observes_local_participation_completion_transition() {
+fn process_observes_local_participation_completion_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
@@ -96,7 +96,7 @@ fn apply_observes_local_participation_completion_transition() {
 }
 
 #[test]
-fn apply_observes_duplicate_participation_transition_without_state_change() {
+fn process_observes_duplicate_participation_transition_without_state_change() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
@@ -125,7 +125,7 @@ fn apply_observes_duplicate_participation_transition_without_state_change() {
 }
 
 #[test]
-fn apply_observes_quorum_exit_transition() {
+fn process_observes_quorum_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
@@ -172,7 +172,7 @@ fn apply_observes_quorum_exit_transition() {
 }
 
 #[test]
-fn apply_observes_deadline_exit_transition() {
+fn process_observes_deadline_exit_transition() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
@@ -212,7 +212,7 @@ fn apply_observes_deadline_exit_transition() {
 }
 
 #[test]
-fn state_transition_outputs_are_fully_observable() {
+fn process_state_transition_outputs_fully_observable() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
 
@@ -293,7 +293,7 @@ fn state_transition_outputs_are_fully_observable() {
 }
 
 #[test]
-fn apply_observes_non_member_participation_from_initial() {
+fn process_observes_non_member_participation_from_initial() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let input = Command::ParticipationObserved { peer_id: 99 };
@@ -322,7 +322,7 @@ fn apply_observes_non_member_participation_from_initial() {
 }
 
 #[test]
-fn apply_observes_non_member_ready_from_initial() {
+fn process_observes_non_member_ready_from_initial() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let input = Command::ReadyObserved { peer_id: 99 };
@@ -351,7 +351,7 @@ fn apply_observes_non_member_ready_from_initial() {
 }
 
 #[test]
-fn apply_observes_duplicate_ready_from_pinging() {
+fn process_observes_duplicate_ready_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
@@ -380,7 +380,7 @@ fn apply_observes_duplicate_ready_from_pinging() {
 }
 
 #[test]
-fn apply_observes_quorum_exit_from_pinging() {
+fn process_observes_quorum_exit_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
@@ -424,7 +424,7 @@ fn apply_observes_quorum_exit_from_pinging() {
 }
 
 #[test]
-fn apply_observes_deadline_exit_from_pinging() {
+fn process_observes_deadline_exit_from_pinging() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
@@ -462,7 +462,7 @@ fn apply_observes_deadline_exit_from_pinging() {
 }
 
 #[test]
-fn apply_observes_timely_ready_from_collecting_no_quorum() {
+fn process_observes_timely_ready_from_collecting_no_quorum() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
@@ -499,7 +499,7 @@ fn apply_observes_timely_ready_from_collecting_no_quorum() {
 }
 
 #[test]
-fn apply_observes_duplicate_ready_from_collecting() {
+fn process_observes_duplicate_ready_from_collecting() {
     // Arrange
     let (mut coordinator, observations) = recording_coordinator();
     let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });

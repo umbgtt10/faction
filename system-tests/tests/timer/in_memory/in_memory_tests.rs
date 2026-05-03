@@ -16,7 +16,7 @@ fn other_event() -> TimerEvent {
 }
 
 #[test]
-fn schedule_then_poll_returns_event() {
+fn schedule_poll_returns_event() {
     // Arrange
     let mut timer = InMemoryTimer::new();
     let event = some_event();
@@ -38,7 +38,7 @@ fn poll_empty_returns_none() {
 }
 
 #[test]
-fn fifo_order() {
+fn schedule_fifo_order_maintained() {
     // Arrange
     let mut timer = InMemoryTimer::new();
 

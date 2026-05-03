@@ -43,7 +43,7 @@ fn reach_deadline_from_collecting() -> Faction {
 }
 
 #[test]
-fn deal_rejects_participation_observed() {
+fn process_rejects_participation_observed() {
     // Arrange
     let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
@@ -67,7 +67,7 @@ fn deal_rejects_participation_observed() {
 }
 
 #[test]
-fn deal_rejects_ready_observed() {
+fn process_rejects_ready_observed() {
     // Arrange
     let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
@@ -91,7 +91,7 @@ fn deal_rejects_ready_observed() {
 }
 
 #[test]
-fn deal_rejects_is_pinging_completedd() {
+fn process_rejects_local_participation_completed() {
     // Arrange
     let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
@@ -115,7 +115,7 @@ fn deal_rejects_is_pinging_completedd() {
 }
 
 #[test]
-fn deal_rejects_deadline_expired() {
+fn process_rejects_deadline_expired() {
     // Arrange
     let mut f = reach_deadline_from_pinging();
     let snap_before = match f.process(Command::Probe) {
@@ -139,7 +139,7 @@ fn deal_rejects_deadline_expired() {
 }
 
 #[test]
-fn vibe_check_after_deadline_from_pinging() {
+fn process_probe_after_deadline_from_pinging() {
     // Arrange & Act
     let mut f = reach_deadline_from_pinging();
     let s = match f.process(Command::Probe) {
@@ -157,7 +157,7 @@ fn vibe_check_after_deadline_from_pinging() {
 }
 
 #[test]
-fn vibe_check_after_deadline_from_collecting() {
+fn process_probe_after_deadline_from_collecting() {
     // Arrange & Act
     let mut f = reach_deadline_from_collecting();
     let s = match f.process(Command::Probe) {
@@ -175,7 +175,7 @@ fn vibe_check_after_deadline_from_collecting() {
 }
 
 #[test]
-fn post_deadline_inputs_leave_state_unchanged() {
+fn process_post_deadline_inputs_leave_state_unchanged() {
     // Arrange
     let mut f = reach_deadline_from_pinging();
     let snapshot_before = match f.process(Command::Probe) {
@@ -200,7 +200,7 @@ fn post_deadline_inputs_leave_state_unchanged() {
 }
 
 #[test]
-fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
+fn cluster_view_inherits_local_completion_from_pinging() {
     // Arrange
     let rbd = TimedOut::new(vec![1, 2, 3], vec![9]);
     let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
@@ -219,7 +219,7 @@ fn timed_out_cluster_view_inherits_local_completion_from_pinging() {
 }
 
 #[test]
-fn timed_out_cluster_view_inherits_local_completion_from_collecting() {
+fn cluster_view_inherits_local_completion_from_collecting() {
     // Arrange
     let rbd = TimedOut::new(vec![5, 6], vec![1, 2, 3, 4]);
     let prev = ClusterView::new(PeerState::Collecting, true, vec![], vec![], 4);

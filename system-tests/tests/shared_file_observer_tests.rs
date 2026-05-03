@@ -192,7 +192,7 @@ fn observer_observe_rejection_writes_rejected_event() {
 }
 
 #[test]
-fn accepted_writes_bootstrapped_exit_state() {
+fn observe_writes_bootstrapped_exit_state() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
@@ -211,7 +211,7 @@ fn accepted_writes_bootstrapped_exit_state() {
 }
 
 #[test]
-fn is_valid_json() {
+fn write_json_output_is_valid() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();

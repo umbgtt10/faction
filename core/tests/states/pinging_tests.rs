@@ -47,7 +47,7 @@ fn p2(faction: &mut Faction) -> usize {
 }
 
 #[test]
-fn deal_accepts_participation_observed() {
+fn process_accepts_participation_observed() {
     // Arrange
     let mut faction = machine_in_pinging();
 
@@ -66,7 +66,7 @@ fn deal_accepts_participation_observed() {
 }
 
 #[test]
-fn deal_accepts_ready_observed() {
+fn process_accepts_ready_observed() {
     // Arrange
     let mut faction = machine_in_pinging();
 
@@ -82,7 +82,7 @@ fn deal_accepts_ready_observed() {
 }
 
 #[test]
-fn deal_accepts_is_pinging_completedd() {
+fn process_accepts_local_participation_completed() {
     // Arrange
     let mut faction = machine_in_pinging();
 
@@ -100,7 +100,7 @@ fn deal_accepts_is_pinging_completedd() {
 }
 
 #[test]
-fn deal_accepts_deadline_expired() {
+fn process_accepts_deadline_expired() {
     // Arrange
     let mut faction = machine_in_pinging();
 
@@ -121,7 +121,7 @@ fn deal_accepts_deadline_expired() {
 }
 
 #[test]
-fn participation_observed_non_member() {
+fn process_participation_observed_non_member() {
     // Arrange
     let mut faction = machine_in_pinging();
     let before = p1(&mut faction);
@@ -139,7 +139,7 @@ fn participation_observed_non_member() {
 }
 
 #[test]
-fn participation_observed_duplicate() {
+fn process_participation_observed_duplicate() {
     let mut faction = machine_in_pinging();
     let _ = faction.process(Command::ParticipationObserved { peer_id: 2 });
     let before = p1(&mut faction);
@@ -156,7 +156,7 @@ fn participation_observed_duplicate() {
 }
 
 #[test]
-fn participation_observed_first_timely() {
+fn process_participation_observed_first_timely() {
     // Arrange
     let mut faction = machine_in_pinging();
     let before = p1(&mut faction);
@@ -177,7 +177,7 @@ fn participation_observed_first_timely() {
 }
 
 #[test]
-fn ready_observed_non_member() {
+fn process_ready_observed_non_member() {
     // Arrange
     let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
@@ -195,7 +195,7 @@ fn ready_observed_non_member() {
 }
 
 #[test]
-fn ready_observed_duplicate() {
+fn process_ready_observed_duplicate() {
     // Arrange
     let mut faction = machine_in_pinging();
     let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
@@ -217,7 +217,7 @@ fn ready_observed_duplicate() {
 }
 
 #[test]
-fn ready_observed_first_timely() {
+fn process_ready_observed_first_timely() {
     // Arrange
     let mut faction = machine_in_pinging();
     let before = p2(&mut faction);
@@ -235,7 +235,7 @@ fn ready_observed_first_timely() {
 }
 
 #[test]
-fn local_completion_no_quorum() {
+fn process_local_completion_no_quorum() {
     // Arrange & Act
     let mut faction = machine_in_pinging();
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {
@@ -262,7 +262,7 @@ fn local_completion_no_quorum() {
 }
 
 #[test]
-fn local_completion_triggers_quorum() {
+fn process_local_completion_triggers_quorum() {
     // Arrange
     let mut faction = Faction::new(
         Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(4)),
@@ -300,7 +300,7 @@ fn local_completion_triggers_quorum() {
 }
 
 #[test]
-fn deadline_expired_in_pinging() {
+fn process_deadline_expired_in_pinging() {
     // Arrange
     let mut faction = machine_in_pinging();
 
@@ -325,7 +325,7 @@ fn deadline_expired_in_pinging() {
 }
 
 #[test]
-fn vibe_check_in_pinging() {
+fn process_probe_in_pinging() {
     // Arrange & Act
     let mut faction = machine_in_pinging();
     let snap = match faction.process(Command::Probe) {
@@ -344,7 +344,7 @@ fn vibe_check_in_pinging() {
 }
 
 #[test]
-fn pinging_cluster_view_inherits_correctly() {
+fn cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new();
     let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);

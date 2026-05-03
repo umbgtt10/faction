@@ -96,7 +96,7 @@ fn cancel_non_existent_is_noop() {
 }
 
 #[test]
-fn only_returns_events_whose_deadline_has_passed() {
+fn schedule_only_returns_when_deadline_passed() {
     // Arrange
     let mut timer = RealTimer::with_delay(Duration::from_millis(50));
     timer.schedule(some_event());
@@ -110,7 +110,7 @@ fn only_returns_events_whose_deadline_has_passed() {
 }
 
 #[test]
-fn multiple_delays_respected() {
+fn schedule_multiple_delays_respected() {
     // Arrange
     let mut timer = RealTimer::with_delay(Duration::from_millis(20));
     timer.schedule(some_event());
@@ -128,7 +128,7 @@ fn multiple_delays_respected() {
 }
 
 #[test]
-fn default_delay_is_50ms() {
+fn new_default_delay_is_50ms() {
     // Arrange
     let mut timer = RealTimer::new();
 

@@ -28,7 +28,7 @@ fn test_machine() -> Faction {
 }
 
 #[test]
-fn deal_accepts_participation_observed() {
+fn process_accepts_participation_observed() {
     // Arrange
     let mut faction = test_machine();
 
@@ -53,7 +53,7 @@ fn deal_accepts_participation_observed() {
 }
 
 #[test]
-fn deal_accepts_ready_observed() {
+fn process_accepts_ready_observed() {
     // Arrange
     let mut faction = test_machine();
 
@@ -75,7 +75,7 @@ fn deal_accepts_ready_observed() {
 }
 
 #[test]
-fn deal_rejects_is_pinging_completedd() {
+fn process_rejects_local_participation_completed() {
     // Arrange
     let mut faction = test_machine();
 
@@ -95,7 +95,7 @@ fn deal_rejects_is_pinging_completedd() {
 }
 
 #[test]
-fn deal_rejects_deadline_expired() {
+fn process_rejects_deadline_expired() {
     // Arrange
     let mut faction = test_machine();
 
@@ -115,7 +115,7 @@ fn deal_rejects_deadline_expired() {
 }
 
 #[test]
-fn stays_in_initial_after_rejected_input() {
+fn process_stays_in_initial_after_rejected() {
     // Arrange
     let mut faction = test_machine();
 
@@ -145,7 +145,7 @@ fn stays_in_initial_after_rejected_input() {
 }
 
 #[test]
-fn multiple_rejected_inputs_keep_initial_unchanged() {
+fn process_rejects_invalid_commands() {
     // Arrange
     let mut faction = test_machine();
 
@@ -177,7 +177,7 @@ fn multiple_rejected_inputs_keep_initial_unchanged() {
 }
 
 #[test]
-fn punch_participation_non_member_from_initial() {
+fn process_participation_non_member_from_initial() {
     // Arrange
     let mut faction = test_machine();
 
@@ -199,7 +199,7 @@ fn punch_participation_non_member_from_initial() {
 }
 
 #[test]
-fn punch_ready_non_member_from_initial() {
+fn process_ready_non_member_from_initial() {
     // Arrange
     let mut faction = test_machine();
 
@@ -249,7 +249,7 @@ fn new_returns_initial_state() {
 }
 
 #[test]
-fn vibe_check_returns_fresh_state_with_zeros() {
+fn process_probe_returns_fresh_state() {
     // Arrange & Act
     let mut faction = test_machine();
     let snap = match faction.process(Command::Probe) {
@@ -268,7 +268,7 @@ fn vibe_check_returns_fresh_state_with_zeros() {
 }
 
 #[test]
-fn initial_cluster_view_inherits_correctly() {
+fn cluster_view_inherits_correctly() {
     // Arrange
     let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
 

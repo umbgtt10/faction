@@ -38,7 +38,7 @@ fn ready(peer_id: u64) -> Command {
 }
 
 #[test]
-fn deal_accepts_ready_observed() {
+fn process_accepts_ready_observed() {
     // Arrange & Act
     let mut v = machine_in_collecting();
     let outcomes = match v.process(ready(1)) {
@@ -52,7 +52,7 @@ fn deal_accepts_ready_observed() {
 }
 
 #[test]
-fn deal_accepts_deadline_expired() {
+fn process_accepts_deadline_expired() {
     // Arrange & Act
     let mut v = machine_in_collecting();
     let outcomes = match v.process(Command::DeadlineExpired) {
@@ -77,7 +77,7 @@ fn deal_accepts_deadline_expired() {
 }
 
 #[test]
-fn deal_rejects_participation_observed() {
+fn process_rejects_participation_observed() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -100,7 +100,7 @@ fn deal_rejects_participation_observed() {
 }
 
 #[test]
-fn deal_rejects_is_pinging_completedd() {
+fn process_rejects_local_participation_completed() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -123,7 +123,7 @@ fn deal_rejects_is_pinging_completedd() {
 }
 
 #[test]
-fn participation_non_member_is_noop() {
+fn process_rejects_participation_non_member() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -146,7 +146,7 @@ fn participation_non_member_is_noop() {
 }
 
 #[test]
-fn ready_non_member_rejected() {
+fn process_accepts_ready_non_member() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -173,7 +173,7 @@ fn ready_non_member_rejected() {
 }
 
 #[test]
-fn ready_duplicate_rejected() {
+fn process_accepts_ready_duplicate() {
     // Arrange
     let mut v = machine_in_collecting();
     let _ = v.process(ready(1));
@@ -204,7 +204,7 @@ fn ready_duplicate_rejected() {
 }
 
 #[test]
-fn ready_first_timely_no_quorum() {
+fn process_accepts_ready_first_timely_no_quorum() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -235,7 +235,7 @@ fn ready_first_timely_no_quorum() {
 }
 
 #[test]
-fn ready_first_timely_triggers_quorum() {
+fn process_accepts_ready_first_timely_triggers_quorum() {
     // Arrange
     let mut v = machine_in_collecting();
     let _ = v.process(ready(1));
@@ -277,7 +277,7 @@ fn ready_first_timely_triggers_quorum() {
 }
 
 #[test]
-fn local_completion_in_collecting_is_noop() {
+fn process_rejects_local_completion() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -300,7 +300,7 @@ fn local_completion_in_collecting_is_noop() {
 }
 
 #[test]
-fn deadline_expired_exits_in_collecting() {
+fn process_accepts_deadline_expired_exits_in_collecting() {
     // Arrange
     let mut v = machine_in_collecting();
     let snap_before = match v.process(Command::Probe) {
@@ -338,7 +338,7 @@ fn deadline_expired_exits_in_collecting() {
 }
 
 #[test]
-fn vibe_check_returns_correct_snapshot() {
+fn process_probe_returns_correct_snapshot() {
     // Arrange & Act
     let mut v = machine_in_collecting();
     let snap = match v.process(Command::Probe) {
@@ -357,7 +357,7 @@ fn vibe_check_returns_correct_snapshot() {
 }
 
 #[test]
-fn collecting_cluster_view_inherits_correctly() {
+fn cluster_view_inherits_correctly() {
     // Arrange
     let collecting_set = vec![1, 3];
     let collecting = Collecting::new(collecting_set, vec![5, 6]);

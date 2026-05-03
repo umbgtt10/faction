@@ -34,7 +34,7 @@ fn reach_bootstrapped() -> Faction {
 }
 
 #[test]
-fn deal_rejects_participation_observed() {
+fn process_rejects_participation_observed() {
     // Arrange & Act
     let mut faction = reach_bootstrapped();
     let cluster_view = match faction.process(Command::Probe) {
@@ -49,7 +49,7 @@ fn deal_rejects_participation_observed() {
 }
 
 #[test]
-fn all_inputs_leave_state_unchanged() {
+fn process_all_inputs_leave_state_unchanged() {
     // Arrange
     let mut faction = reach_bootstrapped();
     let snapshot_before = match faction.process(Command::Probe) {
@@ -92,7 +92,7 @@ fn all_inputs_leave_state_unchanged() {
 }
 
 #[test]
-fn vibe_check_returns_correct_snapshot() {
+fn process_probe_returns_correct_snapshot() {
     // Arrange & Act
     let mut faction = reach_bootstrapped();
     let cluster_view = match faction.process(Command::Probe) {
@@ -111,7 +111,7 @@ fn vibe_check_returns_correct_snapshot() {
 }
 
 #[test]
-fn bootstrapped_cluster_view_overrides_all_fields() {
+fn cluster_view_overrides_all_fields() {
     // Arrange
     let rq = Bootstrapped::new(vec![1, 2], vec![1, 2, 3, 4, 5]);
     let prev = ClusterView::new(

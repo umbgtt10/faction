@@ -16,7 +16,7 @@ fn msg_ready(from: PeerId) -> TransportMessage {
 }
 
 #[test]
-fn send_and_recv_between_two_peers() {
+fn send_between_two_peers_received() {
     // Arrange
     let mut transports = InMemoryTransport::new_mesh(&[0, 1]);
 
@@ -50,7 +50,7 @@ fn recv_empty_returns_none() {
 }
 
 #[test]
-fn fifo_order_preserved() {
+fn send_fifo_order_preserved() {
     // Arrange
     let mut transports = InMemoryTransport::new_mesh(&[0, 1]);
 
@@ -64,7 +64,7 @@ fn fifo_order_preserved() {
 }
 
 #[test]
-fn three_peer_mesh_all_deliver() {
+fn send_three_peer_all_delivered() {
     // Arrange
     let mut transports = InMemoryTransport::new_mesh(&[0, 1, 2]);
 

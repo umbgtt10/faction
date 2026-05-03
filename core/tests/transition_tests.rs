@@ -92,7 +92,7 @@ fn new_handles_empty_outputs() {
 }
 
 #[test]
-fn previous_state_preserves_full_snapshot() {
+fn new_previous_view_preserves_snapshot() {
     // Arrange
     let prev = snapshot_exited();
     let next = cluster_view(vec![], vec![]);
@@ -112,7 +112,7 @@ fn previous_state_preserves_full_snapshot() {
 }
 
 #[test]
-fn new_state_preserves_full_snapshot() {
+fn new_view_preserves_full_snapshot() {
     // Arrange
     let prev = cluster_view(vec![], vec![]);
     let next = snapshot_exited();
@@ -131,7 +131,7 @@ fn new_state_preserves_full_snapshot() {
 }
 
 #[test]
-fn outputs_are_immutable() {
+fn new_outputs_immutable() {
     // Arrange
     let prev = cluster_view(vec![], vec![]);
     let next = cluster_view(vec![1], vec![]);

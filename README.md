@@ -65,9 +65,8 @@ Full specification in [phase-0-specification.md](./docs/phase-0-specification.md
 | Tests (entire codebase) | 275 |
 | Crappy functions | 0 |
 | Code coverage (productive) | 100% |
-| Unsafe | 0 |
+| Unsafe code | 0 |
 | `no_std` | Verified |
-| Drop impls (transports) | 4/4 |
 
 ---
 
@@ -123,6 +122,4 @@ Licensed under the MIT License. See [LICENSE](./LICENSE).
 - [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) — community guidelines
 - [DONATE](./DONATE.md) — support the project
 - [ROADMAP](./docs/ROADMAP.md) — future plans
-- [Phase 0 specification](./docs/phase-0-specification.md) — detailed state machine description
-- [Protocol bootstrapping design](./docs/protocol-bootstrapping-design.md) — protocol layer design
-- [System tests design](./docs/system-tests-design.md) — multi-process test infrastructure
+- [PHASE 0 SPECIFICATION](./docs/history/PHASE-0-SPECIFICATION.md) — detailed state machine description

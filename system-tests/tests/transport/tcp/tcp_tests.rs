@@ -16,7 +16,7 @@ fn msg_ready(from: PeerId) -> TransportMessage {
 }
 
 #[test]
-fn mesh_send_and_recv_between_two_peers() {
+fn send_and_recv_between_two_peers() {
     // Arrange
     let mut transports = TcpTransport::new_mesh(&[0, 1]);
 
@@ -30,7 +30,7 @@ fn mesh_send_and_recv_between_two_peers() {
 }
 
 #[test]
-fn mesh_fifo_order_preserved() {
+fn fifo_order_preserved() {
     // Arrange
     let mut transports = TcpTransport::new_mesh(&[0, 1]);
 
@@ -45,7 +45,7 @@ fn mesh_fifo_order_preserved() {
 }
 
 #[test]
-fn mesh_recv_empty_returns_none() {
+fn recv_empty_returns_none() {
     // Arrange
     let mut transports = TcpTransport::new_mesh(&[0, 1]);
 
@@ -54,7 +54,7 @@ fn mesh_recv_empty_returns_none() {
 }
 
 #[test]
-fn mesh_three_peer_all_deliver() {
+fn send_three_peer_all_deliver() {
     // Arrange
     let mut transports = TcpTransport::new_mesh(&[0, 1, 2]);
 
@@ -69,7 +69,7 @@ fn mesh_three_peer_all_deliver() {
 }
 
 #[test]
-fn mesh_send_all_message_types() {
+fn send_all_message_types() {
     // Arrange
     let mut transports = TcpTransport::new_mesh(&[0, 1]);
 
@@ -95,14 +95,14 @@ fn mesh_send_all_message_types() {
 }
 
 #[test]
-fn mesh_drop_does_not_hang() {
+fn drop_does_not_hang() {
     // Arrange & Act & Assert
     let transports = TcpTransport::new_mesh(&[0, 1]);
     drop(transports);
 }
 
 #[test]
-fn mesh_drop_releases_ports() {
+fn drop_releases_ports() {
     // Arrange
     let transports = TcpTransport::new_mesh(&[0, 1]);
 
