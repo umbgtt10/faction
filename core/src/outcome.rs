@@ -11,8 +11,6 @@ pub enum Outcome {
     ReadyAccepted { peer_id: PeerId },
     DuplicateParticipationIgnored { peer_id: PeerId },
     DuplicateReadyIgnored { peer_id: PeerId },
-    StaleParticipationIgnored { peer_id: PeerId },
-    StaleReadyIgnored { peer_id: PeerId },
     NonMemberIgnored { peer_id: PeerId },
     LocalParticipationCompleted,
     BroadcastLocalReady,

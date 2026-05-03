@@ -48,7 +48,7 @@ impl State for Bootstrapped {
             .with_collecting_peers(self.collected_peers.clone())
     }
 
-    fn admissible_commands(&self) -> alloc::vec::Vec<Command> {
+    fn admissible_commands(&self) -> Vec<Command> {
         vec![Command::Probe]
     }
 }

@@ -3,6 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 #![no_std]
+#![deny(unsafe_code)]
 
 extern crate alloc;
 
