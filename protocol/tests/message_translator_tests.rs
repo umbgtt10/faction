@@ -20,10 +20,11 @@ fn translator() -> MessageTranslator {
 #[test]
 fn to_command_transport_ping_maps_to_participation_observed() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let command = t.to_command(InputMessage::Transport(TransportMessage::Ping { from: 42 }));
+    let command =
+        translator.to_command(InputMessage::Transport(TransportMessage::Ping { from: 42 }));
 
     // Assert
     assert_eq!(command, Command::ParticipationObserved { peer_id: 42 });
@@ -32,10 +33,11 @@ fn to_command_transport_ping_maps_to_participation_observed() {
 #[test]
 fn to_command_transport_ready_maps_to_ready_observed() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let command = t.to_command(InputMessage::Transport(TransportMessage::Ready { from: 7 }));
+    let command =
+        translator.to_command(InputMessage::Transport(TransportMessage::Ready { from: 7 }));
 
     // Assert
     assert_eq!(command, Command::ReadyObserved { peer_id: 7 });
@@ -44,10 +46,10 @@ fn to_command_transport_ready_maps_to_ready_observed() {
 #[test]
 fn to_command_transport_bootstrapped_maps_to_probe() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let command = t.to_command(InputMessage::Transport(TransportMessage::Bootstrapped {
+    let command = translator.to_command(InputMessage::Transport(TransportMessage::Bootstrapped {
         from: 1,
     }));
 
@@ -58,10 +60,10 @@ fn to_command_transport_bootstrapped_maps_to_probe() {
 #[test]
 fn to_command_timer_participation_observed_maps_to_participation_observed() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let command = t.to_command(InputMessage::Timer(TimerMessage::ParticipationObserved {
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::ParticipationObserved {
         peer_id: 3,
     }));
 
@@ -72,10 +74,10 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
 #[test]
 fn to_command_timer_local_participation_completed_maps_to_local_participation_completed() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let command = t.to_command(InputMessage::Timer(
+    let command = translator.to_command(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
 
@@ -87,29 +89,29 @@ fn to_command_timer_local_participation_completed_maps_to_local_participation_co
 #[should_panic(expected = "handled in decide()")]
 fn to_command_timer_retry_ping_panics() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let _ = t.to_command(InputMessage::Timer(TimerMessage::RetryPing));
+    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryPing));
 }
 
 #[test]
 #[should_panic(expected = "handled in decide()")]
 fn to_command_timer_retry_ready_panics() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let _ = t.to_command(InputMessage::Timer(TimerMessage::RetryReady));
+    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryReady));
 }
 
 #[test]
 fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let command = t.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
 
     // Assert
     assert_eq!(command, Command::DeadlineExpired);
@@ -118,10 +120,10 @@ fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
 #[test]
 fn to_output_messages_empty_outcomes_returns_noop() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![]);
+    let result = translator.to_output_messages(vec![]);
 
     // Assert
     assert_eq!(result, vec![OutputMessage::Noop]);
@@ -130,10 +132,10 @@ fn to_output_messages_empty_outcomes_returns_noop() {
 #[test]
 fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![Outcome::BroadcastLocalReady]);
+    let result = translator.to_output_messages(vec![Outcome::BroadcastLocalReady]);
 
     // Assert
     assert_eq!(result.len(), 2);
@@ -147,10 +149,10 @@ fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
 #[test]
 fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![Outcome::Concluded {
+    let result = translator.to_output_messages(vec![Outcome::Concluded {
         mode: Conclusion::Bootstrapped,
     }]);
 
@@ -164,10 +166,10 @@ fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
 #[test]
 fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![
+    let result = translator.to_output_messages(vec![
         Outcome::BroadcastLocalReady,
         Outcome::Concluded {
             mode: Conclusion::Bootstrapped,
@@ -186,10 +188,10 @@ fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
 #[test]
 fn to_output_messages_exited_wins_over_broadcast_local_ready_when_first() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![
+    let result = translator.to_output_messages(vec![
         Outcome::Concluded {
             mode: Conclusion::TimedOut,
         },
@@ -206,10 +208,10 @@ fn to_output_messages_exited_wins_over_broadcast_local_ready_when_first() {
 #[test]
 fn to_output_messages_skips_non_matching_and_finds_broadcast_local_ready() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![
+    let result = translator.to_output_messages(vec![
         Outcome::ParticipationAccepted { peer_id: 1 },
         Outcome::LocalParticipationCompleted,
         Outcome::BroadcastLocalReady,
@@ -223,10 +225,10 @@ fn to_output_messages_skips_non_matching_and_finds_broadcast_local_ready() {
 #[test]
 fn to_output_messages_skips_non_matching_and_finds_exited() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![
+    let result = translator.to_output_messages(vec![
         Outcome::ReadyAccepted { peer_id: 2 },
         Outcome::Concluded {
             mode: Conclusion::Bootstrapped,
@@ -241,10 +243,10 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
 #[test]
 fn to_output_messages_all_non_matching_returns_noop() {
     // Arrange
-    let t = translator();
+    let translator = translator();
 
     // Act
-    let result = t.to_output_messages(vec![
+    let result = translator.to_output_messages(vec![
         Outcome::ParticipationAccepted { peer_id: 0 },
         Outcome::ReadyAccepted { peer_id: 1 },
         Outcome::DuplicateParticipationIgnored { peer_id: 0 },

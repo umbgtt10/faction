@@ -88,19 +88,19 @@ pub enum Assert {
 }
 
 pub fn verify(faction: &mut Faction, checks: &[Assert]) {
-    let s = match faction.process(Command::Probe) {
+    let cluster_view = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
     for check in checks {
         match *check {
-            Assert::PingingCount(n) => assert_eq!(s.pinging_peers().len(), n),
-            Assert::CollectingCount(n) => assert_eq!(s.collecting_peers().len(), n),
-            Assert::Exited => assert!(s.is_exited()),
-            Assert::NotExited => assert!(!s.is_exited()),
-            Assert::Conclusion(mode) => assert_eq!(s.exit_mode(), Some(mode)),
-            Assert::LocalComplete => assert!(s.is_pinging_completed()),
-            Assert::NotLocalComplete => assert!(!s.is_pinging_completed()),
+            Assert::PingingCount(n) => assert_eq!(cluster_view.pinging_peers().len(), n),
+            Assert::CollectingCount(n) => assert_eq!(cluster_view.collecting_peers().len(), n),
+            Assert::Exited => assert!(cluster_view.is_exited()),
+            Assert::NotExited => assert!(!cluster_view.is_exited()),
+            Assert::Conclusion(mode) => assert_eq!(cluster_view.exit_mode(), Some(mode)),
+            Assert::LocalComplete => assert!(cluster_view.is_pinging_completed()),
+            Assert::NotLocalComplete => assert!(!cluster_view.is_pinging_completed()),
         }
     }
 }

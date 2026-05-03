@@ -28,14 +28,14 @@ fn invalid_transition(
     #[case] expected_admissible: &[Command],
 ) {
     // Arrange
-    let mut m = build(init);
-    let old_cluster_view = match m.process(Command::Probe) {
+    let mut faction = build(init);
+    let old_cluster_view = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
 
     // Act
-    let result = m.process(command);
+    let result = faction.process(command);
 
     // Assert
     let (new_cluster_view, admissible) = match result {
@@ -45,7 +45,7 @@ fn invalid_transition(
         } => (cluster_view, admissible),
         other => panic!("expected Rejected, got {other:?}"),
     };
-    verify(&mut m, asserts);
+    verify(&mut faction, asserts);
     assert_eq!(new_cluster_view, old_cluster_view);
     assert_eq!(admissible, expected_admissible);
 }

@@ -23,7 +23,7 @@ fn test_config() -> Config {
     Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
 }
 
-fn coordinator() -> Faction {
+fn faction() -> Faction {
     Faction::new(test_config(), Box::new(NoOpObserver))
 }
 
@@ -115,13 +115,13 @@ proptest! {
     #[test]
     fn exit_mode_never_changes_after_exit(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
         let mut exited_mode = None;
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -138,13 +138,13 @@ proptest! {
     #[test]
     fn once_exited_state_never_returns_to_active(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
         let mut has_exited = false;
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -171,16 +171,16 @@ proptest! {
     #[test]
     fn pinged_peers_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
-        let mut previous = match coordinator.process(Command::Probe) {
+        let mut faction = faction();
+        let mut previous = match faction.process(Command::Probe) {
     ProcessResult::Probed { cluster_view, .. } => cluster_view,
     _ => unreachable!(),
 };
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let current = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let current = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -194,16 +194,16 @@ proptest! {
     #[test]
     fn collected_peers_count_never_decreases(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
-        let mut previous = match coordinator.process(Command::Probe) {
+        let mut faction = faction();
+        let mut previous = match faction.process(Command::Probe) {
     ProcessResult::Probed { cluster_view, .. } => cluster_view,
     _ => unreachable!(),
 };
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let current = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let current = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -217,20 +217,20 @@ proptest! {
     #[test]
     fn non_member_commands_never_mutate_counts(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let previous = match coordinator.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match coordinator.process(command) {
+            let batch = match faction.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = match coordinator.process(Command::Probe) {
+            let current = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -244,17 +244,17 @@ proptest! {
     #[test]
     fn exits_at_most_once(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
         let mut has_exited = false;
 
         // Act
         for command in commands {
-            let previous = match coordinator.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let _ = coordinator.process(command);
-            let current = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let current = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -275,20 +275,20 @@ proptest! {
     #[test]
     fn duplicate_commands_never_increase_counts(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let previous = match coordinator.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match coordinator.process(command) {
+            let batch = match faction.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = match coordinator.process(Command::Probe) {
+            let current = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -302,12 +302,12 @@ proptest! {
     #[test]
     fn quorum_exit_implies_completed_pinging(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -327,12 +327,12 @@ proptest! {
     #[test]
     fn deadline_exit_implies_exited_state(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };

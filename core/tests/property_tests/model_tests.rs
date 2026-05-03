@@ -243,7 +243,7 @@ fn test_config() -> Config {
     Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
 }
 
-fn coordinator() -> Faction {
+fn faction() -> Faction {
     Faction::new(test_config(), Box::new(NoOpObserver))
 }
 
@@ -265,17 +265,17 @@ proptest! {
         commands in prop::collection::vec(input_strategy(), 0..64)
     ) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
         let mut model = ModelCoordinator::new();
 
         // Act
         for command in commands {
-            let actual_outputs = match coordinator.process(command) {
+            let actual_outputs = match faction.process(command) {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };

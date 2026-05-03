@@ -102,10 +102,10 @@ fn valid_transition(
     #[case] asserts: &[Assert],
 ) {
     // Arrange
-    let mut m = build(init);
+    let mut faction = build(init);
 
     // Act
-    let results = match m.process(command) {
+    let results = match faction.process(command) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
@@ -113,5 +113,5 @@ fn valid_transition(
 
     // Assert
     assert_eq!(results.as_slice(), expected_results, "output mismatch");
-    verify(&mut m, asserts);
+    verify(&mut faction, asserts);
 }

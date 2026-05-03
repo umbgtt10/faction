@@ -20,7 +20,7 @@ fn test_config() -> Config {
     Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
 }
 
-fn coordinator() -> Faction {
+fn faction() -> Faction {
     Faction::new(test_config(), Box::new(NoOpObserver))
 }
 
@@ -50,12 +50,12 @@ proptest! {
     #[test]
     fn counts_never_exceed_peer_count(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -69,12 +69,12 @@ proptest! {
     #[test]
     fn required_count_never_changes(commands in prop::collection::vec(input_strategy(), 0..128)) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
-            let cluster_view = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let cluster_view = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -89,24 +89,24 @@ proptest! {
         commands in prop::collection::vec(input_strategy(), 0..128)
     ) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let _ = coordinator.process(command);
+            let _ = faction.process(command);
         }
 
-        let previous = match coordinator.process(Command::Probe) {
+        let previous = match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
-        let first_status = coordinator.process(Command::LocalParticipationCompleted);
-        let after_first = match coordinator.process(Command::Probe) {
+        let first_status = faction.process(Command::LocalParticipationCompleted);
+        let after_first = match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
-        let second_status = coordinator.process(Command::LocalParticipationCompleted);
-        let after_second = match coordinator.process(Command::Probe) {
+        let second_status = faction.process(Command::LocalParticipationCompleted);
+        let after_second = match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
@@ -127,16 +127,16 @@ proptest! {
         commands in prop::collection::vec(input_strategy(), 0..128)
     ) {
         // Arrange
-        let mut coordinator = coordinator();
+        let mut faction = faction();
 
         // Act
         for command in commands {
-            let previous = match coordinator.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let _ = coordinator.process(command);
-            let current = match coordinator.process(Command::Probe) {
+            let _ = faction.process(command);
+            let current = match faction.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
