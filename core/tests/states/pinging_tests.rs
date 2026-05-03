@@ -39,6 +39,7 @@ fn p1(faction: &mut Faction) -> usize {
         _ => unreachable!(),
     }
 }
+
 fn p2(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view.collecting_peers().len(),
@@ -140,9 +141,12 @@ fn process_participation_observed_non_member() {
 
 #[test]
 fn process_participation_observed_duplicate() {
+    // Arrange
     let mut faction = faction_in_pinging();
     let _ = faction.process(Command::ParticipationObserved { peer_id: 2 });
     let before = p1(&mut faction);
+
+    // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
