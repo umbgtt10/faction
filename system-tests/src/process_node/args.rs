@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use faction::PeerId;
 
 use crate::process_node::config::ProcessNodeConfig;
-use crate::timer_kind::TimerKind;
+
 use crate::transport_kind::TransportKind;
 
 pub struct Args {
@@ -28,7 +28,7 @@ impl Args {
         let mut required: Option<usize> = None;
         let mut freshness_margin: Option<u64> = None;
         let mut transport: Option<TransportKind> = None;
-        let mut timer: Option<TimerKind> = None;
+
         let mut listen_addr: Option<SocketAddr> = None;
         let mut peer_addrs: Option<Vec<(PeerId, SocketAddr)>> = None;
         let mut log_path: Option<PathBuf> = None;
@@ -67,14 +67,7 @@ impl Args {
                         other => panic!("unknown transport: {other}"),
                     });
                 }
-                "--timer" => {
-                    i += 1;
-                    timer = Some(match self.args[i].as_str() {
-                        "inmemory" => TimerKind::InMemory,
-                        "real" => TimerKind::Real,
-                        other => panic!("unknown timer: {other}"),
-                    });
-                }
+
                 "--timer-delay" => {
                     i += 1;
                     timer_delay_ms = Some(self.args[i].parse().expect("invalid --timer-delay"));
@@ -115,7 +108,7 @@ impl Args {
             required: required.expect("missing --required"),
             freshness_margin: freshness_margin.unwrap_or(2),
             transport: transport.expect("missing --transport"),
-            timer: timer.expect("missing --timer"),
+
             listen_addr: listen_addr.expect("missing --listen-addr"),
             peer_addrs: peer_addrs.expect("missing --peer-addrs"),
             log_path,

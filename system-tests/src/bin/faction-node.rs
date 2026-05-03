@@ -24,9 +24,8 @@ use faction_system_tests::process_node::args::Args;
 use faction_system_tests::process_node::run;
 use faction_system_tests::shared_file_observer::SharedFileObserver;
 use faction_system_tests::shared_file_observer::new_shared_writer;
-use faction_system_tests::timer::in_memory::in_memory_timer::InMemoryTimer;
 use faction_system_tests::timer::real::real_timer::RealTimer;
-use faction_system_tests::timer_kind::TimerKind;
+
 use faction_system_tests::transport::grpc::grpc_transport::GrpcTransport;
 use faction_system_tests::transport::tcp::tcp_transport::TcpTransport;
 use faction_system_tests::transport_kind::TransportKind;
@@ -75,12 +74,9 @@ fn main() {
         _ => panic!("unsupported transport for process node"),
     };
 
-    let timer: Box<dyn Timer> = match config.timer {
-        TimerKind::InMemory => Box::new(InMemoryTimer::new()),
-        TimerKind::Real => Box::new(RealTimer::with_delay(Duration::from_millis(
-            config.timer_delay_ms,
-        ))),
-    };
+    let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(Duration::from_millis(
+        config.timer_delay_ms,
+    )));
 
     let delay = Duration::from_millis(config.timer_delay_ms);
 

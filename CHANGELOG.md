@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.3.1] — 2026-05-03
+
+### Post-hardening cleanup — dead outcomes removed, unsafe denied, timer architecture unified
+
+#### Removed
+- `StaleParticipationIgnored` and `StaleReadyIgnored` from `Outcome` — these variants were
+  never produced by any state. Removed to keep the public API free of dead arms.
+- `FreshnessPolicy` and `FreshnessClassification` source files — orphaned files that were
+  never compiled (not listed in `lib.rs`) and referenced a non-existent `Freshness` type.
+- `InMemoryTimer` from `system-tests` — functionally identical to `RealTimer` after the
+  `with_delay` addition; the deterministic zero-delay use case belongs to `protocol-validation`.
+- `TimerKind` enum from `system-tests` — redundant once `InMemoryTimer` was removed.
+- `--timer` CLI argument from `faction-node` binary — only one timer implementation remains.
+- 5 convergence test variants using `InMemoryTimer` (`task_inmemory_inmemory`,
+  `task_inmemory_channels`, `thread_inmemory_inmemory`, `thread_inmemory_channels`,
+  `thread_inmemory_tcp`) — coverage preserved by the equivalent `real` timer variants.
+  Convergence matrix reduced from 15 to 10 variants.
+
+#### Added
+- `#![deny(unsafe_code)]` at crate root in all six entry points: `faction` (core),
+  `faction-core-validation`, `faction-protocol`, `faction-protocol-validation`,
+  `faction-system-tests`, and `faction-node` binary. The "0-unsafe" property is now
+  enforced at compile time, not just claimed in documentation.
+
+#### Fixed
+- `thread_inmemory_tcp` instability — the `InMemoryTimer` fired at zero delay, flooding
+  TCP with `RetryPing`/`RetryReady` broadcasts faster than the transport could drain them.
+  Root cause eliminated by removing the combination entirely.
+
+---
+
 ## [0.3.0] — 2026-05-02
 
 ### Phase 0 hardened — Freshness removed, step structs split, transport Drop

@@ -106,7 +106,6 @@ peer ID, peer set, transport config, timer config, and log path as CLI arguments
 
 | Timer | Mechanism | Use |
 |---|---|---|
-| `InMemoryTimer` | `VecDeque` — events fire immediately on poll | Fast, deterministic |
 | `RealTimer` | `BinaryHeap<Instant>` — wall-clock deadlines with configurable delay | Real-time simulation |
 
 ---
@@ -123,20 +122,17 @@ The orchestrator reads the log on assertion failure for debugging.
 
 ## Test structure
 
-A single rstest with **15 variants** spanning spawn strategy × timer × transport:
+A single rstest with **10 variants** spanning spawn strategy × transport:
 
 ```
-# 6 task variants  (Minimal timer delay)
-task_inmemory_inmemory   task_real_inmemory    task_inmemory_channels
-task_real_channels       task_real_tcp         task_real_grpc
+# 4 task variants  (Minimal timer delay)
+task_real_inmemory    task_real_channels    task_real_tcp    task_real_grpc
 
-# 7 thread variants (Moderate timer delay)
-thread_inmemory_inmemory  thread_inmemory_channels  thread_inmemory_tcp
-thread_real_inmemory      thread_real_channels      thread_real_tcp
-thread_real_grpc
+# 4 thread variants (Moderate timer delay)
+thread_real_inmemory  thread_real_channels  thread_real_tcp  thread_real_grpc
 
 # 2 process variants (Generous timer delay)
-process_real_tcp          process_real_grpc
+process_real_tcp      process_real_grpc
 ```
 
 Each test creates a `ClusterBuilder`, selects spawn/timer/transport, and asserts
@@ -149,13 +145,10 @@ Each test creates a `ClusterBuilder`, selects spawn/timer/transport, and asserts
 ```
 system-tests/tests/
 ├── all_tests.rs
-├── convergence_tests.rs        ← 15-variant rstest
+├── convergence_tests.rs           ← 10-variant rstest
 ├── shared_file_observer_tests.rs  ← 9 tests
 ├── timer/
 │   ├── mod.rs
-│   ├── in_memory/
-│   │   ├── mod.rs               ← pub mod in_memory_tests;
-│   │   └── in_memory_tests.rs   ← 6 tests
 │   └── real/
 │       ├── mod.rs               ← pub mod real_timer_tests;
 │       └── real_timer_tests.rs  ← 9 tests
@@ -188,11 +181,11 @@ a backoff sleep matching the timer delay. For process nodes, `Cluster` blocks on
 ## What this validates
 
 | Layer | Validates | Covered by |
-|---|---|---|
+|---|---|---------|
 | Machine correctness | Every `(state, command)` pair | Transition matrix (145 tests) |
 | Invariants | Counts, exit, idempotency | Property tests (11 invariant + 4 safety) |
-| Timer behavior | Schedule, poll, cancel, deadlines | Timer integration tests (15 tests) |
+| Timer behavior | Schedule, poll, cancel, deadlines | Timer integration tests (9 tests) |
 | Transport framing | Send/recv, FIFO, multi-peer | Transport integration tests (22 tests) |
 | Observer logging | All event types, valid JSON | SharedFileObserver tests (9 tests) |
-| Protocol convergence | 5-node cluster → bootstrapped | Convergence rstest (15 variants) |
+| Protocol convergence | 5-node cluster → bootstrapped | Convergence rstest (10 variants) |
 | Process isolation | No shared-memory coupling | process_real_tcp, process_real_grpc |

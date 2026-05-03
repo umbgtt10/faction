@@ -31,10 +31,9 @@ use crate::node_observer::NodeObserver;
 use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
-use crate::timer::in_memory::in_memory_timer::InMemoryTimer;
 use crate::timer::real::real_timer::RealTimer;
 use crate::timer_delay::TimerDelay;
-use crate::timer_kind::TimerKind;
+
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::grpc::grpc_transport::GrpcTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -46,7 +45,6 @@ pub struct ClusterBuilder {
     required: usize,
     spawn: Spawn,
     transport: TransportKind,
-    timer: TimerKind,
     timer_delay: TimerDelay,
     log_path: Option<PathBuf>,
 }
@@ -59,7 +57,6 @@ impl ClusterBuilder {
             required,
             spawn: Spawn::Task,
             transport: TransportKind::InMemory,
-            timer: TimerKind::InMemory,
             timer_delay: TimerDelay::Minimal,
             log_path: None,
         }
@@ -79,12 +76,6 @@ impl ClusterBuilder {
     #[must_use]
     pub fn transport(mut self, transport: TransportKind) -> Self {
         self.transport = transport;
-        self
-    }
-
-    #[must_use]
-    pub fn timer_kind(mut self, timer: TimerKind) -> Self {
-        self.timer = timer;
         self
     }
 
@@ -148,10 +139,7 @@ impl ClusterBuilder {
                 };
                 let protocol =
                     Protocol::new(Faction::new(config, faction_observer), peer_ids.clone(), id);
-                let timer: Box<dyn Timer> = match self.timer {
-                    TimerKind::InMemory => Box::new(InMemoryTimer::new()),
-                    TimerKind::Real => Box::new(RealTimer::with_delay(delay)),
-                };
+                let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(delay));
                 let faction_node = FactionNode::new(
                     id,
                     peer_ids.clone(),
@@ -221,11 +209,6 @@ impl ClusterBuilder {
                 TransportKind::Tcp => "tcp",
                 _ => panic!("unsupported transport for process node"),
             };
-            let timer_arg = match self.timer {
-                TimerKind::InMemory => "inmemory",
-                TimerKind::Real => "real",
-            };
-
             let mut cmd = Command::new(bin.clone());
             cmd.arg("--peer-id")
                 .arg(id.to_string())
@@ -237,8 +220,6 @@ impl ClusterBuilder {
                 .arg("2")
                 .arg("--transport")
                 .arg(transport_arg)
-                .arg("--timer")
-                .arg(timer_arg)
                 .arg("--timer-delay")
                 .arg(&timer_delay_arg)
                 .arg("--listen-addr")

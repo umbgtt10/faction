@@ -7,7 +7,6 @@ use std::path::PathBuf;
 
 use faction::PeerId;
 
-use crate::timer_kind::TimerKind;
 use crate::transport_kind::TransportKind;
 
 pub struct ProcessNodeConfig {
@@ -16,7 +15,7 @@ pub struct ProcessNodeConfig {
     pub required: usize,
     pub freshness_margin: u64,
     pub transport: TransportKind,
-    pub timer: TimerKind,
+
     pub listen_addr: SocketAddr,
     pub peer_addrs: Vec<(PeerId, SocketAddr)>,
     pub log_path: Option<PathBuf>,

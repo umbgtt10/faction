@@ -34,7 +34,7 @@ bootstrapping, discovery, and dynamic membership. Published independently on cra
 
 **Status:** Complete  
 **Lines of code (productive):** 1,165  
-**Tests:** 275 total  
+**Tests:** 264 total  
 **Crappy functions:** 0  
 **Code coverage (productive):** 100%
 
@@ -221,7 +221,7 @@ serialized by the machine into a bounded queue. The caller provides the bound.
 - [ ] All five phases complete with full `(state, input)` coverage
 - [ ] `faction-validation` harness covers all phases adversarially
 - [ ] `no_std + alloc` verified — no `std` dependency anywhere
-- [ ] 0 unsafe — `#![deny(unsafe_code)]` at crate root
+- [x] 0 unsafe — `#![deny(unsafe_code)]` at crate root
 - [ ] Observer trait coverage — every transition pair verified
 - [ ] README written as a standalone document — no EtheRAM references except in examples section
 - [ ] At least one sample integration (Raft or IBFT) published as a companion crate

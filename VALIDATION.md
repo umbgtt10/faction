@@ -1,7 +1,7 @@
 # Validation
 
-**Last updated:** 2026-05-02  
-**Total tests:** 275  
+**Last updated:** 2026-05-03  
+**Total tests:** 264  
 **Total execution time:** ~4.7s (excl. compilation)  
 **Productive code coverage:** 100%  
 **Crappy functions:** 0
@@ -110,14 +110,13 @@ In-process protocol cluster with real transports and timers.
 **Why:** Validates that `Protocol` instances wired together over real transports
 (not mocked) can exchange messages and converge.
 
-### `faction-system-tests` — 65 tests in 3.23s
+### `faction-system-tests` — 54 tests in 3.23s
 
 Full-stack integration: spawn strategies × transports × timers.
 
 | Suite | Count | Why |
 |---|---|---|
-| Convergence (rstest) | 15 tests | Every `(Spawn, Timer, Transport)` combination converges to Bootstrapped in a 5-node cluster |
-| Timer — InMemory | 6 tests | Schedule, poll, cancel, FIFO, idempotency |
+| Convergence (rstest) | 10 tests | Every `(Spawn, Transport)` combination converges to Bootstrapped in a 5-node cluster |
 | Timer — Real | 9 tests | Deadline behavior, delayed delivery, multiple delays, default config |
 | Transport — Channels | 6 tests | Send/recv, FIFO, multi-peer, all message types |
 | Transport — gRPC | 7 tests | Send/recv, FIFO, multi-peer, all message types, Drop + port reuse |

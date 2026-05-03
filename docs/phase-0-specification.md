@@ -2,7 +2,7 @@
 
 **Status:** Complete  
 **Lines of code (productive):** 1,165  
-**Tests:** 145 core + 23 validation + 33 protocol + 9 protocol-validation + 65 system = 275 total  
+**Tests:** 145 core + 23 validation + 33 protocol + 9 protocol-validation + 54 system = 264 total  
 **Crappy functions:** 0  
 **Code coverage (productive):** 100%
 

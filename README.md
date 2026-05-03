@@ -62,10 +62,10 @@ Full specification in [phase-0-specification.md](./docs/phase-0-specification.md
 | Metric | Value |
 |---|---|
 | Productive LOC (core) | 1,165 |
-| Tests (entire codebase) | 275 |
+| Tests (entire codebase) | 264 |
 | Crappy functions | 0 |
 | Code coverage (productive) | 100% |
-| Unsafe code | 0 |
+| Unsafe code | 0 (enforced by `#![deny(unsafe_code)]`) |
 | `no_std` | Verified |
 
 ---
@@ -85,7 +85,7 @@ See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
 | `core-validation/` | Deterministic multi-node scenario harness — 23 tests |
 | `protocol/` | Message translator and protocol runtime — 33 tests |
 | `protocol-validation/` | In-process protocol cluster — 9 tests |
-| `system-tests/` | Multi-process convergence + timer + transport + observer tests — 65 tests |
+| `system-tests/` | Multi-process convergence + timer + transport + observer tests — 54 tests |
 
 ---
 
