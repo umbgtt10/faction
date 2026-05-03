@@ -41,7 +41,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn exit_mode(&self) -> Option<Conclusion> {
+    pub fn conclusion(&self) -> Option<Conclusion> {
         match self.peer_state {
             PeerState::Bootstrapped => Some(Conclusion::Bootstrapped),
             PeerState::TimedOut => Some(Conclusion::TimedOut),
@@ -55,7 +55,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn is_exited(&self) -> bool {
+    pub fn is_concluded(&self) -> bool {
         matches!(
             self.peer_state,
             PeerState::Bootstrapped | PeerState::TimedOut

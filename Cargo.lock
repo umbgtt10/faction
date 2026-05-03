@@ -216,7 +216,7 @@ dependencies = [
 
 [[package]]
 name = "faction"
-version = "0.2.0"
+version = "0.3.2"
 dependencies = [
  "proptest",
  "rstest",
@@ -224,7 +224,7 @@ dependencies = [
 
 [[package]]
 name = "faction-core-validation"
-version = "0.2.0"
+version = "0.3.2"
 dependencies = [
  "faction",
  "proptest",
@@ -233,14 +233,14 @@ dependencies = [
 
 [[package]]
 name = "faction-protocol"
-version = "0.1.0"
+version = "0.3.2"
 dependencies = [
  "faction",
 ]
 
 [[package]]
 name = "faction-protocol-validation"
-version = "0.1.0"
+version = "0.3.2"
 dependencies = [
  "faction",
  "faction-protocol",
@@ -249,7 +249,7 @@ dependencies = [
 
 [[package]]
 name = "faction-system-tests"
-version = "0.1.0"
+version = "0.3.2"
 dependencies = [
  "chrono",
  "faction",

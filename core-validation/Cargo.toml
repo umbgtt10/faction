@@ -1,13 +1,14 @@
 [package]
 name = "faction-core-validation"
-version = "0.2.0"
+version = "0.3.2"
 edition = "2021"
-rust-version = "1.81"
-authors = ["Umberto Gotti <umberto.gotti@umbertogotti.dev>"]
-license = "Apache-2.0"
-description = "A no_std + alloc validation support crate for deterministic scenario testing of the faction core state machine"
+rust-version = "1.85"
+license = "MIT"
+description = "Deterministic scenario harness for testing the faction core state machine."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"
+documentation = "https://docs.rs/faction"
+readme = "../README.md"
 keywords = ["cluster", "readiness", "validation", "no-std", "testing"]
 categories = ["no-std", "development-tools::testing"]
 autotests = false

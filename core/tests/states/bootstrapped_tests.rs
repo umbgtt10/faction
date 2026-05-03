@@ -44,8 +44,8 @@ fn process_rejects_participation_observed() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
-    assert!(cluster_view.is_exited());
+    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert!(cluster_view.is_concluded());
 }
 
 #[test]
@@ -102,9 +102,9 @@ fn process_probe_returns_correct_snapshot() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::Bootstrapped));
+    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
     assert!(cluster_view.is_pinging_completed());
-    assert!(cluster_view.is_exited());
+    assert!(cluster_view.is_concluded());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert_eq!(cluster_view.required_count(), 4);
@@ -127,9 +127,9 @@ fn cluster_view_overrides_all_fields() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
+    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.is_exited());
+    assert!(result.is_concluded());
     assert_eq!(result.pinging_peers(), &[1, 2]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.required_count(), 4);

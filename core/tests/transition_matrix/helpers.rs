@@ -96,9 +96,9 @@ pub fn verify(faction: &mut Faction, checks: &[Assert]) {
         match *check {
             Assert::PingingCount(n) => assert_eq!(cluster_view.pinging_peers().len(), n),
             Assert::CollectingCount(n) => assert_eq!(cluster_view.collecting_peers().len(), n),
-            Assert::Exited => assert!(cluster_view.is_exited()),
-            Assert::NotExited => assert!(!cluster_view.is_exited()),
-            Assert::Conclusion(mode) => assert_eq!(cluster_view.exit_mode(), Some(mode)),
+            Assert::Exited => assert!(cluster_view.is_concluded()),
+            Assert::NotExited => assert!(!cluster_view.is_concluded()),
+            Assert::Conclusion(mode) => assert_eq!(cluster_view.conclusion(), Some(mode)),
             Assert::LocalComplete => assert!(cluster_view.is_pinging_completed()),
             Assert::NotLocalComplete => assert!(!cluster_view.is_pinging_completed()),
         }

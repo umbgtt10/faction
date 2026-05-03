@@ -1,10 +1,18 @@
 [package]
 name = "faction-protocol"
-version = "0.1.0"
+version = "0.3.2"
 edition = "2024"
-autotests = false
+rust-version = "1.85"
+license = "MIT"
+description = "Message translator and protocol runtime for the faction cluster readiness state machine."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"
+documentation = "https://docs.rs/faction"
+readme = "../README.md"
+keywords = ["cluster", "readiness", "protocol", "distributed", "no-std"]
+categories = ["no-std", "network-programming"]
+autotests = false
+publish = false
 
 [dependencies]
 faction = { path = "../core" }

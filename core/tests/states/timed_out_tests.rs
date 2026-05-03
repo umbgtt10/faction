@@ -149,8 +149,8 @@ fn process_probe_after_deadline_from_pinging() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::TimedOut));
-    assert!(cluster_view.is_exited());
+    assert_eq!(cluster_view.conclusion(), Some(Conclusion::TimedOut));
+    assert!(cluster_view.is_concluded());
     assert!(!cluster_view.is_pinging_completed());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 0);
@@ -167,8 +167,8 @@ fn process_probe_after_deadline_from_collecting() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert_eq!(cluster_view.exit_mode(), Some(Conclusion::TimedOut));
-    assert!(cluster_view.is_exited());
+    assert_eq!(cluster_view.conclusion(), Some(Conclusion::TimedOut));
+    assert!(cluster_view.is_concluded());
     assert!(cluster_view.is_pinging_completed());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 1);
@@ -210,8 +210,8 @@ fn cluster_view_inherits_local_completion_from_pinging() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert_eq!(result.exit_mode(), Some(Conclusion::TimedOut));
-    assert!(result.is_exited());
+    assert_eq!(result.conclusion(), Some(Conclusion::TimedOut));
+    assert!(result.is_concluded());
     assert!(!result.is_pinging_completed());
     assert_eq!(result.pinging_peers(), &[1, 2, 3]);
     assert_eq!(result.collecting_peers(), &[9]);
@@ -229,8 +229,8 @@ fn cluster_view_inherits_local_completion_from_collecting() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert_eq!(result.exit_mode(), Some(Conclusion::TimedOut));
-    assert!(result.is_exited());
+    assert_eq!(result.conclusion(), Some(Conclusion::TimedOut));
+    assert!(result.is_concluded());
     assert!(result.is_pinging_completed());
     assert_eq!(result.pinging_peers().len(), 2);
     assert_eq!(result.collecting_peers().len(), 4);

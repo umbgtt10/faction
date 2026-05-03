@@ -1,9 +1,9 @@
 [package]
 name = "faction"
-version = "0.2.0"
+version = "0.3.2"
 edition = "2021"
-rust-version = "1.81"
-license = "Apache-2.0"
+rust-version = "1.85"
+license = "MIT"
 description = "A no_std + alloc, protocol-independent cluster readiness state machine for startup coordination and readiness quorum tracking."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"

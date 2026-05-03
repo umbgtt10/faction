@@ -66,7 +66,7 @@ impl Protocol {
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
         if let InputMessage::Timer(TimerMessage::RetryPing) = &input_message {
-            if self.cluster_view().is_exited() {
+            if self.cluster_view().is_concluded() {
                 vec![OutputMessage::Noop]
             } else {
                 vec![
@@ -75,7 +75,7 @@ impl Protocol {
                 ]
             }
         } else if let InputMessage::Timer(TimerMessage::RetryReady) = &input_message {
-            if self.cluster_view().is_exited() {
+            if self.cluster_view().is_concluded() {
                 vec![OutputMessage::Noop]
             } else {
                 vec![

@@ -124,12 +124,12 @@ proptest! {
                         previous.collecting_peers().len()
                     );
                     prop_assert_eq!(current.peer_state(), previous.peer_state());
-                    prop_assert_eq!(current.exit_mode(), previous.exit_mode());
+                    prop_assert_eq!(current.conclusion(), previous.conclusion());
                     prop_assert_eq!(
                         current.is_pinging_completed(),
                         previous.is_pinging_completed()
                     );
-                    prop_assert_eq!(current.is_exited(), previous.is_exited());
+                    prop_assert_eq!(current.is_concluded(), previous.is_concluded());
                 }
             }
         }
@@ -150,7 +150,7 @@ proptest! {
             // Assert
             for (index, has_exited) in exited.iter_mut().enumerate() {
                 let cluster_view = harness.cluster_view(index);
-                if cluster_view.is_exited() {
+                if cluster_view.is_concluded() {
                     *has_exited = true;
                     prop_assert!(matches!(
                         cluster_view.peer_state(),
@@ -160,7 +160,7 @@ proptest! {
                 }
 
                 if *has_exited {
-                    prop_assert!(cluster_view.is_exited());
+                    prop_assert!(cluster_view.is_concluded());
                     prop_assert!(matches!(
                         cluster_view.peer_state(),
                         PeerState::Bootstrapped

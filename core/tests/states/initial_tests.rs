@@ -111,7 +111,7 @@ fn process_rejects_deadline_expired() {
         _ => unreachable!(),
     };
     assert_eq!(snap.peer_state(), PeerState::Fresh);
-    assert_eq!(snap.exit_mode(), None);
+    assert_eq!(snap.conclusion(), None);
 }
 
 #[test]
@@ -171,8 +171,8 @@ fn process_rejects_invalid_commands() {
     assert_eq!(snap.peer_state(), PeerState::Fresh);
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
-    assert_eq!(snap.exit_mode(), None);
-    assert!(!snap.is_exited());
+    assert_eq!(snap.conclusion(), None);
+    assert!(!snap.is_concluded());
     assert!(!snap.is_pinging_completed());
 }
 
@@ -259,9 +259,9 @@ fn process_probe_returns_fresh_state() {
 
     // Assert
     assert_eq!(snap.peer_state(), PeerState::Fresh);
-    assert_eq!(snap.exit_mode(), None);
+    assert_eq!(snap.conclusion(), None);
     assert!(!snap.is_pinging_completed());
-    assert!(!snap.is_exited());
+    assert!(!snap.is_concluded());
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
     assert_eq!(snap.required_count(), 4);
@@ -279,7 +279,7 @@ fn cluster_view_inherits_correctly() {
     assert_eq!(result.peer_state(), PeerState::Fresh);
     assert_eq!(result.pinging_peers().len(), 0);
     assert_eq!(result.collecting_peers().len(), 0);
-    assert_eq!(result.exit_mode(), None);
+    assert_eq!(result.conclusion(), None);
     assert!(!result.is_pinging_completed());
-    assert!(!result.is_exited());
+    assert!(!result.is_concluded());
 }

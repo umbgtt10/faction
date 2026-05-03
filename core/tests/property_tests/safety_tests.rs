@@ -40,7 +40,7 @@ fn assert_post_exit_inputs_do_not_change_any_field(
     previous: ClusterView,
     current: ClusterView,
 ) -> Result<(), TestCaseError> {
-    if previous.is_exited() {
+    if previous.is_concluded() {
         prop_assert_eq!(current, previous);
     }
     Ok(())
@@ -112,7 +112,7 @@ proptest! {
         };
 
         // Assert
-        if previous.is_pinging_completed() || previous.is_exited() {
+        if previous.is_pinging_completed() || previous.is_concluded() {
             let first_rejected = matches!(first_status, ProcessResult::Rejected { .. });
             prop_assert!(first_rejected);
             prop_assert_eq!(after_first.clone(), previous);

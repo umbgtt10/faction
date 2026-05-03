@@ -1,12 +1,14 @@
 [package]
 name = "faction-protocol-validation"
-version = "0.1.0"
+version = "0.3.2"
 edition = "2021"
-rust-version = "1.81"
-license = "Apache-2.0"
-description = "Validation support crate for deterministic scenario testing of the faction protocol layer"
+rust-version = "1.85"
+license = "MIT"
+description = "Deterministic scenario harness for testing the faction protocol layer."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"
+documentation = "https://docs.rs/faction"
+readme = "../README.md"
 keywords = ["cluster", "readiness", "protocol", "validation", "testing"]
 categories = ["development-tools::testing"]
 autotests = false

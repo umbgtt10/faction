@@ -30,9 +30,9 @@ fn process_probe_returns_cluster_view_with_initial_state() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Fresh);
-    assert_eq!(cluster_view.exit_mode(), None);
+    assert_eq!(cluster_view.conclusion(), None);
     assert!(!cluster_view.is_pinging_completed());
-    assert!(!cluster_view.is_exited());
+    assert!(!cluster_view.is_concluded());
     assert_eq!(cluster_view.pinging_peers().len(), 0);
     assert_eq!(cluster_view.collecting_peers().len(), 0);
 }

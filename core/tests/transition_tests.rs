@@ -104,9 +104,9 @@ fn new_previous_view_preserves_snapshot() {
     // Assert
     let result = transition.previous_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
+    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.is_exited());
+    assert!(result.is_concluded());
     assert_eq!(result.pinging_peers().len(), 3);
     assert_eq!(result.collecting_peers().len(), 5);
 }
@@ -123,9 +123,9 @@ fn new_view_preserves_full_snapshot() {
     // Assert
     let result = transition.new_view();
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.exit_mode(), Some(Conclusion::Bootstrapped));
+    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
     assert!(result.is_pinging_completed());
-    assert!(result.is_exited());
+    assert!(result.is_concluded());
     assert_eq!(result.pinging_peers().len(), 3);
     assert_eq!(result.collecting_peers().len(), 5);
 }
