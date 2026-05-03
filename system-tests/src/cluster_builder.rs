@@ -2,12 +2,13 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use std::cell::RefCell;
 use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::rc::Rc;
+
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
@@ -123,12 +124,46 @@ impl ClusterBuilder {
         };
         let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
         let delay = self.timer_delay.duration();
+        let required = self.required;
+        let spawn = self.spawn;
 
         let nodes: Vec<Node> = peer_ids
             .iter()
             .zip(transports)
             .map(|(&id, transport)| {
-                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(self.required));
+                if matches!(spawn, Spawn::Thread) {
+                    let thread_writer = writer.clone();
+                    let thread_peer_ids = peer_ids.clone();
+                    let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(delay));
+                    return Node::spawn_thread(move || {
+                        let faction_observer: Box<dyn Observer> = match &thread_writer {
+                            Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
+                            None => Box::new(NoOpObserver),
+                        };
+                        let node_observer: Box<dyn NodeObserver> = match &thread_writer {
+                            Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
+                            None => Box::new(NoOpNodeObserver),
+                        };
+                        let config =
+                            Config::new(id, thread_peer_ids.clone(), QuorumPolicy::new(required));
+                        let protocol = Protocol::new(
+                            Faction::new(config, faction_observer),
+                            thread_peer_ids.clone(),
+                            id,
+                        );
+                        FactionNode::new(
+                            id,
+                            thread_peer_ids,
+                            protocol,
+                            transport,
+                            timer,
+                            node_observer,
+                            delay,
+                        )
+                    });
+                }
+
+                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(required));
                 let faction_observer: Box<dyn Observer> = match &writer {
                     Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                     None => Box::new(NoOpObserver),
@@ -149,15 +184,11 @@ impl ClusterBuilder {
                     node_observer,
                     delay,
                 );
-                match self.spawn {
-                    Spawn::Task => Node::task(Arc::new(Mutex::new(faction_node))),
-                    Spawn::Thread => Node::spawn_thread(Arc::new(Mutex::new(faction_node))),
-                    Spawn::Process => unreachable!(),
-                }
+                Node::task(Rc::new(RefCell::new(faction_node)))
             })
             .collect();
 
-        Cluster::new(nodes, self.spawn, self.timer_delay)
+        Cluster::new(nodes, spawn, self.timer_delay)
     }
 
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {

@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.2] — 2026-05-03
+
+### `Observer` no longer requires `Send`
+
+#### Changed
+- Removed the `: Send` supertrait bound from `faction::Observer`.
+  The bound was unnecessarily strict for `no_std` and single-threaded embedded
+  contexts, where thread-safety guarantees are meaningless and preventing
+  non-`Send` observers (e.g. `Rc<RefCell<_>>`-backed) from being used.
+  Implementations that genuinely need `Send` (e.g. `SharedFileObserver`,
+  `NoOpObserver`) remain `Send` — the bound is simply no longer enforced
+  at the trait level.
+
+#### Adapted — `system-tests`
+- `Node::Task` now holds `Rc<RefCell<FactionNode>>` instead of
+  `Arc<Mutex<FactionNode>>` — single-threaded polling never needed the
+  overhead of a mutex or the `Send` requirement.
+- `Node::Thread` no longer holds a shared reference to `FactionNode`.
+  The node is now constructed *inside* the spawned thread closure, which
+  keeps the non-`Send` observer local to the thread that owns it.
+  The final `PeerState` is communicated back to the polling loop via a
+  lightweight `Arc<Mutex<PeerState>>` written once on completion.
+- `Node::spawn_thread` signature changed from `(Arc<Mutex<FactionNode>>)`
+  to `(impl FnOnce() -> FactionNode + Send + 'static)` — the closure
+  carries only `Send` construction data; the node itself is never moved
+  across thread boundaries.
+
+---
+
+
 ## [0.3.1] — 2026-05-03
 
 ### Post-hardening cleanup — dead outcomes removed, unsafe denied, timer architecture unified
