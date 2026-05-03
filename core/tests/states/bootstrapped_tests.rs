@@ -113,7 +113,7 @@ fn process_probe_returns_correct_snapshot() {
 #[test]
 fn cluster_view_overrides_all_fields() {
     // Arrange
-    let rq = Bootstrapped::new(vec![1, 2], vec![1, 2, 3, 4, 5]);
+    let bootstrapped = Bootstrapped::new(vec![1, 2], vec![1, 2, 3, 4, 5]);
     let prev = ClusterView::new(
         PeerState::Pinging,
         false,
@@ -123,7 +123,7 @@ fn cluster_view_overrides_all_fields() {
     );
 
     // Act
-    let result = rq.cluster_view(&prev);
+    let result = bootstrapped.cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);

@@ -47,14 +47,14 @@ fn main() {
             None => (Box::new(NoOpObserver), Box::new(NoOpNodeObserver)),
         };
 
-    let cfg = Config::new(
+    let faction_config = Config::new(
         config.peer_id,
         config.peers.clone(),
         QuorumPolicy::new(config.required),
     );
 
     let protocol = Protocol::new(
-        Faction::new(cfg, observer),
+        Faction::new(faction_config, observer),
         config.peers.clone(),
         config.peer_id,
     );

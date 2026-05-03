@@ -47,27 +47,27 @@ impl Observer for RecordingObserver {
     }
 }
 
-fn recording_coordinator() -> (Faction, Observations) {
+fn recording_faction() -> (Faction, Observations) {
     let observations: Observations = Arc::new(Mutex::new(Vec::new()));
     let observer = RecordingObserver {
         observations: Arc::clone(&observations),
     };
-    let coordinator = Faction::new(
+    let faction = Faction::new(
         Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
         Box::new(observer),
     );
-    (coordinator, observations)
+    (faction, observations)
 }
 
 #[test]
 fn process_observes_local_participation_completion_transition() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
     let input = Command::LocalParticipationCompleted;
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -98,12 +98,12 @@ fn process_observes_local_participation_completion_transition() {
 #[test]
 fn process_observes_duplicate_participation_transition_without_state_change() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
     let input = Command::ParticipationObserved { peer_id: 1 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -127,15 +127,15 @@ fn process_observes_duplicate_participation_transition_without_state_change() {
 #[test]
 fn process_observes_quorum_exit_transition() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
-    let _ = coordinator.process(Command::LocalParticipationCompleted);
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 2 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::LocalParticipationCompleted);
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
     let input = Command::ReadyObserved { peer_id: 3 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -174,13 +174,13 @@ fn process_observes_quorum_exit_transition() {
 #[test]
 fn process_observes_deadline_exit_transition() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
-    let _ = coordinator.process(Command::LocalParticipationCompleted);
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::LocalParticipationCompleted);
     let input = Command::DeadlineExpired;
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -214,30 +214,30 @@ fn process_observes_deadline_exit_transition() {
 #[test]
 fn process_state_transition_outputs_fully_observable() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
+    let (mut faction, observations) = recording_faction();
 
     // Act
-    let outcomes_0 = match coordinator.process(Command::ParticipationObserved { peer_id: 1 }) {
+    let outcomes_0 = match faction.process(Command::ParticipationObserved { peer_id: 1 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_1 = match coordinator.process(Command::LocalParticipationCompleted) {
+    let outcomes_1 = match faction.process(Command::LocalParticipationCompleted) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_2 = match coordinator.process(Command::ReadyObserved { peer_id: 1 }) {
+    let outcomes_2 = match faction.process(Command::ReadyObserved { peer_id: 1 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_3 = match coordinator.process(Command::ReadyObserved { peer_id: 2 }) {
+    let outcomes_3 = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
-    let outcomes_4 = match coordinator.process(Command::ReadyObserved { peer_id: 3 }) {
+    let outcomes_4 = match faction.process(Command::ReadyObserved { peer_id: 3 }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -295,11 +295,11 @@ fn process_state_transition_outputs_fully_observable() {
 #[test]
 fn process_observes_non_member_participation_from_initial() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
+    let (mut faction, observations) = recording_faction();
     let input = Command::ParticipationObserved { peer_id: 99 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -324,11 +324,11 @@ fn process_observes_non_member_participation_from_initial() {
 #[test]
 fn process_observes_non_member_ready_from_initial() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
+    let (mut faction, observations) = recording_faction();
     let input = Command::ReadyObserved { peer_id: 99 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -353,12 +353,12 @@ fn process_observes_non_member_ready_from_initial() {
 #[test]
 fn process_observes_duplicate_ready_from_pinging() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
     let input = Command::ReadyObserved { peer_id: 1 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -382,14 +382,14 @@ fn process_observes_duplicate_ready_from_pinging() {
 #[test]
 fn process_observes_quorum_exit_from_pinging() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 2 });
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 3 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
+    let _ = faction.process(Command::ReadyObserved { peer_id: 3 });
     let input = Command::LocalParticipationCompleted;
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -426,12 +426,12 @@ fn process_observes_quorum_exit_from_pinging() {
 #[test]
 fn process_observes_deadline_exit_from_pinging() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
     let input = Command::DeadlineExpired;
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -464,14 +464,14 @@ fn process_observes_deadline_exit_from_pinging() {
 #[test]
 fn process_observes_timely_ready_from_collecting_no_quorum() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
-    let _ = coordinator.process(Command::LocalParticipationCompleted);
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::LocalParticipationCompleted);
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
     let input = Command::ReadyObserved { peer_id: 2 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -501,14 +501,14 @@ fn process_observes_timely_ready_from_collecting_no_quorum() {
 #[test]
 fn process_observes_duplicate_ready_from_collecting() {
     // Arrange
-    let (mut coordinator, observations) = recording_coordinator();
-    let _ = coordinator.process(Command::ParticipationObserved { peer_id: 1 });
-    let _ = coordinator.process(Command::LocalParticipationCompleted);
-    let _ = coordinator.process(Command::ReadyObserved { peer_id: 1 });
+    let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::LocalParticipationCompleted);
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
     let input = Command::ReadyObserved { peer_id: 1 };
 
     // Act
-    let outcomes = match coordinator.process(input) {
+    let outcomes = match faction.process(input) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),

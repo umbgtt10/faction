@@ -24,7 +24,7 @@ use faction::states::pinging::Pinging;
 const PEER_SET: &[u64] = &[0, 1, 2, 3, 4];
 const THRESHOLD: usize = 4;
 
-fn machine_in_pinging() -> Faction {
+fn faction_in_pinging() -> Faction {
     let mut faction = Faction::new(
         Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(THRESHOLD)),
         Box::new(NoOpObserver),
@@ -49,7 +49,7 @@ fn p2(faction: &mut Faction) -> usize {
 #[test]
 fn process_accepts_participation_observed() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
@@ -68,7 +68,7 @@ fn process_accepts_participation_observed() {
 #[test]
 fn process_accepts_ready_observed() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
@@ -84,7 +84,7 @@ fn process_accepts_ready_observed() {
 #[test]
 fn process_accepts_local_participation_completed() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {
@@ -102,7 +102,7 @@ fn process_accepts_local_participation_completed() {
 #[test]
 fn process_accepts_deadline_expired() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
 
     // Act
     let outcomes = match faction.process(Command::DeadlineExpired) {
@@ -123,7 +123,7 @@ fn process_accepts_deadline_expired() {
 #[test]
 fn process_participation_observed_non_member() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let before = p1(&mut faction);
 
     // Act
@@ -140,7 +140,7 @@ fn process_participation_observed_non_member() {
 
 #[test]
 fn process_participation_observed_duplicate() {
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let _ = faction.process(Command::ParticipationObserved { peer_id: 2 });
     let before = p1(&mut faction);
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
@@ -158,7 +158,7 @@ fn process_participation_observed_duplicate() {
 #[test]
 fn process_participation_observed_first_timely() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let before = p1(&mut faction);
 
     // Act
@@ -179,7 +179,7 @@ fn process_participation_observed_first_timely() {
 #[test]
 fn process_ready_observed_non_member() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let before = p2(&mut faction);
 
     // Act
@@ -197,7 +197,7 @@ fn process_ready_observed_non_member() {
 #[test]
 fn process_ready_observed_duplicate() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
     let before = p2(&mut faction);
 
@@ -219,7 +219,7 @@ fn process_ready_observed_duplicate() {
 #[test]
 fn process_ready_observed_first_timely() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let before = p2(&mut faction);
 
     // Act
@@ -237,7 +237,7 @@ fn process_ready_observed_first_timely() {
 #[test]
 fn process_local_completion_no_quorum() {
     // Arrange & Act
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
@@ -302,7 +302,7 @@ fn process_local_completion_triggers_quorum() {
 #[test]
 fn process_deadline_expired_in_pinging() {
     // Arrange
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
 
     // Act & Assert
     let outcomes = match faction.process(Command::DeadlineExpired) {
@@ -327,7 +327,7 @@ fn process_deadline_expired_in_pinging() {
 #[test]
 fn process_probe_in_pinging() {
     // Arrange & Act
-    let mut faction = machine_in_pinging();
+    let mut faction = faction_in_pinging();
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),

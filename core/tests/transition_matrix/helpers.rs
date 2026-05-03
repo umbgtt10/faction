@@ -32,48 +32,48 @@ pub enum Init {
 }
 
 pub fn build(init: Init) -> Faction {
-    let mut m = Faction::new(
+    let mut faction = Faction::new(
         Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD)),
         Box::new(NoOpObserver),
     );
     if !matches!(init, Init::Initial) {
-        let _ = m.process(Command::ParticipationObserved { peer_id: 99 });
+        let _ = faction.process(Command::ParticipationObserved { peer_id: 99 });
     }
     match init {
         Init::Initial => {}
         Init::Fresh => {}
         Init::PingingPeer1Confirmed => {
-            let _ = m.process(Command::ParticipationObserved { peer_id: 1 });
+            let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
         }
         Init::PingingP2Threshold => {
             for peer in 0..5 {
-                let _ = m.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
             }
         }
         Init::CollectingNoReadiness => {
-            let _ = m.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted);
         }
         Init::CollectingPeer1Confirmed => {
-            let _ = m.process(Command::LocalParticipationCompleted);
-            let _ = m.process(Command::ReadyObserved { peer_id: 1 });
+            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
         }
         Init::CollectingAlmostQuorum => {
-            let _ = m.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..4 {
-                let _ = m.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
             }
         }
         Init::Bootstrapped => {
-            let _ = m.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
-                let _ = m.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
             }
         }
         Init::TimedOut => {
-            let _ = m.process(Command::DeadlineExpired);
+            let _ = faction.process(Command::DeadlineExpired);
         }
     }
-    m
+    faction
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -87,8 +87,8 @@ pub enum Assert {
     NotLocalComplete,
 }
 
-pub fn verify(m: &mut Faction, checks: &[Assert]) {
-    let s = match m.process(Command::Probe) {
+pub fn verify(faction: &mut Faction, checks: &[Assert]) {
+    let s = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };

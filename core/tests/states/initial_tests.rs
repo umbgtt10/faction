@@ -20,7 +20,7 @@ use faction::state::State;
 
 use faction::states::initial::Initial;
 
-fn test_machine() -> Faction {
+fn test_faction() -> Faction {
     Faction::new(
         Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
         Box::new(NoOpObserver),
@@ -30,7 +30,7 @@ fn test_machine() -> Faction {
 #[test]
 fn process_accepts_participation_observed() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 1 }) {
@@ -55,7 +55,7 @@ fn process_accepts_participation_observed() {
 #[test]
 fn process_accepts_ready_observed() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved { peer_id: 1 }) {
@@ -77,7 +77,7 @@ fn process_accepts_ready_observed() {
 #[test]
 fn process_rejects_local_participation_completed() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act & Assert
     assert!(matches!(
@@ -97,7 +97,7 @@ fn process_rejects_local_participation_completed() {
 #[test]
 fn process_rejects_deadline_expired() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act & Assert
     assert!(matches!(
@@ -117,7 +117,7 @@ fn process_rejects_deadline_expired() {
 #[test]
 fn process_stays_in_initial_after_rejected() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act & Assert
     assert!(matches!(
@@ -147,7 +147,7 @@ fn process_stays_in_initial_after_rejected() {
 #[test]
 fn process_rejects_invalid_commands() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act & Assert
     assert!(matches!(
@@ -179,7 +179,7 @@ fn process_rejects_invalid_commands() {
 #[test]
 fn process_participation_non_member_from_initial() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
@@ -201,7 +201,7 @@ fn process_participation_non_member_from_initial() {
 #[test]
 fn process_ready_non_member_from_initial() {
     // Arrange
-    let mut faction = test_machine();
+    let mut faction = test_faction();
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved { peer_id: 99 }) {
@@ -251,7 +251,7 @@ fn new_returns_initial_state() {
 #[test]
 fn process_probe_returns_fresh_state() {
     // Arrange & Act
-    let mut faction = test_machine();
+    let mut faction = test_faction();
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
