@@ -33,14 +33,14 @@ fn faction_in_pinging() -> Faction {
     faction
 }
 
-fn p1(faction: &mut Faction) -> usize {
+fn get_pinging_peers_length(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view.pinging_peers().len(),
         _ => unreachable!(),
     }
 }
 
-fn p2(faction: &mut Faction) -> usize {
+fn get_collecting_peers_length(faction: &mut Faction) -> usize {
     match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view.collecting_peers().len(),
         _ => unreachable!(),
@@ -125,7 +125,7 @@ fn process_accepts_deadline_expired() {
 fn process_participation_observed_non_member() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let before = p1(&mut faction);
+    let before = get_pinging_peers_length(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
@@ -136,7 +136,7 @@ fn process_participation_observed_non_member() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(p1(&mut faction), before);
+    assert_eq!(get_pinging_peers_length(&mut faction), before);
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn process_participation_observed_duplicate() {
     // Arrange
     let mut faction = faction_in_pinging();
     let _ = faction.process(Command::ParticipationObserved { peer_id: 2 });
-    let before = p1(&mut faction);
+    let before = get_pinging_peers_length(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
@@ -156,14 +156,14 @@ fn process_participation_observed_duplicate() {
         outcomes,
         vec![Outcome::DuplicateParticipationIgnored { peer_id: 2 }]
     );
-    assert_eq!(p1(&mut faction), before);
+    assert_eq!(get_pinging_peers_length(&mut faction), before);
 }
 
 #[test]
 fn process_participation_observed_first_timely() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let before = p1(&mut faction);
+    let before = get_pinging_peers_length(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 3 }) {
@@ -177,14 +177,14 @@ fn process_participation_observed_first_timely() {
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 3 }]
     );
-    assert_eq!(p1(&mut faction), before + 1);
+    assert_eq!(get_pinging_peers_length(&mut faction), before + 1);
 }
 
 #[test]
 fn process_ready_observed_non_member() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let before = p2(&mut faction);
+    let before = get_collecting_peers_length(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved { peer_id: 99 }) {
@@ -195,7 +195,7 @@ fn process_ready_observed_non_member() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(p2(&mut faction), before);
+    assert_eq!(get_collecting_peers_length(&mut faction), before);
 }
 
 #[test]
@@ -203,7 +203,7 @@ fn process_ready_observed_duplicate() {
     // Arrange
     let mut faction = faction_in_pinging();
     let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
-    let before = p2(&mut faction);
+    let before = get_collecting_peers_length(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
@@ -217,14 +217,14 @@ fn process_ready_observed_duplicate() {
         outcomes,
         vec![Outcome::DuplicateReadyIgnored { peer_id: 2 }]
     );
-    assert_eq!(p2(&mut faction), before);
+    assert_eq!(get_collecting_peers_length(&mut faction), before);
 }
 
 #[test]
 fn process_ready_observed_first_timely() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let before = p2(&mut faction);
+    let before = get_collecting_peers_length(&mut faction);
 
     // Act
     let outcomes = match faction.process(Command::ReadyObserved { peer_id: 3 }) {
@@ -235,7 +235,7 @@ fn process_ready_observed_first_timely() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 3 }]);
-    assert_eq!(p2(&mut faction), before + 1);
+    assert_eq!(get_collecting_peers_length(&mut faction), before + 1);
 }
 
 #[test]
