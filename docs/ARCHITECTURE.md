@@ -90,10 +90,15 @@ quorum.** Not by policy. Not by convention. By construction.
 | State | Meaning | Carries |
 |---|---|---|
 | `Initial` | Freshly created, no action taken | Nothing — unit struct |
-| `Pinging` | Collecting participation signals from peers | `pinging_peers`, `collecting_peers` |
-| `Collecting` | Local participation complete, collecting readiness | `collecting_peers`, `pinged_peers` |
-| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | `pinged_peers`, `collected_peers` |
-| `TimedOut` | Deadline expired before quorum (terminal) | `pinging_peers`, `collecting_peers` |
+| `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
+| `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
+| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
+| `TimedOut` | Deadline expired before quorum (terminal) | Peer sets at time of expiry |
+
+Early readiness signals accumulate in `Pinging` before `LocalParticipationCompleted`
+arrives — the machine does not discard signals that arrive before their phase. This
+means a fast peer that signals readiness before the local node finishes participating
+is not penalized; its signal waits and is counted in `Collecting`.
 
 Terminal states (`Bootstrapped`, `TimedOut`) return `false` from `accept()`. This makes
 `step()` structurally unreachable on a concluded machine. The compiler enforces this —
@@ -120,7 +125,35 @@ it is not a runtime check.
 | `NonMemberIgnored { peer_id }` | Signal from a peer not in the member set |
 | `LocalParticipationCompleted` | Local node completed its participation |
 | `BroadcastLocalReady` | Local readiness should be broadcast to peers |
-| `Concluded { mode }` | Machine concluded — `Bootstrapped` or `TimedOut` |
+
+Conclusion is computed from the `ClusterView`, not emitted as a standalone outcome.
+Callers inspect `cluster_view.conclusion()` to determine whether the machine reached
+`Bootstrapped` or `TimedOut`.
+
+### Data flow
+
+```text
+Command
+  │
+  ├─ Probe? ──────────► ProcessResult::Probed (no mutation)
+  │
+  ├─ accept() false? ─► ProcessResult::Rejected { admissible }
+  │
+  ▼
+Gate 1: non-member? ──► NonMemberIgnored
+  │
+  ▼
+Gate 2: duplicate? ───► Duplicate*Ignored
+  │
+  ▼
+Step struct ──────────► outcomes + new_state
+  │
+  ▼
+Observer.observe()
+  │
+  ▼
+ProcessResult::Accepted { outcomes, cluster_view }
+```
 
 ### Process results
 
@@ -209,6 +242,10 @@ before-and-after context — not just a log line.
 | `observe(command, transition)` | Any accepted command |
 | `observe_query(command, cluster_view)` | Any `Probe` command |
 | `observe_rejection(command, cluster_view, admissible)` | Any rejected command |
+
+A `Transition` carries the full before-and-after context: the previous `ClusterView`,
+the `Vec<Outcome>` produced by the step, and the new `ClusterView`. No partial
+snapshots. No guesswork.
 
 The observer is a trait. It can be wired to structured logging, metrics pipelines,
 distributed tracing, test assertions, or audit logs. The machine does not know or care
@@ -319,6 +356,6 @@ subsequent phase.
 | L2 | **No liveness tracking.** Once concluded, the machine is terminal. No failure detection, no suspicion, no revival. | Phase 2 |
 | L3 | **No single-node addition protocol.** Joining mid-flight requires a commit/abort reconfiguration protocol not yet implemented. | Phase 3 |
 | L4 | **No single-node removal protocol.** Leaving or being removed requires a quorum-preserving removal check not yet implemented. | Phase 4 |
-| L5 | **No epochs, no concurrent changes.** Membership has no version counter. Concurrent additions and removals are not sequenced. No split-brain prevention. | Phase 5 |
-| L6 | **No durable state.** In-memory only. No crash recovery, no persisted membership log. | Future |
+| L5 | **No epochs or rejoin handling.** Membership has no version counter. Stale nodes are not rejected. Previously-removed nodes cannot rejoin. No split-brain prevention. | Phase 5 |
+| L6 | **Single-change-at-a-time.** Concurrent additions and removals are not sequenced. No bounded queue, no defined overflow behavior. | Phase 6 |
 | L7 | **No generic identity.** Peer IDs are `u64`. No `NodeId` trait, no address resolution abstraction. | Future |
