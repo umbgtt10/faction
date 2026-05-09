@@ -22,7 +22,7 @@ and implicit assumptions that are never tested in isolation. faction replaces th
 - **Verifiable** — every `(state, command)` pair is explicitly tested. No untested paths.
 - **Embeddable** — `no_std` + `alloc`, zero `unsafe`. Runs on bare metal, WASM, and cloud.
 - **Observable** — every transition reaches a trait-based `Observer`. No instrumentation surprises.
-- **Slim by construction** — each state carries only its active data. Terminal states carry counts, not collections.
+- **Slim by construction** — each state carries only its active data.
 
 ---
 
@@ -53,7 +53,7 @@ Five commands drive the machine: `ParticipationObserved`, `ReadyObserved`,
 duplication, non-member rejection, local participation completion, broadcast, quorum,
 and exit.
 
-Full specification in [phase-0-specification.md](./docs/phase-0-specification.md).
+Full specification in [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 

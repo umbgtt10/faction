@@ -3,8 +3,8 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::cell::RefCell;
-use std::env::var as env_var;
 use std::env::current_exe;
+use std::env::var as env_var;
 use std::fs::{create_dir_all, remove_file};
 use std::net::SocketAddr;
 use std::net::TcpListener;
@@ -13,10 +13,10 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
 
+use std::env::consts::EXE_EXTENSION;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
-use std::env::consts::EXE_EXTENSION;
 
 use faction::PeerId;
 use faction::config::Config;
@@ -216,8 +216,7 @@ impl ClusterBuilder {
         let bin = env_var("CARGO_BIN_EXE_faction_node")
             .ok()
             .unwrap_or_else(|| {
-                let mut path =
-                    current_exe().expect("cannot determine current executable path");
+                let mut path = current_exe().expect("cannot determine current executable path");
                 path.pop();
                 path.pop();
                 path.push("faction-node");

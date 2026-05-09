@@ -39,7 +39,7 @@ bootstrapping, discovery, and dynamic membership. Published independently on cra
 **Code coverage (productive):** 100%
 
 Full specification, state machine description, and limitations
-in [PHASE-0-SPECIFICATION.md](./PHASE-0-SPECIFICATION.md).
+in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 
@@ -47,7 +47,7 @@ in [PHASE-0-SPECIFICATION.md](./PHASE-0-SPECIFICATION.md).
 
 ### Phase 1 — Dynamic membership: joining
 **Status:** Planned  
-**Target:** 2–3 weeks  
+**Target:** 4–6 weeks  
 **Removes:** L1 (static membership)  
 
 New question: **"Can a new peer join the cluster?"**
@@ -85,7 +85,7 @@ reconfiguration with atomic commit and structural single-change enforcement.
 
 ### Phase 2 — Failure detection
 **Status:** Planned  
-**Target:** 3–4 weeks  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 1 complete  
 
 New question: **"Is everyone still alive?"**
@@ -123,7 +123,7 @@ means, only whether the alive set satisfies the threshold the caller provided.
 
 ### Phase 3 — Single-node addition
 **Status:** Planned  
-**Target:** 2–3 weeks  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 2 complete  
 
 New question: **"Can we grow by one?"**
@@ -155,7 +155,7 @@ valid quorum. Single-at-a-time additions make this structurally impossible.
 
 ### Phase 4 — Single-node removal
 **Status:** Planned  
-**Target:** 2–3 weeks  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 3 complete  
 
 New question: **"Can we shrink by one?"**
@@ -186,7 +186,7 @@ unavailable when the alive set would drop below threshold.
 
 ### Phase 5 — Full dynamic membership
 **Status:** Planned  
-**Target:** 4–6 weeks  
+**Target:** 8-10 weeks  
 **Depends on:** Phase 4 complete  
 
 New question: **"Can membership change arbitrarily under adversarial conditions?"**
@@ -216,42 +216,17 @@ serialized by the machine into a bounded queue. The caller provides the bound.
 
 ---
 
-## Publication readiness checklist
-
-- [ ] All five phases complete with full `(state, input)` coverage
-- [ ] `faction-validation` harness covers all phases adversarially
-- [ ] `no_std + alloc` verified — no `std` dependency anywhere
-- [x] 0 unsafe — `#![deny(unsafe_code)]` at crate root
-- [ ] Observer trait coverage — every transition pair verified
-- [ ] README written as a standalone document — no EtheRAM references except in examples section
-- [ ] At least one sample integration (Raft or IBFT) published as a companion crate
-- [ ] crates.io metadata complete — description, keywords, categories, license
-- [ ] CHANGELOG.md from Phase 0 through publication
-
----
-
-## The `cartel` boundary
-
-`faction` manages membership — who is in the cluster and whether they are alive. `faction`
-emits `QuorumLost` and `QuorumRestored` events based on a threshold the caller provides,
-but it does not compute quorum. That is `cartel`'s job.
-
-The seam is explicit: `faction` → membership set + liveness events. `cartel` → quorum
-computation over that set. The caller wires them together.
-
----
-
 ## Timeline summary
 
 | Phase | Focus | Target duration |
 |---|---|---|
 | Phase 0 | Static membership (cluster bootstrapping) | Complete |
-| Phase 1 | Dynamic membership: joining | 2–3 weeks |
-| Phase 2 | Failure detection (SWIM) | 3–4 weeks |
-| Phase 3 | Single-node addition | 2–3 weeks |
-| Phase 4 | Single-node removal | 2–3 weeks |
-| Phase 5 | Full dynamic membership | 4–6 weeks |
-| **Total** | | **13–20 weeks** |
+| Phase 1 | Dynamic membership: joining | 4–6 weeks |
+| Phase 2 | Failure detection (SWIM) | 4–6 weeks |
+| Phase 3 | Single-node addition | 4–6 weeks |
+| Phase 4 | Single-node removal | 4–6 weeks |
+| Phase 5 | Full dynamic membership | 8–10 weeks |
+| **Total** | | **24–34 weeks** |
 
 ---
 
@@ -261,6 +236,6 @@ computation over that set. The caller wires them together.
 - No phase begins until the previous phase has 100% `(state, input)` coverage
 - Each phase is a strict superset of the previous — Phase N tests pass at Phase N+5
 - No logic changes without a failing test first
-- No unsafe code — ever
+- No unsafe code
 - The machine never performs I/O — it only emits commands
 - Every degenerate case is a first-class state, not an error path
