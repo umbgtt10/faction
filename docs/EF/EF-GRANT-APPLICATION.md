@@ -112,11 +112,10 @@ is the contribution. `faction` is the demonstration.
 
 **What makes the deliverable unusual**
 
-Most core protocol research delivers a paper or a formal model. The artifact is
-abstract. Reproducing the results requires rebuilding the implementation from
-scratch. `faction` delivers the research contribution and the production artifact
-as the same thing: a published, MIT-licensed crate that any client team can
-import today.
+Most core protocol research delivers a paper or a formal model. Reproducing the results
+requires rebuilding the implementation from scratch. `faction` delivers the research
+contribution and the production artifact as the same thing: a published, MIT-licensed
+crate that any client team can import today.
 
 Phase 0 is on crates.io right now. The research is already deployed.
 
@@ -339,9 +338,9 @@ GitHub today.
 |---|---|
 | crates.io | https://crates.io/crates/faction |
 | GitHub | https://github.com/umbgtt10/faction |
-| ETHEREUM.md | [faction/docs/ETHEREUM.md] |
-| ARCHITECTURE.md | [faction/docs/ARCHITECTURE.md] |
-| ROADMAP.md | [faction/docs/ROADMAP.md] |
-| Transition matrix | [faction/core/tests/transition_matrix/state_transition_matrix_tests.rs] |
+| ETHEREUM.md | https://github.com/umbgtt10/faction/blob/main/docs/ETHEREUM.md |
+| ARCHITECTURE.md | https://github.com/umbgtt10/faction/blob/main/docs/ARCHITECTURE.md |
+| ROADMAP.md | https://github.com/umbgtt10/faction/blob/main/docs/ROADMAP.md |
+| Transition matrix | https://github.com/umbgtt10/faction/blob/main/core/tests/transition_matrix/state_transition_matrix_tests.rs |
 | `crap4rust` | https://crates.io/crates/crap4rust |
 | `fluxion` | https://crates.io/crates/fluxion-rx |
