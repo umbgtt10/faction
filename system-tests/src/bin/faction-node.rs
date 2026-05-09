@@ -4,6 +4,8 @@
 
 #![deny(unsafe_code)]
 
+use std::fs::create_dir_all;
+use std::process::exit;
 use std::time::Duration;
 
 use faction::config::Config;
@@ -38,7 +40,7 @@ fn main() {
         match &config.log_path {
             Some(path) => {
                 if let Some(parent) = path.parent() {
-                    let _ = std::fs::create_dir_all(parent);
+                    let _ = create_dir_all(parent);
                 }
                 let writer = new_shared_writer(path);
                 let obs = Box::new(SharedFileObserver::new(writer.clone(), config.peer_id));
@@ -92,8 +94,8 @@ fn main() {
 
     let state = run::run(node);
     match state {
-        PeerState::Bootstrapped => std::process::exit(0),
-        PeerState::TimedOut => std::process::exit(1),
-        _ => std::process::exit(2),
+        PeerState::Bootstrapped => exit(0),
+        PeerState::TimedOut => exit(1),
+        _ => exit(2),
     }
 }

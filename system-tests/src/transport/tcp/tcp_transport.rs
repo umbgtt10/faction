@@ -10,7 +10,7 @@ use std::io::{ErrorKind, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::thread::{JoinHandle, sleep, spawn};
 use std::time::Duration;
 
 pub struct TcpTransport {
@@ -19,7 +19,7 @@ pub struct TcpTransport {
     buf: Vec<u8>,
     _listener: TcpListener,
     _shutdown: Arc<AtomicBool>,
-    _accept_thread: Option<thread::JoinHandle<()>>,
+    _accept_thread: Option<JoinHandle<()>>,
 }
 
 impl Drop for TcpTransport {
@@ -55,7 +55,7 @@ impl TcpTransport {
         let thread_listener = listener.try_clone().unwrap();
         let ib = inbound.clone();
         let sd = shutdown.clone();
-        let accept_thread = thread::spawn(move || {
+        let accept_thread = spawn(move || {
             for incoming in thread_listener.incoming() {
                 if sd.load(Ordering::Relaxed) {
                     break;
@@ -79,7 +79,7 @@ impl TcpTransport {
                         Ok(s) => break s,
                         Err(_) if attempts < 150 => {
                             attempts += 1;
-                            std::thread::sleep(Duration::from_millis(100));
+                            sleep(Duration::from_millis(100));
                         }
                         Err(e) => panic!("failed to connect to {addr}: {e}"),
                     }

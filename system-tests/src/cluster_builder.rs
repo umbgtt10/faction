@@ -3,7 +3,11 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::cell::RefCell;
+use std::env::var as env_var;
+use std::env::current_exe;
+use std::fs::{create_dir_all, remove_file};
 use std::net::SocketAddr;
+use std::net::TcpListener;
 use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::Command;
@@ -12,6 +16,7 @@ use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use std::env::consts::EXE_EXTENSION;
 
 use faction::PeerId;
 use faction::config::Config;
@@ -89,9 +94,9 @@ impl ClusterBuilder {
     #[must_use]
     pub fn log_path(mut self, path: PathBuf) -> Self {
         if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
+            let _ = create_dir_all(parent);
         }
-        let _ = std::fs::remove_file(&path);
+        let _ = remove_file(&path);
         self.log_path = Some(path);
         self
     }
@@ -195,7 +200,7 @@ impl ClusterBuilder {
         let addrs: Vec<SocketAddr> = peer_ids
             .iter()
             .map(|_| {
-                let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+                let l = TcpListener::bind("127.0.0.1:0").unwrap();
                 let a = l.local_addr().unwrap();
                 drop(l);
                 a
@@ -208,15 +213,15 @@ impl ClusterBuilder {
             .zip(addrs.iter().copied())
             .collect();
 
-        let bin = std::env::var("CARGO_BIN_EXE_faction_node")
+        let bin = env_var("CARGO_BIN_EXE_faction_node")
             .ok()
             .unwrap_or_else(|| {
                 let mut path =
-                    std::env::current_exe().expect("cannot determine current executable path");
+                    current_exe().expect("cannot determine current executable path");
                 path.pop();
                 path.pop();
                 path.push("faction-node");
-                path.set_extension(std::env::consts::EXE_EXTENSION);
+                path.set_extension(EXE_EXTENSION);
                 path.to_string_lossy().to_string()
             });
 

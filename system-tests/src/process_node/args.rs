@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+use std::env::args;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
@@ -18,7 +19,7 @@ pub struct Args {
 impl Args {
     pub fn from_env() -> Self {
         Self {
-            args: std::env::args().collect(),
+            args: args().collect(),
         }
     }
 

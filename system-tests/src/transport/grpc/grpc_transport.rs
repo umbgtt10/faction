@@ -3,13 +3,15 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::collections::{HashMap, VecDeque};
-use std::net::SocketAddr;
+use std::net::{SocketAddr, TcpListener};
 use std::sync::{Arc, Mutex, OnceLock};
+use std::thread::available_parallelism;
 
 use faction::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
-use tokio::runtime::Runtime;
+use tokio::net::TcpListener as TokioTcpListener;
+use tokio::runtime::{Builder as RuntimeBuilder, Runtime};
 use tokio::sync::Mutex as AsyncMutex;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot::{Sender as OneshotSender, channel as oneshot_channel};
@@ -68,12 +70,8 @@ impl GrpcTransport {
     fn runtime() -> &'static Runtime {
         static RT: OnceLock<Runtime> = OnceLock::new();
         RT.get_or_init(|| {
-            tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(
-                    std::thread::available_parallelism()
-                        .map(|p| p.get())
-                        .unwrap_or(2),
-                )
+            RuntimeBuilder::new_multi_thread()
+                .worker_threads(available_parallelism().map(|p| p.get()).unwrap_or(2))
                 .enable_all()
                 .build()
                 .unwrap()
@@ -94,9 +92,9 @@ impl GrpcTransport {
     }
 
     fn build_server(inbox: Inbox, listen_addr: SocketAddr) -> OneshotSender<()> {
-        let l = std::net::TcpListener::bind(listen_addr).unwrap();
+        let l = TcpListener::bind(listen_addr).unwrap();
         l.set_nonblocking(true).unwrap();
-        let tl = tokio::net::TcpListener::from_std(l).unwrap();
+        let tl = TokioTcpListener::from_std(l).unwrap();
         Self::spawn_server(inbox, TcpListenerStream::new(tl))
     }
 
@@ -151,11 +149,11 @@ impl GrpcTransport {
             for _ in 0..n {
                 let ib: Inbox = Arc::new(Mutex::new(VecDeque::new()));
                 let ib_for_server = ib.clone();
-                let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+                let l = TcpListener::bind("127.0.0.1:0").unwrap();
                 l.set_nonblocking(true).unwrap();
                 let a = l.local_addr().unwrap();
                 peer_addrs.push((PeerId::default(), a));
-                let tl = tokio::net::TcpListener::from_std(l).unwrap();
+                let tl = TokioTcpListener::from_std(l).unwrap();
                 let stx = Self::spawn_server(ib_for_server, TcpListenerStream::new(tl));
                 shutdown_txs.push(stx);
                 inboxes.push(ib);

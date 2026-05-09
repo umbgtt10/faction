@@ -3,9 +3,11 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use std::cell::RefCell;
+use std::process::Child;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::thread::{JoinHandle, spawn};
 
 use faction::peer_state::PeerState;
 
@@ -17,10 +19,10 @@ pub enum Node {
     },
     Thread {
         state: Arc<Mutex<PeerState>>,
-        _handle: std::thread::JoinHandle<()>,
+        _handle: JoinHandle<()>,
     },
     Process {
-        child: Mutex<std::process::Child>,
+        child: Mutex<Child>,
     },
 }
 
@@ -34,7 +36,7 @@ impl Node {
     pub fn spawn_thread(build: impl FnOnce() -> FactionNode + Send + 'static) -> Self {
         let state = Arc::new(Mutex::new(PeerState::Fresh));
         let state_clone = state.clone();
-        let handle = std::thread::spawn(move || {
+        let handle = spawn(move || {
             let mut node = build();
             node.run();
             *state_clone.lock().unwrap() = node.peer_state();
@@ -46,7 +48,7 @@ impl Node {
     }
 
     #[must_use]
-    pub fn process(child: std::process::Child) -> Self {
+    pub fn process(child: Child) -> Self {
         Self::Process {
             child: Mutex::new(child),
         }

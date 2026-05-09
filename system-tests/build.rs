@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+use std::error::Error;
+
+fn main() -> Result<(), Box<dyn Error>> {
     tonic_build::configure()
         .out_dir("src/transport/grpc/generated")
         .compile_protos(
