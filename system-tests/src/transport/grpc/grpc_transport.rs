@@ -11,7 +11,8 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use tokio::runtime::Runtime;
 use tokio::sync::Mutex as AsyncMutex;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::sync::oneshot::{Sender as OneshotSender, channel as oneshot_channel};
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::Request;
 use tonic::transport::{Channel, Endpoint, Server};
@@ -23,11 +24,11 @@ use crate::transport::grpc::grpc_service::GrpcSvc;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 type Clients = Arc<AsyncMutex<HashMap<PeerId, TransportClient<Channel>>>>;
-type Tx = mpsc::UnboundedSender<(PeerId, TransportMessage)>;
+type Tx = UnboundedSender<(PeerId, TransportMessage)>;
 
 pub struct GrpcTransport {
     inbox: Inbox,
-    _shutdown_tx: Option<oneshot::Sender<()>>,
+    _shutdown_tx: Option<OneshotSender<()>>,
     _tx: Tx,
 }
 
@@ -52,7 +53,7 @@ impl GrpcTransport {
         d
     }
 
-    fn spawn_sender(mut rx: mpsc::UnboundedReceiver<(PeerId, TransportMessage)>, clients: Clients) {
+    fn spawn_sender(mut rx: UnboundedReceiver<(PeerId, TransportMessage)>, clients: Clients) {
         Self::runtime().spawn(async move {
             while let Some((to, msg)) = rx.recv().await {
                 let mut guard = clients.lock().await;
@@ -79,8 +80,8 @@ impl GrpcTransport {
         })
     }
 
-    fn spawn_server(inbox: Inbox, stream: TcpListenerStream) -> oneshot::Sender<()> {
-        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    fn spawn_server(inbox: Inbox, stream: TcpListenerStream) -> OneshotSender<()> {
+        let (shutdown_tx, shutdown_rx) = oneshot_channel();
         Self::runtime().spawn(async move {
             tokio::select! {
                 _ = Server::builder()
@@ -92,7 +93,7 @@ impl GrpcTransport {
         shutdown_tx
     }
 
-    fn build_server(inbox: Inbox, listen_addr: SocketAddr) -> oneshot::Sender<()> {
+    fn build_server(inbox: Inbox, listen_addr: SocketAddr) -> OneshotSender<()> {
         let l = std::net::TcpListener::bind(listen_addr).unwrap();
         l.set_nonblocking(true).unwrap();
         let tl = tokio::net::TcpListener::from_std(l).unwrap();
@@ -128,7 +129,7 @@ impl GrpcTransport {
         let shutdown_tx = Self::build_server(inbox.clone(), listen_addr);
         let clients = Self::build_clients(peer_id, peer_addrs);
 
-        let (tx, rx) = mpsc::unbounded_channel();
+        let (tx, rx) = unbounded_channel();
         Self::spawn_sender(rx, clients);
 
         Self {
@@ -177,7 +178,7 @@ impl GrpcTransport {
             .zip(client_lists)
             .zip(shutdown_txs)
             .map(|((ib, clients), stx)| {
-                let (tx, rx) = mpsc::unbounded_channel();
+                let (tx, rx) = unbounded_channel();
                 Self::spawn_sender(rx, clients);
                 GrpcTransport {
                     inbox: ib,
