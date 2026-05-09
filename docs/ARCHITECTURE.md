@@ -53,24 +53,33 @@ implementation share the same vocabulary.
 
 ## Why two phases?
 
-A single-phase design — where every node races to confirm readiness — creates a class
-of race conditions where a node can declare quorum before completing its own
-participation. This is not a theoretical concern: it manifests in real clusters where
-one node starts faster than others, collects readiness signals from peers, and exits
-before confirming that it itself has participated.
+Cluster bootstrapping involves two distinct signals:
 
-The two-phase design eliminates this class of bug structurally:
+* **Participation** — "I am alive and joining the cluster."
+* **Readiness** — "I have finished my startup work. I am ready to proceed."
 
-**Phase 1 — Pinging.** The node collects participation signals from peers. It cannot
-transition to Phase 2 until it has signalled its own local participation.
-`LocalParticipationCompleted` is the gate.
+A single-phase design conflates them. Every node races to confirm readiness, and
+the first node to collect enough signals can declare quorum and exit — before it has
+ever signalled its own participation, let alone finished its own startup.
 
-**Phase 2 — Collecting.** The node collects readiness signals. Quorum is only checked
-in this phase. A node that has not completed Phase 1 cannot exit with `Bootstrapped`
-regardless of what signals it receives.
+This is not subtle. In any real cluster some nodes start faster than others. The
+fast node hears readiness pings from slower peers, tallies quorum, and announces
+success — while its own initialization is still in progress. The cluster has
+"converged" with a member that isn't ready.
 
-The invariant this enforces: **a node never declares quorum before confirming its own
-participation.** Not by convention. By construction.
+The two-phase design eliminates this structurally:
+
+**Phase 1 — Pinging.** The node collects *participation* signals ("I'm alive")
+from peers. It cannot leave this phase until it declares its own participation
+complete via `LocalParticipationCompleted`. No quorum check happens here.
+
+**Phase 2 — Collecting.** The node collects *readiness* signals ("I'm ready").
+Quorum is only checked in this phase. A node that hasn't passed through Phase 1
+cannot reach Phase 2, and therefore cannot exit with `Bootstrapped` — regardless
+of how many readiness signals it hears.
+
+The invariant: **a node that hasn't finished its own startup can never declare
+quorum.** Not by policy. Not by convention. By construction.
 
 ---
 
