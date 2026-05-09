@@ -123,7 +123,8 @@ declare quorum before confirming its own participation.
 | `core-validation/` | Multi-node deterministic scenarios — 23 tests |
 | `protocol/` | Message translation and protocol runtime — 33 tests |
 | `protocol-validation/` | In-process protocol cluster — 9 tests |
-| `system-tests/` | Multi-process convergence across all spawn/transport combinations — 64 tests |
+| `system-tests/` convergence | (10 spawn/transport × 2 quorum scenarios) — 20 tests |
+| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing — 44 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -261,7 +262,8 @@ for the complete technical specification.
 | `core-validation/` | Deterministic multi-node scenario harness | 23 |
 | `protocol/` | Message translator and protocol runtime | 33 |
 | `protocol-validation/` | In-process protocol cluster | 9 |
-| `system-tests/` | Multi-process convergence across all combinations | 64 |
+| `system-tests/` convergence | (10 spawn/transport × 2 quorum scenarios) | 20 |
+| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing | 44 |
 
 ---
 
