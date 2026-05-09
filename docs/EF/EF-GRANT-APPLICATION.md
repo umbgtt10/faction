@@ -153,7 +153,7 @@ Phase 0 is complete. The evidence is public and verifiable.
 | Metric | Value |
 |---|---|
 | Productive LOC | 1,165 |
-| Total tests | 264 |
+| Total tests | 275 |
 | Code coverage | 100% |
 | `(state, command)` pairs tested | All — explicitly |
 | Crappy functions (CRAP score) | 0 |
@@ -307,7 +307,7 @@ Linux. I hold ICP-ACC and iSAQB certifications.
 My published crates demonstrate both the technical depth and the execution velocity
 relevant to this grant:
 
-- **`faction`** — the subject of this application. Phase 0: 264 tests, 100%
+- **`faction`** — the subject of this application. Phase 0: 275 tests, 100%
   coverage, 10-combination system test matrix, published MIT.
 - **`fluxion`** — Rust-idiomatic implementation of composite Rx extensions for stream aggregation
   with ordering guarantee, friendly fluent API, bulletproof testing, runtime abstraction and top-notch documentation, published MIT.

@@ -56,7 +56,7 @@ Queryable. Tested across every spawn/transport combination.
 | Metric | Value |
 |---|---|
 | Productive LOC | 1,165 |
-| Total tests | 264 |
+| Total tests | 275 |
 | Code coverage | 100% |
 | `(state, command)` pairs tested | All — explicitly |
 | Crappy functions (CRAP score) | 0 |

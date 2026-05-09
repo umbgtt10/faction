@@ -123,7 +123,7 @@ declare quorum before confirming its own participation.
 | `core-validation/` | Multi-node deterministic scenarios — 23 tests |
 | `protocol/` | Message translation and protocol runtime — 33 tests |
 | `protocol-validation/` | In-process protocol cluster — 9 tests |
-| `system-tests/` | Multi-process convergence across all spawn/transport combinations — 54 tests |
+| `system-tests/` | Multi-process convergence across all spawn/transport combinations — 64 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -187,7 +187,7 @@ The caller owns the network. `faction` owns the state.
 | Metric | Value |
 |---|---|
 | Productive LOC | 1,165 |
-| Total tests | 264 |
+| Total tests | 275 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -261,7 +261,7 @@ for the complete technical specification.
 | `core-validation/` | Deterministic multi-node scenario harness | 23 |
 | `protocol/` | Message translator and protocol runtime | 33 |
 | `protocol-validation/` | In-process protocol cluster | 9 |
-| `system-tests/` | Multi-process convergence across all combinations | 54 |
+| `system-tests/` | Multi-process convergence across all combinations | 64 |
 
 ---
 
