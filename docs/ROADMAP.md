@@ -152,6 +152,13 @@ Membership changes are now controlled via a commit/abort reconfiguration protoco
 The machine enforces a strict single-change-at-a-time invariant structurally — it is
 impossible to request a second addition while one is in flight.
 
+**Why this is distinct from Phase 1.** Phase 1 answers "is this peer allowed
+to participate?" — it is a gatekeeper with no safety guarantees. Multiple
+peers can join concurrently; the machine neither coordinates nor rolls back.
+Phase 3 answers "does changing the member set preserve quorum safety?" — it
+wraps the change in a commit/abort protocol with a mutual exclusion guard.
+Where Phase 1 is permissive and stateless, Phase 3 is coordinated and atomic.
+
 **New states:**
 - `Reconfiguring(PendingAddition)` — one addition committed, further changes blocked
 
