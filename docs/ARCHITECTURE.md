@@ -69,6 +69,27 @@ success — while its own initialization is still in progress. The cluster has
 
 The two-phase design eliminates this structurally:
 
+```text
+SINGLE-PHASE (broken):
+
+  Peer 2: ──Ready──►
+  Peer 3: ──Ready──►
+  Peer 4: ──Ready──►
+  Peer 1:  [still starting up...]  ◄── declares quorum anyway
+
+  All it takes is one fast node that hears readiness before finishing its own work.
+
+TWO-PHASE (fixed):
+
+  Participation ("I'm alive")           Readiness ("I'm ready")
+  ┌─────────────────────────┐          ┌──────────────────────────┐
+  │ Gate: LocalParticipation │  ───►   │ Quorum checked here      │
+  │ Completed required       │          │                          │
+  │ No quorum check          │          │ Node can't enter Phase 2  │
+  │                          │          │ without passing the gate  │
+  └─────────────────────────┘          └──────────────────────────┘
+```
+
 **Phase 1 — Pinging.** The node collects *participation* signals ("I'm alive")
 from peers. It cannot leave this phase until it declares its own participation
 complete via `LocalParticipationCompleted`. No quorum check happens here.
