@@ -82,12 +82,12 @@ SINGLE-PHASE (broken):
 TWO-PHASE (fixed):
 
   Participation ("I'm alive")           Readiness ("I'm ready")
-  ┌─────────────────────────┐          ┌──────────────────────────┐
-  │ Gate: LocalParticipation │  ───►   │ Quorum checked here      │
+  ┌──────────────────────────┐          ┌──────────────────────────┐
+  │ Gate: LocalParticipation │  ───►    │ Quorum checked here      │
   │ Completed required       │          │                          │
-  │ No quorum check          │          │ Node can't enter Phase 2  │
-  │                          │          │ without passing the gate  │
-  └─────────────────────────┘          └──────────────────────────┘
+  │ No quorum check          │          │ Node can't enter Phase 2 │
+  │                          │          │ without passing the gate │
+  └──────────────────────────┘          └──────────────────────────┘
 ```
 
 **Phase 1 — Pinging.** The node collects *participation* signals ("I'm alive")
@@ -105,6 +105,18 @@ quorum.** Not by policy. Not by convention. By construction.
 ---
 
 ## State machine specification
+
+### Construction
+
+```rust
+let config = Config::new(peer_id, peers, QuorumPolicy::new(required));
+let machine = Faction::new(config, observer);
+```
+
+`Config` holds the static peer list and quorum threshold. `QuorumPolicy` wraps an
+integer — the machine only checks "does the confirmed count meet or exceed this?"
+`Faction::new` takes both plus an `Observer` trait object. Construction produces a
+machine in the `Initial` state with an empty `ClusterView`.
 
 ### States
 
