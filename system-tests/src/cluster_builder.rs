@@ -48,7 +48,7 @@ use crate::transport_kind::TransportKind;
 
 pub struct ClusterBuilder {
     node_count: usize,
-    required: usize,
+    node_required: usize,
     spawn: Spawn,
     transport: TransportKind,
     timer_delay: TimerDelay,
@@ -57,10 +57,10 @@ pub struct ClusterBuilder {
 
 impl ClusterBuilder {
     #[must_use]
-    pub fn new(node_count: usize, required: usize) -> Self {
+    pub fn new(node_count: usize, node_required: usize) -> Self {
         Self {
             node_count,
-            required,
+            node_required,
             spawn: Spawn::Task,
             transport: TransportKind::InMemory,
             timer_delay: TimerDelay::Minimal,
@@ -129,7 +129,7 @@ impl ClusterBuilder {
         };
         let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
         let delay = self.timer_delay.duration();
-        let required = self.required;
+        let node_required = self.node_required;
         let spawn = self.spawn;
 
         let nodes: Vec<Node> = peer_ids
@@ -149,8 +149,11 @@ impl ClusterBuilder {
                             Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                             None => Box::new(NoOpNodeObserver),
                         };
-                        let config =
-                            Config::new(id, thread_peer_ids.clone(), QuorumPolicy::new(required));
+                        let config = Config::new(
+                            id,
+                            thread_peer_ids.clone(),
+                            QuorumPolicy::new(node_required),
+                        );
                         let protocol = Protocol::new(
                             Faction::new(config, faction_observer),
                             thread_peer_ids.clone(),
@@ -168,7 +171,7 @@ impl ClusterBuilder {
                     });
                 }
 
-                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(required));
+                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(node_required));
                 let faction_observer: Box<dyn Observer> = match &writer {
                     Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                     None => Box::new(NoOpObserver),
@@ -250,7 +253,7 @@ impl ClusterBuilder {
                 .arg("--peers")
                 .arg(&peers_arg)
                 .arg("--required")
-                .arg(self.required.to_string())
+                .arg(self.node_required.to_string())
                 .arg("--freshness-margin")
                 .arg("2")
                 .arg("--transport")

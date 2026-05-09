@@ -5,9 +5,18 @@
 Every distributed system needs to answer one question before it can do anything else:
 *"Is the cluster ready to proceed?"*
 
-Most systems answer it with ad-hoc coordination — timeouts copied from stack overflow,
+Most systems answer it with ad-hoc coordination, custom timeouts, euristics,
 magic numbers tuned by intuition, and startup sequences that were never tested in
 isolation. When they break, they break silently, under load, in production.
+
+Consensus protocols don't help. IBFT, PBFT, and Tendermint assume the cluster
+already exists — they consume a static validator set and answer "what's the next
+block?" without ever asking "are we a cluster yet?" Raft tries harder but fuses
+bootstrapping directly into leader election and log replication. When a Raft
+cluster won't form, you face a single opaque failure mode indistinguishable from
+a network partition, a slow peer, or a config mismatch. Both families of protocol
+skip the same gate: is the set of peers actually alive and in agreement before
+consensus begins?
 
 `faction` replaces that with a **formally specified, fully tested Mealy state machine**
 that answers the question deterministically, observably, and provably.
@@ -134,31 +143,38 @@ across all combinations.
 
 ```toml
 [dependencies]
-faction-core = "0.2"
+faction = "0.3"
 ```
 
 ```rust
-use faction_core::{Config, Faction, Command, ProcessResult};
+use faction::command::Command;
+use faction::config::Config;
+use faction::faction::Faction;
+use faction::no_op_observer::NoOpObserver;
+use faction::process_result::ProcessResult;
+use faction::quorum_policy::QuorumPolicy;
 
-// Build a 5-node cluster requiring quorum of 4
-let config = Config::builder()
-    .peers(vec![0, 1, 2, 3, 4])
-    .local_peer_id(0)
-    .quorum(4)
-    .build();
+extern crate alloc;
 
-let mut faction = Faction::new(config, my_observer);
+let config = Config::new(
+    0,
+    alloc::vec![0, 1, 2, 3, 4],
+    QuorumPolicy::new(4),
+);
 
-// Feed signals as they arrive from the network
-match faction.process(Command::ParticipationObserved { peer_id: 1 }) {
-    ProcessResult::Accepted { outcomes, cluster_view } => {
-        // handle outcomes, inspect cluster_view
-    }
-    ProcessResult::Rejected { cluster_view, admissible } => {
-        // command not valid in current state
-        // admissible lists what IS valid right now
-    }
-    ProcessResult::Probed { .. } => unreachable!()
+let mut machine = Faction::new(config, Box::new(NoOpObserver));
+
+machine.process(Command::ParticipationObserved { peer_id: 1 });
+machine.process(Command::ParticipationObserved { peer_id: 2 });
+machine.process(Command::LocalParticipationCompleted);
+machine.process(Command::ReadyObserved { peer_id: 1 });
+machine.process(Command::ReadyObserved { peer_id: 2 });
+machine.process(Command::ReadyObserved { peer_id: 3 });
+
+// Quorum of 4 reached → Bootstrapped.
+let result = machine.process(Command::ReadyObserved { peer_id: 4 });
+if let ProcessResult::Accepted { cluster_view, .. } = result {
+    assert!(cluster_view.is_concluded());
 }
 ```
 
