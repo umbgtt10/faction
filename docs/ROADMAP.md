@@ -191,6 +191,13 @@ would drop the live set below quorum threshold. This is not a runtime check — 
 a state transition that is structurally unavailable when the live set would be
 insufficient.
 
+**Why this is distinct from Phase 2.** Phase 2 answers "is this peer alive?"
+— it observes and reports liveness. A dead peer stays in the member set;
+the machine tracks suspicion but takes no action. Phase 4 answers "should this
+peer be removed from the member set?" — it executes a coordinated state change
+with quorum safety guarantees. Detection is passive observation. Removal is an
+action with consequences.
+
 **New inputs:**
 - `RequestRemove { node }`
 - `RemoveCommitted`
@@ -210,22 +217,6 @@ insufficient.
 | Probe arrives after node is removed | Post-removal | Silently discarded via defined transition |
 
 **Gate:** 100% `(state, input)` coverage. Phase 5 does not begin until this gate is green.
-
----
-
-## Paper — EuroSys / OSDI submission
-**Status:** Planned  
-**Target:** Parallel with Phase 4–6
-**Venue:** EuroSys 2027 (submission ~September 2026)  
-
-Document the three contributions:
-- The `faction` primitive and its design rationale
-- The `(state × input)` complete coverage methodology
-- Empirical validation across embedded and cloud targets
-
-The paper is written in parallel with Phases 4 through 6 implementation.
-The git history provides the quality trajectory data.
-The system test matrix provides the empirical validation.
 
 ---
 
@@ -253,7 +244,7 @@ rejected. The machine tracks the epoch at which each node last confirmed members
 
 **New states:**
 - `SplitSuspected` — minority partition suspected
-- `Rejoining(NodeId)` — previously-removed node being re-admitted
+- `Rejoining(PeerId)` — previously-removed node being re-admitted
 
 **Gate:** 100% `(state, input)` coverage. Phase 6 does not begin until this gate is green.
 
@@ -333,3 +324,20 @@ These rules are non-negotiable. They apply to every phase, every commit, every P
 - Every degenerate input in every state is a first-class transition, not an error path
 - One struct per file
 - CRAP score 0 before any phase is declared complete
+
+---
+
+## Paper — EuroSys / OSDI submission
+
+**Status:** Planned  
+**Target:** Parallel with Phase 4–6  
+**Venue:** EuroSys 2027 (submission ~September 2026)  
+
+Document the three contributions:
+- The `faction` primitive and its design rationale
+- The `(state × input)` complete coverage methodology
+- Empirical validation across embedded and cloud targets
+
+The paper is written in parallel with Phases 4 through 6 implementation.
+The git history provides the quality trajectory data.
+The system test matrix provides the empirical validation.
