@@ -104,6 +104,7 @@ and acts on the caller's decision. Admission policy belongs to the protocol abov
 ## Phase 2 — Failure detection
 
 **Status:** Planned  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 1 complete  
 **Removes limitation:** L2 — no liveness tracking  
 
@@ -141,6 +142,7 @@ return as inputs. The Mealy invariant is maintained.
 ## Phase 3 — Single-node addition
 
 **Status:** Planned  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 2 complete  
 **Removes limitation:** L3 — no addition protocol  
 
@@ -181,6 +183,7 @@ a valid quorum. Single-at-a-time additions make this structurally impossible.
 ## Phase 4 — Single-node removal
 
 **Status:** Planned  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 3 complete  
 **Removes limitation:** L4 — no removal protocol  
 
@@ -288,9 +291,9 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | Planned |
-| 2 | Failure detection (SWIM) | After Phase 1 | Planned |
-| 3 | Single-node addition | After Phase 2 | Planned |
-| 4 | Single-node removal | After Phase 3 | Planned |
+| 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
+| 3 | Single-node addition | 4–6 weeks | Planned |
+| 4 | Single-node removal | 4–6 weeks | Planned |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 
