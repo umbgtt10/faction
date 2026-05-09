@@ -5,7 +5,7 @@
 **Last updated:** 2026-05-01  
 **Current status:** Phase 0 — Complete
 
-> **Note:** All inputs, outputs, and state names listed for Phases 1–5 below
+> **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
 > implementation.
 
@@ -36,7 +36,7 @@ complex.
 | Complete `(state, input)` coverage | Every pair explicitly tested — mandatory, not aspirational |
 | Protocol-agnostic | No Raft, no IBFT, no consensus knowledge inside `faction` |
 | Observer coverage | Every transition, query, and rejection reaches the `Observer` |
-| Strict superset property | Phase N tests pass unchanged at Phase N+5 |
+| Strict superset property | Phase N tests pass unchanged at Phase N+6 |
 
 ---
 
@@ -66,6 +66,9 @@ Queryable. Tested across every spawn/transport combination.
 | Transport protocols validated | 4 — Memory, Channels, TCP, gRPC |
 
 Full specification in [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+`PeerId` is currently `u64`. After Phase 6, it becomes a generic trait so
+callers can use their own identifier type.
 
 ---
 
@@ -206,17 +209,34 @@ insufficient.
 
 ---
 
-## Phase 5 — Full dynamic membership
+## Paper — EuroSys / OSDI submission
+**Status:** Planned  
+**Target:** Parallel with Phase 4–6
+**Venue:** EuroSys 2027 (submission ~September 2026)  
+
+Document the three contributions:
+- The `faction` primitive and its design rationale
+- The `(state × input)` complete coverage methodology
+- Empirical validation across embedded and cloud targets
+
+The paper is written in parallel with Phases 4 through 6 implementation.
+The git history provides the quality trajectory data.
+The system test matrix provides the empirical validation.
+
+---
+
+## Phase 5 — Membership epochs and rejoin
 
 **Status:** Planned  
-**Target:** 8–10 weeks  
+**Target:** 4–6 weeks  
 **Depends on:** Phase 4 complete  
-**Removes limitation:** L5 — no epochs, no concurrent changes  
+**Removes limitation:** L5 — no epochs, no rejoin handling  
 
-`faction` answers: *"Can membership change arbitrarily under adversarial conditions?"*
+`faction` answers: *"Can the cluster survive membership changes across restarts
+and prevent stale nodes from causing split-brain?"*
 
-The single-change-at-a-time constraint is lifted. The machine gains epochs, split-brain
-prevention, rejoin handling, and a bounded concurrent change queue.
+The machine gains a monotonic epoch counter, stale-epoch rejection, and explicit
+rejoin handling for previously-removed nodes.
 
 **Membership epochs.** Every committed change increments a monotonic epoch counter.
 All membership messages carry the epoch. Stale-epoch inputs produce a defined
@@ -228,13 +248,41 @@ distinguishes a new join from a rejoin — the state transitions differ explicit
 **Split-brain prevention.** A node claiming quorum with a stale epoch is explicitly
 rejected. The machine tracks the epoch at which each node last confirmed membership.
 
-**Concurrent change sequencing.** Additions and removals are serialized into a bounded
-queue. The caller provides the bound. Queue overflow produces a defined `QueueFull`
-rejection, not a panic.
-
 **New states:**
 - `SplitSuspected` — minority partition suspected
 - `Rejoining(NodeId)` — previously-removed node being re-admitted
+
+**Gate:** 100% `(state, input)` coverage. Phase 6 does not begin until this gate is green.
+
+---
+
+## Phase 6 — Concurrent membership changes
+
+**Status:** Planned  
+**Target:** 6–8 weeks  
+**Depends on:** Phase 5 complete  
+**Removes limitation:** L6 — single-change-at-a-time constraint  
+
+`faction` answers: *"Can multiple membership changes be in flight simultaneously
+under load?"*
+
+The single-change-at-a-time constraint from Phases 3–4 is lifted. The machine
+gains a bounded concurrent change queue with defined overflow behavior.
+
+**Concurrent change sequencing.** Additions and removals are serialized into a
+bounded queue. The caller provides the bound. Queue overflow produces a defined
+`QueueFull` rejection, not a panic.
+
+**New inputs:**
+- `EnqueueAdd { node }` — caller requests addition; queued, not executed immediately
+- `EnqueueRemove { node }` — caller requests removal; queued
+- `Dequeued { node }` — change pulled from queue, ready for execution
+- `FlushQueue` — caller drains the queue
+
+**New outputs:**
+- `QueueFull { reason }` — bounded queue exhausted
+- `ChangeDequeued { node, kind }` — change ready for caller to process
+- `QueueDrained` — all queued changes processed
 
 **Gate:** 100% `(state, input)` coverage. Publication readiness review. crates.io
 release candidate.
@@ -250,22 +298,23 @@ release candidate.
 | 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
 | 3 | Single-node addition | 4–6 weeks | Planned |
 | 4 | Single-node removal | 4–6 weeks | Planned |
-| 5 | Full dynamic membership | 8–10 weeks | Planned |
-| **Total remaining** | | **24–34 weeks** | |
+| 5 | Membership epochs and rejoin | 4–6 weeks | Planned |
+| 6 | Concurrent membership changes | 6–8 weeks | Planned |
+| **Total remaining** | | **26–38 weeks** | |
 
 ---
 
 ## Publication readiness checklist
 
-- [ ] Phases 1–5 complete with 100% `(state, input)` coverage
+- [ ] Phases 1–6 complete with 100% `(state, input)` coverage
 - [ ] System test matrix extended for all new states and transitions
 - [ ] `no_std + alloc` verified at every phase boundary
 - [ ] `#![deny(unsafe_code)]` enforced throughout
 - [ ] CRAP score 0 across all crates
 - [ ] Observer coverage — every new transition pair verified
-- [ ] `NodeId` generic trait replacing `u64` (L7)
+- [ ] `NodeId` generic trait replacing `u64`
 - [ ] README updated to reflect full dynamic membership capability
-- [ ] ARCHITECTURE updated with Phase 1–5 specification
+- [ ] ARCHITECTURE updated with Phase 1–6 specification
 - [ ] At least one published sample integration (Raft or IBFT)
 - [ ] crates.io metadata complete
 
@@ -276,7 +325,7 @@ release candidate.
 These rules are non-negotiable. They apply to every phase, every commit, every PR.
 
 - No phase begins until the previous phase has 100% `(state, input)` coverage
-- Each phase is a strict superset of the previous — Phase N tests pass unchanged at Phase 5
+- Each phase is a strict superset of the previous — Phase N tests pass unchanged at Phase 6
 - No logic change without a failing test first
 - No unsafe code — ever
 - The machine never performs I/O — it only emits commands
