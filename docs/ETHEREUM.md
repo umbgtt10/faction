@@ -186,14 +186,20 @@ lifecycle management roadmap:
 | 5 | Epochs and rejoin | Split-brain prevention across restarts |
 | 6 | Concurrent changes | High-throughput validator set management under load |
 
+**This grant funds Phases 1 through 4.** These four phases deliver the validator
+lifecycle events most critical to Ethereum today: onboarding, liveness monitoring,
+safe expansion, and safe exit. They form a complete, independently useful primitive
+at a natural stopping point — addition and removal together close the loop on
+membership correctness.
+
+Phases 5 and 6 — epoch management and concurrent changes — are the subject of a
+subsequent grant application. The academic paper targeting EuroSys 2027, written
+in parallel with Phases 4 through 6, provides peer-reviewed validation of the
+methodology and strengthens the case for continued funding.
+
 Each phase is independently useful. Each phase ships before the next begins.
 Each phase extends the same formally tested foundation — no phase introduces
 untested behavior.
-
-The grant also funds the academic paper targeting EuroSys 2027: a formal
-documentation of the `(state × input)` testing methodology, the `no_std`
-embedded validation results, and the lifecycle management primitive as a
-reusable contribution to the distributed systems community.
 
 Full timeline and milestone detail in [ROADMAP.md](./ROADMAP.md).
 
