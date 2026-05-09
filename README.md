@@ -5,7 +5,7 @@
 Every distributed system needs to answer one question before it can do anything else:
 *"Is the cluster ready to proceed?"*
 
-Most systems answer it with ad-hoc coordination, custom timeouts, euristics,
+Most systems answer it with ad-hoc coordination, custom timeouts, heuristics,
 magic numbers tuned by intuition, and startup sequences that were never tested in
 isolation. When they break, they break silently, under load, in production.
 
@@ -78,9 +78,9 @@ Initial → Pinging → Collecting → Bootstrapped
 | State | Meaning | Carries |
 |---|---|---|
 | `Initial` | Freshly created, no action taken | Nothing — unit struct |
-| `Pinging` | Collecting participation signals from peers | Active pinging and collecting peer sets |
-| `Collecting` | Local participation complete, collecting readiness signals | Collecting and pinged peer sets |
-| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Full pinged and collected peer sets |
+| `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
+| `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
+| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
 | `TimedOut` | Deadline expired before quorum (terminal) | Peer sets at time of expiry |
 
 ### Commands and outcomes
@@ -222,7 +222,7 @@ The caller owns the network. `faction` owns the state.
 
 - Perform network I/O — the caller sends and receives messages
 - Implement failure detection — that is Phase 2
-- Manage dynamic membership — that is Phases 1–5
+- Manage dynamic membership — that is Phases 1–6
 - Know about consensus — protocols build on top of `faction`, not inside it
 - Provide a runtime — async, threading, and process management are the caller's concern
 
@@ -245,7 +245,7 @@ Both gates must pass before any commit lands.
 single-node addition and removal, and Byzantine-tolerant reconfiguration across six
 incremental phases.
 
-Each phase is a strict superset of the previous. Phase 0 tests pass at Phase 5.
+Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.
 
 See [ROADMAP.md](./docs/ROADMAP.md) for the full plan and [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
