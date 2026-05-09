@@ -193,7 +193,7 @@ The caller owns the network. `faction` owns the state.
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 — enforced by `#![deny(unsafe_code)]` |
 | `no_std` | Verified |
-| System test combinations | 15 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
+| System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
 | Published | [crates.io](https://crates.io/crates/faction) |
 
 ---

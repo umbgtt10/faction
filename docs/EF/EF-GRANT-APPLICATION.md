@@ -17,7 +17,7 @@ It is `no_std + alloc`, contains zero unsafe code, and runs without modification
 on an STM32-class microcontroller and a 1000-node cloud cluster.
 
 Phase 0 — static membership bootstrapping — is complete, published on crates.io
-under the MIT license, and verified across 15 spawn/transport combinations including
+under the MIT license, and verified across 10 spawn/transport combinations including
 real OS processes communicating over real TCP and gRPC connections.
 
 This grant funds Phases 1 through 4: dynamic joining, failure detection, single-node
@@ -130,7 +130,7 @@ STM32-class microcontroller — and discover it is baked into every layer of the
 deliberate constraint verified empirically: the same protocol code validated across
 tasks, threads, and real OS processes, over Memory, Channels, TCP, and gRPC
 transports, with timing regimes calibrated for both nanosecond in-memory latency
-and cross-process OS scheduling overhead — 15 combinations in total, all green.
+and cross-process OS scheduling overhead — 10 combinations in total, all green.
 
 The path to a validator running on constrained hardware runs through `no_std`.
 `faction` is a foundational primitive on that path.
@@ -159,7 +159,7 @@ Phase 0 is complete. The evidence is public and verifiable.
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 — enforced by `#![deny(unsafe_code)]` |
 | `no_std` | Verified |
-| System test combinations | 15 |
+| System test combinations | 10 |
 | Spawn models validated | 3 — Task, Thread, Process |
 | Transport protocols validated | 4 — Memory, Channels, TCP, gRPC |
 | Published | crates.io (MIT) |
@@ -308,7 +308,7 @@ My published crates demonstrate both the technical depth and the execution veloc
 relevant to this grant:
 
 - **`faction`** — the subject of this application. Phase 0: 264 tests, 100%
-  coverage, 15-combination system test matrix, published MIT.
+  coverage, 10-combination system test matrix, published MIT.
 - **`fluxion`** — Rust-idiomatic implementation of composite Rx extensions for stream aggregation
   with ordering guarantee, friendly fluent API, bulletproof testing, runtime abstraction and top-notch documentation, published MIT.
 - **`crap4rust`** — a Rust implementation of the CRAP (Change Risk Anti-Patterns)

@@ -61,7 +61,7 @@ Queryable. Tested across every spawn/transport combination.
 | `(state, command)` pairs tested | All — explicitly |
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 |
-| System test combinations | 15 |
+| System test combinations | 10 |
 | Spawn models validated | 3 — Task, Thread, Process |
 | Transport protocols validated | 4 — Memory, Channels, TCP, gRPC |
 

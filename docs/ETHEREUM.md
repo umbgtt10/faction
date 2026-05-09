@@ -172,7 +172,7 @@ the rest of the stack uses.
 
 `faction` Phase 0 is complete, published, and MIT-licensed. The bootstrapping
 primitive exists. The testing methodology is demonstrated. The `no_std` claim is
-verified across 15 spawn/transport combinations.
+verified across 10 spawn/transport combinations.
 
 What a grant from the Ethereum Foundation enables is the completion of the full
 lifecycle management roadmap:
