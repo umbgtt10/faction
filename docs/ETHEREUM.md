@@ -77,7 +77,7 @@ STM32-class embedded board and a 1000-node cloud cluster.
 See the [design constraints](./ROADMAP.md#non-negotiable-constraints) for the
 full rationale. See the [system test matrix](./README.md#validation-harness) for
 the empirical proof: the same protocol code, validated across tasks, threads, and
-real OS Processes, over Memory, Channels, TCP, and gRPC transports, with a timing
+real OS processes, over Memory, Channels, TCP, and gRPC transports, with a timing
 regime configurable enough to handle both nanosecond in-memory latency and
 cross-process OS scheduling overhead.
 
@@ -93,7 +93,7 @@ primitive on that path.
 The current `faction` implementation (Phase 0) solves static membership bootstrapping.
 The [roadmap](./ROADMAP.md) extends it across six phases to full dynamic membership —
 node joining, failure detection, single-node addition and removal, epoch-tracked
-reconfiguration, and Byzantine-tolerant concurrent membership changes.
+reconfiguration, and concurrent membership changes under load.
 
 This matters to Ethereum in a concrete way: **validator set management is a
 membership problem**.
@@ -192,7 +192,7 @@ safe expansion, and safe exit. They form a complete, independently useful primit
 at a natural stopping point — addition and removal together close the loop on
 membership correctness.
 
-Phases 5 and 6 — epoch management and concurrent changes — are the subject of a
+Phases 5 and 6 — membership epochs and concurrent changes — are the subject of a
 subsequent grant application. The academic paper targeting EuroSys 2027, written
 in parallel with Phases 4 through 6, provides peer-reviewed validation of the
 methodology and strengthens the case for continued funding.
