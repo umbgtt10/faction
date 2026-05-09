@@ -1,59 +1,168 @@
 # faction
 
-**A `no_std`, 0-unsafe Mealy machine for cluster bootstrapping.**
+**A `no_std`, 0-unsafe Mealy machine for distributed cluster bootstrapping.**
 
-faction is a protocol-agnostic state machine primitive that answers one question:  
-*"When is the cluster ready to proceed?"*
+Every distributed system needs to answer one question before it can do anything else:
+*"Is the cluster ready to proceed?"*
 
-It tracks participation and readiness signals across a known set of peers and emits a
-deterministic exit decision — either **Bootstrapped** or **TimedOut**. No network I/O.
-No consensus algorithm. No opinion on what "ready" means. Just pure, testable state
-transitions.
+Most systems answer it with ad-hoc coordination — timeouts copied from stack overflow,
+magic numbers tuned by intuition, and startup sequences that were never tested in
+isolation. When they break, they break silently, under load, in production.
+
+`faction` replaces that with a **formally specified, fully tested Mealy state machine**
+that answers the question deterministically, observably, and provably.
+
+---
+
+## What faction does
+
+`faction` tracks participation and readiness signals across a known set of peers and
+emits a deterministic exit decision — either **Bootstrapped** or **TimedOut**.
+
+It does exactly this. Nothing more.
+
+No network I/O. No consensus algorithm. No opinion on what transport you use, what
+"ready" means, or how your protocol works. The caller owns all of that. `faction` owns
+the state transitions.
 
 ---
 
 ## Why faction?
 
-Most distributed systems bootstrap with ad-hoc coordination — timeouts, magic numbers,
-and implicit assumptions that are never tested in isolation. faction replaces that with a
-**Mealy machine** that is:
+**The problem with ad-hoc bootstrapping:**
 
-- **Deterministic** — same inputs always produce the same outputs. Replay any sequence.
-- **Verifiable** — every `(state, command)` pair is explicitly tested. No untested paths.
-- **Embeddable** — `no_std` + `alloc`, zero `unsafe`. Runs on bare metal, WASM, and cloud.
-- **Observable** — every transition reaches a trait-based `Observer`. No instrumentation surprises.
-- **Slim by construction** — each state carries only its active data.
+Bootstrapping logic is typically written once, tested never, and debugged in production.
+It interacts with failure detection, membership management, and consensus in ways that
+are hard to reason about in isolation. The bugs it hides surface under Byzantine
+conditions — partial startup, network partitions, delayed nodes — that are difficult to
+reproduce and expensive to diagnose.
+
+**What faction provides instead:**
+
+- **Deterministic** — `output = F(state, input)`. Same inputs always produce the same
+  outputs. Any execution is replayable from its input log.
+- **Verifiable** — every `(state, command)` pair is explicitly tested. No untested
+  paths exist. The test suite is a proof, not a sample.
+- **Embeddable** — `no_std + alloc`, zero `unsafe`. Runs on bare metal, WASM, embedded
+  RTOS, and cloud without modification.
+- **Observable** — every transition reaches a trait-based `Observer`. Wire it to
+  telemetry, audit logs, or test assertions. No instrumentation surprises.
+- **Queryable** — probe the machine at any time for the current cluster view and the
+  set of admissible commands. Zero side effects.
+- **Slim by construction** — each state carries only its active data. Terminal states
+  carry no heap allocation beyond what they received.
 
 ---
 
 ## How it works
 
+### The state machine
+
 The machine progresses through five states:
 
 ```
 Initial → Pinging → Collecting → Bootstrapped
-                         ↘           TimedOut
+                         ↓
+                      TimedOut
 ```
 
-| State | Carries |
+| State | Meaning | Carries |
+|---|---|---|
+| `Initial` | Freshly created, no action taken | Nothing — unit struct |
+| `Pinging` | Collecting participation signals from peers | Active pinging and collecting peer sets |
+| `Collecting` | Local participation complete, collecting readiness signals | Collecting and pinged peer sets |
+| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Full pinged and collected peer sets |
+| `TimedOut` | Deadline expired before quorum (terminal) | Peer sets at time of expiry |
+
+### Commands and outcomes
+
+Five commands drive the machine:
+
+| Command | Meaning |
 |---|---|
-| `Initial` | Nothing — unit struct |
-| `Pinging` | `pinging_peers: Vec<PeerId>`, `collecting_peers: Vec<PeerId>` |
-| `Collecting` | `collecting_peers: Vec<PeerId>`, `pinged_peers: Vec<PeerId>` |
-| `Bootstrapped` | `pinged_peers: Vec<PeerId>`, `collected_peers: Vec<PeerId>` |
-| `TimedOut` | `pinging_peers: Vec<PeerId>`, `collecting_peers: Vec<PeerId>` |
+| `ParticipationObserved { peer_id }` | A peer signalled participation |
+| `ReadyObserved { peer_id }` | A peer signalled readiness |
+| `LocalParticipationCompleted` | The local node finished its own participation |
+| `DeadlineExpired` | External deadline timer fired |
+| `Probe` | Query current state without mutation |
 
-Each state implements the `State` trait with `step()`, `cluster_view()`, and `accept()`.
-Decision logic is split into focused step structs — `PingingStep`, `ReadyStep`, and
-`LocalCompletionStep` — each handling exactly one kind of observation without branching
-on a kind enum.
+Every command produces a structured result — `Accepted`, `Rejected`, or `Probed` —
+with full outcome detail and an updated cluster view. The machine never panics, never
+returns an opaque error, and never silently ignores input.
 
-Five commands drive the machine: `ParticipationObserved`, `ReadyObserved`,
-`LocalParticipationCompleted`, `DeadlineExpired`, and `Probe`. Outcomes cover acceptance,
-duplication, non-member rejection, local participation completion, broadcast, quorum,
-and exit.
+### Two-phase design
 
-Full specification in [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+The machine enforces a deliberate two-phase protocol:
+
+**Phase 1 — Pinging:** nodes observe each other's participation signals. A node stays
+in this phase until it has signalled its own participation locally.
+
+**Phase 2 — Collecting:** the node collects readiness signals from peers. Quorum is
+only checked in this phase — preventing premature exit before local participation
+is complete.
+
+This separation eliminates an entire class of race conditions where a node could
+declare quorum before confirming its own participation.
+
+### Validation harness
+
+`faction` ships with a multi-layered validation harness:
+
+| Harness | What it tests |
+|---|---|
+| `core/` unit tests | Every `(state, command)` pair — 145 tests |
+| `core-validation/` | Multi-node deterministic scenarios — 23 tests |
+| `protocol/` | Message translation and protocol runtime — 33 tests |
+| `protocol-validation/` | In-process protocol cluster — 9 tests |
+| `system-tests/` | Multi-process convergence across all spawn/transport combinations — 54 tests |
+
+The system test matrix covers every valid combination of spawn model and transport:
+
+| Spawn | Transport | Timer |
+|---|---|---|
+| Task | In-memory, Channels, TCP, gRPC | Real, In-memory |
+| Thread | In-memory, Channels, TCP, gRPC | Real, In-memory |
+| Process | TCP, gRPC | Real |
+
+These are not simulated tests. Process-based cases spawn real OS processes communicating
+over real TCP and gRPC connections. The machine's correctness is verified end-to-end
+across all combinations.
+
+---
+
+## Quick start
+
+```toml
+[dependencies]
+faction-core = "0.2"
+```
+
+```rust
+use faction_core::{Config, Faction, Command, ProcessResult};
+
+// Build a 5-node cluster requiring quorum of 4
+let config = Config::builder()
+    .peers(vec![0, 1, 2, 3, 4])
+    .local_peer_id(0)
+    .quorum(4)
+    .build();
+
+let mut faction = Faction::new(config, my_observer);
+
+// Feed signals as they arrive from the network
+match faction.process(Command::ParticipationObserved { peer_id: 1 }) {
+    ProcessResult::Accepted { outcomes, cluster_view } => {
+        // handle outcomes, inspect cluster_view
+    }
+    ProcessResult::Rejected { cluster_view, admissible } => {
+        // command not valid in current state
+        // admissible lists what IS valid right now
+    }
+    ProcessResult::Probed { .. } => unreachable!()
+}
+```
+
+The caller owns the network. `faction` owns the state.
 
 ---
 
@@ -61,65 +170,94 @@ Full specification in [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 | Metric | Value |
 |---|---|
-| Productive LOC (core) | 1,165 |
-| Tests (entire codebase) | 264 |
-| Crappy functions | 0 |
+| Productive LOC | 1,165 |
+| Total tests | 264 |
 | Code coverage (productive) | 100% |
-| Unsafe code | 0 (enforced by `#![deny(unsafe_code)]`) |
+| `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
+| Crappy functions (CRAP score) | 0 |
+| Unsafe code | 0 — enforced by `#![deny(unsafe_code)]` |
 | `no_std` | Verified |
-
----
-
-## Roadmap
-
-The project is building toward full dynamic membership across six phases.
-See [ROADMAP.md](./docs/ROADMAP.md) for the detailed plan.
-
----
-
-## Workspace
-
-| Crate | Description |
-|---|---|
-| `core/` | State machine — 13 source files, 145 tests |
-| `core-validation/` | Deterministic multi-node scenario harness — 23 tests |
-| `protocol/` | Message translator and protocol runtime — 33 tests |
-| `protocol-validation/` | In-process protocol cluster — 9 tests |
-| `system-tests/` | Multi-process convergence + timer + transport + observer tests — 54 tests |
-
----
-
-## Quality Gates
-
-```powershell
-powershell -File scripts\run_stage_1.ps1   # format, clippy, no_std checks, tests
-powershell -File scripts\run_stage_2.ps1   # CRAP and file risk analysis
-```
+| System test combinations | 15 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
+| Published | [crates.io](https://crates.io/crates/faction) |
 
 ---
 
 ## Design principles
 
 - **Pure Mealy** — `output = F(state, input)`. No side effects inside the machine.
-- **Explicit state ownership** — states carry only what they mutate.
-- **No dead code** — terminal states return `false` from `accept()`, making `step()` unreachable by construction.
-- **Observer, not logger** — the `Observer` trait receives every transition. Wire it to telemetry, audit, or testing assertions.
-- **Protocol-agnostic** — faction does not know what a "peer" is or how the network works. The caller owns network I/O.
-- **One struct per file** — each step, state, and policy is its own file.
+  The machine computes. The caller acts.
+- **Explicit state ownership** — states carry only what they mutate. Nothing is
+  inherited silently.
+- **No dead code** — terminal states return `false` from `accept()`, making `step()`
+  structurally unreachable. The compiler enforces this.
+- **Observer, not logger** — the `Observer` trait receives every transition, query,
+  and rejection. Wire it to anything. The machine does not care.
+- **Protocol-agnostic** — `faction` does not know what a peer is, what the network
+  looks like, or what your protocol does. It knows state transitions.
+- **One struct per file** — each step, state, and policy is its own file. Navigation
+  is O(1).
 - **No `&mut` parameters** — prefer return values over in-place mutation.
+
+---
+
+## Non-goals
+
+`faction` deliberately does not:
+
+- Perform network I/O — the caller sends and receives messages
+- Implement failure detection — that is Phase 2
+- Manage dynamic membership — that is Phases 1–5
+- Know about consensus — protocols build on top of `faction`, not inside it
+- Provide a runtime — async, threading, and process management are the caller's concern
+
+---
+
+## Quality gates
+
+```powershell
+powershell -File scripts\run_stage_1.ps1   # format, clippy, no_std checks, full test suite
+powershell -File scripts\run_stage_2.ps1   # CRAP score and file risk analysis
+```
+
+Both gates must pass before any commit lands.
+
+---
+
+## Roadmap
+
+`faction` is building toward full dynamic membership — node joining, failure detection,
+single-node addition and removal, and Byzantine-tolerant reconfiguration across six
+incremental phases.
+
+Each phase is a strict superset of the previous. Phase 0 tests pass at Phase 5.
+No phase begins until the previous phase has 100% `(state, command)` coverage.
+
+See [ROADMAP.md](./docs/ROADMAP.md) for the full plan and [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+for the complete technical specification.
+
+---
+
+## Workspace
+
+| Crate | Role | Tests |
+|---|---|---|
+| `core/` | State machine — 13 source files | 145 |
+| `core-validation/` | Deterministic multi-node scenario harness | 23 |
+| `protocol/` | Message translator and protocol runtime | 33 |
+| `protocol-validation/` | In-process protocol cluster | 9 |
+| `system-tests/` | Multi-process convergence across all combinations | 54 |
 
 ---
 
 ## License
 
-Licensed under the MIT License. See [LICENSE](./LICENSE).
+MIT. See [LICENSE](./LICENSE).
 
 ---
 
 ## Links
 
-- [CHANGELOG](./CHANGELOG.md) — project history
-- [CODE_OF_CONDUCT](./CODE_OF_CONDUCT.md) — community guidelines
-- [DONATE](./DONATE.md) — support the project
-- [ROADMAP](./docs/ROADMAP.md) — future plans
-- [PHASE 0 SPECIFICATION](./docs/history/PHASE-0-SPECIFICATION.md) — detailed state machine description
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
+- [ROADMAP.md](./docs/ROADMAP.md) — phased development plan
+- [CHANGELOG.md](./CHANGELOG.md) — version history
+- [DONATE.md](./DONATE.md) — support the project
