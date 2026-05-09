@@ -3,7 +3,11 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-05-01  
-**Current status:** Phase 0 — Complete  
+**Current status:** Phase 0 — Complete
+
+> **Note:** All inputs, outputs, and state names listed for Phases 1–5 below
+> are drafts. They reflect the intended design direction but may change during
+> implementation.
 
 ---
 
