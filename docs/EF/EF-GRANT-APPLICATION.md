@@ -258,12 +258,12 @@ the same guarantee. The methodology outlives any single crate.
 
 | Item | Amount | Rationale |
 |---|---|---|
-| Engineering — Phases 1–4 | $80,000 | 24–26 weeks of principal-level distributed systems engineering at a sustainable independent rate |
-| Infrastructure | $15,000 | Cloud GPU compute (Spheron B300) for adversarial test execution, CI, and embedded target validation |
+| Engineering — Phases 1–4 | $90,000 | 24–26 weeks of principal-level distributed systems engineering at a sustainable independent rate |
+| LLM Tokens | $5,000 | Anthropic, OpenAI and Copilot subscriptions |
 | Contingency | $5,000 | Buffer for scope discoveries during implementation — standard on formal correctness work |
 
 At Swiss contracting market rates for principal-level distributed systems
-engineering, $80,000 represents approximately 4–5 months of focused work. This
+engineering, $90,000 represents approximately 6–7 months of part-time work. This
 grant asks for less than 3 months of a senior engineer's fully-loaded cost at any
 of the five major client teams, in exchange for a formally correct primitive that
 eliminates the bootstrapping and lifecycle management problem for all of them
