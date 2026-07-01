@@ -160,9 +160,10 @@ file is public executable code that anyone can run.
 
 Quality gates enforced at each phase boundary, all publicly verifiable:
 - 100% `(state, command)` coverage — transition matrix test file
+- multiple system/permutation tests — See [ARCHITECTURE.md](https://github.com/umbgtt10/faction/blob/main/docs/ARCHITECTURE.md)
 - CRAP score 0 — `crap4rust` quality gate
 - `#![deny(unsafe_code)]` — enforced at compile time, not by convention
-- `no_std` — verified by CI check script
+- `no_std` — enforced at compile time, not by convention
 
 ### How will the work be maintained after delivery?
 
@@ -183,16 +184,12 @@ Each phase is accepted when:
    milestone deadline
 2. The transition matrix test file covers every `(state, command)` pair for
    that phase (publicly verifiable)
-3. `crap4rust` reports CRAP score 0 (publicly verifiable from the CI report)
-4. The `no_std` CI check passes
 
-No self-reporting required. The crates.io publish date, test count, and CI
-results are the evidence.
+No self-reporting required. The crates.io publish date and test count are the evidence.
 
 ### What is the proposed payment schedule for the grant? How much USD $ and over what period of time is the applicant requesting?
 
-**Total requested: $100,000 USD, disbursed in RPL at time of each milestone
-payment.**
+**Total requested: $100,000 USD, disbursed at time of each milestone payment.**
 
 The payment structure is designed to give the GMC natural checkpoints and
 off-ramps. No subsequent payment is made unless the preceding milestone's
