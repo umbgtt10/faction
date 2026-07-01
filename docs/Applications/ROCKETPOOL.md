@@ -230,9 +230,6 @@ Every milestone deliverable is a publicly verifiable crates.io publication:
 - **Transition matrix test file** (linked from the crate README) is executable
   by anyone — run `cargo test` and every `(state, command)` pair either passes
   or fails
-- **`crap4rust` CI report** is linked from the GitHub repository
-- **`#![deny(unsafe_code)]` and `no_std` CI badges** are visible on the
-  repository
 
 The GMC does not need to trust the applicant. The artifacts verify themselves.
 
