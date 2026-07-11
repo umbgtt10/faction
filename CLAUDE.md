@@ -1,4 +1,4 @@
-# Faction — Copilot Instructions
+# Faction
 
 ## Meaning
 
@@ -44,6 +44,7 @@ Specifically:
 ### User coding standards
 
 - **one struct per file** — each struct gets its own file
+- **do not use fully qualified paths** — use `use` imports instead
 - **no unit tests** — only integration tests are allowed
 - **no unnecessary comments** — code should be self-documenting
 - **consolidate functions** — place scattered functions inside structs
