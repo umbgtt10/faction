@@ -3,5 +3,14 @@ members = ["core", "core-validation", "protocol", "protocol-validation", "system
 resolver = "2"
 
 [workspace.dependencies]
+chrono = "0.4"
+faction = { path = "core" }
+faction-protocol = { path = "protocol" }
 proptest = "1"
+prost = "0.13"
 rstest = "0.18"
+spin = "0.9"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync"] }
+tokio-stream = "0.1"
+tonic = "0.12"
+tonic-build = "0.12"

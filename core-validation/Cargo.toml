@@ -15,7 +15,7 @@ autotests = false
 publish = false
 
 [dependencies]
-faction = { path = "../core" }
+faction.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true

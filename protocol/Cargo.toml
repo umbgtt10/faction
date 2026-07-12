@@ -15,7 +15,7 @@ autotests = false
 publish = false
 
 [dependencies]
-faction = { path = "../core" }
+faction.workspace = true
 
 [[test]]
 name = "all_tests"

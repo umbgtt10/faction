@@ -15,9 +15,9 @@ autotests = false
 publish = false
 
 [dependencies]
-faction = { path = "../core" }
-faction-protocol = { path = "../protocol" }
-spin = "0.9"
+faction.workspace = true
+faction-protocol.workspace = true
+spin.workspace = true
 
 [lib]
 name = "faction_protocol_validation"
