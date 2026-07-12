@@ -50,7 +50,10 @@ Invoke-Step "faction tests" {
         -p faction-core-validation `
         -p faction-protocol `
         -p faction-protocol-validation `
-        -p faction-system-tests `
+}
+
+Invoke-Step "faction system tests (sequential)" {
+    cargo test -p faction-system-tests -- --test-threads=1
 }
 
 Write-Host "`nFaction core, validation, protocol and system tests passed!" -ForegroundColor Green
