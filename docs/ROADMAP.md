@@ -2,7 +2,7 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-07-16  
+**Last updated:** 2026-07-17  
 **Current status:** Phase 0 — Complete
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
@@ -69,24 +69,6 @@ Full specification in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 `PeerId` is currently `u64`. After Phase 6, it becomes a generic trait so
 callers can use their own identifier type.
-
-**Known limitation — discovered via integration testing (2026-07-16).**
-A statically-known member that restarts mid-cluster-lifetime re-enters
-through the same `Pinging`/`Collecting` flow as a brand-new cold boot.
-Already-`Bootstrapped` peers never acknowledge its discovery pings, so it
-always rides out the full `DeadlineExpired` timeout before its buffered
-messages get processed — even though it was receiving valid traffic from
-every peer the whole time. This is distinct from Phase 1 (a genuinely new
-peer joining) and Phase 5 (a previously dynamically-removed peer
-rejoining) — the restarting node was never removed from the static set,
-it just temporarily went away. Not caught by Phase 0's own `(state,
-command)` test suite, which doesn't model a long-running cluster with a
-mid-lifetime member restart. Found and fully traced (two independently
-cross-checked clocks, confirmed against `deadline` down to the second) via
-a real-hardware integration test in a downstream consumer — see
-`real_cluster_16_churn_under_partition`,
-`etheram-ibft-embassy/docs/MARATHON.md` section 2.6. Needs a fast
-reconnect path for known peers, not yet slotted into a phase.
 
 ---
 
