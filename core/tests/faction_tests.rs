@@ -105,7 +105,7 @@ fn process_accepted_into_non_terminal_reports_full_admissible_set() {
 }
 
 #[test]
-fn process_accepted_into_bootstrapped_reports_probe_only() {
+fn process_accepted_into_bootstrapped_reports_rejoin_and_probe() {
     // Arrange
     let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5));
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
@@ -122,7 +122,13 @@ fn process_accepted_into_bootstrapped_reports_probe_only() {
     };
 
     // Assert
-    assert_eq!(admissible, vec![Command::Probe]);
+    assert_eq!(
+        admissible,
+        vec![
+            Command::ParticipationObserved { peer_id: 0 },
+            Command::Probe
+        ]
+    );
 }
 
 #[test]

@@ -49,6 +49,9 @@ impl MessageTranslator {
                         OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
                     ];
                 }
+                Outcome::AcknowledgeRejoin { .. } => {
+                    return vec![OutputMessage::BroadcastReady];
+                }
                 _ => {}
             }
         }

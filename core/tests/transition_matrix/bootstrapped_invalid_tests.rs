@@ -9,44 +9,32 @@ use rstest::rstest;
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
-use super::helpers::{participation, ready};
+use super::helpers::ready;
 
 #[rstest]
-#[case::rejects_participation_observed(
-    Init::Bootstrapped,
-    participation(1),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
-)]
-#[case::rejects_participation_observed_non_member(
-    Init::Bootstrapped,
-    participation(99),
-    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
-)]
 #[case::rejects_ready_observed(
     Init::Bootstrapped,
     ready(1),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::Probe],
 )]
 #[case::rejects_ready_observed_non_member(
     Init::Bootstrapped,
     ready(99),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::Probe],
 )]
 #[case::rejects_is_pinging_completedd(
     Init::Bootstrapped,
     Command::LocalParticipationCompleted,
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::Probe],
 )]
 #[case::rejects_deadline_expired(
     Init::Bootstrapped,
     Command::DeadlineExpired,
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::Probe],
 )]
 fn invalid_transition(
     #[case] init: Init,

@@ -39,3 +39,10 @@ pub fn collecting_admissible() -> Vec<Command> {
 pub fn probe_only() -> Vec<Command> {
     vec![Command::Probe]
 }
+
+pub fn bootstrapped_admissible() -> Vec<Command> {
+    vec![
+        Command::ParticipationObserved { peer_id: 0 },
+        Command::Probe,
+    ]
+}

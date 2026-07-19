@@ -14,5 +14,6 @@ pub enum Outcome {
     NonMemberIgnored { peer_id: PeerId },
     LocalParticipationCompleted,
     BroadcastLocalReady,
+    AcknowledgeRejoin { peer_id: PeerId },
     Concluded { mode: Conclusion },
 }

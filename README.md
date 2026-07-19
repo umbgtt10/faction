@@ -176,8 +176,16 @@ machine.process(Command::ReadyObserved { peer_id: 2 });
 let result = machine.process(Command::ReadyObserved { peer_id: 3 });
 if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert!(cluster_view.is_concluded());
-    // Terminal state — the only admissible command left is `Probe`.
-    assert_eq!(admissible, alloc::vec![Command::Probe]);
+    // Concluded, but not a silent sink: a bootstrapped node still admits
+    // `ParticipationObserved` so it can re-advertise readiness to a peer
+    // that is still trying to join.
+    assert_eq!(
+        admissible,
+        alloc::vec![
+            Command::ParticipationObserved { peer_id: 0 },
+            Command::Probe
+        ]
+    );
 }
 ```
 

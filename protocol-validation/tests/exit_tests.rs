@@ -40,10 +40,7 @@ fn converge(cluster: &mut Cluster, size: usize) {
 #[case(6, 6)]
 #[case(8, 8)]
 #[case(2, 2)]
-fn bootstrapped_node_stays_silent_to_further_signals(
-    #[case] size: usize,
-    #[case] quorum: usize,
-) {
+fn bootstrapped_node_stays_silent_to_further_signals(#[case] size: usize, #[case] quorum: usize) {
     // Arrange
     let mut cluster = Cluster::new(size, quorum);
     converge(&mut cluster, size);

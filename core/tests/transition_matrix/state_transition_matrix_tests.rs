@@ -16,7 +16,10 @@ use rstest::rstest;
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
-use super::helpers::{all_admissible, collecting_admissible, participation, probe_only, ready};
+use super::helpers::{
+    all_admissible, bootstrapped_admissible, collecting_admissible, participation, probe_only,
+    ready,
+};
 
 #[rstest]
 #[case::participation_timely_member(
@@ -69,7 +72,7 @@ use super::helpers::{all_admissible, collecting_admissible, participation, probe
         Concluded { mode: Conclusion::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    probe_only(),
+    bootstrapped_admissible(),
 )]
 #[case::local_completion_transitions_to_collecting(
     Init::Fresh,
@@ -94,7 +97,7 @@ use super::helpers::{all_admissible, collecting_admissible, participation, probe
         Concluded { mode: Conclusion::Bootstrapped },
     ],
     &[Assert::CollectingCount(5), Assert::LocalComplete, Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    probe_only(),
+    bootstrapped_admissible(),
 )]
 #[case::local_completion_redundant_is_rejected(
     Init::CollectingNoReadiness,
@@ -116,6 +119,13 @@ use super::helpers::{all_admissible, collecting_admissible, participation, probe
     &[Concluded { mode: Conclusion::TimedOut }],
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
     probe_only(),
+)]
+#[case::bootstrapped_acknowledges_rejoin(
+    Init::Bootstrapped,
+    participation(1),
+    &[AcknowledgeRejoin { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
 )]
 fn valid_transition(
     #[case] init: Init,

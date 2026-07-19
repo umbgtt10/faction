@@ -31,12 +31,26 @@ impl Bootstrapped {
 }
 
 impl State for Bootstrapped {
-    fn step(&self, _command: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        unreachable!("accept() rejects all commands for this state")
+    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+        let stay = Box::new(Self::new(
+            self.pinged_peers.clone(),
+            self.collected_peers.clone(),
+        ));
+        match command {
+            Command::ParticipationObserved { peer_id } => {
+                let outcome = if config.is_member(peer_id) {
+                    Outcome::AcknowledgeRejoin { peer_id }
+                } else {
+                    Outcome::NonMemberIgnored { peer_id }
+                };
+                (vec![outcome], stay)
+            }
+            _ => unreachable!("accept() rejects this command for Bootstrapped"),
+        }
     }
 
-    fn accept(&self, _command: &Command) -> bool {
-        false
+    fn accept(&self, command: &Command) -> bool {
+        matches!(command, Command::ParticipationObserved { .. })
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
@@ -49,6 +63,9 @@ impl State for Bootstrapped {
     }
 
     fn admissible_commands(&self) -> Vec<Command> {
-        vec![Command::Probe]
+        vec![
+            Command::ParticipationObserved { peer_id: 0 },
+            Command::Probe,
+        ]
     }
 }

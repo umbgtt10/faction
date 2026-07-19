@@ -13,6 +13,7 @@ use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
+use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
@@ -84,7 +85,7 @@ fn process_all_inputs_leave_state_unchanged() {
     };
 
     // Assert
-    assert!(r1.is_empty());
+    assert_eq!(r1, vec![Outcome::AcknowledgeRejoin { peer_id: 0 }]);
     assert!(r2.is_empty());
     assert!(r3.is_empty());
     assert!(r4.is_empty());

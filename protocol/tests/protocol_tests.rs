@@ -167,8 +167,8 @@ fn decide_rejected_command_returns_noop() {
 }
 
 #[test]
-fn decide_after_bootstrapped_rejects_all() {
-    // Arrange
+fn decide_after_bootstrapped_re_advertises_on_ping_and_ignores_ready() {
+    // Arrange — drive the node to Bootstrapped (quorum 2: self plus peer 1)
     let mut protocol = protocol();
     protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
     protocol.decide(InputMessage::Timer(
@@ -176,12 +176,15 @@ fn decide_after_bootstrapped_rejects_all() {
     ));
     protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
 
-    // Act
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 0 }));
+    // Act & Assert — a member's ping re-advertises this node's readiness
+    let on_ping = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    assert_eq!(on_ping.len(), 1);
+    assert!(matches!(on_ping[0], OutputMessage::BroadcastReady));
 
-    // Assert
-    assert_eq!(decisions.len(), 1);
-    assert!(matches!(decisions[0], OutputMessage::Noop));
+    // Act & Assert — a duplicate ready draws no reply
+    let on_ready = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    assert_eq!(on_ready.len(), 1);
+    assert!(matches!(on_ready[0], OutputMessage::Noop));
 }
 
 #[test]

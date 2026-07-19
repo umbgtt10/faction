@@ -95,6 +95,14 @@ impl ModelCoordinator {
         }
 
         if self.has_exited() {
+            if self.peer_state == ModelLifecycleState::Bootstrapped {
+                if let Command::ParticipationObserved { peer_id } = command {
+                    return match self.peer_index(peer_id) {
+                        Some(_) => vec![Outcome::AcknowledgeRejoin { peer_id }],
+                        None => vec![Outcome::NonMemberIgnored { peer_id }],
+                    };
+                }
+            }
             return Vec::new();
         }
 
