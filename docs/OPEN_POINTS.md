@@ -1,6 +1,6 @@
 # Open Points
 
-Status: **PARTIALLY DECIDED — collected 2026-07-17; §1–§4 committed as a Phase 0 bug fix on 2026-07-19 (see §9). Settled architectural decisions have moved to `docs/ADRs/`.**
+Status: **PARTIALLY DECIDED — collected 2026-07-17; §1–§4 committed as a Phase 0 bug fix on 2026-07-19 (see §7). Settled architectural decisions have moved to `docs/ADRs/`.**
 
 Companion to `ROADMAP.md`. This document holds unresolved design questions
 and considerations raised while investigating Phase 0's known
@@ -12,7 +12,7 @@ debate.
 
 **2026-07-19 update:** §1–§4 are now decided — they are treated as a **bug
 in Phase 0**, fixed in place before any Phase 1 work begins. This is *not* a
-new roadmap phase; the ROADMAP is unchanged. §9 records the decision, the
+new roadmap phase; the ROADMAP is unchanged. §7 records the decision, the
 concrete consumer payoff, and how the fix re-baselines Phase 0's own tests.
 The source-of-truth boundary for Phase 3–5 membership is now decided too —
 Faction is **persistency-free** (recorded as
@@ -37,7 +37,7 @@ command)` test suite, which doesn't model a long-running cluster with a
 mid-lifetime member restart. Found and fully traced (two independently
 cross-checked clocks, confirmed against `deadline` down to the second) via
 a real-hardware integration test in a downstream consumer project. Needs a
-fast reconnect path for known peers — **now treated as a Phase 0 bug to fix (§9).**
+fast reconnect path for known peers — **now treated as a Phase 0 bug to fix (§7).**
 
 **Confirmed a second time, independently (2026-07-19).** The same class of
 gap reproduced on real hardware in a *different* downstream consumer,
@@ -48,9 +48,9 @@ from a restarting peer and never re-announcing its own readiness — a ~3
 minute stall until the stale deadline timer fired. Fixed downstream
 (`locally_completed` flag + rejoin-ack branch + readiness rebroadcast,
 etheram-ibft `8fba86c`). That fix is a consumer-side reimplementation of
-accounting §6 assigns to Faction — exactly the duplication this crate
+accounting that belongs to Faction — exactly the duplication this crate
 exists to prevent (same failure mode as the `Some(node_count)` quorum bug
-landing independently in both consumers). §9 records the plan to pull it
+landing independently in both consumers). §7 records the plan to pull it
 back into Faction.
 
 ---
@@ -73,7 +73,7 @@ section 4).
 Resolved direction, not yet implemented: **record the fact, stay exactly
 where it was.** A state transition on `DeadlineExpired` is itself the policy
 decision ("missing this means stop") — and that decision isn't Faction's to
-make (see section 6). Concretely, in `Pinging`/`Collecting`:
+make. Concretely, in `Pinging`/`Collecting`:
 
 ```rust
 Command::DeadlineExpired => (
@@ -132,53 +132,7 @@ a breaking change requiring a version bump.
 
 ---
 
-## 5. Should the deadline/timeout period be `Option<Duration>` at Faction's core?
-
-Checked directly: **there's nothing to make optional.** `Config`
-(`core/src/config.rs`) carries only `peer_id`, `peers`, `quorum_policy` — no
-duration field anywhere, ever. Faction never owned "how long to wait";
-`DeadlineExpired` is just a command a consumer chooses to send or not send,
-entirely outside Faction's knowledge. "Forever" is already the behavior
-today if a consumer simply never constructs that command.
-
-Where this question does apply is one layer up, in each consumer's own
-config (e.g. a `deadline_ms: u64`-style field). Once section 2 lands, that
-knob gets considerably lower-stakes than it looks today: firing
-`DeadlineExpired` or not no longer changes whether progress continues, only
-whether an observability signal gets recorded. Worth doing at the consumer
-level, but it's each consumer's own config decision, not a Faction change.
-
----
-
-## 6. Responsibility boundary: Faction vs. the consuming protocol
-
-**Working principle:** Faction owns anything derivable purely from injected
-config plus the history of commands already processed — pure accounting,
-no judgment about what a fact means or what to do about it. The protocol
-owns its own fault model (and therefore any formula derived from it), its
-policy for reacting to a fact, and all I/O.
-
-Applied to the concrete cases raised so far:
-
-| Concern | Owner | Why |
-|---|---|---|
-| Quorum threshold, the number itself | Protocol | Encodes the protocol's own fault model — IBFT is Byzantine (`2N/3+1`), Raft is crash-fault-only (`N/2+1`). Faction cannot know which is correct for a given consumer. Already correctly injected via `QuorumPolicy`; the `Some(node_count)` bug in both IBFT and Raft was a protocol-side implementation mistake, not a boundary violation. |
-| Counting confirmations against that threshold | Faction | Pure bookkeeping, no protocol knowledge needed. Already correct. |
-| Whether a deadline exists, and how long it is | Protocol | Already correct — `Config` has no duration field (section 4). |
-| What a fired `DeadlineExpired` *means*, what to do about it | Faction reports; protocol decides | Currently wrong — see sections 2–3. Turning it into a hard dead-end state is Faction imposing a policy answer ("missing this means stop") that forecloses protocols that would legitimately want "log and continue" as much as ones that want "log and stop." |
-| Whether to acknowledge a rejoining known peer | Faction | Reduces to "is this a configured member" and "am I currently confirmed" — purely mechanical, zero protocol-specific judgment. A consumer *could* replicate this itself (`Bootstrapper` already has the data), but letting every consumer reimplement identical accounting is the exact failure this crate exists to prevent — see the identical `Some(node_count)` bug landing independently in both IBFT and Raft. |
-| Actually sending the reply message, wire format | Protocol | Unconditional. IBFT reuses `PeerReady`; Raft's equivalent is a different type Faction has never heard of. Faction says "acknowledge-worthy: yes" as an outcome; the consumer decides how. |
-
-One addition under this framework: `Command::DeadlineExpired` stays in
-Faction's vocabulary even after losing its teeth, because Faction's own
-"every transition, query, and rejection reaches the `Observer`" rule makes
-it the natural single place to centrally record "this took longer than
-target" alongside everything else in the lifecycle — recording centrally is
-still accounting, even once it no longer triggers a policy decision.
-
----
-
-## 7. Should Faction allow the quorum size to change?
+## 5. Should Faction allow the quorum size to change?
 
 Not a bare setter — that would reintroduce, through a side door, the exact
 hazard Phase 3 already exists to prevent. If threshold can be swapped on one
@@ -210,7 +164,7 @@ recomputed and injected by the consumer, same as at construction.
 
 ---
 
-## 8. Verification plan for the `DeadlineExpired`/rejoin-ack fix, once implemented
+## 6. Verification plan for the `DeadlineExpired`/rejoin-ack fix, once implemented
 
 Scoped to Faction's own test suite — three tiers, from state-machine unit
 level up to real multi-process convergence. Depends on sections 2–4 above
@@ -260,7 +214,7 @@ actually being decided first, since the exact shape of what's being tested
 
 ---
 
-## 9. Decision (2026-07-19): §1–§4 are a Phase 0 bug, fixed before Phase 1
+## 7. Decision (2026-07-19): §1–§4 are a Phase 0 bug, fixed before Phase 1
 
 Confirmed direction. The rejoin-ack limitation (§1), the `TimedOut`
 dead-end (§2), the `DeadlineMissed` non-terminal outcome (§3), and the
@@ -277,7 +231,7 @@ Two things forced the decision:
 1. **A second independent consumer hit it** — see the 2026-07-19 note in §1.
    Two consumers reinventing the same reconnect accounting is the precise
    failure Faction exists to prevent.
-2. **The thin-adapter target makes the §6 boundary testable.** If fixing
+2. **The thin-adapter target makes the Faction/consumer boundary testable.** If fixing
    this in Faction lets the downstream workaround collapse to a forwarding
    shim, that *is* the proof the boundary was drawn in the right place.
 
@@ -293,7 +247,7 @@ Two things forced the decision:
   arriving at a node already past its own local completion, yields a new
   outcome `AcknowledgeRejoin { peer_id }`: "reply, this is a known member
   reconnecting." The acknowledge-worthy *decision* is Faction's; the wire
-  reply stays the consumer's. (§1 under the §6 boundary)
+  reply stays the consumer's. (§1, under the Faction/consumer boundary)
 
 **Thin-adapter target** — what etheram-ibft's `Bootstrapper` workaround
 becomes once the fix ships. This table *is* the acceptance criterion:
@@ -309,7 +263,7 @@ etheram-raft, which has none of this logic yet, wires the same two outcomes
 from the start and never grows the workaround.
 
 **Test re-baselining (paper-relevant).** Because this is a bug fix to
-Phase 0 rather than a new phase, §8's rewrite of the two existing
+Phase 0 rather than a new phase, §6's rewrite of the two existing
 `deadline_expired_tests.rs` assertions is simply what fixing the bug means —
 they currently assert the dead-end behavior, so they are corrected to
 assert the fixed behavior. Phase 0's final, canonical form is the corrected
@@ -322,10 +276,13 @@ loosening.
 
 ---
 
-## 10. Deferred ADRs (not decisions yet)
+## 8. Deferred / unwritten ADRs
 
-Two P2-tier ADRs remain unwritten — neither is a decision yet:
+ADRs not yet written, with why each waits:
 
-- *(blocked on §7)* `Config` immutability — membership/quorum changes arrive
-  as `Command`s, never as setters. No ADR until §7 is decided.
+- *(blocked on §5)* `Config` immutability — membership/quorum changes arrive
+  as `Command`s, never as setters. No ADR until §5 is decided.
 - *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).
+- *(to write)* Testing-ladder ADR — the test tiers (unit /
+  transition-matrix / property-based / system) and the gate that runs them.
+  The ladder already exists; this is just writing it up.
