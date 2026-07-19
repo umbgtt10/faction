@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.3] — 2026-05-09
+
+### Documentation & polish — runnable example, bootstrapping-gap note, import cleanup
+
+#### Added
+- Module-level documentation with a runnable example in `lib.rs` — a full
+  drive of the machine (participation, duplicate rejection, `Probe`, quorum
+  exit) that runs as a doctest.
+- README paragraph documenting the IBFT/Raft bootstrapping gap `faction`
+  fills, with downstream-integration context.
+
+#### Changed
+- Documentation refresh across the crate docs and README.
+- Replaced inline module-path qualifiers (`mpsc::`, `oneshot::`, and other
+  module qualifiers) with `use` imports.
+- `ClusterBuilder::new`'s second parameter renamed `required` → `node_required`
+  for clarity — `system-tests` harness only, not part of the published core API.
+
+---
+
 ## [0.3.2] — 2026-05-03
 
 ### `Observer` no longer requires `Send`
