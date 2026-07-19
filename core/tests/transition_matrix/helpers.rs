@@ -8,6 +8,7 @@ use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
@@ -88,7 +89,7 @@ pub enum Assert {
     NotLocalComplete,
 }
 
-pub fn verify(faction: &mut Faction, checks: &[Assert]) {
+pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
     let cluster_view = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
@@ -104,6 +105,7 @@ pub fn verify(faction: &mut Faction, checks: &[Assert]) {
             Assert::NotLocalComplete => assert!(!cluster_view.is_pinging_completed()),
         }
     }
+    cluster_view
 }
 
 pub fn participation(peer_id: PeerId) -> Command {

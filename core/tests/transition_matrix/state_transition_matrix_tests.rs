@@ -14,7 +14,10 @@ use faction::outcome::Outcome::*;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
 
-use super::helpers::*;
+use super::helpers::{
+    all_admissible, build, collecting_admissible, participation, probe_only, ready, verify, Assert,
+    Init,
+};
 
 #[rstest]
 #[case::participation_timely_member(
@@ -119,18 +122,25 @@ fn valid_transition(
     let mut faction = build(init);
 
     // Act
-    let (results, admissible) = match faction.process(command) {
+    let (results, admissible, returned_view) = match faction.process(command) {
         ProcessResult::Accepted {
             outcomes,
             admissible,
-            ..
-        } => (outcomes, admissible),
-        ProcessResult::Rejected { admissible, .. } => (vec![], admissible),
+            cluster_view,
+        } => (outcomes, admissible, cluster_view),
+        ProcessResult::Rejected {
+            admissible,
+            cluster_view,
+        } => (vec![], admissible, cluster_view),
         ProcessResult::Probed { .. } => unreachable!(),
     };
 
     // Assert
     assert_eq!(results.as_slice(), expected_results, "output mismatch");
     assert_eq!(admissible, expected_admissible, "admissible mismatch");
-    verify(&mut faction, asserts);
+    let probed_view = verify(&mut faction, asserts);
+    assert_eq!(
+        returned_view, probed_view,
+        "returned cluster_view differs from a subsequent probe"
+    );
 }
