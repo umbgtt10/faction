@@ -39,8 +39,9 @@ self-limiting, since a peer pings only while still trying.
 and non-terminal; `Conclusion` and the internal `TimedOut` state collapse to
 `Bootstrapped` only, with `PeerState::TimedOut` surviving as a derived view flag
 off `ClusterView::deadline_missed`. Breaking API changes (new outcomes, dropped
-`Conclusion::TimedOut`), released as 0.4.0. Consumer reconnect workarounds
-collapse toward a forwarding shim.
+`Conclusion::TimedOut`); they ship in 0.4.0 alongside Phase 1 (dynamic joining),
+not as a standalone release. Consumer reconnect workarounds collapse toward a
+forwarding shim.
 
 ## Enforcement
 `dropped_ready` `(2, 2)` proves a bootstrapped node re-advertises to a stranded
