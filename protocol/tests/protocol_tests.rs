@@ -131,7 +131,7 @@ fn decide_ready_before_local_completion_is_noop() {
 }
 
 #[test]
-fn decide_deadline_expired_exits() {
+fn decide_deadline_expired_stays_receptive() {
     // Arrange
     let mut protocol = protocol();
     protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
@@ -139,12 +139,11 @@ fn decide_deadline_expired_exits() {
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::DeadlineExpired));
 
-    // Assert
-    assert_eq!(decisions.len(), 3);
-    assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
-    assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
-    assert!(matches!(decisions[2], OutputMessage::Cancel(_)));
+    // Assert — a missed deadline is recorded, not concluded; retries keep running
+    assert_eq!(decisions.len(), 1);
+    assert!(matches!(decisions[0], OutputMessage::Noop));
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::TimedOut);
+    assert!(!protocol.cluster_view().is_concluded());
 }
 
 #[test]

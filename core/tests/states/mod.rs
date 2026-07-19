@@ -10,4 +10,3 @@ pub mod ready_step_tests;
 
 pub mod initial_tests;
 pub mod pinging_tests;
-pub mod timed_out_tests;

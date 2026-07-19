@@ -10,4 +10,3 @@ pub mod ready_step;
 
 pub mod initial;
 pub mod pinging;
-pub mod timed_out;

@@ -152,18 +152,12 @@ proptest! {
             // Assert
             if cluster_view.is_concluded() {
                 has_exited = true;
-                prop_assert!(matches!(
-                    cluster_view.peer_state(),
-                    PeerState::Bootstrapped | PeerState::TimedOut
-                ));
+                prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
             }
 
             if has_exited {
                 prop_assert!(cluster_view.is_concluded());
-                prop_assert!(matches!(
-                    cluster_view.peer_state(),
-                    PeerState::Bootstrapped | PeerState::TimedOut
-                ));
+                prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
             }
         }
     }
@@ -325,7 +319,7 @@ proptest! {
     }
 
     #[test]
-    fn deadline_exit_implies_exited_state(commands in prop::collection::vec(command_strategy(), 0..128)) {
+    fn deadline_missed_is_reported_but_never_concludes(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut faction = faction();
 
@@ -337,13 +331,12 @@ proptest! {
                 _ => unreachable!(),
             };
 
-            // Assert
-            if cluster_view.conclusion() == Some(Conclusion::TimedOut) {
-                prop_assert!(cluster_view.is_concluded());
-                prop_assert_eq!(
-                    cluster_view.peer_state(),
-                    PeerState::TimedOut
-                );
+            // Assert — a missed deadline surfaces as TimedOut but stays receptive
+            if cluster_view.deadline_missed()
+                && cluster_view.peer_state() == PeerState::TimedOut
+            {
+                prop_assert!(!cluster_view.is_concluded());
+                prop_assert_eq!(cluster_view.conclusion(), None);
             }
         }
     }

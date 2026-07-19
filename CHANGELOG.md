@@ -32,6 +32,12 @@
   implemented or captured in an ADR.
 - Split the transition-matrix test helpers into focused `builder` and
   `assertions` modules.
+- **Breaking** — removed the `TimedOut` state and `Conclusion::TimedOut`.
+  `Bootstrapped` is now the only terminal state; a missed deadline is surfaced
+  as `PeerState::TimedOut` (a derived view flag) without concluding. Added
+  `Outcome::AcknowledgeRejoin { peer_id }` and
+  `Outcome::DeadlineMissed { confirmed_count }`, and `Bootstrapped` now admits
+  `ParticipationObserved`.
 
 #### Fixed
 - Single-node clusters (`size == 1`) now bootstrap. `Initial` accepted only
@@ -40,6 +46,17 @@
   `LocalParticipationCompleted`, which also closes a latent ordering hazard
   where the first node to complete locally — before observing any peer — could
   wedge at any cluster size.
+- **The concluded-node silent-sink bug** (OPEN_POINTS §1–§4/§7). A node that
+  reached a terminal state stopped helping peers: `Bootstrapped` cancelled its
+  retries and went silent, stranding a peer that missed its readiness; and
+  `DeadlineExpired` drove the node into a `TimedOut` dead-end it could never
+  leave, even when the readies it needed arrived late. Now a bootstrapped node
+  re-advertises its readiness to a still-pinging peer (`AcknowledgeRejoin`), and
+  a missed deadline is a non-terminal `DeadlineMissed` fact — the node stays
+  receptive and still converges.
+- Corrected a `protocol-validation` harness bug: `Cluster::step_transport_node`
+  attributed a node's transport-triggered outputs to the incoming message's
+  sender instead of the processing node.
 
 #### Removed
 - Stale `VALIDATION.md` — superseded by the ADRs and the live test suite.

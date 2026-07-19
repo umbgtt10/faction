@@ -40,7 +40,7 @@ fn slow_member_does_not_block_quorum_exit() {
 }
 
 #[test]
-fn expire_deadline_exits_by_deadline() {
+fn expire_deadline_records_miss_and_stays_receptive() {
     // Arrange
     let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
     let _ = harness.apply_participation(0, 1);
@@ -50,16 +50,15 @@ fn expire_deadline_exits_by_deadline() {
     let outputs = harness.expire_deadline(0);
     let cluster_view = harness.cluster_view(0);
 
-    // Assert
+    // Assert — the miss is recorded (reported as TimedOut) but never concluded
     assert_eq!(
         outputs,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::TimedOut));
+    assert_eq!(cluster_view.conclusion(), None);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(cluster_view.is_concluded());
+    assert!(!cluster_view.is_concluded());
+    assert!(cluster_view.deadline_missed());
 }
 
 #[test]
@@ -84,7 +83,7 @@ fn post_exit_ready_is_ignored() {
 }
 
 #[test]
-fn repeated_deadline_expiry_remains_idempotent() {
+fn repeated_deadline_expiry_is_repeatable() {
     // Arrange
     let mut harness = ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4);
     let _ = harness.apply_participation(0, 1);
@@ -95,11 +94,14 @@ fn repeated_deadline_expiry_remains_idempotent() {
     let outputs = harness.expire_deadline(0);
     let cluster_view = harness.cluster_view(0);
 
-    // Assert
-    assert!(outputs.is_empty());
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::TimedOut));
+    // Assert — a repeated deadline answers again with the current count
+    assert_eq!(
+        outputs,
+        vec![Outcome::DeadlineMissed { confirmed_count: 1 }]
+    );
+    assert_eq!(cluster_view.conclusion(), None);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(cluster_view.is_concluded());
+    assert!(!cluster_view.is_concluded());
 }
 
 #[test]
@@ -118,17 +120,15 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
     // Act
     let outputs = harness.expire_deadline(0);
 
-    // Assert
+    // Assert — the confirmed count is preserved, the node stays receptive
     assert_eq!(
         outputs,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 3 }]
     );
     let cluster_view = harness.cluster_view(0);
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::TimedOut));
+    assert_eq!(cluster_view.conclusion(), None);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(cluster_view.is_concluded());
+    assert!(!cluster_view.is_concluded());
     assert_eq!(cluster_view.collecting_peers().len(), 3);
 }
 
@@ -183,13 +183,11 @@ fn deadline_from_pinging() {
     // Assert
     assert_eq!(
         outputs,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::TimedOut));
+    assert_eq!(cluster_view.conclusion(), None);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(cluster_view.is_concluded());
+    assert!(!cluster_view.is_concluded());
     assert!(!cluster_view.is_pinging_completed());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 0);

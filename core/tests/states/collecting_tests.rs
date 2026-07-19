@@ -68,12 +68,11 @@ fn process_accepts_deadline_expired() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
-    assert_eq!(snap.conclusion(), Some(Conclusion::TimedOut));
-    assert!(snap.is_concluded());
+    assert!(snap.deadline_missed());
+    assert!(!snap.is_concluded());
+    assert_eq!(snap.conclusion(), None);
 }
 
 #[test]
@@ -300,7 +299,7 @@ fn process_rejects_local_completion() {
 }
 
 #[test]
-fn process_accepts_deadline_expired_exits_in_collecting() {
+fn process_deadline_expired_stays_receptive_in_collecting() {
     // Arrange
     let mut faction = faction_in_collecting();
     let snap_before = match faction.process(Command::Probe) {
@@ -327,13 +326,12 @@ fn process_accepts_deadline_expired_exits_in_collecting() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
     assert_eq!(snap.peer_state(), PeerState::TimedOut);
-    assert_eq!(snap.conclusion(), Some(Conclusion::TimedOut));
-    assert!(snap.is_concluded());
+    assert!(snap.deadline_missed());
+    assert!(!snap.is_concluded());
+    assert_eq!(snap.conclusion(), None);
     assert!(snap.is_pinging_completed());
 }
 
@@ -360,7 +358,7 @@ fn process_probe_returns_correct_snapshot() {
 fn cluster_view_inherits_correctly() {
     // Arrange
     let collecting_set = vec![1, 3];
-    let collecting = Collecting::new(collecting_set, vec![5, 6]);
+    let collecting = Collecting::new(collecting_set, vec![5, 6], false);
     let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
 
     // Act

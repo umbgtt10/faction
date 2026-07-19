@@ -50,6 +50,7 @@ struct ModelCoordinator {
     collecting_confirmed: [bool; 5],
     pinging_confirmed_count: usize,
     collecting_confirmed_count: usize,
+    deadline_missed: bool,
 }
 
 impl ModelCoordinator {
@@ -66,12 +67,19 @@ impl ModelCoordinator {
             collecting_confirmed: [false; 5],
             pinging_confirmed_count: 0,
             collecting_confirmed_count: 0,
+            deadline_missed: false,
         }
     }
 
     fn cluster_view(&self) -> ModelClusterView {
+        let peer_state =
+            if self.deadline_missed && self.peer_state != ModelLifecycleState::Bootstrapped {
+                ModelLifecycleState::TimedOut
+            } else {
+                self.peer_state
+            };
         ModelClusterView {
-            peer_state: self.peer_state,
+            peer_state,
             exit_mode: self.exit_mode,
             is_pinging_completed: self.is_pinging_completed,
             readiness_exited: self.exit_mode.is_some(),
@@ -212,11 +220,10 @@ impl ModelCoordinator {
             return vec![];
         }
 
-        self.exit_mode = Some(Conclusion::TimedOut);
-        self.peer_state = ModelLifecycleState::TimedOut;
+        self.deadline_missed = true;
 
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
+        vec![Outcome::DeadlineMissed {
+            confirmed_count: self.collecting_confirmed_count,
         }]
     }
 

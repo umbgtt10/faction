@@ -5,5 +5,4 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Conclusion {
     Bootstrapped,
-    TimedOut,
 }

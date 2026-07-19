@@ -8,7 +8,6 @@ use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
-use crate::conclusion::Conclusion;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
@@ -17,20 +16,25 @@ use crate::types::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::ready_step::ReadyStep;
-use super::timed_out::TimedOut;
 
 #[derive(Default)]
 pub struct Collecting {
     collecting_peers: Vec<PeerId>,
     pinged_peers: Vec<PeerId>,
+    deadline_missed: bool,
 }
 
 impl Collecting {
     #[must_use]
-    pub fn new(collecting_peers: Vec<PeerId>, pinged_peers: Vec<PeerId>) -> Self {
+    pub fn new(
+        collecting_peers: Vec<PeerId>,
+        pinged_peers: Vec<PeerId>,
+        deadline_missed: bool,
+    ) -> Self {
         Self {
             collecting_peers,
             pinged_peers,
+            deadline_missed,
         }
     }
 
@@ -41,7 +45,11 @@ impl Collecting {
                 confirmed_peers,
             ))
         } else {
-            Box::new(Self::new(confirmed_peers, self.pinged_peers.clone()))
+            Box::new(Self::new(
+                confirmed_peers,
+                self.pinged_peers.clone(),
+                self.deadline_missed,
+            ))
         }
     }
 
@@ -76,6 +84,7 @@ impl State for Collecting {
             .with_is_pinging_completed(true)
             .with_pinging_peers(self.pinged_peers.clone())
             .with_collecting_peers(self.collecting_peers.clone())
+            .with_deadline_missed(self.deadline_missed)
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
@@ -85,6 +94,7 @@ impl State for Collecting {
                 Box::new(Self::new(
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
+                    self.deadline_missed,
                 )),
             );
         }
@@ -112,12 +122,13 @@ impl State for Collecting {
             }
 
             Command::DeadlineExpired => (
-                vec![Outcome::Concluded {
-                    mode: Conclusion::TimedOut,
+                vec![Outcome::DeadlineMissed {
+                    confirmed_count: self.collecting_peers.len(),
                 }],
-                Box::new(TimedOut::new(
-                    self.pinged_peers.clone(),
+                Box::new(Self::new(
                     self.collecting_peers.clone(),
+                    self.pinged_peers.clone(),
+                    true,
                 )),
             ),
 

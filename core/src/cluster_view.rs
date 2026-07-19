@@ -15,6 +15,7 @@ pub struct ClusterView {
     pinging_peers: Vec<PeerId>,
     collecting_peers: Vec<PeerId>,
     required_count: usize,
+    deadline_missed: bool,
 }
 
 impl ClusterView {
@@ -32,19 +33,23 @@ impl ClusterView {
             pinging_peers,
             collecting_peers,
             required_count,
+            deadline_missed: false,
         }
     }
 
     #[must_use]
     pub fn peer_state(&self) -> PeerState {
-        self.peer_state
+        if self.deadline_missed && self.peer_state != PeerState::Bootstrapped {
+            PeerState::TimedOut
+        } else {
+            self.peer_state
+        }
     }
 
     #[must_use]
     pub fn conclusion(&self) -> Option<Conclusion> {
         match self.peer_state {
             PeerState::Bootstrapped => Some(Conclusion::Bootstrapped),
-            PeerState::TimedOut => Some(Conclusion::TimedOut),
             _ => None,
         }
     }
@@ -56,10 +61,12 @@ impl ClusterView {
 
     #[must_use]
     pub fn is_concluded(&self) -> bool {
-        matches!(
-            self.peer_state,
-            PeerState::Bootstrapped | PeerState::TimedOut
-        )
+        matches!(self.peer_state, PeerState::Bootstrapped)
+    }
+
+    #[must_use]
+    pub fn deadline_missed(&self) -> bool {
+        self.deadline_missed
     }
 
     #[must_use]
@@ -98,6 +105,12 @@ impl ClusterView {
     #[must_use]
     pub fn with_collecting_peers(mut self, peers: Vec<PeerId>) -> Self {
         self.collecting_peers = peers;
+        self
+    }
+
+    #[must_use]
+    pub fn with_deadline_missed(mut self, val: bool) -> Self {
+        self.deadline_missed = val;
         self
     }
 }

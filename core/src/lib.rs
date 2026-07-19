@@ -13,7 +13,8 @@
 //! `faction` replaces ad-hoc coordination with a formally specified state machine
 //! that answers one question: **is the cluster ready to proceed?**
 //!
-//! The answer is always `Bootstrapped` or `TimedOut`. No ambiguity.
+//! The terminal answer is `Bootstrapped`. A blown deadline is recorded as
+//! `TimedOut` but is never terminal — the node keeps trying.
 //!
 //! ## The pitch
 //!
@@ -90,8 +91,6 @@
 //!
 //! ```text
 //! Initial → Pinging → Collecting → Bootstrapped
-//!                        ↓
-//!                     TimedOut
 //! ```
 //!
 //! | State | Carries |
@@ -100,11 +99,12 @@
 //! | `Pinging` | Active pinging and collecting peer sets |
 //! | `Collecting` | Collecting and pinged peer sets |
 //! | `Bootstrapped` | Terminal — quorum reached |
-//! | `TimedOut` | Terminal — deadline expired before quorum |
 //!
-//! Terminal states are truly terminal: once reached, the machine rejects
-//! every command other than `Probe`. The compiler can't enforce this, but
-//! our test suite can — and does.
+//! `Bootstrapped` is the only terminal state. A missed deadline is recorded as
+//! a fact — surfaced as `PeerState::TimedOut` — without leaving the current
+//! state, so the node stays receptive and can still converge. And a
+//! bootstrapped node answers a still-pinging peer with its readiness, so a
+//! concluded node is never a silent sink.
 //!
 //! ## Observer
 //!

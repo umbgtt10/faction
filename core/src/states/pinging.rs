@@ -8,7 +8,6 @@ use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
-use crate::conclusion::Conclusion;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
@@ -19,12 +18,12 @@ use super::bootstrapped::Bootstrapped;
 use super::collecting::Collecting;
 use super::local_completion_step::LocalCompletionStep;
 use super::pinging_step::PingingStep;
-use super::timed_out::TimedOut;
 
 #[derive(Default)]
 pub struct Pinging {
     pinging_peers: Vec<PeerId>,
     collecting_peers: Vec<PeerId>,
+    deadline_missed: bool,
 }
 
 impl Pinging {
@@ -40,7 +39,11 @@ impl Pinging {
                 confirmed_peers,
             ))
         } else {
-            Box::new(Collecting::new(confirmed_peers, self.pinging_peers.clone()))
+            Box::new(Collecting::new(
+                confirmed_peers,
+                self.pinging_peers.clone(),
+                self.deadline_missed,
+            ))
         }
     }
 
@@ -64,6 +67,7 @@ impl State for Pinging {
             .with_peer_state(PeerState::Pinging)
             .with_pinging_peers(self.pinging_peers.clone())
             .with_collecting_peers(self.collecting_peers.clone())
+            .with_deadline_missed(self.deadline_missed)
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
@@ -73,6 +77,7 @@ impl State for Pinging {
                 Box::new(Self {
                     pinging_peers: self.pinging_peers.clone(),
                     collecting_peers: self.collecting_peers.clone(),
+                    deadline_missed: self.deadline_missed,
                 }),
             );
         }
@@ -86,6 +91,7 @@ impl State for Pinging {
                     Box::new(Self {
                         pinging_peers: step.confirmed_peers().to_vec(),
                         collecting_peers: self.collecting_peers.clone(),
+                        deadline_missed: self.deadline_missed,
                     }),
                 )
             }
@@ -108,6 +114,7 @@ impl State for Pinging {
                     Box::new(Self {
                         pinging_peers: self.pinging_peers.clone(),
                         collecting_peers: new_collecting,
+                        deadline_missed: self.deadline_missed,
                     }),
                 )
             }
@@ -126,13 +133,14 @@ impl State for Pinging {
             }
 
             Command::DeadlineExpired => (
-                vec![Outcome::Concluded {
-                    mode: Conclusion::TimedOut,
+                vec![Outcome::DeadlineMissed {
+                    confirmed_count: self.collecting_peers.len(),
                 }],
-                Box::new(TimedOut::new(
-                    self.pinging_peers.clone(),
-                    self.collecting_peers.clone(),
-                )),
+                Box::new(Self {
+                    pinging_peers: self.pinging_peers.clone(),
+                    collecting_peers: self.collecting_peers.clone(),
+                    deadline_missed: true,
+                }),
             ),
 
             Command::Probe => unreachable!("Probe handled in Faction::process"),

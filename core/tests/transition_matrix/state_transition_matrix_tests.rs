@@ -17,8 +17,7 @@ use rstest::rstest;
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 use super::helpers::{
-    all_admissible, bootstrapped_admissible, collecting_admissible, participation, probe_only,
-    ready,
+    all_admissible, bootstrapped_admissible, collecting_admissible, participation, ready,
 };
 
 #[rstest]
@@ -106,19 +105,19 @@ use super::helpers::{
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     collecting_admissible(),
 )]
-#[case::deadline_expired(
+#[case::deadline_missed_from_pinging(
     Init::Fresh,
     Command::DeadlineExpired,
-    &[Concluded { mode: Conclusion::TimedOut }],
-    &[Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
-    probe_only(),
+    &[DeadlineMissed { confirmed_count: 0 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
 )]
-#[case::deadline_expired_from_collecting(
+#[case::deadline_missed_from_collecting(
     Init::CollectingNoReadiness,
     Command::DeadlineExpired,
-    &[Concluded { mode: Conclusion::TimedOut }],
-    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::Exited, Assert::Conclusion(Conclusion::TimedOut)],
-    probe_only(),
+    &[DeadlineMissed { confirmed_count: 1 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
 )]
 #[case::bootstrapped_acknowledges_rejoin(
     Init::Bootstrapped,

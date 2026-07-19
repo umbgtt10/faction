@@ -115,9 +115,7 @@ fn process_accepts_deadline_expired() {
     // Assert
     assert_eq!(
         outcomes,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
 }
 
@@ -304,7 +302,7 @@ fn process_local_completion_triggers_quorum() {
 }
 
 #[test]
-fn process_deadline_expired_in_pinging() {
+fn process_deadline_expired_stays_receptive_in_pinging() {
     // Arrange
     let mut faction = faction_in_pinging();
 
@@ -316,16 +314,16 @@ fn process_deadline_expired_in_pinging() {
     };
     assert_eq!(
         outcomes,
-        vec![Outcome::Concluded {
-            mode: Conclusion::TimedOut,
-        }]
+        vec![Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert!(snap.is_concluded());
-    assert_eq!(snap.conclusion(), Some(Conclusion::TimedOut));
+    assert!(!snap.is_concluded());
+    assert_eq!(snap.conclusion(), None);
+    assert!(snap.deadline_missed());
+    assert_eq!(snap.peer_state(), PeerState::TimedOut);
 }
 
 #[test]

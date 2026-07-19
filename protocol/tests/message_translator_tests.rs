@@ -193,7 +193,7 @@ fn to_output_messages_exited_wins_over_broadcast_local_ready_when_first() {
     // Act
     let result = translator.to_output_messages(vec![
         Outcome::Concluded {
-            mode: Conclusion::TimedOut,
+            mode: Conclusion::Bootstrapped,
         },
         Outcome::BroadcastLocalReady,
     ]);

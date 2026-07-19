@@ -172,7 +172,7 @@ fn process_observes_quorum_exit_transition() {
 }
 
 #[test]
-fn process_observes_deadline_exit_transition() {
+fn process_observes_deadline_missed_transition() {
     // Arrange
     let (mut faction, observations) = recording_faction();
     let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
@@ -198,16 +198,12 @@ fn process_observes_deadline_exit_transition() {
     );
     assert!(!transition.previous_view().is_concluded());
     assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
-    assert_eq!(
-        transition.new_view().conclusion(),
-        Some(Conclusion::TimedOut)
-    );
-    assert!(transition.new_view().is_concluded());
+    assert_eq!(transition.new_view().conclusion(), None);
+    assert!(!transition.new_view().is_concluded());
+    assert!(transition.new_view().deadline_missed());
     assert_eq!(
         transition.outputs(),
-        &[Outcome::Concluded {
-            mode: Conclusion::TimedOut
-        }]
+        &[Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
 }
 
@@ -424,7 +420,7 @@ fn process_observes_quorum_exit_from_pinging() {
 }
 
 #[test]
-fn process_observes_deadline_exit_from_pinging() {
+fn process_observes_deadline_missed_from_pinging() {
     // Arrange
     let (mut faction, observations) = recording_faction();
     let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
@@ -448,16 +444,11 @@ fn process_observes_deadline_exit_from_pinging() {
     assert!(!transition.previous_view().is_concluded());
     assert_eq!(
         transition.outputs(),
-        &[Outcome::Concluded {
-            mode: Conclusion::TimedOut
-        }]
+        &[Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
     assert_eq!(transition.new_view().peer_state(), PeerState::TimedOut);
-    assert_eq!(
-        transition.new_view().conclusion(),
-        Some(Conclusion::TimedOut)
-    );
-    assert!(transition.new_view().is_concluded());
+    assert_eq!(transition.new_view().conclusion(), None);
+    assert!(!transition.new_view().is_concluded());
     assert!(!transition.new_view().is_pinging_completed());
 }
 

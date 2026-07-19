@@ -48,15 +48,12 @@ fn all_nodes_time_out_when_deadline_fires_before_quorum(
         }
     }
 
-    // Assert — all nodes are TimedOut with no pending timer events
+    // Assert — the missed deadline is recorded (reported as TimedOut), but the
+    // node stays receptive: its retry timers keep running so it can still converge.
     for i in 0..size {
         assert!(
             cluster.is_timed_out(i),
-            "node {i} (size {size}, quorum {quorum}) did not time out"
-        );
-        assert!(
-            !cluster.step_timer_node(i),
-            "node {i} (size {size}, quorum {quorum}) has pending timers after timeout"
+            "node {i} (size {size}, quorum {quorum}) did not report TimedOut"
         );
     }
 }

@@ -15,5 +15,6 @@ pub enum Outcome {
     LocalParticipationCompleted,
     BroadcastLocalReady,
     AcknowledgeRejoin { peer_id: PeerId },
+    DeadlineMissed { confirmed_count: usize },
     Concluded { mode: Conclusion },
 }
