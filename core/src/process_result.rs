@@ -13,8 +13,9 @@ use crate::outcome::Outcome;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessResult {
     Accepted {
-        outcomes: Vec<Outcome>,
         cluster_view: ClusterView,
+        admissible: Vec<Command>,
+        outcomes: Vec<Outcome>,
     },
     Rejected {
         cluster_view: ClusterView,

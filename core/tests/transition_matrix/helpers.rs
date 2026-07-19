@@ -6,6 +6,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::vec;
+use alloc::vec::Vec;
 
 use faction::command::Command;
 use faction::conclusion::Conclusion;
@@ -111,4 +112,26 @@ pub fn participation(peer_id: PeerId) -> Command {
 
 pub fn ready(peer_id: PeerId) -> Command {
     Command::ReadyObserved { peer_id }
+}
+
+pub fn all_admissible() -> Vec<Command> {
+    vec![
+        Command::ParticipationObserved { peer_id: 0 },
+        Command::ReadyObserved { peer_id: 0 },
+        Command::LocalParticipationCompleted,
+        Command::DeadlineExpired,
+        Command::Probe,
+    ]
+}
+
+pub fn collecting_admissible() -> Vec<Command> {
+    vec![
+        Command::ReadyObserved { peer_id: 0 },
+        Command::DeadlineExpired,
+        Command::Probe,
+    ]
+}
+
+pub fn probe_only() -> Vec<Command> {
+    vec![Command::Probe]
 }

@@ -70,6 +70,7 @@ impl Faction {
         let (outputs, new_state) = self.state.step(command, &self.config);
         self.state = new_state;
 
+        let admissible = self.state.admissible_commands();
         let new_cluster_view = self.state.cluster_view(&previous_cluster_view);
         let transition = Transition::new(
             previous_cluster_view,
@@ -79,8 +80,9 @@ impl Faction {
         self.observer.observe(command, transition);
         self.cluster_view = new_cluster_view.clone();
         ProcessResult::Accepted {
-            outcomes: outputs,
             cluster_view: new_cluster_view,
+            admissible,
+            outcomes: outputs,
         }
     }
 
