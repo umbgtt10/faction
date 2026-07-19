@@ -78,6 +78,13 @@ use super::helpers::{all_admissible, collecting_admissible, participation, probe
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     collecting_admissible(),
 )]
+#[case::local_completion_from_initial_transitions_to_collecting(
+    Init::Initial,
+    Command::LocalParticipationCompleted,
+    &[LocalParticipationCompleted, BroadcastLocalReady],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
 #[case::local_completion_with_preloaded_quorum(
     Init::PingingP2Threshold,
     Command::LocalParticipationCompleted,

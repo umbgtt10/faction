@@ -9,6 +9,7 @@ use alloc::vec;
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
@@ -75,23 +76,31 @@ fn process_accepts_ready_observed() {
 }
 
 #[test]
-fn process_rejects_local_participation_completed() {
+fn process_accepts_local_participation_completed() {
     // Arrange
     let mut faction = test_faction();
 
-    // Act & Assert
-    assert!(matches!(
-        faction.process(Command::LocalParticipationCompleted),
-        ProcessResult::Rejected { .. }
-    ));
+    // Act
+    let outcomes = match faction.process(Command::LocalParticipationCompleted) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        other => panic!("expected Accepted, got {other:?}"),
+    };
 
     // Assert
     let snap = match faction.process(Command::Probe) {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
-    assert_eq!(snap.peer_state(), PeerState::Fresh);
-    assert_eq!(snap.collecting_peers().len(), 0);
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+        ]
+    );
+    assert_eq!(snap.peer_state(), PeerState::Collecting);
+    assert!(snap.is_pinging_completed());
+    assert_eq!(snap.collecting_peers().len(), 1);
 }
 
 #[test]
@@ -151,15 +160,11 @@ fn process_rejects_invalid_commands() {
 
     // Act & Assert
     assert!(matches!(
-        faction.process(Command::LocalParticipationCompleted),
-        ProcessResult::Rejected { .. }
-    ));
-    assert!(matches!(
         faction.process(Command::DeadlineExpired),
         ProcessResult::Rejected { .. }
     ));
     assert!(matches!(
-        faction.process(Command::LocalParticipationCompleted),
+        faction.process(Command::DeadlineExpired),
         ProcessResult::Rejected { .. }
     ));
 
@@ -265,6 +270,39 @@ fn process_probe_returns_fresh_state() {
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
     assert_eq!(snap.required_count(), 4);
+}
+
+#[test]
+fn process_local_participation_completed_single_node_bootstraps() {
+    // Arrange
+    let mut faction = Faction::new(
+        Config::new(0, vec![0], QuorumPolicy::new(1)),
+        Box::new(NoOpObserver),
+    );
+
+    // Act
+    let outcomes = match faction.process(Command::LocalParticipationCompleted) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        other => panic!("expected Accepted, got {other:?}"),
+    };
+
+    // Assert
+    let snap = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
+        _ => unreachable!(),
+    };
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped
+            },
+        ]
+    );
+    assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
+    assert!(snap.is_concluded());
 }
 
 #[test]

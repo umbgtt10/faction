@@ -10,17 +10,11 @@ use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 
 #[rstest]
-#[case::rejects_is_pinging_completedd(
-    Init::Initial,
-    Command::LocalParticipationCompleted,
-    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::Probe],
-)]
 #[case::rejects_deadline_expired(
     Init::Initial,
     Command::DeadlineExpired,
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::LocalParticipationCompleted, Command::Probe],
 )]
 fn invalid_transition(
     #[case] init: Init,

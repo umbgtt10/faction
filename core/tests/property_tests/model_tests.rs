@@ -84,7 +84,9 @@ impl ModelCoordinator {
     fn process(&mut self, command: Command) -> alloc::vec::Vec<Outcome> {
         if self.initial {
             match command {
-                Command::ParticipationObserved { .. } | Command::ReadyObserved { .. } => {
+                Command::ParticipationObserved { .. }
+                | Command::ReadyObserved { .. }
+                | Command::LocalParticipationCompleted => {
                     self.initial = false;
                     self.peer_state = ModelLifecycleState::Pinging;
                 }

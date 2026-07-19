@@ -42,7 +42,9 @@ impl State for Initial {
     fn accept(&self, command: &Command) -> bool {
         matches!(
             command,
-            Command::ParticipationObserved { .. } | Command::ReadyObserved { .. }
+            Command::ParticipationObserved { .. }
+                | Command::ReadyObserved { .. }
+                | Command::LocalParticipationCompleted
         )
     }
 
@@ -50,6 +52,7 @@ impl State for Initial {
         vec![
             Command::ParticipationObserved { peer_id: 0 },
             Command::ReadyObserved { peer_id: 0 },
+            Command::LocalParticipationCompleted,
             Command::Probe,
         ]
     }

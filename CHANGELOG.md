@@ -33,6 +33,14 @@
 - Split the transition-matrix test helpers into focused `builder` and
   `assertions` modules.
 
+#### Fixed
+- Single-node clusters (`size == 1`) now bootstrap. `Initial` accepted only
+  peer-driven input, so a lone node's self-driven `LocalParticipationCompleted`
+  was rejected and it never left `Initial`. `Initial` now accepts
+  `LocalParticipationCompleted`, which also closes a latent ordering hazard
+  where the first node to complete locally — before observing any peer — could
+  wedge at any cluster size.
+
 #### Removed
 - Stale `VALIDATION.md` — superseded by the ADRs and the live test suite.
 
