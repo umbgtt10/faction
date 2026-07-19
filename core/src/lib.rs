@@ -139,3 +139,7 @@ pub mod state;
 pub mod states;
 pub mod transition;
 pub mod types;
+
+#[cfg(doctest)]
+#[doc = include_str!("../../README.md")]
+pub struct ReadmeDoctests;

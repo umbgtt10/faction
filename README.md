@@ -69,7 +69,7 @@ reproduce and expensive to diagnose.
 
 The machine progresses through five states:
 
-```
+```text
 Initial → Pinging → Collecting → Bootstrapped
                          ↓
                       TimedOut
@@ -176,7 +176,8 @@ machine.process(Command::ReadyObserved { peer_id: 2 });
 let result = machine.process(Command::ReadyObserved { peer_id: 3 });
 if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert!(cluster_view.is_concluded());
-    // Terminal state — `admissible` now contains only `Command::Probe`.
+    // Terminal state — the only admissible command left is `Probe`.
+    assert_eq!(admissible, alloc::vec![Command::Probe]);
 }
 ```
 
