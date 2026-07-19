@@ -37,5 +37,7 @@ self-description lies.
 
 ## Enforcement
 Every transition's admissible set is asserted against its expected value in
-the exhaustive `(state × command)` matrix, and every result variant is
-exercised there.
+the exhaustive `(state × command)` matrix, every result variant is exercised
+there, and a dedicated invariant test
+(`transition_matrix/admissible_invariant_tests.rs`) checks
+`admissible == { c ≠ Probe : accept(c) } ∪ { Probe }` per state directly.

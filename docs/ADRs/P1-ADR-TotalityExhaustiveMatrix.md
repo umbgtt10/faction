@@ -31,8 +31,9 @@ code in the system.
 New states and commands (Phases 1–6) must extend the matrix to stay exhaustive
 before the phase is declared complete. One deliberate exception to
 strict-superset: correcting a genuine Phase-0 bug rewrites that behaviour's
-tests once (the `TimedOut` dead-end fix) — a correction to a known-wrong
-baseline, not a superset break.
+tests once (the terminal-state-sink fix — see
+`P1-ADR-TerminalStatesAreNotSinks`) — a correction to a known-wrong baseline,
+not a superset break.
 
 ## Enforcement
 `core/tests/transition_matrix/state_transition_matrix_tests.rs`, gated by the

@@ -1,288 +1,103 @@
 # Open Points
 
-Status: **PARTIALLY DECIDED — collected 2026-07-17; §1–§4 committed as a Phase 0 bug fix on 2026-07-19 (see §7). Settled architectural decisions have moved to `docs/ADRs/`.**
+Status: **The Phase-0 hardening bug is DONE.** The concluded-node silent-sink
+family (formerly §1–§4, §6, §7) was fixed on the `fix/terminal-state-sinks`
+branch and re-baselined into Phase 0's own test suite. What remains here is a
+short record of that fix, plus the genuinely-open questions.
 
-Companion to `ROADMAP.md`. This document holds unresolved design questions
-and considerations raised while investigating Phase 0's known
-rejoin-acknowledgment limitation — things under active discussion, not yet
-decided, not yet scoped into a committed phase. Items move into
-`ROADMAP.md` (or into a phase's own spec) once they're actually decided;
-until then they stay here rather than clutter the roadmap with unsettled
-debate.
-
-**2026-07-19 update:** §1–§4 are now decided — they are treated as a **bug
-in Phase 0**, fixed in place before any Phase 1 work begins. This is *not* a
-new roadmap phase; the ROADMAP is unchanged. §7 records the decision, the
-concrete consumer payoff, and how the fix re-baselines Phase 0's own tests.
-The source-of-truth boundary for Phase 3–5 membership is now decided too —
-Faction is **persistency-free** (recorded as
-`docs/ADRs/P1-ADR-StatefulPersistencyFree.md`), which makes the consumer's
-committed log the sole membership authority and turns the Raft/IBFT
-integration asymmetry into "govern, don't replace" rather than a collision.
+Companion to `ROADMAP.md`. Items move into `ROADMAP.md` (or a phase's own spec)
+once decided; until then they stay here rather than clutter the roadmap with
+unsettled debate. Settled architectural decisions live in `docs/ADRs/`.
 
 ---
 
-## 1. Known limitation — discovered via integration testing (2026-07-16)
+## Done — the concluded-node silent-sink bug (was §1–§4, §6, §7)
 
-A statically-known member that restarts mid-cluster-lifetime re-enters
-through the same `Pinging`/`Collecting` flow as a brand-new cold boot.
-Already-`Bootstrapped` peers never acknowledge its discovery pings, so it
-always rides out the full `DeadlineExpired` timeout before its buffered
-messages get processed — even though it was receiving valid traffic from
-every peer the whole time. This is distinct from Phase 1 (a genuinely new
-peer joining) and Phase 5 (a previously dynamically-removed peer
-rejoining) — the restarting node was never removed from the static set,
-it just temporarily went away. Not caught by Phase 0's own `(state,
-command)` test suite, which doesn't model a long-running cluster with a
-mid-lifetime member restart. Found and fully traced (two independently
-cross-checked clocks, confirmed against `deadline` down to the second) via
-a real-hardware integration test in a downstream consumer project. Needs a
-fast reconnect path for known peers — **now treated as a Phase 0 bug to fix (§7).**
+A node that reached a terminal state stopped helping its peers. Two shapes, one
+root cause: terminal states were hard sinks — `accept()` returned `false`, so a
+concluded node neither re-advertised to help others nor stayed receptive to
+recover itself.
 
-**Confirmed a second time, independently (2026-07-19).** The same class of
-gap reproduced on real hardware in a *different* downstream consumer,
-etheram-ibft's `Bootstrapper`, in a different shape: a node that had
-broadcast its own readiness but not yet observed quorum of peers' readiness
-("locally complete, not yet concluded") was silently dropping rejoin pings
-from a restarting peer and never re-announcing its own readiness — a ~3
-minute stall until the stale deadline timer fired. Fixed downstream
-(`locally_completed` flag + rejoin-ack branch + readiness rebroadcast,
-etheram-ibft `8fba86c`). That fix is a consumer-side reimplementation of
-accounting that belongs to Faction — exactly the duplication this crate
-exists to prevent (same failure mode as the `Some(node_count)` quorum bug
-landing independently in both consumers). §7 records the plan to pull it
-back into Faction.
+- **`Bootstrapped` went silent.** A node that reached quorum cancelled its
+  retries and never re-advertised, so a peer that missed the original readiness
+  broadcast (a dropped message, or a fast concluder) was stranded forever.
+  First seen on real hardware in two independent consumers (etheram-embassy,
+  and etheram-ibft's `Bootstrapper` — fixed downstream in `8fba86c`); then
+  reproduced in-crate by the `(size, quorum)` convergence sweep at `(2, 2)`.
+- **`DeadlineExpired` was a dead end.** A deadline before quorum drove the node
+  into a terminal `TimedOut` state it could never leave, even when the readies
+  it needed arrived late.
 
----
+**Fix (both phases landed, gates green):**
 
-## 2. `TimedOut` shares `Bootstrapped`'s original dead end
+- `Bootstrapped` now accepts `ParticipationObserved` and emits
+  `AcknowledgeRejoin { peer_id }` — the consumer re-advertises readiness to the
+  still-pinging peer. It stays terminal but is no longer a silent sink.
+- `DeadlineExpired` is non-terminal: `Pinging`/`Collecting` record
+  `DeadlineMissed { confirmed_count }` and stay in place, keeping their retries.
+  The internal `TimedOut` state and `Conclusion::TimedOut` are removed;
+  `PeerState::TimedOut` survives as a derived view flag off a new
+  `ClusterView::deadline_missed`. `Bootstrapped` is the only terminal state.
+- Two adjacent finds fixed along the way: single-node clusters now bootstrap
+  (`Initial` accepts `LocalParticipationCompleted`), and a `protocol-validation`
+  harness routing bug (`step_transport_node` mis-attributed outputs).
 
-`TimedOut::accept()` (`core/src/states/timed_out.rs`) returns `false`
-unconditionally — the same pattern `Bootstrapped` had before its rejoin-ack
-extension. So once `DeadlineExpired` fires before quorum in `Pinging` or
-`Collecting`, the resulting `TimedOut` state locks out any further
-`ParticipationObserved` or `ReadyObserved`, permanently. Any fix for the
-rejoin gap that only touches `Bootstrapped` is incomplete — `TimedOut` needs
-the same treatment, or to stop existing as a separate terminal state (see
-section 4).
+Acceptance tests: `dropped_ready` `(2, 2)` (Bootstrapped sink) and
+`late_arrival::cluster_recovers_after_deadline_via_late_readiness` (TimedOut
+sink); the `deadline_expired` sweep was re-baselined from "dead-ends in
+TimedOut" to "stays receptive". Recorded in `CHANGELOG.md` under `[Unreleased]`
+and in `docs/ADRs/P1-ADR-TerminalStatesAreNotSinks.md`.
 
----
+**Follow-ups (outside this crate):**
 
-## 3. What should Faction do with a consumer-issued `DeadlineExpired`?
-
-Resolved direction, not yet implemented: **record the fact, stay exactly
-where it was.** A state transition on `DeadlineExpired` is itself the policy
-decision ("missing this means stop") — and that decision isn't Faction's to
-make. Concretely, in `Pinging`/`Collecting`:
-
-```rust
-Command::DeadlineExpired => (
-    vec![Outcome::DeadlineMissed { confirmed_count: self.pinging_peers.len() }],
-    Box::new(Self { /* unchanged fields */ }),
-),
-```
-
-- **Not `Outcome::Concluded { mode: Conclusion::TimedOut }`.** "Concluded"
-  means final; reusing it here would just relocate the same false claim
-  from the state machine into the outcome vocabulary. Needs a genuinely new,
-  non-terminal outcome (`DeadlineMissed` or similar), leaving `Concluded`
-  meaning only `Bootstrapped` from here on.
-- **Carries the current confirmed count**, not just a bare signal — still
-  pure accounting (Faction already has this data), but the difference
-  between "missed deadline, no idea how bad" and "missed deadline, 3 of 4
-  confirmed" is real diagnostic value at zero cost to the boundary.
-- **Repeatable, deliberately.** A consumer may fire `DeadlineExpired` again
-  later as a recurring check-in rather than a one-shot cutoff. Faction
-  should answer again, honestly, with whatever the current count is — no
-  deduplication, no "already told you that."
-- **`Bootstrapped` still rejects it** — a stale deadline timer firing after
-  bootstrap already completed is a caller-side bookkeeping artifact, not a
-  new fact, consistent with how stale timers are already handled elsewhere
-  in this ecosystem (logged and ignored, not treated as an error).
-  `Initial` stays invalid too — a deadline firing before pinging has even
-  started means the caller scheduled it wrong.
+- The etheram-ibft `Bootstrapper` workaround (`8fba86c`) can now collapse
+  toward the thin-adapter target: `locally_completed` disappears (Faction knows
+  it from its own state), and the ack branch maps `AcknowledgeRejoin` → wire
+  reply. etheram-raft wires the two outcomes from the start and never grows the
+  workaround. That the workaround collapses to a forwarding shim is the proof
+  the Faction/consumer boundary was drawn in the right place.
+- These are breaking changes (new outcomes, removed `Conclusion::TimedOut`,
+  `Bootstrapped` admits `ParticipationObserved`) — they release as **0.4.0**.
 
 ---
 
-## 4. Should `TimedOut` be removed as a separate state entirely?
-
-Leaning yes, not yet decided. If `TimedOut` stops being a dead end, its
-correct behavior for `ParticipationObserved`/`ReadyObserved` would have to
-be *identical* to whichever of `Pinging`/`Collecting` produced it — there's
-no other correct behavior once "keep trying toward quorum" is the rule.
-Keeping it as a separate struct at that point means duplicating logic that
-already exists elsewhere, working against the crate's own complexity
-rules. The cleaner shape: no separate `TimedOut` *state* at all — just the
-`deadline_missed` fact from section 2, tracked within whichever state
-actually produced it.
-
-Distinction worth preserving: `PeerState` (the public, `ClusterView`-facing
-enum) is separate from the internal state structs, and already has its own
-`TimedOut` variant independent of the `impl State for TimedOut` struct.
-`PeerState::TimedOut` could keep being reported as a derived value off the
-`deadline_missed` flag even after the internal struct disappears — only the
-dead-end *behavior* needs to go, not the external signal.
-
-**Not yet verified:** whether the internal state structs (`Pinging`,
-`Collecting`, `Bootstrapped`, `TimedOut`) are `pub` in a way that makes them
-part of the crate's semver surface, versus purely internal to the
-`Box<dyn State>` machinery. Faction is already published on crates.io, so
-this determines whether removing `TimedOut` is a clean internal refactor or
-a breaking change requiring a version bump.
-
----
-
-## 5. Should Faction allow the quorum size to change?
+## Open — should Faction allow the quorum size to change?
 
 Not a bare setter — that would reintroduce, through a side door, the exact
 hazard Phase 3 already exists to prevent. If threshold can be swapped on one
-node without coordination, two disjoint subsets of the cluster can each end
-up running a different threshold, each independently convinced it holds
-quorum — a safety violation, not a liveness hiccup. Phase 3's own stated
-invariant ("at no point do two disjoint subsets of nodes each believe they
-form a valid quorum," enforced by making single-change-at-a-time
-structurally impossible) is precisely the machinery this needs, not
-something to bypass by adding mutability to `Config` in Phase 0.
+node without coordination, two disjoint subsets of the cluster can each end up
+running a different threshold, each independently convinced it holds quorum — a
+safety violation, not a liveness hiccup. Phase 3's own stated invariant ("at no
+point do two disjoint subsets of nodes each believe they form a valid quorum,"
+enforced by making single-change-at-a-time structurally impossible) is precisely
+the machinery this needs, not something to bypass by adding mutability to
+`Config` in Phase 0.
 
 **Refinement:** the change should be exposed through the same mechanism as
 everything else — a genuine new `Command` variant (something like
 `Command::QuorumPolicyChanged { new_policy: QuorumPolicy }`), evaluated and
 scoped per state through the normal `accept()`/`step()` gating, inheriting
-exhaustive `(state, command)` coverage and `Observer` routing like every
-other command, rather than an out-of-band setter that bypasses the state
-machine's own input gating entirely. That's a necessary foundation and a
-real improvement over a bare setter — but it doesn't by itself solve the
-cross-node coordination problem. Being a well-formed, per-state-gated
-command makes the *local* decision explicit and testable; it's still Phase
-3/4's commit/abort sequencing that has to guarantee the *cross-node*
-agreement about when the new value takes effect. The two are complementary,
-not substitutes for each other.
+exhaustive `(state, command)` coverage and `Observer` routing like every other
+command, rather than an out-of-band setter that bypasses the state machine's own
+input gating entirely. That's a necessary foundation and a real improvement over
+a bare setter — but it doesn't by itself solve the cross-node coordination
+problem. Being a well-formed, per-state-gated command makes the *local* decision
+explicit and testable; it's still Phase 3/4's commit/abort sequencing that has
+to guarantee the *cross-node* agreement about when the new value takes effect.
+The two are complementary, not substitutes for each other.
 
-Faction still never computes what the new threshold *should* be, under
-either version — that stays the protocol's fault-model-driven formula,
-recomputed and injected by the consumer, same as at construction.
-
----
-
-## 6. Verification plan for the `DeadlineExpired`/rejoin-ack fix, once implemented
-
-Scoped to Faction's own test suite — three tiers, from state-machine unit
-level up to real multi-process convergence. Depends on sections 2–4 above
-actually being decided first, since the exact shape of what's being tested
-(does `TimedOut` still exist as a state?) isn't settled yet.
-
-- **`protocol` (`protocol/tests/protocol_tests.rs`)**: add
-  `decide_deadline_expired_before_quorum_does_not_produce_dead_end_state` —
-  drive `Protocol::decide()` through a `DeadlineExpired`-translating input
-  before quorum, assert the resulting state still accepts a subsequent
-  `ParticipationObserved` rather than producing `Noop` forever after.
-- **`protocol-validation` (`protocol-validation/tests/`)**, using the
-  existing deterministic `Cluster` harness:
-  - `deadline_expired_tests.rs` — its two existing tests,
-    `deadline_expired_exits_with_timed_out_and_cancels_pending_timers` and
-    `all_nodes_time_out_when_deadline_fires_before_quorum`, currently assert
-    `is_timed_out(i)` plus no pending timer work as the *correct* outcome.
-    That is exactly the behavior being removed, so both need their
-    assertions rewritten — not just new siblings added alongside unchanged
-    old ones — to confirm the node stays receptive and can still reach
-    `Bootstrapped` later. New in the same file:
-    `deadline_expired_then_late_participation_observed_still_reaches_bootstrapped`.
-  - `late_arrival_tests.rs` — add
-    `node_rejoins_after_own_deadline_and_after_peers_already_bootstrapped_still_converges`:
-    peers reach `Bootstrapped` without node 0, node 0 times out locally,
-    a late ack arrives, node 0 still converges.
-  - `lost_ping_tests.rs` / `dropped_ready_tests.rs` — add the staggered,
-    non-overlapping two-node case: node A's ping/ready is dropped and later
-    resent while node B is independently mid-cycle; both converge
-    independently.
-  - New file `quorum_boundary_tests.rs` — the negative/regression guard:
-    construct a cluster where simultaneously-unreachable members exceed
-    N − quorum, assert it does *not* reach `Bootstrapped` and does nothing
-    unsafe. This is the one that proves the fix didn't quietly erode the
-    quorum floor while removing the dead end.
-  - Harness gap to close first: `Cluster` has `start_node`/`start_all` but
-    no way to simulate a member going away and coming back — needs a
-    `restart_node`, or confirmation that `start_node` is safe to re-invoke
-    on an already-started index.
-- **`system-tests` (`system-tests/tests/convergence_tests.rs`)**: the
-  existing spawn × transport × timer-delay × quorum matrix only exercises
-  the clean-boot path. Add a sibling parametrized test that kills one real
-  process/task/thread mid-bootstrap and restarts it, asserting
-  `is_bootstrapped()` still eventually goes true. Real-process tier is
-  expensive — scope to a representative subset of the matrix rather than
-  the full case list unless full coverage is wanted there too.
+Faction still never computes what the new threshold *should* be, under either
+version — that stays the protocol's fault-model-driven formula, recomputed and
+injected by the consumer, same as at construction.
 
 ---
 
-## 7. Decision (2026-07-19): §1–§4 are a Phase 0 bug, fixed before Phase 1
+## Open — deferred / unwritten ADRs
 
-Confirmed direction. The rejoin-ack limitation (§1), the `TimedOut`
-dead-end (§2), the `DeadlineMissed` non-terminal outcome (§3), and the
-removal of `TimedOut` as a distinct internal state (§4) are treated as a
-**bug in Phase 0** — fixed in place in the existing Phase 0 state machine,
-before any Phase 1 work begins. This is **not** a new roadmap phase; the
-ROADMAP is unchanged. The fix stays entirely within static membership; it
-changes only how an already-known set re-converges after a member's
-transient absence, and removes a dead-end that locks a node out after a
-premature deadline.
-
-Two things forced the decision:
-
-1. **A second independent consumer hit it** — see the 2026-07-19 note in §1.
-   Two consumers reinventing the same reconnect accounting is the precise
-   failure Faction exists to prevent.
-2. **The thin-adapter target makes the Faction/consumer boundary testable.** If fixing
-   this in Faction lets the downstream workaround collapse to a forwarding
-   shim, that *is* the proof the boundary was drawn in the right place.
-
-**Fix surface (draft, pending its own spec):**
-
-- `TimedOut` stops being a dead end — `DeadlineExpired` before quorum keeps
-  the node receptive; it can still reach `Bootstrapped` later. (§2, §4)
-- `DeadlineExpired` becomes non-terminal, repeatable, accounting-only — new
-  outcome `DeadlineMissed { confirmed_count }` replaces
-  `Concluded { TimedOut }` in `Pinging`/`Collecting`; `Bootstrapped` and
-  `Initial` still reject it as a stale/early timer. (§3)
-- Rejoin-ack outcome — a `ParticipationObserved` from a configured member,
-  arriving at a node already past its own local completion, yields a new
-  outcome `AcknowledgeRejoin { peer_id }`: "reply, this is a known member
-  reconnecting." The acknowledge-worthy *decision* is Faction's; the wire
-  reply stays the consumer's. (§1, under the Faction/consumer boundary)
-
-**Thin-adapter target** — what etheram-ibft's `Bootstrapper` workaround
-becomes once the fix ships. This table *is* the acceptance criterion:
-
-| Consumer carries today (workaround `8fba86c`) | After the fix |
-|---|---|
-| `locally_completed: bool` tracking "done locally, awaiting quorum" | gone — Faction knows this from its own state |
-| `handle_peer_ready` branch: ack rejoin ping while locally-complete | map `AcknowledgeRejoin { peer_id }` → send wire reply |
-| `handle_retry`: rebroadcast readiness while awaiting quorum | map re-emitted `BroadcastLocalReady` (on the consumer's retry tick) → rebroadcast |
-| `is_readiness_adaptation_message` routing-gate widening | unchanged — consumer wire concern, stays local |
-
-etheram-raft, which has none of this logic yet, wires the same two outcomes
-from the start and never grows the workaround.
-
-**Test re-baselining (paper-relevant).** Because this is a bug fix to
-Phase 0 rather than a new phase, §6's rewrite of the two existing
-`deadline_expired_tests.rs` assertions is simply what fixing the bug means —
-they currently assert the dead-end behavior, so they are corrected to
-assert the fixed behavior. Phase 0's final, canonical form is the corrected
-one; the strict-superset property ("Phase N tests pass unchanged at
-Phase N+6") holds from that corrected baseline, because a bug fix
-re-defines what Phase 0 *is* rather than layering a new phase on top of a
-known-wrong one. Worth a one-line note in the paper's methodology so a
-reviewer who sees a rewritten Phase 0 test reads it as a correction, not a
-loosening.
-
----
-
-## 8. Deferred / unwritten ADRs
-
-ADRs not yet written, with why each waits:
-
-- *(blocked on §5)* `Config` immutability — membership/quorum changes arrive
-  as `Command`s, never as setters. No ADR until §5 is decided.
+- *(blocked on the quorum-change question above)* `Config` immutability —
+  membership/quorum changes arrive as `Command`s, never as setters. No ADR until
+  that question is decided.
 - *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).
-- *(to write)* Testing-ladder ADR — the test tiers (unit /
-  transition-matrix / property-based / system) and the gate that runs them.
-  The ladder already exists; this is just writing it up.
+- *(to write)* Testing-ladder ADR — the test tiers (unit / transition-matrix /
+  property-based / system) and the gate that runs them. The ladder already
+  exists; this is just writing it up.

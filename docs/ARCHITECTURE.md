@@ -1,8 +1,8 @@
 # Architecture
 
-**Status:** Phase 0 — Complete  
-**Core productive LOC:** ~885  
-**Total tests:** 277  
+**Status:** Phase 0 — Complete (hardened)  
+**Core productive LOC:** ~895  
+**Total tests:** 416  
 **Code coverage:** 100%  
 **Crappy functions:** 0  
 **Unsafe code:** 0  
@@ -128,16 +128,21 @@ machine in the `Initial` state with an empty `ClusterView`.
 | `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
 | `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
-| `TimedOut` | Deadline expired before quorum (terminal) | Peer sets at time of expiry |
+
+`Bootstrapped` is the only terminal state. A missed deadline is **not** a state: it is
+recorded as a non-terminal fact — surfaced as `PeerState::TimedOut` through a derived
+view flag — while the node stays in `Pinging`/`Collecting`, keeps its retries, and can
+still converge if readiness arrives late.
 
 Early readiness signals accumulate in `Pinging` before `LocalParticipationCompleted`
 arrives — the machine does not discard signals that arrive before their phase. This
 means a fast peer that signals readiness before the local node finishes participating
 is not penalized; its signal waits and is counted in `Collecting`.
 
-Terminal states (`Bootstrapped`, `TimedOut`) return `false` from `accept()`. This makes
-`step()` structurally unreachable on a concluded machine. The compiler enforces this —
-it is not a runtime check.
+The terminal state is not a silent sink. A `Bootstrapped` node stops driving its own
+progress, but it still accepts `ParticipationObserved` and re-advertises its readiness
+(`AcknowledgeRejoin`) — so a peer that missed the original broadcast and is still
+pinging can always recover.
 
 ### Commands
 
@@ -160,10 +165,12 @@ it is not a runtime check.
 | `NonMemberIgnored { peer_id }` | Signal from a peer not in the member set |
 | `LocalParticipationCompleted` | Local node completed its participation |
 | `BroadcastLocalReady` | Local readiness should be broadcast to peers |
+| `AcknowledgeRejoin { peer_id }` | A concluded node should re-advertise readiness to a still-pinging member |
+| `DeadlineMissed { confirmed_count }` | The deadline fired before quorum — recorded, non-terminal |
 
 Conclusion is computed from the `ClusterView`, not emitted as a standalone outcome.
-Callers inspect `cluster_view.conclusion()` to determine whether the machine reached
-`Bootstrapped` or `TimedOut`.
+The only conclusion is `Bootstrapped`; callers inspect `cluster_view.conclusion()`
+(`Some(Bootstrapped)` or `None`) to see whether the cluster is live.
 
 ### Data flow
 
@@ -254,11 +261,13 @@ command handling. Each step struct is independently testable.
 The cluster view is queryable at any time via `Probe`, with zero side effects. It
 returns:
 
-- Current peer state (`PeerState`)
-- `Conclusion`, if concluded
+- Current peer state (`PeerState`) — `TimedOut` is reported here as a derived
+  "missed deadline" flag, distinct from being concluded
+- `Conclusion`, if concluded (only ever `Bootstrapped`)
 - Pinging peers — peers observed in Phase 1
 - Collecting peers — peers observed in Phase 2
 - Whether pinging phase is complete
+- Whether the deadline has been missed (`deadline_missed`)
 - Required quorum count
 
 The queryability model means external monitors can poll any node's view without
@@ -309,8 +318,9 @@ sequences:
 | Exit happens at most once |
 | Confirmed peer counts never decrease |
 | Duplicate and non-member inputs never mutate state |
-| Deadline and quorum both lead to correct concluded states |
+| A missed deadline is recorded but never concludes the machine |
 | Exit mode never changes after exit |
+| A state's admissible set equals exactly its accepted commands plus `Probe` |
 | Required quorum count never changes |
 | Model reference implementation agrees with the real machine for all sequences |
 
@@ -373,10 +383,13 @@ works on cloud.
 the machine from an async context if needed. This keeps the machine dependency-free and
 usable from any execution model — tokio, async-std, Embassy, bare metal, or threaded.
 
-**Terminal states are structurally unreachable after conclusion.** Rather than checking
-`is_concluded()` at every call site, the design uses `accept()` to make `step()`
-unreachable on concluded machines. This is enforced by the type system, not by
-convention.
+**A concluded node is terminal but not a silent sink.** `Bootstrapped` is the only
+terminal state, and it stops driving its own progress — but it still answers a
+still-pinging peer by re-advertising its readiness (`AcknowledgeRejoin`). This closes
+the class of bug where a node that reached quorum went quiet and stranded a peer that
+missed the original broadcast. A missed deadline is likewise non-terminal: it is
+recorded (`DeadlineMissed`) and the node stays receptive, so a cluster can recover
+from a premature deadline instead of dead-ending in a `TimedOut` state.
 
 **Persistency-free.** The machine holds state but never persists it — it writes nothing
 to disk and reads no ambient input, so its state is reconstructed by deterministic

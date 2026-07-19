@@ -26,7 +26,8 @@ that answers the question deterministically, observably, and provably.
 ## What faction does
 
 `faction` tracks participation and readiness signals across a known set of peers and
-emits a deterministic exit decision — either **Bootstrapped** or **TimedOut**.
+emits a deterministic exit decision — **Bootstrapped** — when quorum forms. A missed
+deadline is reported as **TimedOut**, but is not terminal: the node stays receptive.
 
 It does exactly this. Nothing more.
 
@@ -58,8 +59,8 @@ reproduce and expensive to diagnose.
   telemetry, audit logs, or test assertions. No instrumentation surprises.
 - **Queryable** — probe the machine at any time for the current cluster view and the
   set of admissible commands. Zero side effects.
-- **Slim by construction** — each state carries only its active data. Terminal states
-  carry no heap allocation beyond what they received.
+- **Slim by construction** — each state carries only its active data. The terminal
+  state carries no heap allocation beyond what it received.
 
 ---
 
@@ -67,12 +68,10 @@ reproduce and expensive to diagnose.
 
 ### The state machine
 
-The machine progresses through five states:
+The machine progresses through four states, with a single terminal:
 
 ```text
 Initial → Pinging → Collecting → Bootstrapped
-                         ↓
-                      TimedOut
 ```
 
 | State | Meaning | Carries |
@@ -81,7 +80,11 @@ Initial → Pinging → Collecting → Bootstrapped
 | `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
 | `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
-| `TimedOut` | Deadline expired before quorum (terminal) | Peer sets at time of expiry |
+
+A missed deadline is **not** a state: it is recorded as a fact (reported as
+`PeerState::TimedOut` through a derived flag) while the node stays receptive and
+can still converge. And `Bootstrapped` is not a silent sink — it re-advertises its
+readiness to a peer that is still trying to join.
 
 ### Commands and outcomes
 
@@ -120,10 +123,10 @@ declare quorum before confirming its own participation.
 
 | Harness | What it tests |
 |---|---|
-| `core/` unit tests | Every `(state, command)` pair — 148 tests |
+| `core/` unit tests | Every `(state, command)` pair — 140 tests |
 | `core-validation/` | Multi-node deterministic scenarios — 23 tests |
 | `protocol/` | Message translation and protocol runtime — 33 tests |
-| `protocol-validation/` | In-process protocol cluster — 9 tests |
+| `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 156 tests |
 | `system-tests/` convergence | (10 spawn/transport × 2 quorum scenarios) — 20 tests |
 | `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing — 44 tests |
 
@@ -197,8 +200,8 @@ The caller owns the network. `faction` owns the state.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~885 |
-| Total tests | 277 |
+| Core productive LOC | ~895 |
+| Total tests | 416 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -215,8 +218,9 @@ The caller owns the network. `faction` owns the state.
   The machine computes. The caller acts.
 - **Explicit state ownership** — states carry only what they mutate. Nothing is
   inherited silently.
-- **No dead code** — terminal states return `false` from `accept()`, making `step()`
-  structurally unreachable. The compiler enforces this.
+- **No silent sinks** — the sole terminal state (`Bootstrapped`) still answers a
+  still-pinging peer by re-advertising its readiness, and a missed deadline is a
+  non-terminal fact — so a concluded node never strands the peers it coordinated.
 - **Observer, not logger** — the `Observer` trait receives every transition, query,
   and rejection. Wire it to anything. The machine does not care.
 - **Protocol-agnostic** — `faction` does not know what a peer is, what the network
@@ -274,10 +278,10 @@ for the complete technical specification.
 
 | Crate | Role | Tests |
 |---|---|---|
-| `core/` | State machine | 148 |
+| `core/` | State machine | 140 |
 | `core-validation/` | Deterministic multi-node scenario harness | 23 |
 | `protocol/` | Message translator and protocol runtime | 33 |
-| `protocol-validation/` | In-process protocol cluster | 9 |
+| `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 156 |
 | `system-tests/` convergence | (10 spawn/transport × 2 quorum scenarios) | 20 |
 | `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing | 44 |
 

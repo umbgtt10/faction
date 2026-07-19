@@ -65,16 +65,17 @@ The transition matrix tests under `core/tests/transition_matrix/` provide **exha
 
 | State | `ParticipationObserved` | `ReadyObserved` | `LocalParticipationCompleted` | `DeadlineExpired` |
 |---|---|---|---|---|
-| Initial | valid (via Fresh) | valid (via Fresh) | **invalid** | **invalid** |
-| Pinging | valid (5 freshness variants) | valid (5 variants) | valid | valid |
-| Collecting | **invalid** | valid (quorum triggers, duplicate) | both valid & **invalid** | valid |
-| Bootstrapped | **invalid** | **invalid** | **invalid** | **invalid** |
-| TimedOut | **invalid** | **invalid** | **invalid** | **invalid** |
+| Initial | valid (via Fresh) | valid (via Fresh) | valid | **invalid** |
+| Pinging | valid | valid | valid | valid |
+| Collecting | **invalid** | valid (quorum triggers, duplicate) | **invalid** | valid (`DeadlineMissed`) |
+| Bootstrapped | valid (`AcknowledgeRejoin`) | **invalid** | **invalid** | **invalid** |
+
+`Bootstrapped` is the only terminal state; a missed deadline is non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view flag.
 
 - **valid** = present in `valid_transition` rstest, expects `ProcessResult::Accepted`
 - **invalid** = present in per-state `*_invalid_tests.rs` rstest, expects `ProcessResult::Rejected`
 - Any new state or command variant MUST add the corresponding valid/invalid cases to preserve exhaustive coverage.
-- Valid transitions live in `state_transition_matrix_tests.rs`. Invalid transitions live in per-state files (`initial_invalid_tests.rs`, `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`, `timed_out_invalid_tests.rs`). Common helpers (`Init`, `Assert`, `build()`, `verify()` etc.) live in `helpers.rs`.
+- Valid transitions live in `state_transition_matrix_tests.rs`. Invalid transitions live in per-state files (`initial_invalid_tests.rs`, `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`); `pinging_invalid_tests.rs` asserts Pinging rejects nothing, and `admissible_invariant_tests.rs` checks `admissible == { c ≠ Probe : accept(c) } ∪ { Probe }` per state. Common helpers (`Init`, `Assert`, `build()`, `verify()` etc.) live in `helpers.rs`.
 
 ### State transition model
 
