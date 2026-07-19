@@ -14,10 +14,9 @@ use faction::outcome::Outcome::*;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
 
-use super::helpers::{
-    all_admissible, build, collecting_admissible, participation, probe_only, ready, verify, Assert,
-    Init,
-};
+use super::assertions::{verify, Assert};
+use super::builder::{build, Init};
+use super::helpers::{all_admissible, collecting_admissible, participation, probe_only, ready};
 
 #[rstest]
 #[case::participation_timely_member(

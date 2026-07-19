@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
+pub mod assertions;
 pub mod bootstrapped_invalid_tests;
+pub mod builder;
 pub mod collecting_invalid_tests;
 pub mod helpers;
 pub mod initial_invalid_tests;
