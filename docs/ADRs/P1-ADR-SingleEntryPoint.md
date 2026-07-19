@@ -33,8 +33,7 @@ Rejected: duplicates the state-gating logic in two places and lets them drift.
 Consumers branch on three result variants. The `State` trait's default
 `admissible_commands()` returns every command, so each non-trivial state
 carries a real obligation to override it in lockstep with `accept()` — or the
-self-description lies. Known open inconsistency: `Accepted` does not carry
-`admissible` (`OPEN_POINTS.md` §11).
+self-description lies.
 
 ## Enforcement
 Every transition's admissible set is asserted against its expected value in

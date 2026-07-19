@@ -1,6 +1,6 @@
 # Open Points
 
-Status: **PARTIALLY DECIDED — collected 2026-07-17; §1–§4 committed as a Phase 0 bug fix, and persistency-free named as an invariant, on 2026-07-19 (see §9, §10)**
+Status: **PARTIALLY DECIDED — collected 2026-07-17; §1–§4 committed as a Phase 0 bug fix on 2026-07-19 (see §9). Settled architectural decisions have moved to `docs/ADRs/`.**
 
 Companion to `ROADMAP.md`. This document holds unresolved design questions
 and considerations raised while investigating Phase 0's known
@@ -15,9 +15,10 @@ in Phase 0**, fixed in place before any Phase 1 work begins. This is *not* a
 new roadmap phase; the ROADMAP is unchanged. §9 records the decision, the
 concrete consumer payoff, and how the fix re-baselines Phase 0's own tests.
 The source-of-truth boundary for Phase 3–5 membership is now decided too —
-Faction is **persistency-free** (§10), which makes the consumer's committed
-log the sole membership authority and turns the Raft/IBFT integration
-asymmetry into "govern, don't replace" rather than a collision.
+Faction is **persistency-free** (recorded as
+`docs/ADRs/P1-ADR-StatefulPersistencyFree.md`), which makes the consumer's
+committed log the sole membership authority and turns the Raft/IBFT
+integration asymmetry into "govern, don't replace" rather than a collision.
 
 ---
 
@@ -321,86 +322,10 @@ loosening.
 
 ---
 
-## 10. Decision (2026-07-19): Faction is persistency-free (named invariant)
+## 10. Deferred ADRs (not decisions yet)
 
-**Faction persists nothing, ever.** This is now a named, first-class
-invariant — not merely a consequence of the existing "the machine never
-performs I/O" rule, but the stronger statement from which that rule *and*
-the Phase 3–5 membership source-of-truth boundary both follow. It resolves
-the source-of-truth question left open in earlier drafts of this doc.
+Two P2-tier ADRs remain unwritten — neither is a decision yet:
 
-**Persistency-free ≠ stateless.** Faction is emphatically stateful, and its
-state is *expected to grow significantly* as the machine surfs Phases 1→6
-and beyond — member set, in-flight-change guard, epoch counter, and
-whatever later phases add. What Faction never does is *durably own* any of
-that across a restart: state lives in memory and is reconstructed by
-deterministic replay, never restored from a Faction-owned store. Anyone
-tempted to "simplify" Faction toward statelessness is breaking the Mealy
-model; anyone tempted to let it *remember* the member set across a reboot is
-breaking this invariant. Both temptations arrive precisely at Phase 3–5.
-
-**Two theorems fall out for free:**
-
-- *Log-authoritative membership.* If Faction persists nothing, it cannot be
-  a competing durable source of truth. The consumer's committed log (Raft
-  log entries; IBFT validator-set updates applied at a height) is the sole
-  authority, by construction — inheriting Raft's adopt-on-append /
-  roll-back-on-truncation semantics for free instead of re-implementing
-  them in a parallel store that could diverge.
-- *No I/O.* Persistence is the only I/O a pure state machine would be
-  tempted into; forbidding it structurally upholds the existing "never
-  performs I/O" rule rather than relying on discipline to keep it.
-
-**Consumer contract.** Deterministic, ordered replay of committed
-config-change inputs is the consumer's durability obligation. **Faction owns
-the fold; the consumer owns the disk.** Identical across Raft and IBFT.
-
-**The one cost, named honestly.** On reboot the consumer must replay
-membership history through Faction to rebuild the in-memory state —
-unbounded for a long-lived cluster with many changes. The mitigation keeps
-Faction pure: the *consumer* snapshots the derived view ("at log index X,
-members = {…}, epoch = N") and replays only the tail past the snapshot. Not
-a workaround — it is exactly how Raft already compacts (a Raft snapshot
-includes the committed configuration as of the snapshot), and it reuses the
-very snapshot mechanism `etheram-raft/docs/RAFT-SPEC-COVERAGE.md` lists as a
-gap, now doing double duty: joiner catch-up *and* the membership-replay
-bound.
-
-**Consequence for the IBFT integration — "govern, don't replace."** Because
-the log stays authoritative, Faction does not replace IBFT's existing
-validator-set-update mechanism; it sits in front of it as the guard/intent
-layer (is this change safe to schedule, is one already in flight) while
-IBFT's scheduled-at-height application stays the execution layer. For Raft,
-which has no membership mechanism yet, Faction is the first — same boundary,
-greenfield. Worth an explicit confirmation before Phase 3, but it follows
-directly from persistency-free.
-
----
-
-## 11. Bug (RESOLVED 2026-07-19): `ProcessResult::Accepted` omitted `admissible`
-
-`Rejected` and `Probed` both carried `admissible: Vec<Command>`; `Accepted`
-carried only `outcomes` and `cluster_view`, forcing a consumer to issue a
-separate `Probe` to learn what was valid after an accepted transition.
-
-**Resolved:** `Accepted` now carries `admissible` too — computed from the
-state the transition produced, identical to what a follow-up `Probe` returns.
-All three `ProcessResult` variants surface it consistently. Covered by the
-valid-transition matrix (admissible asserted on every accept-path case) and by
-entry-point tests, including one that asserts `Accepted`'s admissible equals a
-subsequent `Probe`'s. See `docs/ADRs/P1-ADR-SingleEntryPoint.md`.
-
----
-
-## 12. TODO: Tier-2 ADRs to write
-
-Real decisions, ranked below the P0/P1 core in `docs/ADRs/`. To be written
-later:
-
-- [ ] `P2-ADR-TotalObservability` — every transition, query, and rejection
-  reaches the `Observer`, as a channel distinct from `Outcome`s.
-- [ ] `P2-ADR-StateAsTraitObject` — one struct per state, `Box<dyn State>`,
-  keeping Phase 1→6 growth additive.
-- [ ] *(blocked on §7)* `Config` immutability — membership/quorum changes
-  arrive as `Command`s, never as setters.
-- [ ] *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).
+- *(blocked on §7)* `Config` immutability — membership/quorum changes arrive
+  as `Command`s, never as setters. No ADR until §7 is decided.
+- *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).

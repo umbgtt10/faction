@@ -6,7 +6,7 @@ importance:
 
 - **P0** — foundational axiom; the machine's identity rests on it.
 - **P1** — derived or shape decision; follows from a P0.
-- **P2** — structural; real, but below the core (tracked in `../OPEN_POINTS.md` §12).
+- **P2** — structural; real, but below the core. (Two further P2 items remain deferred in `../OPEN_POINTS.md` §10.)
 
 ## Index
 
@@ -19,6 +19,8 @@ importance:
 | [P1-ADR-SingleEntryPoint](P1-ADR-SingleEntryPoint.md) | One self-describing `process(command)` over a tri-variant result. |
 | [P1-ADR-TotalityExhaustiveMatrix](P1-ADR-TotalityExhaustiveMatrix.md) | Every `(state, command)` is a defined transition; the matrix proves it. |
 | [P1-ADR-StatefulPersistencyFree](P1-ADR-StatefulPersistencyFree.md) | Stateful, but persists nothing; durability is the consumer's. |
+| [P2-ADR-TotalObservability](P2-ADR-TotalObservability.md) | Every transition, query, and rejection reaches the `Observer`, on every path. |
+| [P2-ADR-StateAsTraitObject](P2-ADR-StateAsTraitObject.md) | One struct per state behind a `State` trait; growth is additive. |
 
 ## Template
 
