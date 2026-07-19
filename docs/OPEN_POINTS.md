@@ -1,6 +1,6 @@
 # Open Points
 
-Status: **OPEN — collected 2026-07-17**
+Status: **PARTIALLY DECIDED — collected 2026-07-17; §1–§4 committed as a Phase 0 bug fix, and persistency-free named as an invariant, on 2026-07-19 (see §9, §10)**
 
 Companion to `ROADMAP.md`. This document holds unresolved design questions
 and considerations raised while investigating Phase 0's known
@@ -9,6 +9,15 @@ decided, not yet scoped into a committed phase. Items move into
 `ROADMAP.md` (or into a phase's own spec) once they're actually decided;
 until then they stay here rather than clutter the roadmap with unsettled
 debate.
+
+**2026-07-19 update:** §1–§4 are now decided — they are treated as a **bug
+in Phase 0**, fixed in place before any Phase 1 work begins. This is *not* a
+new roadmap phase; the ROADMAP is unchanged. §9 records the decision, the
+concrete consumer payoff, and how the fix re-baselines Phase 0's own tests.
+The source-of-truth boundary for Phase 3–5 membership is now decided too —
+Faction is **persistency-free** (§10), which makes the consumer's committed
+log the sole membership authority and turns the Raft/IBFT integration
+asymmetry into "govern, don't replace" rather than a collision.
 
 ---
 
@@ -27,7 +36,21 @@ command)` test suite, which doesn't model a long-running cluster with a
 mid-lifetime member restart. Found and fully traced (two independently
 cross-checked clocks, confirmed against `deadline` down to the second) via
 a real-hardware integration test in a downstream consumer project. Needs a
-fast reconnect path for known peers, not yet slotted into a phase.
+fast reconnect path for known peers — **now treated as a Phase 0 bug to fix (§9).**
+
+**Confirmed a second time, independently (2026-07-19).** The same class of
+gap reproduced on real hardware in a *different* downstream consumer,
+etheram-ibft's `Bootstrapper`, in a different shape: a node that had
+broadcast its own readiness but not yet observed quorum of peers' readiness
+("locally complete, not yet concluded") was silently dropping rejoin pings
+from a restarting peer and never re-announcing its own readiness — a ~3
+minute stall until the stale deadline timer fired. Fixed downstream
+(`locally_completed` flag + rejoin-ack branch + readiness rebroadcast,
+etheram-ibft `8fba86c`). That fix is a consumer-side reimplementation of
+accounting §6 assigns to Faction — exactly the duplication this crate
+exists to prevent (same failure mode as the `Some(node_count)` quorum bug
+landing independently in both consumers). §9 records the plan to pull it
+back into Faction.
 
 ---
 
@@ -233,3 +256,151 @@ actually being decided first, since the exact shape of what's being tested
   `is_bootstrapped()` still eventually goes true. Real-process tier is
   expensive — scope to a representative subset of the matrix rather than
   the full case list unless full coverage is wanted there too.
+
+---
+
+## 9. Decision (2026-07-19): §1–§4 are a Phase 0 bug, fixed before Phase 1
+
+Confirmed direction. The rejoin-ack limitation (§1), the `TimedOut`
+dead-end (§2), the `DeadlineMissed` non-terminal outcome (§3), and the
+removal of `TimedOut` as a distinct internal state (§4) are treated as a
+**bug in Phase 0** — fixed in place in the existing Phase 0 state machine,
+before any Phase 1 work begins. This is **not** a new roadmap phase; the
+ROADMAP is unchanged. The fix stays entirely within static membership; it
+changes only how an already-known set re-converges after a member's
+transient absence, and removes a dead-end that locks a node out after a
+premature deadline.
+
+Two things forced the decision:
+
+1. **A second independent consumer hit it** — see the 2026-07-19 note in §1.
+   Two consumers reinventing the same reconnect accounting is the precise
+   failure Faction exists to prevent.
+2. **The thin-adapter target makes the §6 boundary testable.** If fixing
+   this in Faction lets the downstream workaround collapse to a forwarding
+   shim, that *is* the proof the boundary was drawn in the right place.
+
+**Fix surface (draft, pending its own spec):**
+
+- `TimedOut` stops being a dead end — `DeadlineExpired` before quorum keeps
+  the node receptive; it can still reach `Bootstrapped` later. (§2, §4)
+- `DeadlineExpired` becomes non-terminal, repeatable, accounting-only — new
+  outcome `DeadlineMissed { confirmed_count }` replaces
+  `Concluded { TimedOut }` in `Pinging`/`Collecting`; `Bootstrapped` and
+  `Initial` still reject it as a stale/early timer. (§3)
+- Rejoin-ack outcome — a `ParticipationObserved` from a configured member,
+  arriving at a node already past its own local completion, yields a new
+  outcome `AcknowledgeRejoin { peer_id }`: "reply, this is a known member
+  reconnecting." The acknowledge-worthy *decision* is Faction's; the wire
+  reply stays the consumer's. (§1 under the §6 boundary)
+
+**Thin-adapter target** — what etheram-ibft's `Bootstrapper` workaround
+becomes once the fix ships. This table *is* the acceptance criterion:
+
+| Consumer carries today (workaround `8fba86c`) | After the fix |
+|---|---|
+| `locally_completed: bool` tracking "done locally, awaiting quorum" | gone — Faction knows this from its own state |
+| `handle_peer_ready` branch: ack rejoin ping while locally-complete | map `AcknowledgeRejoin { peer_id }` → send wire reply |
+| `handle_retry`: rebroadcast readiness while awaiting quorum | map re-emitted `BroadcastLocalReady` (on the consumer's retry tick) → rebroadcast |
+| `is_readiness_adaptation_message` routing-gate widening | unchanged — consumer wire concern, stays local |
+
+etheram-raft, which has none of this logic yet, wires the same two outcomes
+from the start and never grows the workaround.
+
+**Test re-baselining (paper-relevant).** Because this is a bug fix to
+Phase 0 rather than a new phase, §8's rewrite of the two existing
+`deadline_expired_tests.rs` assertions is simply what fixing the bug means —
+they currently assert the dead-end behavior, so they are corrected to
+assert the fixed behavior. Phase 0's final, canonical form is the corrected
+one; the strict-superset property ("Phase N tests pass unchanged at
+Phase N+6") holds from that corrected baseline, because a bug fix
+re-defines what Phase 0 *is* rather than layering a new phase on top of a
+known-wrong one. Worth a one-line note in the paper's methodology so a
+reviewer who sees a rewritten Phase 0 test reads it as a correction, not a
+loosening.
+
+---
+
+## 10. Decision (2026-07-19): Faction is persistency-free (named invariant)
+
+**Faction persists nothing, ever.** This is now a named, first-class
+invariant — not merely a consequence of the existing "the machine never
+performs I/O" rule, but the stronger statement from which that rule *and*
+the Phase 3–5 membership source-of-truth boundary both follow. It resolves
+the source-of-truth question left open in earlier drafts of this doc.
+
+**Persistency-free ≠ stateless.** Faction is emphatically stateful, and its
+state is *expected to grow significantly* as the machine surfs Phases 1→6
+and beyond — member set, in-flight-change guard, epoch counter, and
+whatever later phases add. What Faction never does is *durably own* any of
+that across a restart: state lives in memory and is reconstructed by
+deterministic replay, never restored from a Faction-owned store. Anyone
+tempted to "simplify" Faction toward statelessness is breaking the Mealy
+model; anyone tempted to let it *remember* the member set across a reboot is
+breaking this invariant. Both temptations arrive precisely at Phase 3–5.
+
+**Two theorems fall out for free:**
+
+- *Log-authoritative membership.* If Faction persists nothing, it cannot be
+  a competing durable source of truth. The consumer's committed log (Raft
+  log entries; IBFT validator-set updates applied at a height) is the sole
+  authority, by construction — inheriting Raft's adopt-on-append /
+  roll-back-on-truncation semantics for free instead of re-implementing
+  them in a parallel store that could diverge.
+- *No I/O.* Persistence is the only I/O a pure state machine would be
+  tempted into; forbidding it structurally upholds the existing "never
+  performs I/O" rule rather than relying on discipline to keep it.
+
+**Consumer contract.** Deterministic, ordered replay of committed
+config-change inputs is the consumer's durability obligation. **Faction owns
+the fold; the consumer owns the disk.** Identical across Raft and IBFT.
+
+**The one cost, named honestly.** On reboot the consumer must replay
+membership history through Faction to rebuild the in-memory state —
+unbounded for a long-lived cluster with many changes. The mitigation keeps
+Faction pure: the *consumer* snapshots the derived view ("at log index X,
+members = {…}, epoch = N") and replays only the tail past the snapshot. Not
+a workaround — it is exactly how Raft already compacts (a Raft snapshot
+includes the committed configuration as of the snapshot), and it reuses the
+very snapshot mechanism `etheram-raft/docs/RAFT-SPEC-COVERAGE.md` lists as a
+gap, now doing double duty: joiner catch-up *and* the membership-replay
+bound.
+
+**Consequence for the IBFT integration — "govern, don't replace."** Because
+the log stays authoritative, Faction does not replace IBFT's existing
+validator-set-update mechanism; it sits in front of it as the guard/intent
+layer (is this change safe to schedule, is one already in flight) while
+IBFT's scheduled-at-height application stays the execution layer. For Raft,
+which has no membership mechanism yet, Faction is the first — same boundary,
+greenfield. Worth an explicit confirmation before Phase 3, but it follows
+directly from persistency-free.
+
+---
+
+## 11. Bug (RESOLVED 2026-07-19): `ProcessResult::Accepted` omitted `admissible`
+
+`Rejected` and `Probed` both carried `admissible: Vec<Command>`; `Accepted`
+carried only `outcomes` and `cluster_view`, forcing a consumer to issue a
+separate `Probe` to learn what was valid after an accepted transition.
+
+**Resolved:** `Accepted` now carries `admissible` too — computed from the
+state the transition produced, identical to what a follow-up `Probe` returns.
+All three `ProcessResult` variants surface it consistently. Covered by the
+valid-transition matrix (admissible asserted on every accept-path case) and by
+entry-point tests, including one that asserts `Accepted`'s admissible equals a
+subsequent `Probe`'s. See `docs/ADRs/P1-ADR-SingleEntryPoint.md`.
+
+---
+
+## 12. TODO: Tier-2 ADRs to write
+
+Real decisions, ranked below the P0/P1 core in `docs/ADRs/`. To be written
+later:
+
+- [ ] `P2-ADR-TotalObservability` — every transition, query, and rejection
+  reaches the `Observer`, as a channel distinct from `Outcome`s.
+- [ ] `P2-ADR-StateAsTraitObject` — one struct per state, `Box<dyn State>`,
+  keeping Phase 1→6 growth additive.
+- [ ] *(blocked on §7)* `Config` immutability — membership/quorum changes
+  arrive as `Command`s, never as setters.
+- [ ] *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).
