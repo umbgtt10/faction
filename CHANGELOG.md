@@ -27,9 +27,9 @@
   reconciled test counts (277) and core productive LOC (~885), propagated the
   `admissible`-on-every-variant change, softened the formal-verification claim,
   linked the new ADRs, and corrected the worked examples.
-- Curated `OPEN_POINTS.md` down to the genuinely open items — the Phase-0
-  hardening bug, Phases 1–6, and the deferred ADRs — dropping everything now
-  implemented or captured in an ADR.
+- Curated `OPEN_POINTS.md` down to the genuinely open items — the quorum-change
+  question and the deferred ADRs — dropping everything now implemented, fixed,
+  or captured in an ADR.
 - Split the transition-matrix test helpers into focused `builder` and
   `assertions` modules.
 - **Breaking** — removed the `TimedOut` state and `Conclusion::TimedOut`.
@@ -46,7 +46,7 @@
   `LocalParticipationCompleted`, which also closes a latent ordering hazard
   where the first node to complete locally — before observing any peer — could
   wedge at any cluster size.
-- **The concluded-node silent-sink bug** (OPEN_POINTS §1–§4/§7). A node that
+- **The concluded-node silent-sink bug.** A node that
   reached a terminal state stopped helping peers: `Bootstrapped` cancelled its
   retries and went silent, stranding a peer that missed its readiness; and
   `DeadlineExpired` drove the node into a `TimedOut` dead-end it could never

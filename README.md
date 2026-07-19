@@ -298,7 +298,7 @@ MIT. See [LICENSE](./LICENSE).
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
 - [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
 - [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
-- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions and the Phase-0 hardening bug
+- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, deferred ADRs)
 - [CHANGELOG.md](./CHANGELOG.md) — version history
 - [ETHEREUM.md](./docs/ETHEREUM.md) — why `faction` matters to the Ethereum ecosystem
 - [DONATE.md](./DONATE.md) — support the project

@@ -6,7 +6,7 @@ importance:
 
 - **P0** — foundational axiom; the machine's identity rests on it.
 - **P1** — derived or shape decision; follows from a P0.
-- **P2** — structural; real, but below the core. (Further deferred/unwritten ADRs are tracked in `../OPEN_POINTS.md` §8.)
+- **P2** — structural; real, but below the core. (Further deferred/unwritten ADRs are tracked in `../OPEN_POINTS.md`.)
 
 ## Index
 
