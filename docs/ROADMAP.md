@@ -36,7 +36,11 @@ complex.
 | Complete `(state, input)` coverage | Every pair explicitly tested — mandatory, not aspirational |
 | Protocol-agnostic | No Raft, no IBFT, no consensus knowledge inside `faction` |
 | Observer coverage | Every transition, query, and rejection reaches the `Observer` |
+| Persistency-free | The machine never persists state; durability is the consumer's, via deterministic replay |
 | Strict superset property | Phase N tests pass unchanged at Phase N+6 |
+
+Each constraint is recorded as an Architecture Decision Record in
+[docs/ADRs/](./ADRs/) — the authoritative statement of these properties.
 
 ---
 
@@ -55,8 +59,8 @@ Queryable. Tested across every spawn/transport combination.
 
 | Metric | Value |
 |---|---|
-| Productive LOC | 1,165 |
-| Total tests | 275 |
+| Core productive LOC | ~885 |
+| Total tests | 277 |
 | Code coverage | 100% |
 | `(state, command)` pairs tested | All — explicitly |
 | Crappy functions (CRAP score) | 0 |

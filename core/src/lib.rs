@@ -23,9 +23,12 @@
 //!
 //! * **Protocol-agnostic** — no opinion on what a peer *is* or how messages move
 //! * **Deterministic** — same inputs → same outputs, always
-//! * **Exhaustively tested** — 264 tests cover every `(state, command)` pair
+//! * **Exhaustively tested** — every `(state, command)` pair covered by an explicit matrix
 //! * **Zero unsafe** — `#![deny(unsafe_code)]`
 //! * **`no_std + alloc`** — runs on bare metal, WASM, embedded, and cloud
+//!
+//! Design rationale is recorded as Architecture Decision Records in
+//! [`docs/ADRs/`](https://github.com/umbgtt10/faction/tree/main/docs/ADRs).
 //!
 //! ## Example
 //!
@@ -53,18 +56,14 @@
 //!     machine.process(Command::ParticipationObserved { peer_id: 1 }),
 //!     ProcessResult::Accepted { .. }
 //! ));
-//! assert!(matches!(
-//!     machine.process(Command::ParticipationObserved { peer_id: 2 }),
-//!     ProcessResult::Accepted { .. }
-//! ));
+//! machine.process(Command::ParticipationObserved { peer_id: 2 });
 //!
-//! // Duplicate signal? The machine rejects it, tells you why, and tells you
-//! // what IS valid right now.
-//! let result = machine.process(Command::ParticipationObserved { peer_id: 1 });
-//! if let ProcessResult::Rejected { admissible, .. } = result {
-//!     // admissible: the set of commands valid in the current state.
-//!     // The caller can use this to steer its protocol loop.
-//!     assert!(admissible.contains(&Command::ReadyObserved { peer_id: 2 }));
+//! // A duplicate is accepted but marked ignored — and, like every result,
+//! // it reports the set of commands admissible next.
+//! if let ProcessResult::Accepted { admissible, .. } =
+//!     machine.process(Command::ParticipationObserved { peer_id: 1 })
+//! {
+//!     assert!(admissible.contains(&Command::LocalParticipationCompleted));
 //! }
 //!
 //! // Probe at any time — read-only, zero side effects.
@@ -78,10 +77,9 @@
 //! machine.process(Command::LocalParticipationCompleted);
 //! machine.process(Command::ReadyObserved { peer_id: 1 });
 //! machine.process(Command::ReadyObserved { peer_id: 2 });
-//! machine.process(Command::ReadyObserved { peer_id: 3 });
 //!
-//! // Quorum of 4 reached → Bootstrapped.
-//! let result = machine.process(Command::ReadyObserved { peer_id: 4 });
+//! // Self plus peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
+//! let result = machine.process(Command::ReadyObserved { peer_id: 3 });
 //! if let ProcessResult::Accepted { cluster_view, .. } = result {
 //!     assert!(cluster_view.is_concluded());
 //!     // The cluster is live. Hand off to the application.

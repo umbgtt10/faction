@@ -1,8 +1,8 @@
 # Architecture
 
 **Status:** Phase 0 — Complete  
-**Productive LOC:** 1,165  
-**Total tests:** 275  
+**Core productive LOC:** ~885  
+**Total tests:** 277  
 **Code coverage:** 100%  
 **Crappy functions:** 0  
 **Unsafe code:** 0  
@@ -45,9 +45,11 @@ the same outputs every time.
 executes effects. Network I/O, timers, persistence, and process management are the
 caller's responsibility. `faction` has no opinion on any of them.
 
-**4. Formal verifiability.** The Mealy model maps directly to formal specification.
-Each TLA+ action corresponds to one machine transition. The specification and the
-implementation share the same vocabulary.
+**4. Formal verifiability.** The Mealy model maps directly onto a formal
+specification: each transition is a single action over `(state, input)`, so the
+machine's behaviour can be stated and checked in a specification language (e.g. TLA+)
+using the same vocabulary as the implementation. (No TLA+ model ships in the repo
+today — the point is that the design is amenable to one.)
 
 ---
 
@@ -185,7 +187,7 @@ Step struct ──────────► outcomes + new_state
 Observer.observe()
   │
   ▼
-ProcessResult::Accepted { outcomes, cluster_view }
+ProcessResult::Accepted { cluster_view, admissible, outcomes }
 ```
 
 ### Process results
@@ -195,12 +197,12 @@ Every input produces a defined, handled result.
 
 | Result | Meaning | State mutated? |
 |---|---|---|
-| `Accepted { outcomes, cluster_view }` | Command executed | Yes |
+| `Accepted { cluster_view, admissible, outcomes }` | Command executed | Yes |
 | `Rejected { cluster_view, admissible }` | Command not valid in current state | No |
 | `Probed { cluster_view, admissible }` | Probe executed | No |
 
-`Rejected` includes the list of admissible commands — the caller always knows what
-is valid at any point. This eliminates defensive programming on the caller side.
+All three results carry the list of admissible commands — the caller always knows what
+is valid next, on every path. This eliminates defensive programming on the caller side.
 
 ---
 
@@ -253,7 +255,7 @@ The cluster view is queryable at any time via `Probe`, with zero side effects. I
 returns:
 
 - Current peer state (`PeerState`)
-- Exit mode if concluded (`Conclusion`)
+- `Conclusion`, if concluded
 - Pinging peers — peers observed in Phase 1
 - Collecting peers — peers observed in Phase 2
 - Whether pinging phase is complete
@@ -375,6 +377,14 @@ usable from any execution model — tokio, async-std, Embassy, bare metal, or th
 `is_concluded()` at every call site, the design uses `accept()` to make `step()`
 unreachable on concluded machines. This is enforced by the type system, not by
 convention.
+
+**Persistency-free.** The machine holds state but never persists it — it writes nothing
+to disk and reads no ambient input, so its state is reconstructed by deterministic
+replay of the input log. Durability, and any snapshot that bounds replay, is the
+caller's responsibility.
+
+Each decision on this page is recorded as an Architecture Decision Record — one
+property per file — under [`docs/ADRs/`](./ADRs/), the authoritative rationale.
 
 ---
 

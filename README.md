@@ -96,8 +96,9 @@ Five commands drive the machine:
 | `Probe` | Query current state without mutation |
 
 Every command produces a structured result — `Accepted`, `Rejected`, or `Probed` —
-with full outcome detail and an updated cluster view. The machine never panics, never
-returns an opaque error, and never silently ignores input.
+each carrying the current cluster view and the set of commands admissible next (plus
+the outcomes, on `Accepted`). The machine never panics, never returns an opaque error,
+and never silently ignores input.
 
 ### Two-phase design
 
@@ -119,7 +120,7 @@ declare quorum before confirming its own participation.
 
 | Harness | What it tests |
 |---|---|
-| `core/` unit tests | Every `(state, command)` pair — 145 tests |
+| `core/` unit tests | Every `(state, command)` pair — 148 tests |
 | `core-validation/` | Multi-node deterministic scenarios — 23 tests |
 | `protocol/` | Message translation and protocol runtime — 33 tests |
 | `protocol-validation/` | In-process protocol cluster — 9 tests |
@@ -170,12 +171,12 @@ machine.process(Command::ParticipationObserved { peer_id: 2 });
 machine.process(Command::LocalParticipationCompleted);
 machine.process(Command::ReadyObserved { peer_id: 1 });
 machine.process(Command::ReadyObserved { peer_id: 2 });
-machine.process(Command::ReadyObserved { peer_id: 3 });
 
-// Quorum of 4 reached → Bootstrapped.
-let result = machine.process(Command::ReadyObserved { peer_id: 4 });
-if let ProcessResult::Accepted { cluster_view, .. } = result {
+// Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
+let result = machine.process(Command::ReadyObserved { peer_id: 3 });
+if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert!(cluster_view.is_concluded());
+    // Terminal state — `admissible` now contains only `Command::Probe`.
 }
 ```
 
@@ -187,8 +188,8 @@ The caller owns the network. `faction` owns the state.
 
 | Metric | Value |
 |---|---|
-| Productive LOC | 1,165 |
-| Total tests | 275 |
+| Core productive LOC | ~885 |
+| Total tests | 277 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -214,6 +215,12 @@ The caller owns the network. `faction` owns the state.
 - **One struct per file** — each step, state, and policy is its own file. Navigation
   is O(1).
 - **No `&mut` parameters** — prefer return values over in-place mutation.
+- **Persistency-free** — the machine is stateful but never owns its state durably.
+  Nothing is written to disk; state is rebuilt by replaying the input log. Durability
+  is the caller's.
+
+Each principle above is recorded as an Architecture Decision Record — see
+[docs/ADRs/](./docs/ADRs/) for the authoritative rationale.
 
 ---
 
@@ -258,7 +265,7 @@ for the complete technical specification.
 
 | Crate | Role | Tests |
 |---|---|---|
-| `core/` | State machine — 13 source files | 145 |
+| `core/` | State machine | 148 |
 | `core-validation/` | Deterministic multi-node scenario harness | 23 |
 | `protocol/` | Message translator and protocol runtime | 33 |
 | `protocol-validation/` | In-process protocol cluster | 9 |
@@ -276,6 +283,9 @@ MIT. See [LICENSE](./LICENSE).
 ## Links
 
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
-- [ROADMAP.md](./docs/ROADMAP.md) — phased development plan
+- [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
+- [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
+- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions and the Phase-0 hardening bug
 - [CHANGELOG.md](./CHANGELOG.md) — version history
+- [ETHEREUM.md](./docs/ETHEREUM.md) — why `faction` matters to the Ethereum ecosystem
 - [DONATE.md](./DONATE.md) — support the project
