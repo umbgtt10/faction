@@ -95,13 +95,9 @@ impl Cluster {
 
     pub fn step_transport_node(&mut self, index: usize) -> bool {
         if let Some(msg) = self.transports[index].recv() {
-            let from = match &msg {
-                TransportMessage::Ping { from }
-                | TransportMessage::Ready { from }
-                | TransportMessage::Bootstrapped { from } => *from,
-            };
+            let source = self.peer_ids[index];
             for decision in self.protocols[index].decide(InputMessage::Transport(msg)) {
-                self.route(decision, from);
+                self.route(decision, source);
             }
             true
         } else {
