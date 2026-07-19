@@ -1,5 +1,43 @@
 # Changelog
 
+## [Unreleased]
+
+### Self-describing entry point, Architecture Decision Records, and a documentation sweep
+
+#### Added
+- Architecture Decision Records under `docs/ADRs/` — nine records documenting the
+  core invariants, one property per file: protocol-agnostic, pure-Mealy (no I/O),
+  deterministic and replayable, `no_std` + zero-unsafe, single entry point,
+  totality via the exhaustive `(state, command)` matrix, stateful-but-persistency-free,
+  total observability, and state-as-trait-object.
+- The README quick-start is now compiled and executed as a doctest (via
+  `include_str!`), so it can no longer drift from the public API.
+- The valid transition matrix now asserts the returned `cluster_view` equals a
+  subsequent `Probe` for every `(state, command)` case.
+
+#### Changed
+- **Breaking** — `ProcessResult::Accepted` now carries an `admissible` field:
+  `Accepted { cluster_view, admissible, outcomes }`. All three result variants
+  (`Accepted`, `Rejected`, `Probed`) now expose the set of next-admissible
+  commands, so a caller can ask "what may I send next?" uniformly regardless of
+  outcome.
+- **Breaking** — removed the `faction::PeerId` re-export. Import
+  `faction::types::PeerId` directly; the alias now lives in exactly one place.
+- Documentation sweep across `README.md`, `ARCHITECTURE.md`, and `ROADMAP.md`:
+  reconciled test counts (277) and core productive LOC (~885), propagated the
+  `admissible`-on-every-variant change, softened the formal-verification claim,
+  linked the new ADRs, and corrected the worked examples.
+- Curated `OPEN_POINTS.md` down to the genuinely open items — the Phase-0
+  hardening bug, Phases 1–6, and the deferred ADRs — dropping everything now
+  implemented or captured in an ADR.
+- Split the transition-matrix test helpers into focused `builder` and
+  `assertions` modules.
+
+#### Removed
+- Stale `VALIDATION.md` — superseded by the ADRs and the live test suite.
+
+---
+
 ## [0.3.3] — 2026-05-09
 
 ### Documentation & polish — runnable example, bootstrapping-gap note, import cleanup
