@@ -13,7 +13,7 @@ use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
-use crate::PeerId;
+use crate::types::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::ready_step::ReadyStep;

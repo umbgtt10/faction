@@ -9,7 +9,7 @@ use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
-use faction::PeerId;
+use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;

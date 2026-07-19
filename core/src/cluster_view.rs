@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 use crate::conclusion::Conclusion;
 use crate::peer_state::PeerState;
-use crate::PeerId;
+use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClusterView {

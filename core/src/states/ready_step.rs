@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 
 use crate::conclusion::Conclusion;
 use crate::outcome::Outcome;
-use crate::PeerId;
+use crate::types::PeerId;
 
 pub struct ReadyStep {
     outcomes: Vec<Outcome>,

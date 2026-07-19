@@ -5,11 +5,11 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use faction::PeerId;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
 use faction::process_result::ProcessResult;
+use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
 use crate::message_translator::MessageTranslator;

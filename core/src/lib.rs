@@ -139,5 +139,3 @@ pub mod state;
 pub mod states;
 pub mod transition;
 pub mod types;
-
-pub use types::PeerId;

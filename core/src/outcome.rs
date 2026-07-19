@@ -3,7 +3,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use crate::conclusion::Conclusion;
-use crate::PeerId;
+use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outcome {

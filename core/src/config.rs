@@ -5,7 +5,7 @@
 use alloc::vec::Vec;
 
 use crate::quorum_policy::QuorumPolicy;
-use crate::PeerId;
+use crate::types::PeerId;
 
 pub struct Config {
     peer_id: PeerId,

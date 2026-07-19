@@ -18,7 +18,7 @@ use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
-use faction::PeerId;
+use faction::types::PeerId;
 
 pub struct ClusterSimulation {
     peers: Vec<Faction>,

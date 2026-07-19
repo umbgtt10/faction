@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0
 // http://www.apache.org/licenses/LICENSE-2.0
 
-use faction::PeerId;
+use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use faction_system_tests::transport::channels::channels_transport::ChannelsTransport;

@@ -7,7 +7,7 @@ use std::net::{SocketAddr, TcpListener};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread::available_parallelism;
 
-use faction::PeerId;
+use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use tokio::net::TcpListener as TokioTcpListener;

@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use faction::PeerId;
+use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 
 use faction_protocol::transport_trait::Transport;

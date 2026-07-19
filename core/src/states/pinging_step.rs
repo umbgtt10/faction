@@ -6,7 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::outcome::Outcome;
-use crate::PeerId;
+use crate::types::PeerId;
 
 pub struct PingingStep {
     outcomes: Vec<Outcome>,

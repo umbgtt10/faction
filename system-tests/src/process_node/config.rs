@@ -5,7 +5,7 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use faction::PeerId;
+use faction::types::PeerId;
 
 use crate::transport_kind::TransportKind;
 

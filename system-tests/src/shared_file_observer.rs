@@ -11,11 +11,11 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use chrono::Utc;
-use faction::PeerId;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::observer::Observer;
 use faction::transition::Transition;
+use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;

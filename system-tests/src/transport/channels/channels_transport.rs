@@ -4,7 +4,7 @@
 
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use faction::PeerId;
+use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 

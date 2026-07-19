@@ -13,7 +13,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
-use faction::PeerId;
+use faction::types::PeerId;
 
 pub struct ScenarioNode {
     peer_id: PeerId,

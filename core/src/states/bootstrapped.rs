@@ -12,7 +12,7 @@ use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
-use crate::PeerId;
+use crate::types::PeerId;
 
 #[derive(Default)]
 pub struct Bootstrapped {

@@ -15,7 +15,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::PeerId;
+use faction::types::PeerId;
 
 pub struct ScenarioHarness {
     factions: Vec<Faction>,

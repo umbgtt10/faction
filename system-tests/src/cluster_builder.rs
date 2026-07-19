@@ -18,12 +18,12 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
-use faction::PeerId;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::quorum_policy::QuorumPolicy;
+use faction::types::PeerId;
 
 use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_trait::Timer;

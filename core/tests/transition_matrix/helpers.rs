@@ -8,7 +8,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use faction::command::Command;
-use faction::PeerId;
+use faction::types::PeerId;
 
 pub fn participation(peer_id: PeerId) -> Command {
     Command::ParticipationObserved { peer_id }

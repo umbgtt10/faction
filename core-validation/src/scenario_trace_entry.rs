@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::outcome::Outcome;
-use faction::PeerId;
+use faction::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScenarioTraceEntry {

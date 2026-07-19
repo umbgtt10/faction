@@ -5,7 +5,7 @@
 use std::thread::sleep;
 use std::time::Duration;
 
-use faction::PeerId;
+use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 use faction_system_tests::transport::grpc::grpc_transport::GrpcTransport;

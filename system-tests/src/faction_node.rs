@@ -6,8 +6,8 @@ use std::thread::sleep;
 use std::time::Duration;
 
 use crate::node_observer::NodeObserver;
-use faction::PeerId;
 use faction::peer_state::PeerState;
+use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;

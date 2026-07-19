@@ -6,7 +6,7 @@ use std::env::args;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use faction::PeerId;
+use faction::types::PeerId;
 
 use crate::process_node::config::ProcessNodeConfig;
 
