@@ -244,6 +244,7 @@ version = "0.3.2"
 dependencies = [
  "faction",
  "faction-protocol",
+ "rstest",
  "spin",
 ]
 

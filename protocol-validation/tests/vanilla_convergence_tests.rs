@@ -3,98 +3,50 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 
 use faction_protocol_validation::cluster::Cluster;
+use rstest::rstest;
 
-#[test]
-fn five_nodes_converge_to_bootstrapped() {
+#[rstest]
+#[case(3, 2)]
+#[case(4, 3)]
+#[case(5, 3)]
+#[case(5, 4)]
+#[case(6, 4)]
+#[case(7, 4)]
+#[case(7, 5)]
+#[case(8, 5)]
+#[case(9, 5)]
+#[case(9, 6)]
+#[case(10, 6)]
+#[case(10, 7)]
+#[case(11, 6)]
+#[case(12, 7)]
+#[case(13, 9)]
+#[case(3, 3)]
+#[case(4, 4)]
+#[case(5, 5)]
+#[case(6, 6)]
+#[case(8, 8)]
+#[case(1, 1)]
+#[case(2, 1)]
+#[case(2, 2)]
+#[case(5, 1)]
+fn cluster_converges_to_bootstrapped(#[case] size: usize, #[case] quorum: usize) {
     // Arrange
-    let mut cluster = Cluster::new(5, 4);
+    let mut cluster = Cluster::new(size, quorum);
     cluster.start_all();
 
-    // Act — drain the initial Pings from start_all (4 per node)
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
-
-    // Act — 5 timer phases: 4 ParticipationObserved + 1 LocalParticipationCompleted
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    // Act — RetryPing fires
-    cluster.step_timer_node(0);
-    cluster.step_timer_node(1);
-    cluster.step_timer_node(2);
-    cluster.step_timer_node(3);
-    cluster.step_timer_node(4);
-
-    // Act — 3 transport phases: each node processes 3 Ready messages → quorum
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
-
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
-
-    cluster.step_transport_node(0);
-    cluster.step_transport_node(1);
-    cluster.step_transport_node(2);
-    cluster.step_transport_node(3);
-    cluster.step_transport_node(4);
+    // Act
+    let rounds = 10 * size + 50;
+    for _ in 0..rounds {
+        for i in 0..size {
+            cluster.step_timer_node(i);
+            cluster.step_transport_node(i);
+        }
+    }
 
     // Assert
-    assert!(cluster.is_bootstrapped());
+    assert!(
+        cluster.is_bootstrapped(),
+        "size {size}, quorum {quorum}: cluster did not reach Bootstrapped"
+    );
 }

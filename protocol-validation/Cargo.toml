@@ -19,6 +19,9 @@ faction.workspace = true
 faction-protocol.workspace = true
 spin.workspace = true
 
+[dev-dependencies]
+rstest.workspace = true
+
 [lib]
 name = "faction_protocol_validation"
 path = "src/lib.rs"
