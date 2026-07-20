@@ -9,6 +9,7 @@ use std::time::Duration;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
+use faction::observer::Observer;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::PeerId;
@@ -20,6 +21,9 @@ use crate::approver::Approver;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
+use crate::node_observer::NodeObserver;
+use crate::shared_file_observer::SharedFileObserver;
+use crate::shared_file_observer::SharedWriter;
 use crate::spawn::Spawn;
 use crate::timer::real::real_timer::RealTimer;
 use crate::timer_delay::TimerDelay;
@@ -31,6 +35,7 @@ pub struct JoinContext {
     genesis_peers: Vec<PeerId>,
     node_required: usize,
     delay: Duration,
+    writer: Option<SharedWriter>,
 }
 
 impl JoinContext {
@@ -40,12 +45,14 @@ impl JoinContext {
         genesis_peers: Vec<PeerId>,
         node_required: usize,
         delay: Duration,
+        writer: Option<SharedWriter>,
     ) -> Self {
         Self {
             registry,
             genesis_peers,
             node_required,
             delay,
+            writer,
         }
     }
 }
@@ -173,8 +180,16 @@ impl Cluster {
             peers.clone(),
             QuorumPolicy::new(context.node_required),
         );
+        let faction_observer: Box<dyn Observer> = match &context.writer {
+            Some(writer) => Box::new(SharedFileObserver::new(writer.clone(), newcomer_id)),
+            None => Box::new(NoOpObserver),
+        };
+        let node_observer: Box<dyn NodeObserver> = match &context.writer {
+            Some(writer) => Box::new(SharedFileObserver::new(writer.clone(), newcomer_id)),
+            None => Box::new(NoOpNodeObserver),
+        };
         let protocol = Protocol::new(
-            Faction::new(config, Box::new(NoOpObserver)),
+            Faction::new(config, faction_observer),
             peers.clone(),
             newcomer_id,
         );
@@ -185,7 +200,7 @@ impl Cluster {
             protocol,
             Box::new(transport),
             timer,
-            Box::new(NoOpNodeObserver),
+            node_observer,
             context.delay,
         );
         Node::task(Rc::new(RefCell::new(faction_node)))

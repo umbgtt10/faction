@@ -202,8 +202,15 @@ impl ClusterBuilder {
             .collect();
 
         let join_context = match (spawn, self.transport) {
-            (Spawn::Task, TransportKind::InMemory) => join_registry
-                .map(|registry| JoinContext::new(registry, peer_ids.clone(), node_required, delay)),
+            (Spawn::Task, TransportKind::InMemory) => join_registry.map(|registry| {
+                JoinContext::new(
+                    registry,
+                    peer_ids.clone(),
+                    node_required,
+                    delay,
+                    writer.clone(),
+                )
+            }),
             _ => None,
         };
 

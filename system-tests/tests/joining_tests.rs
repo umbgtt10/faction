@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::path::PathBuf;
+
+use chrono::Utc;
 use faction::peer_state::PeerState;
 use faction_system_tests::approver::Approver;
 use faction_system_tests::cluster_builder::ClusterBuilder;
@@ -9,6 +12,12 @@ use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
 
 const SETTLE_ROUNDS: usize = 50;
+
+fn log_path(scenario: &str, spawn: Spawn, transport: TransportKind) -> PathBuf {
+    let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
+    let name = format!("{timestamp}_join_{scenario}_{spawn:?}_{transport:?}.jsonl").to_lowercase();
+    PathBuf::from("logs").join(name)
+}
 
 #[rstest]
 #[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
@@ -20,6 +29,7 @@ fn cold_newcomer_joins_a_bootstrapped_cluster_and_converges(
     let mut cluster = ClusterBuilder::new(3, 2)
         .spawn(spawn)
         .transport(transport)
+        .log_path(log_path("converge", spawn, transport))
         .build();
     cluster.poll_until_bootstrapped();
 
@@ -42,6 +52,7 @@ fn a_rejected_newcomer_is_denied_and_never_counts(
     let mut cluster = ClusterBuilder::new(3, 2)
         .spawn(spawn)
         .transport(transport)
+        .log_path(log_path("rejected", spawn, transport))
         .build();
     cluster.poll_until_bootstrapped();
 
@@ -67,6 +78,7 @@ fn a_duplicate_join_is_ignored_and_membership_is_stable(
     let mut cluster = ClusterBuilder::new(3, 2)
         .spawn(spawn)
         .transport(transport)
+        .log_path(log_path("duplicate", spawn, transport))
         .build();
     cluster.poll_until_bootstrapped();
 
@@ -93,6 +105,7 @@ fn concurrent_newcomers_each_join_and_converge(
     let mut cluster = ClusterBuilder::new(3, 2)
         .spawn(spawn)
         .transport(transport)
+        .log_path(log_path("concurrent", spawn, transport))
         .build();
     cluster.poll_until_bootstrapped();
 
