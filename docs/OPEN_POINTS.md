@@ -1,9 +1,15 @@
 # Open Points
 
-Status: **Phase 1 (dynamic joining) — core join axis implemented, gate-green**
-(increments 1–7 below); the join-capable harness + system tests (B) and decision
-#6 remain. The section below captures the design, the decisions now locked, and
-the longer-standing open questions raised while building Faction.
+Status: **Phase 1 (dynamic joining) — core join axis + join-capable harness,
+gate-green.** The ClusterView builder/DTO split landed, so live membership is now
+observable. The join system tests run on Task × In-Memory: scenarios 1
+(join-then-converge), 3 (rejected), 4 (duplicate), and 6 (concurrent multi-join)
+are green. Remaining: scenario 2 (blocked on decision #6 below — `Collecting`
+rejects a member's participation), scenario 7 (needs deadline-injection harness
+support), and broadening to the Thread spawn and the other transports; scenario 5
+stays postponed (see the join subsection). The section below captures the design,
+the decisions now locked, and the longer-standing open questions raised while
+building Faction.
 
 Companion to `ROADMAP.md`. Items move into `ROADMAP.md` (or a phase's own spec)
 once decided; until then they stay here rather than clutter the roadmap with
