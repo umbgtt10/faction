@@ -171,12 +171,93 @@ strict-superset rule; it matches the one-file-per-concern pattern in
 | 6 | concurrent multi-join | Phase-1 permissive/stateless semantics (vs Phase 3's coordinated add) |
 | 7 | join-after-deadline-miss | ties Phase 1 to the terminal-not-sink fix (0.4.0) |
 
+**Scenario 5 (join-raises-quorum) is postponed — not built in this pass.** It
+presupposes the caller can inject a larger threshold, which needs a
+`QuorumPolicyChanged` command that does not exist yet: an uncoordinated threshold
+swap is exactly the safety hazard the quorum-change question below defers to
+Phase 3. The one thing Phase 1 *can* assert — that admission alone never moves
+the threshold as the set grows (decision #3) — is already covered at the core
+level (`join_tests.rs::admission_does_not_change_the_quorum_threshold`), so
+re-proving it as a system test buys little. The minimal-first join matrix is
+therefore scenarios **1–4, 6, 7**; scenario 5 returns once the quorum-change
+command lands.
+
 **Matrix, minimal-first (decided):** run the scenarios on **Task/Thread ×
 In-Memory only** to begin with — the simplest spawn models and transport. Broaden
 to the other transports (Channels, TCP, gRPC) and the Process spawn **only once
 the core join axis and this minimal matrix are fully green**. This keeps the
 hardest harness work (late socket connect, process-spawn join) off the critical
 path until the feature is proven on the simplest substrate.
+
+### Implementation plan (the three-layer join surface)
+
+The section title understates the reach: join is not plumbed above `core` yet, so
+the "harness capability" is a **three-layer** change — protocol wire → harness →
+tests — matching the "co-equal with the core change" note above. The join
+*semantics* are all in `core` and green (increments 1–7); the new work is
+plumbing, routing, and tests, with **no new state-machine logic**.
+
+**Layer 1 — protocol/wire (`protocol/`), the smallest faithful surface:**
+
+- `TransportMessage::JoinRequest { from }` — a newcomer announcing itself;
+  `MessageTranslator::to_command` maps it to `Command::JoinRequested { peer_id: from }`.
+- `OutputMessage::EmitJoinRequest { peer_id }` — surfaces a member's forward so the
+  harness/approver can act on it (today `to_output_messages` collapses everything
+  to `Noop`); `to_output_messages` maps `Outcome::EmitJoinRequest` onto it.
+- `Protocol::admit(peer_id)` / `Protocol::deny(peer_id)` — the **caller** admission
+  path, wrapping `Command::JoinApproved` / `JoinRejected`. Admission is a local
+  caller decision (`P0-ADR-ProtocolAgnostic`: "faction never decides admission
+  policy"), so it is a method, **not** a peer wire message. `MemberAdmitted` /
+  `DuplicateMemberIgnored` / `JoinDenied` need no wire surface — the scenarios
+  assert them behaviorally.
+
+Keep these match arms trivial so `faction-protocol` stays under the stage-2 CRAP gate.
+
+**Layer 2 — harness (`system-tests/`):**
+
+- `InMemoryTransport::connect(peer_id, inbox)` + an inbox-handle accessor, so a
+  late peer can be spliced into a live mesh (today `new_mesh` wires everything up
+  front and there is no late-link insertion).
+- `Cluster::join(peer_id)` — builds a newcomer node and connects it into the mesh.
+  Newcomer genesis = **existing members ∪ self**, so it can ping, collect readiness,
+  and reach `Bootstrapped` from its own side while the existing members grow to
+  include it via admission (the Phase-1 asymmetry: genesis = seed, not ceiling).
+- An **approver policy** the test supplies (accept-all / reject / …).
+- A **join driver** running the loop: the newcomer's join signal reaches members as
+  `JoinRequest` on the wire → members emit `EmitJoinRequest` → approver decides →
+  harness calls `admit`/`deny` on each member → the newcomer's later pings now count.
+- **Task first** (direct method calls on the node's `Protocol`), **then Thread**
+  (needs a small injectable command queue the run-loop polls — Thread has no
+  external admission hook today).
+
+**Layer 3 — tests (`system-tests/tests/joining_tests.rs`):**
+
+- New file; `convergence_tests.rs` left byte-untouched (the cleanest proof of the
+  strict-superset rule).
+- Scenarios **1–4, 6, 7** (5 postponed, above), Task/Thread × In-Memory.
+- **Assertions are behavioral** — `ClusterView` exposes no member set, only
+  `pinging_peers` / `collecting_peers` / `required_count` / `peer_state`. The signal
+  that "the newcomer now counts": a peer that was `NonMemberIgnored` is absent from
+  a member's `pinging_peers`, and after admission its ping lands it there and the
+  cluster bootstraps with it. Read-only getters may be **added** to `ClusterView`
+  as needed — it stays a view, no mutations.
+
+**TDD increment order (gate-green at each step via `run_stage_1`):**
+
+1. Failing Task × In-Memory **scenario 1** (join-then-converge) — the payoff:
+   admission flips `NonMemberIgnored` → `ParticipationAccepted`.
+2. Minimal Layer-1 + Layer-2 plumbing to green it.
+3. Scenarios 2, 3, 4, 6, 7 on Task × In-Memory, one at a time.
+4. Generalize the spawn axis to **Thread** (the injectable-command queue); rerun
+   the matrix.
+5. `run_stage_1` + `run_stage_2` green. Broadening to the other transports
+   (Channels, TCP, gRPC) and the Process spawn stays deferred per the minimal-first
+   decision.
+
+**Resolved forks / defaults:** real `JoinRequest` on the wire (a system test should
+exercise the transport); newcomer genesis = existing members ∪ self; admission via a
+`Protocol` caller method, not a wire message; one scenario per increment; scenario 5
+postponed (above); `ClusterView` getters-only, no mutations.
 
 ### Release & consumer sequencing (decided: local path reference)
 
@@ -278,6 +359,40 @@ The two are complementary, not substitutes for each other.
 Faction still never computes what the new threshold *should* be, under either
 version — that stays the protocol's fault-model-driven formula, recomputed and
 injected by the consumer, same as at construction.
+
+---
+
+## Should `ClusterView` be split into a builder and a DTO?
+
+`ClusterView` currently wears two hats that pull in opposite directions:
+
+- **A builder, used internally by Faction.** Each `State::cluster_view(&base)`
+  threads the read-model up through the `with_peer_state` / `with_pinging_peers` /
+  `with_collecting_peers` / `with_deadline_missed` / `with_is_pinging_completed`
+  chain off a `new(...)` seed. This is construction machinery; it belongs to the
+  state machine's internals.
+- **A DTO, handed to consumers.** The same type is what `Protocol::cluster_view()`
+  returns as the public read-model; consumers only ever call the read-only getters
+  (`peer_state()`, `pinging_peers()`, `collecting_peers()`, `required_count()`, …).
+
+The problem is not visibility — both types can stay `pub`. It is that the value
+consumers hold is not a *pure* DTO: it carries the `with_*` builder methods, which a
+read-model handed across the boundary should not offer at all. Phase 1 surfaced
+this: the join system tests need extra getters, and the guard we adopted — *"it is a
+VIEW: getters only, no mutations"* — is really a stopgap for a type that hasn't yet
+been split.
+
+**Proposed decomposition:** separate the two concerns into two structs (both may
+remain `pub` — encapsulation is not the goal) —
+
+- a **builder** that owns the `new` + `with_*` assembly the states use, and
+- a pure **DTO** — read-only getters, no constructor-style or mutating surface —
+  which is the *only* type consumers ever receive.
+
+The states build via the builder and finalize into the DTO at the Faction boundary
+(`Protocol::cluster_view()` returns the DTO). The single hard requirement:
+**consumers are handed the pure DTO, never the builder.** Candidate for its own ADR
+once the shape is settled.
 
 ---
 
