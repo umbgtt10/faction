@@ -241,12 +241,11 @@ Keep these match arms trivial so `faction-protocol` stays under the stage-2 CRAP
 - New file; `convergence_tests.rs` left byte-untouched (the cleanest proof of the
   strict-superset rule).
 - Scenarios **1–4, 6, 7** (5 postponed, above), Task/Thread × In-Memory.
-- **Assertions are behavioral** — `ClusterView` exposes no member set, only
-  `pinging_peers` / `collecting_peers` / `required_count` / `peer_state`. The signal
-  that "the newcomer now counts": a peer that was `NonMemberIgnored` is absent from
-  a member's `pinging_peers`, and after admission its ping lands it there and the
-  cluster bootstraps with it. Read-only getters may be **added** to `ClusterView`
-  as needed — it stays a view, no mutations.
+- **Assertions read membership directly** — the `ClusterView` builder/DTO split
+  (`P2-ADR-ClusterViewBuilderAndDto`) exposes live `members` on the view, so the join
+  scenarios assert on `member_count` (e.g. duplicate-join keeps it stable) alongside
+  the behavioral signal that an admitted peer's ping now counts and the cluster
+  bootstraps with it.
 
 **TDD increment order (gate-green at each step via `run_stage_1`):**
 
@@ -260,10 +259,14 @@ Keep these match arms trivial so `faction-protocol` stays under the stage-2 CRAP
    (Channels, TCP, gRPC) and the Process spawn stays deferred per the minimal-first
    decision.
 
-**Resolved forks / defaults:** real `JoinRequest` on the wire (a system test should
-exercise the transport); newcomer genesis = existing members ∪ self; admission via a
-`Protocol` caller method, not a wire message; one scenario per increment; scenario 5
-postponed (above); `ClusterView` getters-only, no mutations.
+**As shipped:** join is routed entirely through control-plane methods —
+`Protocol::request_join` / `admit` / `deny` — with **no new wire message** (the
+Layer-1 `TransportMessage::JoinRequest` / `OutputMessage::EmitJoinRequest` were not
+added; they would have forced every transport's encoder to grow a variant for an
+In-Memory-only pass). Newcomer genesis = existing members ∪ self; one scenario per
+increment; scenario 5 postponed (above). The `ClusterView` split shipped with an
+observable `members`, so assertions read `member_count` rather than inferring
+membership.
 
 ### Release & consumer sequencing (decided: local path reference)
 
@@ -335,7 +338,7 @@ integration (the ROADMAP publication checklist already asks for one).
    re-advertise (`AcknowledgeRejoin`, stay) vs. accept/track. Surfaced by the IBFT
    integration; see the subsection above.
 
----docs: 
+---
 
 ## Should Faction allow the quorum size to change?
 
@@ -368,40 +371,6 @@ injected by the consumer, same as at construction.
 
 ---
 
-## Should `ClusterView` be split into a builder and a DTO?
-
-`ClusterView` currently wears two hats that pull in opposite directions:
-
-- **A builder, used internally by Faction.** Each `State::cluster_view(&base)`
-  threads the read-model up through the `with_peer_state` / `with_pinging_peers` /
-  `with_collecting_peers` / `with_deadline_missed` / `with_is_pinging_completed`
-  chain off a `new(...)` seed. This is construction machinery; it belongs to the
-  state machine's internals.
-- **A DTO, handed to consumers.** The same type is what `Protocol::cluster_view()`
-  returns as the public read-model; consumers only ever call the read-only getters
-  (`peer_state()`, `pinging_peers()`, `collecting_peers()`, `required_count()`, …).
-
-The problem is not visibility — both types can stay `pub`. It is that the value
-consumers hold is not a *pure* DTO: it carries the `with_*` builder methods, which a
-read-model handed across the boundary should not offer at all. Phase 1 surfaced
-this: the join system tests need extra getters, and the guard we adopted — *"it is a
-VIEW: getters only, no mutations"* — is really a stopgap for a type that hasn't yet
-been split.
-
-**Proposed decomposition:** separate the two concerns into two structs (both may
-remain `pub` — encapsulation is not the goal) —
-
-- a **builder** that owns the `new` + `with_*` assembly the states use, and
-- a pure **DTO** — read-only getters, no constructor-style or mutating surface —
-  which is the *only* type consumers ever receive.
-
-The states build via the builder and finalize into the DTO at the Faction boundary
-(`Protocol::cluster_view()` returns the DTO). The single hard requirement:
-**consumers are handed the pure DTO, never the builder.** Candidate for its own ADR
-once the shape is settled.
-
----
-
 ## Deferred / unwritten ADRs
 
 - *(written — `P1-ADR-ConfigIsImmutableGenesis`)* `Config` immutability,
@@ -409,7 +378,10 @@ once the shape is settled.
   `JoinApproved` `Command`, never a setter; `Config` stays immutable genesis. The
   **quorum-threshold** half stays deferred on the quorum-change question above —
   the ADR is scoped to membership and explicitly carves the threshold out.
+- *(written — `P2-ADR-ClusterViewBuilderAndDto`)* The consumer read-model is a pure
+  DTO; construction lives in a separate `ClusterViewBuilder`, and live membership is
+  observable on the view. Shipped on `feat/phase-1-joining`.
+- *(written — `P2-ADR-TestingLadder`)* The test-tier ladder — unit, transition-matrix,
+  property-based, cluster-simulation, system — and the `run_stage_1` + `run_stage_2`
+  gate that runs them.
 - *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).
-- *(to write)* Testing-ladder ADR — the test tiers (unit / transition-matrix /
-  property-based / system) and the gate that runs them. The ladder already
-  exists; this is just writing it up.

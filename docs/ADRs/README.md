@@ -23,6 +23,8 @@ importance:
 | [P1-ADR-ConfigIsImmutableGenesis](P1-ADR-ConfigIsImmutableGenesis.md) | `Config` is the immutable genesis seed; live membership is state, grown only by a command. |
 | [P2-ADR-TotalObservability](P2-ADR-TotalObservability.md) | Every transition, query, and rejection reaches the `Observer`, on every path. |
 | [P2-ADR-StateAsTraitObject](P2-ADR-StateAsTraitObject.md) | One struct per state behind a `State` trait; growth is additive. |
+| [P2-ADR-ClusterViewBuilderAndDto](P2-ADR-ClusterViewBuilderAndDto.md) | The view consumers receive is a pure DTO; construction lives in a separate builder. |
+| [P2-ADR-TestingLadder](P2-ADR-TestingLadder.md) | A fixed test-tier ladder — unit, matrix, property, simulation, system — run by one gate. |
 
 ## Template
 
