@@ -3,6 +3,7 @@
 
 use std::thread::sleep;
 use std::time::Duration;
+use std::time::Instant;
 
 use crate::node_observer::NodeObserver;
 use faction::peer_state::PeerState;
@@ -73,9 +74,13 @@ impl FactionNode {
 
     pub fn run(&mut self) {
         self.start();
+        let deadline = Instant::now() + Duration::from_secs(30);
         loop {
             let had_work = self.step_internal();
             if self.is_concluded() {
+                break;
+            }
+            if Instant::now() >= deadline {
                 break;
             }
             if !had_work {

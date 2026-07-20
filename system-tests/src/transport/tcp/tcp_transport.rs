@@ -171,7 +171,17 @@ impl Transport for TcpTransport {
                 TransportMessage::Ready { from } => Self::encode(*from, 1),
                 TransportMessage::Bootstrapped { from } => Self::encode(*from, 2),
             };
-            let _ = stream.write(&data);
+            let mut written = 0;
+            while written < data.len() {
+                match stream.write(&data[written..]) {
+                    Ok(0) => break,
+                    Ok(n) => written += n,
+                    Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                        sleep(Duration::from_millis(1));
+                    }
+                    Err(_) => break,
+                }
+            }
         }
     }
 
