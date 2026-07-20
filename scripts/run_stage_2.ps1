@@ -1,6 +1,5 @@
-# Copyright 2025 Umberto Gotti <umberto.gotti@umbertogotti.dev>
-# Licensed under the Apache License, Version 2.0
-# http://www.apache.org/licenses/LICENSE-2.0
+# Copyright (c) 2025-2026 Umberto Gotti
+# SPDX-License-Identifier: MIT
 #
 # Requires crap4rust:
 #   cargo install cargo-crap4rust
