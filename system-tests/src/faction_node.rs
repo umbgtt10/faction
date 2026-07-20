@@ -118,6 +118,21 @@ impl FactionNode {
         self.step_internal();
     }
 
+    pub fn request_join(&mut self, peer_id: PeerId) {
+        let _ = self.protocol.request_join(peer_id);
+    }
+
+    pub fn admit(&mut self, peer_id: PeerId) {
+        let _ = self.protocol.admit(peer_id);
+        if !self.peers.contains(&peer_id) {
+            self.peers.push(peer_id);
+        }
+    }
+
+    pub fn deny(&mut self, peer_id: PeerId) {
+        let _ = self.protocol.deny(peer_id);
+    }
+
     fn dispatch(&mut self, decision: OutputMessage) {
         match decision {
             OutputMessage::BroadcastPing => {

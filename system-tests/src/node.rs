@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use std::thread::{JoinHandle, spawn};
 
 use faction::peer_state::PeerState;
+use faction::types::PeerId;
 
 use crate::faction_node::FactionNode;
 
@@ -62,6 +63,24 @@ impl Node {
     pub fn step(&self) {
         if let Self::Task { node } = self {
             node.borrow_mut().step();
+        }
+    }
+
+    pub fn request_join(&self, peer_id: PeerId) {
+        if let Self::Task { node } = self {
+            node.borrow_mut().request_join(peer_id);
+        }
+    }
+
+    pub fn admit(&self, peer_id: PeerId) {
+        if let Self::Task { node } = self {
+            node.borrow_mut().admit(peer_id);
+        }
+    }
+
+    pub fn deny(&self, peer_id: PeerId) {
+        if let Self::Task { node } = self {
+            node.borrow_mut().deny(peer_id);
         }
     }
 

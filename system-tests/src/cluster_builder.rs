@@ -29,6 +29,7 @@ use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
 
 use crate::cluster::Cluster;
+use crate::cluster::JoinContext;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
@@ -42,6 +43,7 @@ use crate::timer_delay::TimerDelay;
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::grpc::grpc_transport::GrpcTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
+use crate::transport::in_memory::in_memory_transport::Registry;
 use crate::transport::tcp::tcp_transport::TcpTransport;
 use crate::transport_kind::TransportKind;
 
@@ -108,11 +110,15 @@ impl ClusterBuilder {
             return self.build_process(&peer_ids);
         }
 
+        let mut join_registry: Option<Registry> = None;
         let transports: Vec<Box<dyn Transport>> = match self.transport {
-            TransportKind::InMemory => InMemoryTransport::new_mesh(&peer_ids)
-                .into_iter()
-                .map(|t| Box::new(t) as Box<dyn Transport>)
-                .collect(),
+            TransportKind::InMemory => {
+                let mesh = InMemoryTransport::new_mesh(&peer_ids);
+                join_registry = mesh.first().map(|t| t.registry());
+                mesh.into_iter()
+                    .map(|t| Box::new(t) as Box<dyn Transport>)
+                    .collect()
+            }
             TransportKind::Channels => ChannelsTransport::new_mesh(&peer_ids)
                 .into_iter()
                 .map(|t| Box::new(t) as Box<dyn Transport>)
@@ -195,7 +201,13 @@ impl ClusterBuilder {
             })
             .collect();
 
-        Cluster::new(nodes, spawn, self.timer_delay)
+        let join_context = match (spawn, self.transport) {
+            (Spawn::Task, TransportKind::InMemory) => join_registry
+                .map(|registry| JoinContext::new(registry, peer_ids.clone(), node_required, delay)),
+            _ => None,
+        };
+
+        Cluster::new(nodes, spawn, self.timer_delay, join_context)
     }
 
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
@@ -278,7 +290,7 @@ impl ClusterBuilder {
             nodes.push(Node::process(child));
         }
 
-        Cluster::new(nodes, self.spawn, self.timer_delay)
+        Cluster::new(nodes, self.spawn, self.timer_delay, None)
     }
 }
 

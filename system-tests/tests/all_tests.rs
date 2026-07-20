@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 pub mod convergence_tests;
+pub mod joining_tests;
 pub mod shared_file_observer_tests;
 pub mod timer;
 pub mod transport;

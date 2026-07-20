@@ -3,6 +3,7 @@
 
 #![deny(unsafe_code)]
 
+pub mod approver;
 pub mod cluster;
 pub mod cluster_builder;
 pub mod faction_node;
