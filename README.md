@@ -180,12 +180,15 @@ let result = machine.process(Command::ReadyObserved { peer_id: 3 });
 if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert!(cluster_view.is_concluded());
     // Concluded, but not a silent sink: a bootstrapped node still admits
-    // `ParticipationObserved` so it can re-advertise readiness to a peer
-    // that is still trying to join.
+    // `ParticipationObserved` (to re-advertise readiness to a still-joining
+    // peer) plus the Phase 1 join commands.
     assert_eq!(
         admissible,
         alloc::vec![
             Command::ParticipationObserved { peer_id: 0 },
+            Command::JoinRequested { peer_id: 0 },
+            Command::JoinApproved { peer_id: 0 },
+            Command::JoinRejected { peer_id: 0 },
             Command::Probe
         ]
     );

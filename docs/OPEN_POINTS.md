@@ -1,8 +1,9 @@
 # Open Points
 
-Status: **Phase 1 (dynamic joining) is being designed** — the section below
-captures that design, the decisions still to lock, and the longer-standing open
-questions raised while building Faction.
+Status: **Phase 1 (dynamic joining) — core join axis implemented, gate-green**
+(increments 1–7 below); the join-capable harness + system tests (B) and decision
+#6 remain. The section below captures the design, the decisions now locked, and
+the longer-standing open questions raised while building Faction.
 
 Companion to `ROADMAP.md`. Items move into `ROADMAP.md` (or a phase's own spec)
 once decided; until then they stay here rather than clutter the roadmap with
@@ -89,9 +90,31 @@ Phase 2 already made when `Collecting::new` gained a parameter. A `Members` valu
 object (own file: `is_member`, `with_admitted`, `len`) keeps the threading clean.
 
 `Config.peers` stays as the immutable **genesis** seed (used to construct the
-initial `Members` and to replay/reset); the live set evolves in state. This is the
-form the deferred **`Config`-immutability ADR** takes: `Config` = genesis, the
+initial `Members` and to replay/reset); the live set evolves in state. This is now
+locked in **`P1-ADR-ConfigIsImmutableGenesis`**: `Config` = genesis, the
 state-carried `Members` = live, mutated only by an admission `Command`.
+
+### Collecting must stay receptive to a member's participation (from the IBFT integration)
+
+The terminal-sink fix made `Bootstrapped` re-advertise (`AcknowledgeRejoin`) to a
+member that (re-)sends `ParticipationObserved`. `Collecting` still **rejects**
+`ParticipationObserved` outright — a Phase-0 assumption ("my participation phase is
+over"), which is *phase*-based, not *membership*-based. Phase 1 reopens that cell:
+once a peer is an admitted member, "its subsequent signals are treated as valid
+member signals" — including participation that arrives while the local node is in
+`Collecting` (locally completed, awaiting readiness quorum).
+
+**Decision for Phase 1:** a member's `ParticipationObserved` in `Collecting` should
+be *acknowledged, not dropped* — either re-advertise like `Bootstrapped`
+(`AcknowledgeRejoin`, stay) or actually accept/track it. Pick one deliberately and
+give it matrix + admissible + property coverage. This generalizes "no silent sinks"
+from the terminal state to the whole post-local-completion lifecycle.
+
+Surfaced by the IBFT integration: IBFT's rejoin workaround is *broader* than
+Faction's current `Bootstrapped`-only `AcknowledgeRejoin` (it re-advertises from
+local-completion onward, i.e. across `Collecting`), so IBFT keeps that workaround
+until Faction closes this gap — at which point it collapses cleanly. See
+`etheram-ibft/docs/FACTION-PHASE-1-INTEGRATION.md`.
 
 ### Increment ladder (TDD, gate-green at each step)
 
@@ -107,6 +130,13 @@ state-carried `Members` = live, mutated only by an admission `Command`.
 6. Payoff: post-admission member signals count (`NonMemberIgnored → Accepted`).
 7. Exhaustive-matrix + admissible-invariant + property-model updates; the
    `Config`-immutability ADR; docs; `run_stage_1` + `run_stage_2`.
+
+**Status: increments 1–7 are implemented and green** through `run_stage_1` +
+`run_stage_2` — the 32-case `(state, command)` matrix, the admissible-invariant,
+the property-model, and `core/tests/join_tests.rs` all pass; the ADR is written
+(`docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md`). What remains for Phase 1 is the
+join-capable harness + `system-tests/tests/joining_tests.rs` (the subsection below)
+and decision #6.
 
 ### System tests: the harness needs a join capability
 
@@ -214,8 +244,11 @@ integration (the ROADMAP publication checklist already asks for one).
    lockstep; the crates.io publish is a release-time formality.
 5. Raft/IBFT integration co-develops **in lockstep** via the path reference — the
    publish dependency that would have made it a follow-on is gone.
+6. (open, Phase 1) `Collecting`'s response to a **member's** `ParticipationObserved`:
+   re-advertise (`AcknowledgeRejoin`, stay) vs. accept/track. Surfaced by the IBFT
+   integration; see the subsection above.
 
----
+---docs: 
 
 ## Should Faction allow the quorum size to change?
 
@@ -250,9 +283,11 @@ injected by the consumer, same as at construction.
 
 ## Deferred / unwritten ADRs
 
-- *(blocked on the quorum-change question above)* `Config` immutability —
-  membership/quorum changes arrive as `Command`s, never as setters. No ADR until
-  that question is decided.
+- *(written — `P1-ADR-ConfigIsImmutableGenesis`)* `Config` immutability,
+  **membership half**: the live member set is state, grown only by the
+  `JoinApproved` `Command`, never a setter; `Config` stays immutable genesis. The
+  **quorum-threshold** half stays deferred on the quorum-change question above —
+  the ADR is scoped to membership and explicitly carves the threshold out.
 - *(deferred to post-Phase-6)* `PeerId` genericization (currently `u64`).
 - *(to write)* Testing-ladder ADR — the test tiers (unit / transition-matrix /
   property-based / system) and the gate that runs them. The ladder already

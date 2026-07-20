@@ -12,6 +12,7 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -114,7 +115,11 @@ fn process_probe_returns_correct_snapshot() {
 #[test]
 fn cluster_view_overrides_all_fields() {
     // Arrange
-    let bootstrapped = Bootstrapped::new(vec![1, 2], vec![1, 2, 3, 4, 5]);
+    let bootstrapped = Bootstrapped::new(
+        Members::new(vec![1, 2, 3, 4, 5]),
+        vec![1, 2],
+        vec![1, 2, 3, 4, 5],
+    );
     let prev = ClusterView::new(
         PeerState::Pinging,
         false,

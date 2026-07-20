@@ -10,5 +10,8 @@ pub enum Command {
     ReadyObserved { peer_id: PeerId },
     LocalParticipationCompleted,
     DeadlineExpired,
+    JoinRequested { peer_id: PeerId },
+    JoinApproved { peer_id: PeerId },
+    JoinRejected { peer_id: PeerId },
     Probe,
 }

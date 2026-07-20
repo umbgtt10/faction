@@ -12,6 +12,7 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -348,7 +349,7 @@ fn process_probe_in_pinging() {
 #[test]
 fn cluster_view_inherits_correctly() {
     // Arrange
-    let pinging = Pinging::new();
+    let pinging = Pinging::new(Members::new(PEER_SET.to_vec()));
     let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
 
     // Act

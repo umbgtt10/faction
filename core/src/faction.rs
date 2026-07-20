@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::members::Members;
 use crate::observer::Observer;
 use crate::peer_state::PeerState;
 use crate::process_result::ProcessResult;
@@ -25,7 +26,7 @@ pub struct Faction {
 impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
-        let state: Box<dyn State> = Box::new(Initial);
+        let state: Box<dyn State> = Box::new(Initial::new(Members::new(config.peers().to_vec())));
         let base = ClusterView::new(
             PeerState::Fresh,
             false,

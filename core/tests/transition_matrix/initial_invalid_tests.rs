@@ -14,7 +14,7 @@ use super::builder::{build, Init};
     Init::Initial,
     Command::DeadlineExpired,
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::LocalParticipationCompleted, Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::LocalParticipationCompleted, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
 )]
 fn invalid_transition(
     #[case] init: Init,

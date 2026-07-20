@@ -20,6 +20,7 @@ importance:
 | [P1-ADR-TotalityExhaustiveMatrix](P1-ADR-TotalityExhaustiveMatrix.md) | Every `(state, command)` is a defined transition; the matrix proves it. |
 | [P1-ADR-StatefulPersistencyFree](P1-ADR-StatefulPersistencyFree.md) | Stateful, but persists nothing; durability is the consumer's. |
 | [P1-ADR-TerminalStatesAreNotSinks](P1-ADR-TerminalStatesAreNotSinks.md) | A concluded node re-advertises to still-trying peers; a missed deadline is non-terminal. |
+| [P1-ADR-ConfigIsImmutableGenesis](P1-ADR-ConfigIsImmutableGenesis.md) | `Config` is the immutable genesis seed; live membership is state, grown only by a command. |
 | [P2-ADR-TotalObservability](P2-ADR-TotalObservability.md) | Every transition, query, and rejection reaches the `Observer`, on every path. |
 | [P2-ADR-StateAsTraitObject](P2-ADR-StateAsTraitObject.md) | One struct per state behind a `State` trait; growth is additive. |
 

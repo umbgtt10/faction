@@ -9,16 +9,18 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
 use crate::config::Config;
+use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::state::State;
 use crate::types::PeerId;
 
 use super::bootstrapped::Bootstrapped;
+use super::join_step::JoinStep;
 use super::ready_step::ReadyStep;
 
-#[derive(Default)]
 pub struct Collecting {
+    members: Members,
     collecting_peers: Vec<PeerId>,
     pinged_peers: Vec<PeerId>,
     deadline_missed: bool,
@@ -27,11 +29,13 @@ pub struct Collecting {
 impl Collecting {
     #[must_use]
     pub fn new(
+        members: Members,
         collecting_peers: Vec<PeerId>,
         pinged_peers: Vec<PeerId>,
         deadline_missed: bool,
     ) -> Self {
         Self {
+            members,
             collecting_peers,
             pinged_peers,
             deadline_missed,
@@ -41,11 +45,13 @@ impl Collecting {
     fn compute_new_state(&self, is_quorum: bool, confirmed_peers: Vec<PeerId>) -> Box<dyn State> {
         if is_quorum {
             Box::new(Bootstrapped::new(
+                self.members.clone(),
                 self.pinged_peers.clone(),
                 confirmed_peers,
             ))
         } else {
             Box::new(Self::new(
+                self.members.clone(),
                 confirmed_peers,
                 self.pinged_peers.clone(),
                 self.deadline_missed,
@@ -53,9 +59,11 @@ impl Collecting {
         }
     }
 
-    fn non_member_peer(command: &Command, config: &Config) -> Option<PeerId> {
+    fn non_member_peer(&self, command: &Command) -> Option<PeerId> {
         match command {
-            Command::ReadyObserved { peer_id, .. } if !config.is_member(*peer_id) => Some(*peer_id),
+            Command::ReadyObserved { peer_id, .. } if !self.members.is_member(*peer_id) => {
+                Some(*peer_id)
+            }
             _ => None,
         }
     }
@@ -65,7 +73,11 @@ impl State for Collecting {
     fn accept(&self, command: &Command) -> bool {
         matches!(
             command,
-            Command::ReadyObserved { .. } | Command::DeadlineExpired
+            Command::ReadyObserved { .. }
+                | Command::DeadlineExpired
+                | Command::JoinRequested { .. }
+                | Command::JoinApproved { .. }
+                | Command::JoinRejected { .. }
         )
     }
 
@@ -73,6 +85,9 @@ impl State for Collecting {
         vec![
             Command::ReadyObserved { peer_id: 0 },
             Command::DeadlineExpired,
+            Command::JoinRequested { peer_id: 0 },
+            Command::JoinApproved { peer_id: 0 },
+            Command::JoinRejected { peer_id: 0 },
             Command::Probe,
         ]
     }
@@ -88,10 +103,11 @@ impl State for Collecting {
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        if let Some(peer_id) = Self::non_member_peer(&command, config) {
+        if let Some(peer_id) = self.non_member_peer(&command) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Box::new(Self::new(
+                    self.members.clone(),
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
                     self.deadline_missed,
@@ -126,11 +142,27 @@ impl State for Collecting {
                     confirmed_count: self.collecting_peers.len(),
                 }],
                 Box::new(Self::new(
+                    self.members.clone(),
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
                     true,
                 )),
             ),
+
+            Command::JoinRequested { .. }
+            | Command::JoinApproved { .. }
+            | Command::JoinRejected { .. } => {
+                let join = JoinStep::new(self.members.clone(), &command);
+                (
+                    join.outcomes().to_vec(),
+                    Box::new(Self::new(
+                        join.members().clone(),
+                        self.collecting_peers.clone(),
+                        self.pinged_peers.clone(),
+                        self.deadline_missed,
+                    )),
+                )
+            }
 
             Command::Probe => {
                 unreachable!("Probe handled in Faction::process")

@@ -130,6 +130,7 @@ pub mod command;
 pub mod conclusion;
 pub mod config;
 pub mod faction;
+pub mod members;
 pub mod observer;
 pub mod outcome;
 pub mod peer_state;
