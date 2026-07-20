@@ -133,6 +133,10 @@ impl FactionNode {
         let _ = self.protocol.deny(peer_id);
     }
 
+    pub fn member_count(&mut self) -> usize {
+        self.protocol.cluster_view().members().len()
+    }
+
     fn dispatch(&mut self, decision: OutputMessage) {
         match decision {
             OutputMessage::BroadcastPing => {

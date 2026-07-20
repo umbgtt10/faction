@@ -84,6 +84,13 @@ impl Node {
         }
     }
 
+    pub fn member_count(&self) -> usize {
+        match self {
+            Self::Task { node } => node.borrow_mut().member_count(),
+            _ => 0,
+        }
+    }
+
     pub fn peer_state(&self) -> PeerState {
         match self {
             Self::Task { node } => node.borrow_mut().peer_state(),

@@ -98,6 +98,35 @@ impl Cluster {
             .all(|node| node.peer_state() == PeerState::Bootstrapped)
     }
 
+    #[must_use]
+    pub fn node_count(&self) -> usize {
+        self.nodes.len()
+    }
+
+    #[must_use]
+    pub fn node_state(&self, index: usize) -> PeerState {
+        self.nodes[index].peer_state()
+    }
+
+    #[must_use]
+    pub fn member_count(&self, index: usize) -> usize {
+        self.nodes[index].member_count()
+    }
+
+    pub fn admit(&self, peer_id: PeerId) {
+        for node in &self.nodes {
+            node.admit(peer_id);
+        }
+    }
+
+    pub fn settle(&mut self, rounds: usize) {
+        self.start_all();
+        for _ in 0..rounds {
+            self.step_all();
+            sleep(self.poll_delay);
+        }
+    }
+
     pub fn poll_until_bootstrapped(&mut self) {
         self.start_all();
         if matches!(self.spawn, Spawn::Process) {
