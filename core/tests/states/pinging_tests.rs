@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
@@ -350,7 +350,13 @@ fn process_probe_in_pinging() {
 fn cluster_view_inherits_correctly() {
     // Arrange
     let pinging = Pinging::new(Members::new(PEER_SET.to_vec()));
-    let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Collecting)
+        .with_is_pinging_completed(true)
+        .with_pinging_peers(vec![99])
+        .with_collecting_peers(vec![99])
+        .with_required_count(4)
+        .build();
 
     // Act
     let result = pinging.cluster_view(&prev);

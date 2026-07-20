@@ -126,6 +126,7 @@ extern crate alloc;
 pub mod no_op_observer;
 
 pub mod cluster_view;
+pub mod cluster_view_builder;
 pub mod command;
 pub mod conclusion;
 pub mod config;

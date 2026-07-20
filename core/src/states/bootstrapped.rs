@@ -7,6 +7,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
+use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
 use crate::members::Members;
@@ -79,12 +80,13 @@ impl State for Bootstrapped {
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous
-            .clone()
+        ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Bootstrapped)
             .with_is_pinging_completed(true)
             .with_pinging_peers(self.pinged_peers.clone())
             .with_collecting_peers(self.collected_peers.clone())
+            .with_members(self.members.clone())
+            .build()
     }
 
     fn admissible_commands(&self) -> Vec<Command> {

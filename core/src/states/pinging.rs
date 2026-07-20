@@ -7,6 +7,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
+use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
 use crate::members::Members;
@@ -71,12 +72,13 @@ impl Pinging {
 
 impl State for Pinging {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous
-            .clone()
+        ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Pinging)
             .with_pinging_peers(self.pinging_peers.clone())
             .with_collecting_peers(self.collecting_peers.clone())
             .with_deadline_missed(self.deadline_missed)
+            .with_members(self.members.clone())
+            .build()
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {

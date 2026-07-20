@@ -7,7 +7,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
@@ -365,7 +365,10 @@ fn cluster_view_inherits_correctly() {
         vec![5, 6],
         false,
     );
-    let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_required_count(4)
+        .build();
 
     // Act
     let result = collecting.cluster_view(&prev);

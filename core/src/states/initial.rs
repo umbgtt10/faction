@@ -7,6 +7,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
+use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
 use crate::members::Members;
@@ -29,12 +30,13 @@ impl Initial {
 
 impl State for Initial {
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        previous
-            .clone()
+        ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Fresh)
             .with_is_pinging_completed(false)
             .with_pinging_peers(Vec::new())
             .with_collecting_peers(Vec::new())
+            .with_members(self.members.clone())
+            .build()
     }
 
     fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {

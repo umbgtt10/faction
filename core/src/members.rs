@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 use crate::types::PeerId;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Members {
     peers: Vec<PeerId>,
 }
@@ -29,5 +29,20 @@ impl Members {
             peers.push(peer_id);
         }
         Self { peers }
+    }
+
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.peers.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.peers.is_empty()
+    }
+
+    #[must_use]
+    pub fn as_slice(&self) -> &[PeerId] {
+        &self.peers
     }
 }
