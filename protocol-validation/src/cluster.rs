@@ -1,8 +1,8 @@
-// Copyright 2025 Umberto Gotti <umberto.gotti@umbertogotti.dev>
+// Copyright (c) 2025-2026 Umberto Gotti
+// SPDX-License-Identifier: MIT
+
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-// Licensed under the Apache License, Version 2.0
-// http://www.apache.org/licenses/LICENSE-2.0
 
 use faction::config::Config;
 use faction::faction::Faction;
