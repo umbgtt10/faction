@@ -30,6 +30,8 @@ use crate::timer::real::real_timer::RealTimer;
 use crate::timer_delay::TimerDelay;
 use crate::transport::channels::channels_transport::ChannelRegistry;
 use crate::transport::channels::channels_transport::ChannelsTransport;
+use crate::transport::grpc::grpc_transport::AddressBook as GrpcAddressBook;
+use crate::transport::grpc::grpc_transport::GrpcTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport::in_memory::in_memory_transport::Registry;
 use crate::transport::tcp::tcp_transport::AddressBook;
@@ -87,6 +89,23 @@ impl TcpJoinMesh {
 impl LateJoinMesh for TcpJoinMesh {
     fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
         Box::new(TcpTransport::join_mesh(peer_id, self.registry.clone()))
+    }
+}
+
+pub struct GrpcJoinMesh {
+    registry: GrpcAddressBook,
+}
+
+impl GrpcJoinMesh {
+    #[must_use]
+    pub fn new(registry: GrpcAddressBook) -> Self {
+        Self { registry }
+    }
+}
+
+impl LateJoinMesh for GrpcJoinMesh {
+    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
+        Box::new(GrpcTransport::join_mesh(peer_id, self.registry.clone()))
     }
 }
 
