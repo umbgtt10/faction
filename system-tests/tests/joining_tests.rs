@@ -23,6 +23,10 @@ fn scenario_log(scenario: &str, spawn: Spawn, transport: TransportKind) -> PathB
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
 #[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 #[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
 fn cold_newcomer_joins_a_bootstrapped_cluster_and_converges(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -49,6 +53,10 @@ fn cold_newcomer_joins_a_bootstrapped_cluster_and_converges(
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
 #[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 #[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
 fn a_rejected_newcomer_is_denied_and_never_counts(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -78,6 +86,10 @@ fn a_rejected_newcomer_is_denied_and_never_counts(
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
 #[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 #[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
 fn a_duplicate_join_is_ignored_and_membership_is_stable(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -108,6 +120,10 @@ fn a_duplicate_join_is_ignored_and_membership_is_stable(
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
 #[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 #[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
 fn concurrent_newcomers_each_join_and_converge(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -136,6 +152,10 @@ fn concurrent_newcomers_each_join_and_converge(
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
 #[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 #[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
 fn a_newcomer_admitted_before_bootstrap_still_converges(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -163,6 +183,10 @@ fn a_newcomer_admitted_before_bootstrap_still_converges(
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
 #[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 #[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
 fn a_timed_out_sub_quorum_cluster_recovers_when_a_newcomer_joins(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,

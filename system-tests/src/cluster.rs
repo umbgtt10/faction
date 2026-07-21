@@ -252,7 +252,7 @@ impl Cluster {
         let context = self
             .join_context
             .as_ref()
-            .expect("join is only supported on a Task cluster with an in-process transport");
+            .expect("join is only supported on Task or Thread clusters");
 
         let mut peers = context.genesis_peers.clone();
         if !peers.contains(&newcomer_id) {
@@ -260,36 +260,58 @@ impl Cluster {
         }
 
         let transport = context.mesh.connect(newcomer_id);
-        let config = Config::new(
-            newcomer_id,
-            peers.clone(),
-            QuorumPolicy::new(context.node_required),
-        );
-        let faction_observer: Box<dyn Observer> = match &context.writer {
-            Some(writer) => Box::new(SharedFileObserver::new(writer.clone(), newcomer_id)),
-            None => Box::new(NoOpObserver),
-        };
-        let node_observer: Box<dyn NodeObserver> = match &context.writer {
-            Some(writer) => Box::new(SharedFileObserver::new(writer.clone(), newcomer_id)),
-            None => Box::new(NoOpNodeObserver),
-        };
-        let protocol = Protocol::new(
-            Faction::new(config, faction_observer),
-            peers.clone(),
-            newcomer_id,
-        );
-        let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(context.delay));
-        let faction_node = FactionNode::new(
-            newcomer_id,
-            peers,
-            protocol,
-            transport,
-            timer,
-            node_observer,
-            context.delay,
-        );
-        Node::task(Rc::new(RefCell::new(faction_node)))
+        let required = context.node_required;
+        let delay = context.delay;
+        let writer = context.writer.clone();
+
+        match self.spawn {
+            Spawn::Task => {
+                let faction_node =
+                    build_faction_node(newcomer_id, peers, transport, required, delay, &writer);
+                Node::task(Rc::new(RefCell::new(faction_node)))
+            }
+            Spawn::Thread => Node::spawn_thread(move || {
+                build_faction_node(newcomer_id, peers, transport, required, delay, &writer)
+            }),
+            Spawn::Process => {
+                unreachable!("join builds newcomers only for Task and Thread clusters")
+            }
+        }
     }
+}
+
+fn build_faction_node(
+    peer_id: PeerId,
+    peers: Vec<PeerId>,
+    transport: Box<dyn Transport>,
+    required: usize,
+    delay: Duration,
+    writer: &Option<SharedWriter>,
+) -> FactionNode {
+    let config = Config::new(peer_id, peers.clone(), QuorumPolicy::new(required));
+    let faction_observer: Box<dyn Observer> = match writer {
+        Some(writer) => Box::new(SharedFileObserver::new(writer.clone(), peer_id)),
+        None => Box::new(NoOpObserver),
+    };
+    let node_observer: Box<dyn NodeObserver> = match writer {
+        Some(writer) => Box::new(SharedFileObserver::new(writer.clone(), peer_id)),
+        None => Box::new(NoOpNodeObserver),
+    };
+    let protocol = Protocol::new(
+        Faction::new(config, faction_observer),
+        peers.clone(),
+        peer_id,
+    );
+    let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(delay));
+    FactionNode::new(
+        peer_id,
+        peers,
+        protocol,
+        transport,
+        timer,
+        node_observer,
+        delay,
+    )
 }
 
 impl Drop for Cluster {

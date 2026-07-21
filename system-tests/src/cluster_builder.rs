@@ -231,18 +231,9 @@ impl ClusterBuilder {
             })
             .collect();
 
-        let join_context = match (spawn, self.transport) {
-            (
-                Spawn::Task,
-                TransportKind::InMemory
-                | TransportKind::Channels
-                | TransportKind::Tcp
-                | TransportKind::Grpc,
-            ) => join_mesh.map(|mesh| {
-                JoinContext::new(mesh, peer_ids.clone(), node_required, delay, writer.clone())
-            }),
-            _ => None,
-        };
+        let join_context = join_mesh.map(|mesh| {
+            JoinContext::new(mesh, peer_ids.clone(), node_required, delay, writer.clone())
+        });
 
         Cluster::new(nodes, spawn, self.timer_delay, join_context)
     }

@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use std::time::Instant;
@@ -17,6 +19,30 @@ use faction_protocol::transport_message::TransportMessage;
 
 use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
+
+pub enum NodeCommand {
+    RequestJoin(PeerId, Sender<()>),
+    Admit(PeerId, Sender<()>),
+    Deny(PeerId, Sender<()>),
+    ExpireDeadline(Sender<()>),
+    Shutdown,
+}
+
+#[derive(Clone, Copy)]
+pub struct NodeSnapshot {
+    pub peer_state: PeerState,
+    pub member_count: usize,
+}
+
+impl NodeSnapshot {
+    #[must_use]
+    pub fn fresh() -> Self {
+        Self {
+            peer_state: PeerState::Fresh,
+            member_count: 0,
+        }
+    }
+}
 
 pub struct FactionNode {
     peer_id: PeerId,
@@ -87,6 +113,61 @@ impl FactionNode {
                 sleep(self.idle_delay);
             }
         }
+    }
+
+    pub fn run_until_shutdown(
+        &mut self,
+        commands: Receiver<NodeCommand>,
+        snapshot: Arc<Mutex<NodeSnapshot>>,
+    ) {
+        self.start();
+        self.publish(&snapshot);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        'outer: loop {
+            loop {
+                let ack = match commands.try_recv() {
+                    Ok(NodeCommand::RequestJoin(peer_id, ack)) => {
+                        self.request_join(peer_id);
+                        ack
+                    }
+                    Ok(NodeCommand::Admit(peer_id, ack)) => {
+                        self.admit(peer_id);
+                        ack
+                    }
+                    Ok(NodeCommand::Deny(peer_id, ack)) => {
+                        self.deny(peer_id);
+                        ack
+                    }
+                    Ok(NodeCommand::ExpireDeadline(ack)) => {
+                        self.expire_deadline();
+                        ack
+                    }
+                    Ok(NodeCommand::Shutdown) | Err(TryRecvError::Disconnected) => break 'outer,
+                    Err(TryRecvError::Empty) => break,
+                };
+                self.publish(&snapshot);
+                let _ = ack.send(());
+            }
+
+            let had_work = self.step_internal();
+            self.publish(&snapshot);
+            if Instant::now() >= deadline {
+                break;
+            }
+            if !had_work {
+                sleep(self.idle_delay);
+            }
+        }
+        self.publish(&snapshot);
+    }
+
+    fn publish(&mut self, snapshot: &Arc<Mutex<NodeSnapshot>>) {
+        let view = self.protocol.cluster_view();
+        let snap = NodeSnapshot {
+            peer_state: view.peer_state(),
+            member_count: view.members().len(),
+        };
+        *snapshot.lock().unwrap() = snap;
     }
 
     fn step_internal(&mut self) -> bool {
