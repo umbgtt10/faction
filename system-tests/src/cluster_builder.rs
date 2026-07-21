@@ -33,6 +33,7 @@ use crate::cluster::Cluster;
 use crate::cluster::InMemoryJoinMesh;
 use crate::cluster::JoinContext;
 use crate::cluster::LateJoinMesh;
+use crate::cluster::TcpJoinMesh;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
@@ -132,10 +133,15 @@ impl ClusterBuilder {
                     .map(|t| Box::new(t) as Box<dyn Transport>)
                     .collect()
             }
-            TransportKind::Tcp => TcpTransport::new_mesh(&peer_ids)
-                .into_iter()
-                .map(|t| Box::new(t) as Box<dyn Transport>)
-                .collect(),
+            TransportKind::Tcp => {
+                let mesh = TcpTransport::new_mesh(&peer_ids);
+                join_mesh = mesh
+                    .first()
+                    .map(|t| Box::new(TcpJoinMesh::new(t.registry())) as Box<dyn LateJoinMesh>);
+                mesh.into_iter()
+                    .map(|t| Box::new(t) as Box<dyn Transport>)
+                    .collect()
+            }
             TransportKind::Grpc => GrpcTransport::new_mesh(&peer_ids)
                 .into_iter()
                 .map(|t| Box::new(t) as Box<dyn Transport>)
@@ -211,11 +217,12 @@ impl ClusterBuilder {
             .collect();
 
         let join_context = match (spawn, self.transport) {
-            (Spawn::Task, TransportKind::InMemory | TransportKind::Channels) => {
-                join_mesh.map(|mesh| {
-                    JoinContext::new(mesh, peer_ids.clone(), node_required, delay, writer.clone())
-                })
-            }
+            (
+                Spawn::Task,
+                TransportKind::InMemory | TransportKind::Channels | TransportKind::Tcp,
+            ) => join_mesh.map(|mesh| {
+                JoinContext::new(mesh, peer_ids.clone(), node_required, delay, writer.clone())
+            }),
             _ => None,
         };
 

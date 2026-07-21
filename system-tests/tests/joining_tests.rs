@@ -19,8 +19,9 @@ fn scenario_log(scenario: &str, spawn: Spawn, transport: TransportKind) -> PathB
 }
 
 #[rstest]
-#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 fn cold_newcomer_joins_a_bootstrapped_cluster_and_converges(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -43,8 +44,9 @@ fn cold_newcomer_joins_a_bootstrapped_cluster_and_converges(
 }
 
 #[rstest]
-#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 fn a_rejected_newcomer_is_denied_and_never_counts(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -70,8 +72,9 @@ fn a_rejected_newcomer_is_denied_and_never_counts(
 }
 
 #[rstest]
-#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 fn a_duplicate_join_is_ignored_and_membership_is_stable(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -98,8 +101,9 @@ fn a_duplicate_join_is_ignored_and_membership_is_stable(
 }
 
 #[rstest]
-#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 fn concurrent_newcomers_each_join_and_converge(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -124,8 +128,9 @@ fn concurrent_newcomers_each_join_and_converge(
 }
 
 #[rstest]
-#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 fn a_newcomer_admitted_before_bootstrap_still_converges(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
@@ -149,8 +154,9 @@ fn a_newcomer_admitted_before_bootstrap_still_converges(
 }
 
 #[rstest]
-#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
 fn a_timed_out_sub_quorum_cluster_recovers_when_a_newcomer_joins(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,

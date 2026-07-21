@@ -32,6 +32,8 @@ use crate::transport::channels::channels_transport::ChannelRegistry;
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport::in_memory::in_memory_transport::Registry;
+use crate::transport::tcp::tcp_transport::AddressBook;
+use crate::transport::tcp::tcp_transport::TcpTransport;
 
 pub trait LateJoinMesh {
     fn connect(&self, peer_id: PeerId) -> Box<dyn Transport>;
@@ -68,6 +70,23 @@ impl ChannelsJoinMesh {
 impl LateJoinMesh for ChannelsJoinMesh {
     fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
         Box::new(ChannelsTransport::join_mesh(peer_id, self.registry.clone()))
+    }
+}
+
+pub struct TcpJoinMesh {
+    registry: AddressBook,
+}
+
+impl TcpJoinMesh {
+    #[must_use]
+    pub fn new(registry: AddressBook) -> Self {
+        Self { registry }
+    }
+}
+
+impl LateJoinMesh for TcpJoinMesh {
+    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
+        Box::new(TcpTransport::join_mesh(peer_id, self.registry.clone()))
     }
 }
 
