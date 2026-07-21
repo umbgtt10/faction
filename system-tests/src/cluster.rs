@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 use std::cell::RefCell;
+use std::net::SocketAddr;
+use std::net::TcpListener;
 use std::rc::Rc;
 use std::thread::sleep;
 use std::time::Duration;
@@ -19,6 +21,9 @@ use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
 
 use crate::approver::Approver;
+use crate::cluster_builder::ProcessSpec;
+use crate::cluster_builder::spawn_process_node;
+use crate::cluster_builder::wait_for_tcp_ready;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
@@ -36,6 +41,7 @@ use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport::in_memory::in_memory_transport::Registry;
 use crate::transport::tcp::tcp_transport::AddressBook;
 use crate::transport::tcp::tcp_transport::TcpTransport;
+use crate::transport_kind::TransportKind;
 
 pub trait LateJoinMesh {
     fn connect(&self, peer_id: PeerId) -> Box<dyn Transport>;
@@ -136,12 +142,32 @@ impl JoinContext {
     }
 }
 
+pub struct ProcessJoinContext {
+    spec: ProcessSpec,
+    genesis_addrs: Vec<(PeerId, SocketAddr)>,
+}
+
+impl ProcessJoinContext {
+    #[must_use]
+    pub(crate) fn new(spec: ProcessSpec, genesis_addrs: Vec<(PeerId, SocketAddr)>) -> Self {
+        Self {
+            spec,
+            genesis_addrs,
+        }
+    }
+}
+
+pub enum Joining {
+    InProcess(JoinContext),
+    Process(ProcessJoinContext),
+}
+
 pub struct Cluster {
     nodes: Vec<Node>,
     spawn: Spawn,
     poll_delay: Duration,
     started: bool,
-    join_context: Option<JoinContext>,
+    joining: Option<Joining>,
 }
 
 impl Cluster {
@@ -150,14 +176,14 @@ impl Cluster {
         nodes: Vec<Node>,
         spawn: Spawn,
         timer_delay: TimerDelay,
-        join_context: Option<JoinContext>,
+        joining: Option<Joining>,
     ) -> Self {
         Self {
             nodes,
             spawn,
             poll_delay: timer_delay.duration(),
             started: false,
-            join_context,
+            joining,
         }
     }
 
@@ -221,23 +247,23 @@ impl Cluster {
 
     pub fn poll_until_bootstrapped(&mut self) {
         self.start_all();
-        if matches!(self.spawn, Spawn::Process) {
-            for node in &mut self.nodes {
-                node.wait();
-            }
-        } else {
-            while !self.is_bootstrapped() {
-                self.step_all();
-                sleep(self.poll_delay);
-            }
+        while !self.is_bootstrapped() {
+            self.step_all();
+            sleep(self.poll_delay);
         }
     }
 
     pub fn join(&mut self, newcomer_id: PeerId, approver: Approver) {
-        let newcomer = self.build_newcomer(newcomer_id);
+        let (newcomer, newcomer_addr) = match &self.joining {
+            Some(Joining::Process(_)) => self.build_process_newcomer(newcomer_id),
+            _ => (self.build_newcomer(newcomer_id), None),
+        };
         newcomer.start();
 
         for member in &self.nodes {
+            if let Some(addr) = newcomer_addr {
+                member.add_peer_address(newcomer_id, addr);
+            }
             member.request_join(newcomer_id);
             match approver {
                 Approver::AcceptAll => member.admit(newcomer_id),
@@ -249,10 +275,10 @@ impl Cluster {
     }
 
     fn build_newcomer(&self, newcomer_id: PeerId) -> Node {
-        let context = self
-            .join_context
-            .as_ref()
-            .expect("join is only supported on Task or Thread clusters");
+        let context = match &self.joining {
+            Some(Joining::InProcess(context)) => context,
+            _ => panic!("join is only supported on Task or Thread clusters"),
+        };
 
         let mut peers = context.genesis_peers.clone();
         if !peers.contains(&newcomer_id) {
@@ -277,6 +303,35 @@ impl Cluster {
                 unreachable!("join builds newcomers only for Task and Thread clusters")
             }
         }
+    }
+
+    fn build_process_newcomer(&self, newcomer_id: PeerId) -> (Node, Option<SocketAddr>) {
+        let context = match &self.joining {
+            Some(Joining::Process(context)) => context,
+            _ => panic!("process join requires a process join context"),
+        };
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let newcomer_addr = listener.local_addr().unwrap();
+        drop(listener);
+
+        let mut peers: Vec<PeerId> = context.genesis_addrs.iter().map(|(id, _)| *id).collect();
+        if !peers.contains(&newcomer_id) {
+            peers.push(newcomer_id);
+        }
+
+        let child = spawn_process_node(
+            &context.spec,
+            newcomer_id,
+            &peers,
+            &context.genesis_addrs,
+            newcomer_addr,
+        );
+        if matches!(context.spec.transport, TransportKind::Tcp) {
+            wait_for_tcp_ready(newcomer_addr, Duration::from_secs(30));
+        }
+
+        (Node::process(child), Some(newcomer_addr))
     }
 }
 

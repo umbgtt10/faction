@@ -91,30 +91,6 @@ impl FactionNode {
         self.protocol.cluster_view().peer_state()
     }
 
-    pub fn is_concluded(&mut self) -> bool {
-        matches!(
-            self.peer_state(),
-            PeerState::Bootstrapped | PeerState::TimedOut
-        )
-    }
-
-    pub fn run(&mut self) {
-        self.start();
-        let deadline = Instant::now() + Duration::from_secs(30);
-        loop {
-            let had_work = self.step_internal();
-            if self.is_concluded() {
-                break;
-            }
-            if Instant::now() >= deadline {
-                break;
-            }
-            if !had_work {
-                sleep(self.idle_delay);
-            }
-        }
-    }
-
     pub fn run_until_shutdown(
         &mut self,
         commands: Receiver<NodeCommand>,
@@ -200,8 +176,8 @@ impl FactionNode {
         true
     }
 
-    pub fn step(&mut self) {
-        self.step_internal();
+    pub fn step(&mut self) -> bool {
+        self.step_internal()
     }
 
     pub fn request_join(&mut self, peer_id: PeerId) {

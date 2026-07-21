@@ -9,7 +9,7 @@ use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Child, Command, Stdio};
 use std::rc::Rc;
 
 use std::env::consts::EXE_EXTENSION;
@@ -33,7 +33,9 @@ use crate::cluster::Cluster;
 use crate::cluster::GrpcJoinMesh;
 use crate::cluster::InMemoryJoinMesh;
 use crate::cluster::JoinContext;
+use crate::cluster::Joining;
 use crate::cluster::LateJoinMesh;
+use crate::cluster::ProcessJoinContext;
 use crate::cluster::TcpJoinMesh;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
@@ -231,11 +233,17 @@ impl ClusterBuilder {
             })
             .collect();
 
-        let join_context = join_mesh.map(|mesh| {
-            JoinContext::new(mesh, peer_ids.clone(), node_required, delay, writer.clone())
+        let joining = join_mesh.map(|mesh| {
+            Joining::InProcess(JoinContext::new(
+                mesh,
+                peer_ids.clone(),
+                node_required,
+                delay,
+                writer.clone(),
+            ))
         });
 
-        Cluster::new(nodes, spawn, self.timer_delay, join_context)
+        Cluster::new(nodes, spawn, self.timer_delay, joining)
     }
 
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
@@ -266,63 +274,86 @@ impl ClusterBuilder {
                 path.to_string_lossy().to_string()
             });
 
-        let timer_delay_arg = format!("{}", self.timer_delay.duration().as_millis());
+        let spec = ProcessSpec {
+            bin,
+            transport: self.transport,
+            node_required: self.node_required,
+            timer_delay_ms: self.timer_delay.duration().as_millis(),
+            log_path: self.log_path.clone(),
+        };
 
         let mut nodes = Vec::new();
         for (i, &id) in peer_ids.iter().enumerate() {
-            let peer_addrs_arg = peer_addrs
-                .iter()
-                .map(|(pid, a)| format!("{pid}={a}"))
-                .collect::<Vec<_>>()
-                .join(",");
-            let peers_arg = peer_ids
-                .iter()
-                .map(|p| p.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-
-            let transport_arg = match self.transport {
-                TransportKind::Grpc => "grpc",
-                TransportKind::Tcp => "tcp",
-                _ => panic!("unsupported transport for process node"),
-            };
-            let mut cmd = Command::new(bin.clone());
-            cmd.arg("--peer-id")
-                .arg(id.to_string())
-                .arg("--peers")
-                .arg(&peers_arg)
-                .arg("--required")
-                .arg(self.node_required.to_string())
-                .arg("--freshness-margin")
-                .arg("2")
-                .arg("--transport")
-                .arg(transport_arg)
-                .arg("--timer-delay")
-                .arg(&timer_delay_arg)
-                .arg("--listen-addr")
-                .arg(addrs[i].to_string())
-                .arg("--peer-addrs")
-                .arg(&peer_addrs_arg);
-
-            if let Some(ref log_path) = self.log_path {
-                cmd.arg("--log-path")
-                    .arg(log_path.to_string_lossy().to_string());
-            }
-
-            let child = cmd.spawn().expect("failed to spawn faction-node");
-
+            let child = spawn_process_node(&spec, id, peer_ids, &peer_addrs, addrs[i]);
             if self.transport == TransportKind::Tcp {
                 wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
             }
-
             nodes.push(Node::process(child));
         }
 
-        Cluster::new(nodes, self.spawn, self.timer_delay, None)
+        let joining = Joining::Process(ProcessJoinContext::new(spec, peer_addrs));
+        Cluster::new(nodes, self.spawn, self.timer_delay, Some(joining))
     }
 }
 
-fn wait_for_tcp_ready(addr: SocketAddr, timeout: Duration) {
+pub(crate) struct ProcessSpec {
+    pub bin: String,
+    pub transport: TransportKind,
+    pub node_required: usize,
+    pub timer_delay_ms: u128,
+    pub log_path: Option<PathBuf>,
+}
+
+pub(crate) fn spawn_process_node(
+    spec: &ProcessSpec,
+    peer_id: PeerId,
+    peers: &[PeerId],
+    peer_addrs: &[(PeerId, SocketAddr)],
+    listen_addr: SocketAddr,
+) -> Child {
+    let peers_arg = peers
+        .iter()
+        .map(|p| p.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    let peer_addrs_arg = peer_addrs
+        .iter()
+        .map(|(pid, a)| format!("{pid}={a}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let transport_arg = match spec.transport {
+        TransportKind::Grpc => "grpc",
+        TransportKind::Tcp => "tcp",
+        _ => panic!("unsupported transport for process node"),
+    };
+
+    let mut cmd = Command::new(&spec.bin);
+    cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
+    cmd.arg("--peer-id")
+        .arg(peer_id.to_string())
+        .arg("--peers")
+        .arg(&peers_arg)
+        .arg("--required")
+        .arg(spec.node_required.to_string())
+        .arg("--freshness-margin")
+        .arg("2")
+        .arg("--transport")
+        .arg(transport_arg)
+        .arg("--timer-delay")
+        .arg(spec.timer_delay_ms.to_string())
+        .arg("--listen-addr")
+        .arg(listen_addr.to_string())
+        .arg("--peer-addrs")
+        .arg(&peer_addrs_arg);
+    if let Some(ref log_path) = spec.log_path {
+        cmd.arg("--log-path")
+            .arg(log_path.to_string_lossy().to_string());
+    }
+
+    cmd.spawn().expect("failed to spawn faction-node")
+}
+
+pub(crate) fn wait_for_tcp_ready(addr: SocketAddr, timeout: Duration) {
     let deadline = Instant::now() + timeout;
     while Instant::now() < deadline {
         if TcpStream::connect(addr).is_ok() {
