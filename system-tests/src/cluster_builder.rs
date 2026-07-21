@@ -28,8 +28,11 @@ use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
 
+use crate::cluster::ChannelsJoinMesh;
 use crate::cluster::Cluster;
+use crate::cluster::InMemoryJoinMesh;
 use crate::cluster::JoinContext;
+use crate::cluster::LateJoinMesh;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
@@ -43,7 +46,6 @@ use crate::timer_delay::TimerDelay;
 use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::grpc::grpc_transport::GrpcTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
-use crate::transport::in_memory::in_memory_transport::Registry;
 use crate::transport::tcp::tcp_transport::TcpTransport;
 use crate::transport_kind::TransportKind;
 
@@ -110,19 +112,26 @@ impl ClusterBuilder {
             return self.build_process(&peer_ids);
         }
 
-        let mut join_registry: Option<Registry> = None;
+        let mut join_mesh: Option<Box<dyn LateJoinMesh>> = None;
         let transports: Vec<Box<dyn Transport>> = match self.transport {
             TransportKind::InMemory => {
                 let mesh = InMemoryTransport::new_mesh(&peer_ids);
-                join_registry = mesh.first().map(|t| t.registry());
+                join_mesh = mesh.first().map(|t| {
+                    Box::new(InMemoryJoinMesh::new(t.registry())) as Box<dyn LateJoinMesh>
+                });
                 mesh.into_iter()
                     .map(|t| Box::new(t) as Box<dyn Transport>)
                     .collect()
             }
-            TransportKind::Channels => ChannelsTransport::new_mesh(&peer_ids)
-                .into_iter()
-                .map(|t| Box::new(t) as Box<dyn Transport>)
-                .collect(),
+            TransportKind::Channels => {
+                let mesh = ChannelsTransport::new_mesh(&peer_ids);
+                join_mesh = mesh.first().map(|t| {
+                    Box::new(ChannelsJoinMesh::new(t.registry())) as Box<dyn LateJoinMesh>
+                });
+                mesh.into_iter()
+                    .map(|t| Box::new(t) as Box<dyn Transport>)
+                    .collect()
+            }
             TransportKind::Tcp => TcpTransport::new_mesh(&peer_ids)
                 .into_iter()
                 .map(|t| Box::new(t) as Box<dyn Transport>)
@@ -202,15 +211,11 @@ impl ClusterBuilder {
             .collect();
 
         let join_context = match (spawn, self.transport) {
-            (Spawn::Task, TransportKind::InMemory) => join_registry.map(|registry| {
-                JoinContext::new(
-                    registry,
-                    peer_ids.clone(),
-                    node_required,
-                    delay,
-                    writer.clone(),
-                )
-            }),
+            (Spawn::Task, TransportKind::InMemory | TransportKind::Channels) => {
+                join_mesh.map(|mesh| {
+                    JoinContext::new(mesh, peer_ids.clone(), node_required, delay, writer.clone())
+                })
+            }
             _ => None,
         };
 

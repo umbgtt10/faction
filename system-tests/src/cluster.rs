@@ -16,6 +16,7 @@ use faction::types::PeerId;
 
 use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_trait::Timer;
+use faction_protocol::transport_trait::Transport;
 
 use crate::approver::Approver;
 use crate::faction_node::FactionNode;
@@ -27,11 +28,51 @@ use crate::shared_file_observer::SharedWriter;
 use crate::spawn::Spawn;
 use crate::timer::real::real_timer::RealTimer;
 use crate::timer_delay::TimerDelay;
+use crate::transport::channels::channels_transport::ChannelRegistry;
+use crate::transport::channels::channels_transport::ChannelsTransport;
 use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
 use crate::transport::in_memory::in_memory_transport::Registry;
 
-pub struct JoinContext {
+pub trait LateJoinMesh {
+    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport>;
+}
+
+pub struct InMemoryJoinMesh {
     registry: Registry,
+}
+
+impl InMemoryJoinMesh {
+    #[must_use]
+    pub fn new(registry: Registry) -> Self {
+        Self { registry }
+    }
+}
+
+impl LateJoinMesh for InMemoryJoinMesh {
+    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
+        Box::new(InMemoryTransport::join_mesh(peer_id, self.registry.clone()))
+    }
+}
+
+pub struct ChannelsJoinMesh {
+    registry: ChannelRegistry,
+}
+
+impl ChannelsJoinMesh {
+    #[must_use]
+    pub fn new(registry: ChannelRegistry) -> Self {
+        Self { registry }
+    }
+}
+
+impl LateJoinMesh for ChannelsJoinMesh {
+    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
+        Box::new(ChannelsTransport::join_mesh(peer_id, self.registry.clone()))
+    }
+}
+
+pub struct JoinContext {
+    mesh: Box<dyn LateJoinMesh>,
     genesis_peers: Vec<PeerId>,
     node_required: usize,
     delay: Duration,
@@ -41,14 +82,14 @@ pub struct JoinContext {
 impl JoinContext {
     #[must_use]
     pub fn new(
-        registry: Registry,
+        mesh: Box<dyn LateJoinMesh>,
         genesis_peers: Vec<PeerId>,
         node_required: usize,
         delay: Duration,
         writer: Option<SharedWriter>,
     ) -> Self {
         Self {
-            registry,
+            mesh,
             genesis_peers,
             node_required,
             delay,
@@ -173,14 +214,14 @@ impl Cluster {
         let context = self
             .join_context
             .as_ref()
-            .expect("join is only supported for a Task x In-Memory cluster");
+            .expect("join is only supported on a Task cluster with an in-process transport");
 
         let mut peers = context.genesis_peers.clone();
         if !peers.contains(&newcomer_id) {
             peers.push(newcomer_id);
         }
 
-        let transport = InMemoryTransport::join_mesh(newcomer_id, context.registry.clone());
+        let transport = context.mesh.connect(newcomer_id);
         let config = Config::new(
             newcomer_id,
             peers.clone(),
@@ -204,7 +245,7 @@ impl Cluster {
             newcomer_id,
             peers,
             protocol,
-            Box::new(transport),
+            transport,
             timer,
             node_observer,
             context.delay,
