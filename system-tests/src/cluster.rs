@@ -126,6 +126,12 @@ impl Cluster {
         }
     }
 
+    pub fn expire_deadline(&self) {
+        for node in &self.nodes {
+            node.expire_deadline();
+        }
+    }
+
     pub fn settle(&mut self, rounds: usize) {
         self.start_all();
         for _ in 0..rounds {

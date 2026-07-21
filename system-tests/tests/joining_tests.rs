@@ -142,3 +142,30 @@ fn a_newcomer_admitted_before_bootstrap_still_converges(
     assert_eq!(cluster.node_count(), 4);
     assert_eq!(cluster.member_count(0), 4);
 }
+
+#[rstest]
+#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
+fn a_timed_out_sub_quorum_cluster_recovers_when_a_newcomer_joins(
+    #[case] spawn: Spawn,
+    #[case] transport: TransportKind,
+) {
+    // Arrange: three members but quorum needs four — the cluster cannot converge alone
+    let mut cluster = ClusterBuilder::new(3, 4)
+        .spawn(spawn)
+        .transport(transport)
+        .log_path(scenario_log("after_deadline", spawn, transport))
+        .build();
+    cluster.settle(SETTLE_ROUNDS);
+
+    // Act: the cluster misses its deadline (TimedOut, still receptive), then a newcomer
+    // supplies the missing member
+    cluster.expire_deadline();
+    let timed_out = cluster.node_state(0);
+    cluster.join(3, Approver::AcceptAll);
+    cluster.poll_until_bootstrapped();
+
+    // Assert
+    assert_eq!(timed_out, PeerState::TimedOut);
+    assert!(cluster.is_bootstrapped());
+    assert_eq!(cluster.node_count(), 4);
+}

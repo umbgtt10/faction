@@ -138,6 +138,10 @@ impl FactionNode {
         let _ = self.protocol.deny(peer_id);
     }
 
+    pub fn expire_deadline(&mut self) {
+        let _ = self.protocol.expire_deadline();
+    }
+
     pub fn member_count(&mut self) -> usize {
         self.protocol.cluster_view().members().len()
     }

@@ -3,12 +3,13 @@
 Status: **Phase 1 (dynamic joining) — core join axis + join-capable harness,
 gate-green.** The ClusterView builder/DTO split landed, so live membership is now
 observable. The join system tests run on Task × In-Memory: scenarios 1
-(join-then-converge), 2 (join-before-bootstrap), 3 (rejected), 4 (duplicate), and 6
-(concurrent multi-join) are green — scenario 2 landed with decision #6 (`Collecting`
-now re-advertises to a member's ping; see `P1-ADR-CollectingIsNotASink`). Remaining:
-scenario 7 (needs deadline-injection harness support) and broadening to the Thread
-spawn and the other transports; scenario 5 stays postponed (see the join
-subsection). The section below captures the design,
+(join-then-converge), 2 (join-before-bootstrap), 3 (rejected), 4 (duplicate), 6
+(concurrent multi-join), and 7 (join-after-deadline-miss — a sub-quorum cluster
+times out and a join supplies the missing member) are all green; scenario 2 landed
+with decision #6 (`Collecting` re-advertises to a member's ping; see
+`P1-ADR-CollectingIsNotASink`). Remaining: broadening to the Thread spawn and the
+other transports; scenario 5 stays postponed (see the join subsection). The section
+below captures the design,
 the decisions now locked, and the longer-standing open questions raised while
 building Faction.
 

@@ -84,6 +84,12 @@ impl Node {
         }
     }
 
+    pub fn expire_deadline(&self) {
+        if let Self::Task { node } = self {
+            node.borrow_mut().expire_deadline();
+        }
+    }
+
     pub fn member_count(&self) -> usize {
         match self {
             Self::Task { node } => node.borrow_mut().member_count(),

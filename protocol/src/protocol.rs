@@ -108,6 +108,10 @@ impl Protocol {
         self.apply(Command::JoinRejected { peer_id })
     }
 
+    pub fn expire_deadline(&mut self) -> Vec<OutputMessage> {
+        self.apply(Command::DeadlineExpired)
+    }
+
     fn apply(&mut self, command: Command) -> Vec<OutputMessage> {
         match self.faction.process(command) {
             ProcessResult::Accepted { outcomes, .. } => {
