@@ -3,11 +3,12 @@
 Status: **Phase 1 (dynamic joining) — core join axis + join-capable harness,
 gate-green.** The ClusterView builder/DTO split landed, so live membership is now
 observable. The join system tests run on Task × In-Memory: scenarios 1
-(join-then-converge), 3 (rejected), 4 (duplicate), and 6 (concurrent multi-join)
-are green. Remaining: scenario 2 (blocked on decision #6 below — `Collecting`
-rejects a member's participation), scenario 7 (needs deadline-injection harness
-support), and broadening to the Thread spawn and the other transports; scenario 5
-stays postponed (see the join subsection). The section below captures the design,
+(join-then-converge), 2 (join-before-bootstrap), 3 (rejected), 4 (duplicate), and 6
+(concurrent multi-join) are green — scenario 2 landed with decision #6 (`Collecting`
+now re-advertises to a member's ping; see `P1-ADR-CollectingIsNotASink`). Remaining:
+scenario 7 (needs deadline-injection harness support) and broadening to the Thread
+spawn and the other transports; scenario 5 stays postponed (see the join
+subsection). The section below captures the design,
 the decisions now locked, and the longer-standing open questions raised while
 building Faction.
 
@@ -110,11 +111,14 @@ once a peer is an admitted member, "its subsequent signals are treated as valid
 member signals" — including participation that arrives while the local node is in
 `Collecting` (locally completed, awaiting readiness quorum).
 
-**Decision for Phase 1:** a member's `ParticipationObserved` in `Collecting` should
-be *acknowledged, not dropped* — either re-advertise like `Bootstrapped`
-(`AcknowledgeRejoin`, stay) or actually accept/track it. Pick one deliberately and
-give it matrix + admissible + property coverage. This generalizes "no silent sinks"
-from the terminal state to the whole post-local-completion lifecycle.
+**Decided (`P1-ADR-CollectingIsNotASink`):** a member's `ParticipationObserved` in
+`Collecting` is *re-advertised, not dropped* — `AcknowledgeRejoin` (stay), exactly
+like `Bootstrapped`; a non-member's stays `NonMemberIgnored`. The node re-advertises
+readiness, it does not track the participation (tracking would be bookkeeping —
+`Collecting` is past participation counting). This generalizes "no silent sinks"
+from the terminal state to the whole post-local-completion lifecycle, and is covered
+by the matrix, the admissible-invariant, the property model, and the system test
+`a_newcomer_admitted_before_bootstrap_still_converges`.
 
 Surfaced by the IBFT integration: IBFT's rejoin workaround is *broader* than
 Faction's current `Bootstrapped`-only `AcknowledgeRejoin` (it re-advertises from
@@ -334,9 +338,9 @@ integration (the ROADMAP publication checklist already asks for one).
    lockstep; the crates.io publish is a release-time formality.
 5. Raft/IBFT integration co-develops **in lockstep** via the path reference — the
    publish dependency that would have made it a follow-on is gone.
-6. (open, Phase 1) `Collecting`'s response to a **member's** `ParticipationObserved`:
-   re-advertise (`AcknowledgeRejoin`, stay) vs. accept/track. Surfaced by the IBFT
-   integration; see the subsection above.
+6. (decided — `P1-ADR-CollectingIsNotASink`) `Collecting` re-advertises readiness
+   (`AcknowledgeRejoin`, stay) to a **member's** `ParticipationObserved`, like
+   `Bootstrapped`; a non-member's stays `NonMemberIgnored`. See the subsection above.
 
 ---
 

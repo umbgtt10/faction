@@ -118,3 +118,27 @@ fn concurrent_newcomers_each_join_and_converge(
     assert_eq!(cluster.node_count(), 5);
     assert_eq!(cluster.member_count(0), 5);
 }
+
+#[rstest]
+#[case::task_inmemory(Spawn::Task, TransportKind::InMemory)]
+fn a_newcomer_admitted_before_bootstrap_still_converges(
+    #[case] spawn: Spawn,
+    #[case] transport: TransportKind,
+) {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 2)
+        .spawn(spawn)
+        .transport(transport)
+        .log_path(scenario_log("before_bootstrap", spawn, transport))
+        .build();
+
+    // Act: admit the newcomer while the cluster is still converging, not yet bootstrapped
+    cluster.start_all();
+    cluster.join(3, Approver::AcceptAll);
+    cluster.poll_until_bootstrapped();
+
+    // Assert
+    assert!(cluster.is_bootstrapped());
+    assert_eq!(cluster.node_count(), 4);
+    assert_eq!(cluster.member_count(0), 4);
+}

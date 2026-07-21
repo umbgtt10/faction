@@ -7,26 +7,19 @@ use rstest::rstest;
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
-use super::helpers::participation;
 
 #[rstest]
-#[case::rejects_participation_observed(
-    Init::CollectingNoReadiness,
-    participation(1),
-    &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
-    &[Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
-)]
 #[case::rejects_is_pinging_completedd(
     Init::CollectingNoReadiness,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
-    &[Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
 )]
 #[case::rejects_is_pinging_completedd_after_ready(
     Init::CollectingPeer1Confirmed,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
-    &[Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
 )]
 fn invalid_transition(
     #[case] init: Init,

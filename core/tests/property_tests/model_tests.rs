@@ -126,9 +126,14 @@ impl ModelCoordinator {
 
         if self.is_pinging_completed {
             match command {
-                Command::ParticipationObserved { .. } | Command::LocalParticipationCompleted => {
-                    return Vec::new()
+                Command::ParticipationObserved { peer_id } => {
+                    return if self.is_member(peer_id) {
+                        vec![Outcome::AcknowledgeRejoin { peer_id }]
+                    } else {
+                        vec![Outcome::NonMemberIgnored { peer_id }]
+                    };
                 }
+                Command::LocalParticipationCompleted => return Vec::new(),
                 _ => {}
             }
         }

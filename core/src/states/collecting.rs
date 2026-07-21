@@ -61,7 +61,10 @@ impl Collecting {
 
     fn non_member_peer(&self, command: &Command) -> Option<PeerId> {
         match command {
-            Command::ReadyObserved { peer_id, .. } if !self.members.is_member(*peer_id) => {
+            Command::ParticipationObserved { peer_id, .. }
+            | Command::ReadyObserved { peer_id, .. }
+                if !self.members.is_member(*peer_id) =>
+            {
                 Some(*peer_id)
             }
             _ => None,
@@ -73,7 +76,8 @@ impl State for Collecting {
     fn accept(&self, command: &Command) -> bool {
         matches!(
             command,
-            Command::ReadyObserved { .. }
+            Command::ParticipationObserved { .. }
+                | Command::ReadyObserved { .. }
                 | Command::DeadlineExpired
                 | Command::JoinRequested { .. }
                 | Command::JoinApproved { .. }
@@ -83,6 +87,7 @@ impl State for Collecting {
 
     fn admissible_commands(&self) -> Vec<Command> {
         vec![
+            Command::ParticipationObserved { peer_id: 0 },
             Command::ReadyObserved { peer_id: 0 },
             Command::DeadlineExpired,
             Command::JoinRequested { peer_id: 0 },
@@ -117,9 +122,15 @@ impl State for Collecting {
         }
 
         match command {
-            Command::ParticipationObserved { .. } => {
-                unreachable!("accept() rejects this command for Collecting")
-            }
+            Command::ParticipationObserved { peer_id } => (
+                vec![Outcome::AcknowledgeRejoin { peer_id }],
+                Box::new(Self::new(
+                    self.members.clone(),
+                    self.collecting_peers.clone(),
+                    self.pinged_peers.clone(),
+                    self.deadline_missed,
+                )),
+            ),
 
             Command::ReadyObserved { peer_id } => {
                 let step = ReadyStep::new(

@@ -56,6 +56,7 @@ pub fn all_admissible() -> Vec<Command> {
 
 pub fn collecting_admissible() -> Vec<Command> {
     vec![
+        Command::ParticipationObserved { peer_id: 0 },
         Command::ReadyObserved { peer_id: 0 },
         Command::DeadlineExpired,
         Command::JoinRequested { peer_id: 0 },

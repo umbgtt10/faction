@@ -210,6 +210,20 @@ use super::helpers::{
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     collecting_admissible(),
 )]
+#[case::collecting_acknowledges_member_participation(
+    Init::CollectingNoReadiness,
+    participation(1),
+    &[AcknowledgeRejoin { peer_id: 1 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_ignores_non_member_participation(
+    Init::CollectingNoReadiness,
+    participation(99),
+    &[NonMemberIgnored { peer_id: 99 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
 #[case::bootstrapped_join_requested(
     Init::Bootstrapped,
     join_requested(99),

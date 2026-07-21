@@ -76,7 +76,7 @@ fn process_accepts_deadline_expired() {
 }
 
 #[test]
-fn process_rejects_participation_observed() {
+fn process_acknowledges_member_participation() {
     // Arrange
     let mut faction = faction_in_collecting();
     let snap_before = match faction.process(Command::Probe) {
@@ -85,10 +85,14 @@ fn process_rejects_participation_observed() {
     };
 
     // Act
-    assert!(matches!(
-        faction.process(Command::ParticipationObserved { peer_id: 2 }),
-        ProcessResult::Rejected { .. }
-    ));
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 2 }]);
     assert_eq!(
         match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
@@ -122,7 +126,7 @@ fn process_rejects_local_participation_completed() {
 }
 
 #[test]
-fn process_rejects_participation_non_member() {
+fn process_ignores_non_member_participation() {
     // Arrange
     let mut faction = faction_in_collecting();
     let snap_before = match faction.process(Command::Probe) {
@@ -130,11 +134,15 @@ fn process_rejects_participation_non_member() {
         _ => unreachable!(),
     };
 
-    // Act & Assert
-    assert!(matches!(
-        faction.process(Command::ParticipationObserved { peer_id: 99 }),
-        ProcessResult::Rejected { .. }
-    ));
+    // Act
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(
         match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
