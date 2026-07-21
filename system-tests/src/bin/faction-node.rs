@@ -75,11 +75,9 @@ fn main() {
         _ => panic!("unsupported transport for process node"),
     };
 
-    let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(Duration::from_millis(
-        config.timer_delay_ms,
-    )));
-
     let delay = Duration::from_millis(config.timer_delay_ms);
+    let deadline_delay = delay * (config.freshness_margin as u32);
+    let timer: Box<dyn Timer> = Box::new(RealTimer::with_delays(delay, deadline_delay));
 
     let node = FactionNode::new(
         config.peer_id,

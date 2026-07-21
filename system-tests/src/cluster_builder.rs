@@ -44,6 +44,7 @@ use crate::node_observer::NodeObserver;
 use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
+use crate::timer::real::real_timer::DEFAULT_DEADLINE_CYCLES;
 use crate::timer::real::real_timer::RealTimer;
 use crate::timer_delay::TimerDelay;
 
@@ -61,6 +62,7 @@ pub struct ClusterBuilder {
     spawn: Spawn,
     transport: TransportKind,
     timer_delay: TimerDelay,
+    freshness_margin: u32,
     log_path: Option<PathBuf>,
 }
 
@@ -73,6 +75,7 @@ impl ClusterBuilder {
             spawn: Spawn::Task,
             transport: TransportKind::InMemory,
             timer_delay: TimerDelay::Minimal,
+            freshness_margin: DEFAULT_DEADLINE_CYCLES,
             log_path: None,
         }
     }
@@ -97,6 +100,12 @@ impl ClusterBuilder {
     #[must_use]
     pub fn timer_delay(mut self, timer_delay: TimerDelay) -> Self {
         self.timer_delay = timer_delay;
+        self
+    }
+
+    #[must_use]
+    pub fn freshness_margin(mut self, cycles: u32) -> Self {
+        self.freshness_margin = cycles;
         self
     }
 
@@ -166,6 +175,7 @@ impl ClusterBuilder {
         };
         let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
         let delay = self.timer_delay.duration();
+        let deadline_delay = delay * self.freshness_margin;
         let node_required = self.node_required;
         let spawn = self.spawn;
 
@@ -176,7 +186,8 @@ impl ClusterBuilder {
                 if matches!(spawn, Spawn::Thread) {
                     let thread_writer = writer.clone();
                     let thread_peer_ids = peer_ids.clone();
-                    let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(delay));
+                    let timer: Box<dyn Timer> =
+                        Box::new(RealTimer::with_delays(delay, deadline_delay));
                     return Node::spawn_thread(move || {
                         let faction_observer: Box<dyn Observer> = match &thread_writer {
                             Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
@@ -219,7 +230,7 @@ impl ClusterBuilder {
                 };
                 let protocol =
                     Protocol::new(Faction::new(config, faction_observer), peer_ids.clone(), id);
-                let timer: Box<dyn Timer> = Box::new(RealTimer::with_delay(delay));
+                let timer: Box<dyn Timer> = Box::new(RealTimer::with_delays(delay, deadline_delay));
                 let faction_node = FactionNode::new(
                     id,
                     peer_ids.clone(),
@@ -279,6 +290,7 @@ impl ClusterBuilder {
             transport: self.transport,
             node_required: self.node_required,
             timer_delay_ms: self.timer_delay.duration().as_millis(),
+            freshness_margin: self.freshness_margin,
             log_path: self.log_path.clone(),
         };
 
@@ -301,6 +313,7 @@ pub(crate) struct ProcessSpec {
     pub transport: TransportKind,
     pub node_required: usize,
     pub timer_delay_ms: u128,
+    pub freshness_margin: u32,
     pub log_path: Option<PathBuf>,
 }
 
@@ -336,7 +349,7 @@ pub(crate) fn spawn_process_node(
         .arg("--required")
         .arg(spec.node_required.to_string())
         .arg("--freshness-margin")
-        .arg("2")
+        .arg(spec.freshness_margin.to_string())
         .arg("--transport")
         .arg(transport_arg)
         .arg("--timer-delay")

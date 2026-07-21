@@ -15,6 +15,7 @@ use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
+use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
 use faction_protocol::timer_trait::Timer;
@@ -84,6 +85,8 @@ impl FactionNode {
         for decision in decisions {
             self.dispatch(decision);
         }
+        self.timer
+            .schedule(TimerEvent::Fire(TimerMessage::DeadlineExpired));
     }
 
     #[must_use]

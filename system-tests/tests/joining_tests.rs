@@ -223,3 +223,21 @@ fn a_timed_out_sub_quorum_cluster_recovers_when_a_newcomer_joins(
     assert!(cluster.is_bootstrapped());
     assert_eq!(cluster.node_count(), 4);
 }
+
+#[test]
+fn a_sub_quorum_cluster_times_out_on_its_own() {
+    // Arrange: three members but quorum needs four, with a short freshness margin
+    // so the cluster gives up on its own, with no injected deadline
+    let mut cluster = ClusterBuilder::new(3, 4)
+        .freshness_margin(20)
+        .log_path(log_path("timeout_natural"))
+        .build();
+
+    // Act
+    cluster.settle(SETTLE_ROUNDS);
+
+    // Assert
+    assert_eq!(cluster.node_state(0), PeerState::TimedOut);
+    assert_eq!(cluster.node_state(1), PeerState::TimedOut);
+    assert_eq!(cluster.node_state(2), PeerState::TimedOut);
+}
