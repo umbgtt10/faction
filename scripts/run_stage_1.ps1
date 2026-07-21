@@ -30,10 +30,10 @@ function Invoke-SystemTestsParallel {
         exit 1
     }
 
-    # One log folder per run under system-tests/logs. Keep only the newest
-    # $MaxLogRuns; prune here, once, before the run fans out, so the parallel
-    # test processes never race on the directory.
-    $logsRoot = Join-Path (Split-Path $PSScriptRoot -Parent) "system-tests\logs"
+    # One log folder per run under logs/. Keep only the newest $MaxLogRuns;
+    # prune here, once, before the run fans out, so the parallel test processes
+    # never race on the directory.
+    $logsRoot = Join-Path (Split-Path $PSScriptRoot -Parent) "logs"
     if (Test-Path $logsRoot) {
         $runFolders = Get-ChildItem -Path $logsRoot -Directory |
             Where-Object { $_.Name -match '^\d{8}_\d{6}$' } |

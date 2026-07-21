@@ -7,7 +7,8 @@ use std::path::PathBuf;
 use chrono::Utc;
 
 fn logs_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("logs")
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest.parent().unwrap_or(&manifest).join("logs")
 }
 
 fn run_id() -> String {
