@@ -2,8 +2,13 @@
 // SPDX-License-Identifier: MIT
 
 use std::cell::RefCell;
+use std::fs::read_dir;
+use std::fs::read_to_string;
+use std::fs::write;
 use std::net::SocketAddr;
 use std::net::TcpListener;
+use std::path::Path;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::thread::sleep;
 use std::time::Duration;
@@ -22,6 +27,7 @@ use faction_protocol::transport_trait::Transport;
 
 use crate::approver::Approver;
 use crate::cluster_builder::ProcessSpec;
+use crate::cluster_builder::node_writer;
 use crate::cluster_builder::spawn_process_node;
 use crate::cluster_builder::wait_for_tcp_ready;
 use crate::faction_node::FactionNode;
@@ -120,7 +126,7 @@ pub struct JoinContext {
     genesis_peers: Vec<PeerId>,
     node_required: usize,
     delay: Duration,
-    writer: Option<SharedWriter>,
+    log_dir: Option<PathBuf>,
 }
 
 impl JoinContext {
@@ -130,14 +136,14 @@ impl JoinContext {
         genesis_peers: Vec<PeerId>,
         node_required: usize,
         delay: Duration,
-        writer: Option<SharedWriter>,
+        log_dir: Option<PathBuf>,
     ) -> Self {
         Self {
             mesh,
             genesis_peers,
             node_required,
             delay,
-            writer,
+            log_dir,
         }
     }
 }
@@ -168,6 +174,7 @@ pub struct Cluster {
     poll_delay: Duration,
     started: bool,
     joining: Option<Joining>,
+    log_dir: Option<PathBuf>,
 }
 
 impl Cluster {
@@ -177,6 +184,7 @@ impl Cluster {
         spawn: Spawn,
         timer_delay: TimerDelay,
         joining: Option<Joining>,
+        log_dir: Option<PathBuf>,
     ) -> Self {
         Self {
             nodes,
@@ -184,6 +192,7 @@ impl Cluster {
             poll_delay: timer_delay.duration(),
             started: false,
             joining,
+            log_dir,
         }
     }
 
@@ -288,7 +297,7 @@ impl Cluster {
         let transport = context.mesh.connect(newcomer_id);
         let required = context.node_required;
         let delay = context.delay;
-        let writer = context.writer.clone();
+        let writer = node_writer(&context.log_dir, newcomer_id);
 
         match self.spawn {
             Spawn::Task => {
@@ -374,5 +383,34 @@ impl Drop for Cluster {
         for node in &mut self.nodes {
             node.shutdown();
         }
+        self.nodes.clear();
+        if let Some(dir) = &self.log_dir {
+            consolidate(dir);
+        }
     }
+}
+
+fn consolidate(dir: &Path) {
+    let Ok(entries) = read_dir(dir) else {
+        return;
+    };
+    let mut lines: Vec<String> = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let is_node_log = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("node-") && name.ends_with(".jsonl"));
+        if is_node_log {
+            if let Ok(content) = read_to_string(&path) {
+                lines.extend(content.lines().map(String::from));
+            }
+        }
+    }
+    lines.sort();
+    let mut body = lines.join("\n");
+    if !body.is_empty() {
+        body.push('\n');
+    }
+    let _ = write(dir.join("consolidated.jsonl"), body);
 }

@@ -108,6 +108,12 @@ machine's). The outcome that *would* mean hardening is a **permanent stall below
 100 % loss** — a convergence-critical signal that turns out not to be retried. That is
 what the assessment hunts for.
 
+**Fault logging (deferred with the wiring).** When `FaultyTransport` is wired into
+`ClusterBuilder`, a fired fault is recorded as one more line in the same per-node log the
+observers already write (`{"event":"fault","fault":…,"to":…,"message":…}`, sharing that
+node's writer) — so faults land inline in the per-node files and the merged
+`consolidated.jsonl` timeline, never a separate file. Deferred to the Phase-2 wiring.
+
 ---
 
 ## Deferred

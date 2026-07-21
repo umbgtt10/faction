@@ -7,7 +7,7 @@ use faction_system_tests::timer_delay::TimerDelay;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
 
-use crate::support::log_path;
+use crate::support::log_dir;
 
 #[rstest]
 #[case::task_real_inmemory_quorum4(Spawn::Task, TransportKind::InMemory, TimerDelay::Minimal, 4)]
@@ -61,7 +61,9 @@ fn cluster_reaches_bootstrapped(
         .spawn(spawn)
         .transport(transport)
         .timer_delay(delay)
-        .log_path(log_path(&format!("{spawn:?}_{transport:?}_{required:?}")))
+        .log_dir(log_dir(&format!(
+            "bootstrap-{spawn:?}-{transport:?}-q{required}"
+        )))
         .build();
 
     // Act

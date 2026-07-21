@@ -4,7 +4,7 @@
 use std::cell::RefCell;
 use std::env::current_exe;
 use std::env::var as env_var;
-use std::fs::{create_dir_all, remove_file};
+use std::fs::{create_dir_all, remove_dir_all};
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -42,6 +42,7 @@ use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
 use crate::node_observer::NodeObserver;
 use crate::shared_file_observer::SharedFileObserver;
+use crate::shared_file_observer::SharedWriter;
 use crate::shared_file_observer::new_shared_writer;
 use crate::spawn::Spawn;
 use crate::timer::real::real_timer::DEFAULT_DEADLINE_CYCLES;
@@ -63,7 +64,7 @@ pub struct ClusterBuilder {
     transport: TransportKind,
     timer_delay: TimerDelay,
     freshness_margin: u32,
-    log_path: Option<PathBuf>,
+    log_dir: Option<PathBuf>,
 }
 
 impl ClusterBuilder {
@@ -76,7 +77,7 @@ impl ClusterBuilder {
             transport: TransportKind::InMemory,
             timer_delay: TimerDelay::Minimal,
             freshness_margin: DEFAULT_DEADLINE_CYCLES,
-            log_path: None,
+            log_dir: None,
         }
     }
 
@@ -110,12 +111,10 @@ impl ClusterBuilder {
     }
 
     #[must_use]
-    pub fn log_path(mut self, path: PathBuf) -> Self {
-        if let Some(parent) = path.parent() {
-            let _ = create_dir_all(parent);
-        }
-        let _ = remove_file(&path);
-        self.log_path = Some(path);
+    pub fn log_dir(mut self, dir: PathBuf) -> Self {
+        let _ = remove_dir_all(&dir);
+        let _ = create_dir_all(&dir);
+        self.log_dir = Some(dir);
         self
     }
 
@@ -173,7 +172,7 @@ impl ClusterBuilder {
                 (transports, join_mesh)
             }
         };
-        let writer = self.log_path.as_ref().map(|p| new_shared_writer(p));
+        let log_dir = self.log_dir.clone();
         let delay = self.timer_delay.duration();
         let deadline_delay = delay * self.freshness_margin;
         let node_required = self.node_required;
@@ -184,7 +183,7 @@ impl ClusterBuilder {
             .zip(transports)
             .map(|(&id, transport)| {
                 if matches!(spawn, Spawn::Thread) {
-                    let thread_writer = writer.clone();
+                    let thread_writer = node_writer(&log_dir, id);
                     let thread_peer_ids = peer_ids.clone();
                     let timer: Box<dyn Timer> =
                         Box::new(RealTimer::with_delays(delay, deadline_delay));
@@ -220,11 +219,12 @@ impl ClusterBuilder {
                 }
 
                 let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(node_required));
-                let faction_observer: Box<dyn Observer> = match &writer {
+                let task_writer = node_writer(&log_dir, id);
+                let faction_observer: Box<dyn Observer> = match &task_writer {
                     Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                     None => Box::new(NoOpObserver),
                 };
-                let node_observer: Box<dyn NodeObserver> = match &writer {
+                let node_observer: Box<dyn NodeObserver> = match &task_writer {
                     Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                     None => Box::new(NoOpNodeObserver),
                 };
@@ -250,11 +250,11 @@ impl ClusterBuilder {
                 peer_ids.clone(),
                 node_required,
                 delay,
-                writer.clone(),
+                log_dir.clone(),
             ))
         });
 
-        Cluster::new(nodes, spawn, self.timer_delay, joining)
+        Cluster::new(nodes, spawn, self.timer_delay, joining, log_dir)
     }
 
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
@@ -291,7 +291,7 @@ impl ClusterBuilder {
             node_required: self.node_required,
             timer_delay_ms: self.timer_delay.duration().as_millis(),
             freshness_margin: self.freshness_margin,
-            log_path: self.log_path.clone(),
+            log_dir: self.log_dir.clone(),
         };
 
         let mut nodes = Vec::new();
@@ -304,8 +304,20 @@ impl ClusterBuilder {
         }
 
         let joining = Joining::Process(ProcessJoinContext::new(spec, peer_addrs));
-        Cluster::new(nodes, self.spawn, self.timer_delay, Some(joining))
+        Cluster::new(
+            nodes,
+            self.spawn,
+            self.timer_delay,
+            Some(joining),
+            self.log_dir.clone(),
+        )
     }
+}
+
+pub(crate) fn node_writer(log_dir: &Option<PathBuf>, id: PeerId) -> Option<SharedWriter> {
+    log_dir
+        .as_ref()
+        .map(|dir| new_shared_writer(&dir.join(format!("node-{id}.jsonl"))))
 }
 
 pub(crate) struct ProcessSpec {
@@ -314,7 +326,7 @@ pub(crate) struct ProcessSpec {
     pub node_required: usize,
     pub timer_delay_ms: u128,
     pub freshness_margin: u32,
-    pub log_path: Option<PathBuf>,
+    pub log_dir: Option<PathBuf>,
 }
 
 pub(crate) fn spawn_process_node(
@@ -358,9 +370,10 @@ pub(crate) fn spawn_process_node(
         .arg(listen_addr.to_string())
         .arg("--peer-addrs")
         .arg(&peer_addrs_arg);
-    if let Some(ref log_path) = spec.log_path {
+    if let Some(ref dir) = spec.log_dir {
+        let node_path = dir.join(format!("node-{peer_id}.jsonl"));
         cmd.arg("--log-path")
-            .arg(log_path.to_string_lossy().to_string());
+            .arg(node_path.to_string_lossy().to_string());
     }
 
     cmd.spawn().expect("failed to spawn faction-node")

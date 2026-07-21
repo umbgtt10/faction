@@ -19,7 +19,7 @@ function Invoke-Step {
 # via slotgate (https://crates.io/crates/slotgate). Each slot gets a disjoint port
 # range; process isolation replaces the in-process --test-threads=1 serialization.
 function Invoke-SystemTestsParallel {
-    param([int]$MaxParallel = 6)
+    param([int]$MaxParallel = 6, [int]$MaxLogRuns = 50)
 
     Write-Host "faction system tests (parallel via slotgate)..." -ForegroundColor Cyan
 
@@ -29,6 +29,21 @@ function Invoke-SystemTestsParallel {
         Pop-Location
         exit 1
     }
+
+    # One log folder per run under system-tests/logs. Keep only the newest
+    # $MaxLogRuns; prune here, once, before the run fans out, so the parallel
+    # test processes never race on the directory.
+    $logsRoot = Join-Path (Split-Path $PSScriptRoot -Parent) "system-tests\logs"
+    if (Test-Path $logsRoot) {
+        $runFolders = Get-ChildItem -Path $logsRoot -Directory |
+            Where-Object { $_.Name -match '^\d{8}_\d{6}$' } |
+            Sort-Object Name
+        $excess = $runFolders.Count - ($MaxLogRuns - 1)
+        if ($excess -gt 0) {
+            $runFolders | Select-Object -First $excess | Remove-Item -Recurse -Force
+        }
+    }
+    $env:FACTION_LOG_RUN = Get-Date -Format "yyyyMMdd_HHmmss"
 
     $artifacts = cargo test -p faction-system-tests --no-run --message-format=json
     if ($LASTEXITCODE -ne 0) {
