@@ -66,6 +66,50 @@ integration (the ROADMAP publication checklist already asks for one).
 
 ---
 
+## Robustness under adversarial delivery (pre-Phase 2)
+
+The whole transport matrix — InMemory, Channels, TCP, gRPC — is **reliable and
+ordered**: everything is delivered, in order, exactly once. That proves faction is
+*transport-agnostic*; it has never tested *delivery quality* — loss, reordering,
+duplication, partitions.
+
+**A new transport (WebSocket / UDP)?** Not for correctness. WebSocket is another
+reliable framed transport (gRPC's shape) — breadth, not a new failure mode. UDP looks
+tempting for loss/reorder, but localhost UDP essentially never drops, so it would not
+exercise its distinguishing property without artificial dropping — at which point it
+*is* the fault-injection work below. Adding a transport is a breadth call
+(grants/marketing), not a coverage one.
+
+**Fault injection — the real gap.** A harness-level `FaultyTransport` decorator
+(built now; exercised as the Phase-2 hardening assessment) wraps any transport and
+misbehaves per a seeded policy. It lives in the harness, **not** in `core` (pure
+Mealy, no I/O — it cannot "drop") or `protocol` (a translator, not a network). The
+taxonomy, each row a claim faction already makes:
+
+| Fault | Probes the claim that… |
+|---|---|
+| Loss | `RetryPing`/`RetryReady` recover dropped signals (liveness under loss) |
+| Duplication | set-accumulation + `Duplicate*Ignored` dedup (safety under dup) |
+| Partition (+ heal) | a cut sub-quorum → `TimedOut` → converges on heal (partition tolerance + self-heal) |
+| Delay / jitter | the deadline-vs-latency boundary; `TimedOut`-then-recover |
+| Reordering | commutative set accumulation (order-independence) |
+| Asymmetric / one-way | convergence survives half-open links |
+| Selective by type | each retry path is individually sufficient (dropping `Bootstrapped` announces is harmless — they map to `Probe`) |
+
+Out of scope: **corruption / mutation** is a *lying peer* → Byzantine (Phase 5), and
+the wire decode already turns garbage into loss; **throttle / bandwidth** — faction
+cares about delivery, not throughput.
+
+**Hardening hypothesis.** Faction is already designed for this — retries, idempotent
+sets, and a non-terminal `TimedOut` that self-heals — so the expected Phase-2 verdict
+is *no core hardening*: the real knob is operational (the deadline / freshness margin
+tuned against the loss rate, which per faction's design is the caller's, not the
+machine's). The outcome that *would* mean hardening is a **permanent stall below
+100 % loss** — a convergence-critical signal that turns out not to be retried. That is
+what the assessment hunts for.
+
+---
+
 ## Deferred
 
 - `PeerId` genericization (currently `u64`) — deferred to post-Phase-6.
