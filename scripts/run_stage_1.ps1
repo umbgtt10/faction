@@ -72,7 +72,7 @@ function Invoke-SystemTestsParallel {
         --program-args '{job},--exact' `
         --jobs $jobs `
         --max-parallel $MaxParallel `
-        --log-dir logs/slotgate | Tee-Object -Variable slotgateOutput
+        --log-dir "logs/$($env:FACTION_LOG_RUN)/slotgate" | Tee-Object -Variable slotgateOutput
     $slotgateExit = $LASTEXITCODE
 
     Write-TestSummary -Lines $slotgateOutput -RunFolder (Join-Path $logsRoot $env:FACTION_LOG_RUN)
