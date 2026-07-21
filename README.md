@@ -88,14 +88,17 @@ readiness to a peer that is still trying to join.
 
 ### Commands and outcomes
 
-Five commands drive the machine:
+Eight commands drive the machine:
 
 | Command | Meaning |
 |---|---|
 | `ParticipationObserved { peer_id }` | A peer signalled participation |
 | `ReadyObserved { peer_id }` | A peer signalled readiness |
 | `LocalParticipationCompleted` | The local node finished its own participation |
-| `DeadlineExpired` | External deadline timer fired |
+| `DeadlineExpired` | Deadline timer fired |
+| `JoinRequested { peer_id }` | A newcomer asked to join |
+| `JoinApproved { peer_id }` | A newcomer was admitted to membership |
+| `JoinRejected { peer_id }` | A newcomer was denied |
 | `Probe` | Query current state without mutation |
 
 Every command produces a structured result — `Accepted`, `Rejected`, or `Probed` —
@@ -117,17 +120,28 @@ is complete.
 This separation eliminates an entire class of race conditions where a node could
 declare quorum before confirming its own participation.
 
+### Dynamic joining
+
+Membership is not frozen at genesis. A newcomer can join a running cluster: the
+`JoinRequested` / `JoinApproved` / `JoinRejected` commands drive a membership axis
+orthogonal to the bootstrap states, so a node in **any** state — including terminal
+`Bootstrapped` and non-terminal `TimedOut` — can admit or deny a newcomer and keep
+converging. A sub-quorum cluster that timed out on its own recovers the moment a
+newcomer supplies the missing member. Admission is a local control-plane decision,
+not a wire message, so no transport has to learn a new message type.
+
 ### Validation harness
 
 `faction` ships with a multi-layered validation harness:
 
 | Harness | What it tests |
 |---|---|
-| `core/` unit tests | Every `(state, command)` pair — 140 tests |
+| `core/` unit tests | Every `(state, command)` pair — 169 tests |
 | `core-validation/` | Multi-node deterministic scenarios — 23 tests |
 | `protocol/` | Message translation and protocol runtime — 33 tests |
 | `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 156 tests |
-| `system-tests/` convergence | (10 spawn/transport × 2 quorum scenarios) — 20 tests |
+| `system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
+| `system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
 | `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing — 44 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
@@ -204,7 +218,7 @@ The caller owns the network. `faction` owns the state.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~895 |
-| Total tests | 416 |
+| Total tests | 506 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -246,7 +260,7 @@ Each principle above is recorded as an Architecture Decision Record — see
 
 - Perform network I/O — the caller sends and receives messages
 - Implement failure detection — that is Phase 2
-- Manage dynamic membership — that is Phases 1–6
+- Manage the full membership lifecycle — Phase 1 joining has landed; add/remove and reconfiguration are Phases 2–6
 - Know about consensus — protocols build on top of `faction`, not inside it
 - Provide a runtime — async, threading, and process management are the caller's concern
 
@@ -256,18 +270,25 @@ Each principle above is recorded as an Architecture Decision Record — see
 
 ```powershell
 powershell -File scripts\run_stage_1.ps1   # format, clippy, no_std checks, full test suite
-powershell -File scripts\run_stage_2.ps1   # CRAP score and file risk analysis
+powershell -File scripts\run_stage_2.ps1   # CRAP complexity score
 ```
 
-Both gates must pass before any commit lands.
+Both gates must pass before any commit lands. They drive two tools, each installed
+once from crates.io:
+
+| Tool | Used by | Install |
+|---|---|---|
+| [`slotgate`](https://crates.io/crates/slotgate) | Stage 1 runs the system tests as bounded-parallel per-test processes (a disjoint port range per slot) instead of a serial `--test-threads=1` pass | `cargo install slotgate` |
+| [`cargo-crap4rust`](https://crates.io/crates/cargo-crap4rust) | Stage 2 scores CRAP (Change Risk Anti-Patterns) complexity over `core` and `protocol` | `cargo install cargo-crap4rust` |
 
 ---
 
 ## Roadmap
 
-`faction` is building toward full dynamic membership — node joining, failure detection,
-single-node addition and removal, and Byzantine-tolerant reconfiguration across six
-incremental phases.
+`faction` is building toward full dynamic membership across six incremental phases.
+**Phase 1 (dynamic joining)** has landed — a newcomer joins a running cluster and
+converges across the full spawn/transport matrix. Failure detection, single-node
+addition and removal, and Byzantine-tolerant reconfiguration follow in Phases 2–6.
 
 Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.
@@ -281,11 +302,12 @@ for the complete technical specification.
 
 | Crate | Role | Tests |
 |---|---|---|
-| `core/` | State machine | 140 |
+| `core/` | State machine | 169 |
 | `core-validation/` | Deterministic multi-node scenario harness | 23 |
 | `protocol/` | Message translator and protocol runtime | 33 |
 | `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 156 |
-| `system-tests/` convergence | (10 spawn/transport × 2 quorum scenarios) | 20 |
+| `system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
+| `system-tests/` joining | Dynamic joining across spawn/transport | 61 |
 | `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing | 44 |
 
 ---
@@ -301,7 +323,7 @@ MIT. See [LICENSE](./LICENSE).
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
 - [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
 - [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
-- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, deferred ADRs)
+- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, `PeerId` genericization)
 - [CHANGELOG.md](./CHANGELOG.md) — version history
 - [ETHEREUM.md](./docs/ETHEREUM.md) — why `faction` matters to the Ethereum ecosystem
 - [DONATE.md](./DONATE.md) — support the project

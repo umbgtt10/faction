@@ -1,3 +1,4 @@
 /target
 *.jsonl
+logs/
 system-tests/src/transport/grpc/generated/

@@ -1,8 +1,8 @@
 # Architecture
 
-**Status:** Phase 0 — Complete (hardened)  
+**Status:** Phase 1 — dynamic joining landed  
 **Core productive LOC:** ~895  
-**Total tests:** 416  
+**Total tests:** 506  
 **Code coverage:** 100%  
 **Crappy functions:** 0  
 **Unsafe code:** 0  
@@ -12,8 +12,10 @@
 ## Overview
 
 `faction` implements a **deterministic, two-phase cluster bootstrapping state machine**.
-It is a startup barrier: it coordinates when a group of nodes with known, static
-membership is ready to proceed as a cluster.
+It is a startup barrier: it coordinates when a group of nodes with a known genesis
+membership is ready to proceed as a cluster. Since Phase 1 the genesis set is a seed,
+not a ceiling — a newcomer can join a running cluster through a membership axis
+orthogonal to the bootstrapping progression (see the Phase 1 records in [ADRs/](./ADRs/)).
 
 The machine is a pure Mealy model:
 

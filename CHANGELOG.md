@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### Phase 1 — dynamic joining across the full spawn/transport matrix
+
+#### Added
+- Dynamic joining. The `JoinRequested` / `JoinApproved` / `JoinRejected` commands
+  drive a membership axis orthogonal to the `Initial → Pinging → Collecting →
+  Bootstrapped` progression, so a node in any state — including terminal
+  `Bootstrapped` and non-terminal `TimedOut` — admits or denies a newcomer and keeps
+  converging. Live `Members` are carried in each `State` (`Config` is the immutable
+  genesis; membership is genesis ∪ admitted). Admission is a local control-plane
+  decision, not a wire message.
+- Natural timeout. A `DeadlineExpired` timer is scheduled at start (from
+  `--freshness-margin`), so a node that never reaches quorum times out on its own,
+  not only via an injected expiry.
+- `ClusterView` split into a pure DTO (public fields, no mutation methods) plus a
+  `ClusterViewBuilder`, and now exposes live `members`.
+- System-test join suite — 61 tests: six scenarios (join-then-converge,
+  join-before-bootstrap, rejected, duplicate, concurrent multi-join,
+  join-after-timeout) plus a natural-timeout scenario, across Task/Thread ×
+  {in-memory, channels, TCP, gRPC} and Process × {TCP, gRPC}. The harness gained
+  late-join for every transport, a Thread control plane (an mpsc command queue with
+  live snapshots) and a Process control plane (an stdin/stdout line protocol).
+- ADRs: `P2-ADR-ClusterViewBuilderAndDto`, `P2-ADR-TestingLadder`, and
+  `P1-ADR-CollectingIsNotASink`.
+
+#### Changed
+- The stage-1 gate runs the system tests as bounded-parallel per-test processes via
+  [`slotgate`](https://crates.io/crates/slotgate) — a disjoint port range per slot —
+  instead of a serial `--test-threads=1` pass; the gate dropped from ~3 min to ~50 s.
+- License headers corrected from Apache-2.0 to the MIT SPDX one-liner across the
+  workspace.
+
 ### Self-describing entry point, Architecture Decision Records, and a documentation sweep
 
 #### Added
