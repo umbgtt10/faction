@@ -72,13 +72,46 @@ function Invoke-SystemTestsParallel {
         --program-args '{job},--exact' `
         --jobs $jobs `
         --max-parallel $MaxParallel `
-        --log-dir logs/slotgate
+        --log-dir logs/slotgate | Tee-Object -Variable slotgateOutput
+    $slotgateExit = $LASTEXITCODE
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "`nFailed: faction system tests (exit code $LASTEXITCODE)" -ForegroundColor Red
+    Write-TestSummary -Lines $slotgateOutput -RunFolder (Join-Path $logsRoot $env:FACTION_LOG_RUN)
+
+    if ($slotgateExit -ne 0) {
+        Write-Host "`nFailed: faction system tests (exit code $slotgateExit)" -ForegroundColor Red
         Pop-Location
         exit 1
     }
+}
+
+# Parse slotgate's per-job lines ("  [PASS|FAIL|TIMEOUT] <name> (<t>s)") into a
+# <name>: <outcome> summary at the run-folder root, failures first for easy triage.
+function Write-TestSummary {
+    param([string[]]$Lines, [string]$RunFolder)
+
+    $results = @()
+    foreach ($line in $Lines) {
+        if ($line -match '^\s*\[(PASS|FAIL|TIMEOUT)\]\s+(.+?)\s+\([\d.]+s\)\s*$') {
+            $results += [pscustomobject]@{ Name = $Matches[2]; Outcome = $Matches[1] }
+        }
+    }
+    if ($results.Count -eq 0) {
+        return
+    }
+
+    if (-not (Test-Path $RunFolder)) {
+        New-Item -ItemType Directory -Force -Path $RunFolder | Out-Null
+    }
+
+    $rank = @{ 'FAIL' = 0; 'TIMEOUT' = 1; 'PASS' = 2 }
+    $ordered = [ordered]@{}
+    foreach ($result in ($results | Sort-Object @{ Expression = { $rank[$_.Outcome] } }, Name)) {
+        $ordered[$result.Name] = $result.Outcome
+    }
+
+    $summaryPath = Join-Path $RunFolder 'summary.json'
+    $ordered | ConvertTo-Json | Set-Content -Path $summaryPath -Encoding ascii
+    Write-Host "Wrote test summary: $summaryPath" -ForegroundColor Cyan
 }
 
 $env:RUSTFLAGS = "-D warnings"
