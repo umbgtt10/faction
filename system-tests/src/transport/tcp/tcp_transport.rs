@@ -118,7 +118,9 @@ impl TcpTransport {
                         stream.set_nonblocking(true).unwrap();
                         ib.lock().unwrap().push(stream);
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        sleep(Duration::from_millis(1));
+                    }
                 }
             }
         });
@@ -185,6 +187,21 @@ impl TcpTransport {
             }
         }
     }
+
+    fn write_all(stream: &mut TcpStream, data: &[u8]) -> bool {
+        let mut written = 0;
+        while written < data.len() {
+            match stream.write(&data[written..]) {
+                Ok(0) => return false,
+                Ok(n) => written += n,
+                Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                    sleep(Duration::from_millis(1));
+                }
+                Err(_) => return false,
+            }
+        }
+        true
+    }
 }
 
 impl Transport for TcpTransport {
@@ -192,24 +209,20 @@ impl Transport for TcpTransport {
         if to == self.peer_id {
             return;
         }
-        self.connect_to(to);
-        if let Some(stream) = self.outbound.get_mut(&to) {
-            let data = match &message {
-                TransportMessage::Ping { from } => Self::encode(*from, 0),
-                TransportMessage::Ready { from } => Self::encode(*from, 1),
-                TransportMessage::Bootstrapped { from } => Self::encode(*from, 2),
+        let data = match &message {
+            TransportMessage::Ping { from } => Self::encode(*from, 0),
+            TransportMessage::Ready { from } => Self::encode(*from, 1),
+            TransportMessage::Bootstrapped { from } => Self::encode(*from, 2),
+        };
+        for _ in 0..2 {
+            self.connect_to(to);
+            let Some(stream) = self.outbound.get_mut(&to) else {
+                return;
             };
-            let mut written = 0;
-            while written < data.len() {
-                match stream.write(&data[written..]) {
-                    Ok(0) => break,
-                    Ok(n) => written += n,
-                    Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
-                        sleep(Duration::from_millis(1));
-                    }
-                    Err(_) => break,
-                }
+            if Self::write_all(stream, &data) {
+                return;
             }
+            self.outbound.remove(&to);
         }
     }
 
