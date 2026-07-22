@@ -5,11 +5,11 @@ use std::cell::RefCell;
 use std::env::current_exe;
 use std::env::var as env_var;
 use std::fs::{create_dir_all, remove_dir_all};
+use std::net::Ipv4Addr;
 use std::net::SocketAddr;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
 use std::rc::Rc;
 
 use std::env::consts::EXE_EXTENSION;
@@ -41,6 +41,8 @@ use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
 use crate::node_observer::NodeObserver;
+use crate::process_spawn::ProcessSpec;
+use crate::process_spawn::spawn_process_node;
 use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::SharedWriter;
 use crate::shared_file_observer::new_shared_writer;
@@ -260,12 +262,8 @@ impl ClusterBuilder {
     fn build_process(&self, peer_ids: &[PeerId]) -> Cluster {
         let addrs: Vec<SocketAddr> = peer_ids
             .iter()
-            .map(|_| {
-                let l = TcpListener::bind("127.0.0.1:0").unwrap();
-                let a = l.local_addr().unwrap();
-                drop(l);
-                a
-            })
+            .enumerate()
+            .map(|(index, _)| Self::allocate_port_addr(index))
             .collect();
 
         let peer_addrs: Vec<(PeerId, SocketAddr)> = peer_ids
@@ -298,7 +296,7 @@ impl ClusterBuilder {
         for (i, &id) in peer_ids.iter().enumerate() {
             let child = spawn_process_node(&spec, id, peer_ids, &peer_addrs, addrs[i]);
             if self.transport == TransportKind::Tcp {
-                wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
+                Self::wait_for_tcp_ready(addrs[i], Duration::from_secs(30));
             }
             nodes.push(Node::process(child));
         }
@@ -312,80 +310,38 @@ impl ClusterBuilder {
             self.log_dir.clone(),
         )
     }
+
+    pub(crate) fn wait_for_tcp_ready(addr: SocketAddr, timeout: Duration) {
+        let deadline = Instant::now() + timeout;
+        while Instant::now() < deadline {
+            if TcpStream::connect(addr).is_ok() {
+                return;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        panic!("Process TCP listener not ready within timeout");
+    }
+
+    // Under slotgate each parallel slot gets a disjoint PORT_RANGE, so deriving a
+    // distinct port per node from that base avoids the cross-test port-reuse race of
+    // bind(":0")-drop-rebind. Falls back to an ephemeral port when run outside slotgate.
+    pub(crate) fn allocate_port_addr(index: usize) -> SocketAddr {
+        let range_base = env_var("PORT_RANGE_BASE")
+            .ok()
+            .and_then(|value| value.parse::<u16>().ok());
+        if let Some(base) = range_base {
+            let port = base.saturating_add(u16::try_from(index).unwrap_or(0));
+            return SocketAddr::from((Ipv4Addr::LOCALHOST, port));
+        }
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(listener);
+        addr
+    }
 }
 
 pub(crate) fn node_writer(log_dir: &Option<PathBuf>, id: PeerId) -> Option<SharedWriter> {
     log_dir
         .as_ref()
         .map(|dir| new_shared_writer(&dir.join(format!("node-{id}.jsonl"))))
-}
-
-pub(crate) struct ProcessSpec {
-    pub bin: String,
-    pub transport: TransportKind,
-    pub node_required: usize,
-    pub timer_delay_ms: u128,
-    pub freshness_margin: u32,
-    pub log_dir: Option<PathBuf>,
-}
-
-pub(crate) fn spawn_process_node(
-    spec: &ProcessSpec,
-    peer_id: PeerId,
-    peers: &[PeerId],
-    peer_addrs: &[(PeerId, SocketAddr)],
-    listen_addr: SocketAddr,
-) -> Child {
-    let peers_arg = peers
-        .iter()
-        .map(|p| p.to_string())
-        .collect::<Vec<_>>()
-        .join(",");
-    let peer_addrs_arg = peer_addrs
-        .iter()
-        .map(|(pid, a)| format!("{pid}={a}"))
-        .collect::<Vec<_>>()
-        .join(",");
-    let transport_arg = match spec.transport {
-        TransportKind::Grpc => "grpc",
-        TransportKind::Tcp => "tcp",
-        _ => panic!("unsupported transport for process node"),
-    };
-
-    let mut cmd = Command::new(&spec.bin);
-    cmd.stdin(Stdio::piped()).stdout(Stdio::piped());
-    cmd.arg("--peer-id")
-        .arg(peer_id.to_string())
-        .arg("--peers")
-        .arg(&peers_arg)
-        .arg("--required")
-        .arg(spec.node_required.to_string())
-        .arg("--freshness-margin")
-        .arg(spec.freshness_margin.to_string())
-        .arg("--transport")
-        .arg(transport_arg)
-        .arg("--timer-delay")
-        .arg(spec.timer_delay_ms.to_string())
-        .arg("--listen-addr")
-        .arg(listen_addr.to_string())
-        .arg("--peer-addrs")
-        .arg(&peer_addrs_arg);
-    if let Some(ref dir) = spec.log_dir {
-        let node_path = dir.join(format!("node-{peer_id}.jsonl"));
-        cmd.arg("--log-path")
-            .arg(node_path.to_string_lossy().to_string());
-    }
-
-    cmd.spawn().expect("failed to spawn faction-node")
-}
-
-pub(crate) fn wait_for_tcp_ready(addr: SocketAddr, timeout: Duration) {
-    let deadline = Instant::now() + timeout;
-    while Instant::now() < deadline {
-        if TcpStream::connect(addr).is_ok() {
-            return;
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-    panic!("Process TCP listener not ready within timeout");
 }

@@ -6,7 +6,6 @@ use std::fs::read_dir;
 use std::fs::read_to_string;
 use std::fs::write;
 use std::net::SocketAddr;
-use std::net::TcpListener;
 use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -26,14 +25,14 @@ use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
 
 use crate::approver::Approver;
-use crate::cluster_builder::ProcessSpec;
+use crate::cluster_builder::ClusterBuilder;
 use crate::cluster_builder::node_writer;
-use crate::cluster_builder::spawn_process_node;
-use crate::cluster_builder::wait_for_tcp_ready;
 use crate::faction_node::FactionNode;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
 use crate::node_observer::NodeObserver;
+use crate::process_spawn::ProcessSpec;
+use crate::process_spawn::spawn_process_node;
 use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::SharedWriter;
 use crate::spawn::Spawn;
@@ -320,9 +319,7 @@ impl Cluster {
             _ => panic!("process join requires a process join context"),
         };
 
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let newcomer_addr = listener.local_addr().unwrap();
-        drop(listener);
+        let newcomer_addr = ClusterBuilder::allocate_port_addr(self.nodes.len());
 
         let mut peers: Vec<PeerId> = context.genesis_addrs.iter().map(|(id, _)| *id).collect();
         if !peers.contains(&newcomer_id) {
@@ -337,7 +334,7 @@ impl Cluster {
             newcomer_addr,
         );
         if matches!(context.spec.transport, TransportKind::Tcp) {
-            wait_for_tcp_ready(newcomer_addr, Duration::from_secs(30));
+            ClusterBuilder::wait_for_tcp_ready(newcomer_addr, Duration::from_secs(30));
         }
 
         (Node::process(child), Some(newcomer_addr))
