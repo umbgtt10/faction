@@ -26,146 +26,18 @@ use faction_protocol::transport_trait::Transport;
 
 use crate::approver::Approver;
 use crate::cluster_builder::ClusterBuilder;
-use crate::cluster_builder::node_writer;
 use crate::faction_node::FactionNode;
+use crate::join::Joining;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
 use crate::node_observer::NodeObserver;
-use crate::process_spawn::ProcessSpec;
 use crate::process_spawn::spawn_process_node;
 use crate::shared_file_observer::SharedFileObserver;
 use crate::shared_file_observer::SharedWriter;
 use crate::spawn::Spawn;
 use crate::timer::real::real_timer::RealTimer;
 use crate::timer_delay::TimerDelay;
-use crate::transport::channels::channels_transport::ChannelRegistry;
-use crate::transport::channels::channels_transport::ChannelsTransport;
-use crate::transport::grpc::grpc_transport::AddressBook as GrpcAddressBook;
-use crate::transport::grpc::grpc_transport::GrpcTransport;
-use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
-use crate::transport::in_memory::in_memory_transport::Registry;
-use crate::transport::tcp::tcp_transport::AddressBook;
-use crate::transport::tcp::tcp_transport::TcpTransport;
 use crate::transport_kind::TransportKind;
-
-pub trait LateJoinMesh {
-    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport>;
-}
-
-pub struct InMemoryJoinMesh {
-    registry: Registry,
-}
-
-impl InMemoryJoinMesh {
-    #[must_use]
-    pub fn new(registry: Registry) -> Self {
-        Self { registry }
-    }
-}
-
-impl LateJoinMesh for InMemoryJoinMesh {
-    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
-        Box::new(InMemoryTransport::join_mesh(peer_id, self.registry.clone()))
-    }
-}
-
-pub struct ChannelsJoinMesh {
-    registry: ChannelRegistry,
-}
-
-impl ChannelsJoinMesh {
-    #[must_use]
-    pub fn new(registry: ChannelRegistry) -> Self {
-        Self { registry }
-    }
-}
-
-impl LateJoinMesh for ChannelsJoinMesh {
-    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
-        Box::new(ChannelsTransport::join_mesh(peer_id, self.registry.clone()))
-    }
-}
-
-pub struct TcpJoinMesh {
-    registry: AddressBook,
-}
-
-impl TcpJoinMesh {
-    #[must_use]
-    pub fn new(registry: AddressBook) -> Self {
-        Self { registry }
-    }
-}
-
-impl LateJoinMesh for TcpJoinMesh {
-    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
-        Box::new(TcpTransport::join_mesh(peer_id, self.registry.clone()))
-    }
-}
-
-pub struct GrpcJoinMesh {
-    registry: GrpcAddressBook,
-}
-
-impl GrpcJoinMesh {
-    #[must_use]
-    pub fn new(registry: GrpcAddressBook) -> Self {
-        Self { registry }
-    }
-}
-
-impl LateJoinMesh for GrpcJoinMesh {
-    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
-        Box::new(GrpcTransport::join_mesh(peer_id, self.registry.clone()))
-    }
-}
-
-pub struct JoinContext {
-    mesh: Box<dyn LateJoinMesh>,
-    genesis_peers: Vec<PeerId>,
-    node_required: usize,
-    delay: Duration,
-    log_dir: Option<PathBuf>,
-}
-
-impl JoinContext {
-    #[must_use]
-    pub fn new(
-        mesh: Box<dyn LateJoinMesh>,
-        genesis_peers: Vec<PeerId>,
-        node_required: usize,
-        delay: Duration,
-        log_dir: Option<PathBuf>,
-    ) -> Self {
-        Self {
-            mesh,
-            genesis_peers,
-            node_required,
-            delay,
-            log_dir,
-        }
-    }
-}
-
-pub struct ProcessJoinContext {
-    spec: ProcessSpec,
-    genesis_addrs: Vec<(PeerId, SocketAddr)>,
-}
-
-impl ProcessJoinContext {
-    #[must_use]
-    pub(crate) fn new(spec: ProcessSpec, genesis_addrs: Vec<(PeerId, SocketAddr)>) -> Self {
-        Self {
-            spec,
-            genesis_addrs,
-        }
-    }
-}
-
-pub enum Joining {
-    InProcess(JoinContext),
-    Process(ProcessJoinContext),
-}
 
 pub struct Cluster {
     nodes: Vec<Node>,
@@ -296,7 +168,7 @@ impl Cluster {
         let transport = context.mesh.connect(newcomer_id);
         let required = context.node_required;
         let delay = context.delay;
-        let writer = node_writer(&context.log_dir, newcomer_id);
+        let writer = ClusterBuilder::node_writer(&context.log_dir, newcomer_id);
 
         match self.spawn {
             Spawn::Task => {

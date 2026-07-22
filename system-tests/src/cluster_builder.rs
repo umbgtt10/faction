@@ -28,16 +28,16 @@ use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_trait::Timer;
 use faction_protocol::transport_trait::Transport;
 
-use crate::cluster::ChannelsJoinMesh;
 use crate::cluster::Cluster;
-use crate::cluster::GrpcJoinMesh;
-use crate::cluster::InMemoryJoinMesh;
-use crate::cluster::JoinContext;
-use crate::cluster::Joining;
-use crate::cluster::LateJoinMesh;
-use crate::cluster::ProcessJoinContext;
-use crate::cluster::TcpJoinMesh;
 use crate::faction_node::FactionNode;
+use crate::join::ChannelsJoinMesh;
+use crate::join::GrpcJoinMesh;
+use crate::join::InMemoryJoinMesh;
+use crate::join::JoinContext;
+use crate::join::Joining;
+use crate::join::LateJoinMesh;
+use crate::join::ProcessJoinContext;
+use crate::join::TcpJoinMesh;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
 use crate::node_observer::NodeObserver;
@@ -185,7 +185,7 @@ impl ClusterBuilder {
             .zip(transports)
             .map(|(&id, transport)| {
                 if matches!(spawn, Spawn::Thread) {
-                    let thread_writer = node_writer(&log_dir, id);
+                    let thread_writer = Self::node_writer(&log_dir, id);
                     let thread_peer_ids = peer_ids.clone();
                     let timer: Box<dyn Timer> =
                         Box::new(RealTimer::with_delays(delay, deadline_delay));
@@ -221,7 +221,7 @@ impl ClusterBuilder {
                 }
 
                 let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(node_required));
-                let task_writer = node_writer(&log_dir, id);
+                let task_writer = Self::node_writer(&log_dir, id);
                 let faction_observer: Box<dyn Observer> = match &task_writer {
                     Some(w) => Box::new(SharedFileObserver::new(w.clone(), id)),
                     None => Box::new(NoOpObserver),
@@ -338,10 +338,10 @@ impl ClusterBuilder {
         drop(listener);
         addr
     }
-}
 
-pub(crate) fn node_writer(log_dir: &Option<PathBuf>, id: PeerId) -> Option<SharedWriter> {
-    log_dir
-        .as_ref()
-        .map(|dir| new_shared_writer(&dir.join(format!("node-{id}.jsonl"))))
+    pub(crate) fn node_writer(log_dir: &Option<PathBuf>, id: PeerId) -> Option<SharedWriter> {
+        log_dir
+            .as_ref()
+            .map(|dir| new_shared_writer(&dir.join(format!("node-{id}.jsonl"))))
+    }
 }

@@ -11,7 +11,7 @@ use faction::types::PeerId;
 
 use crate::transport_kind::TransportKind;
 
-pub(crate) struct ProcessSpec {
+pub struct ProcessSpec {
     pub bin: String,
     pub transport: TransportKind,
     pub node_required: usize,
@@ -20,7 +20,7 @@ pub(crate) struct ProcessSpec {
     pub log_dir: Option<PathBuf>,
 }
 
-pub(crate) fn spawn_process_node(
+pub fn spawn_process_node(
     spec: &ProcessSpec,
     peer_id: PeerId,
     peers: &[PeerId],
