@@ -25,6 +25,9 @@
   live snapshots) and a Process control plane (an stdin/stdout line protocol).
 - ADRs: `P2-ADR-ClusterViewBuilderAndDto`, `P2-ADR-TestingLadder`, and
   `P1-ADR-CollectingIsNotASink`.
+- `FaultyTransport` — a harness `Transport` decorator that injects seeded transport
+  faults (loss, duplication, delay, reorder, partition, asymmetric, selective) behind a
+  loud per-fault banner, as the instrument for the Phase-2 hardening assessment.
 
 #### Changed
 - The stage-1 gate runs the system tests as bounded-parallel per-test processes via
@@ -32,6 +35,25 @@
   instead of a serial `--test-threads=1` pass; the gate dropped from ~3 min to ~50 s.
 - License headers corrected from Apache-2.0 to the MIT SPDX one-liner across the
   workspace.
+- System-test logs restructured for scale: one timestamped run folder under `logs/`,
+  one subfolder per test (`<scenario>-<spawn>-<transport>-q<n>/`) holding a per-node
+  `node-<id>.jsonl` and a merged `consolidated.jsonl`; the gate writes a per-run
+  `summary.json` (failures first) and prunes to the newest `-MaxLogRuns` folders.
+  slotgate's per-job stdout/stderr capture nests under the same run folder.
+- Process nodes derive their listen port from slotgate's per-slot `PORT_RANGE`
+  (distinct per node) instead of `bind(":0")`-drop-rebind.
+- Harness restructure: `ProcessSpec` / `spawn_process_node` extracted into
+  `process_spawn`; the `cluster` module split one-struct-per-file into `cluster.rs`
+  plus a `join/` module; `wait_for_tcp_ready`, `allocate_port_addr`, and `node_writer`
+  folded into `ClusterBuilder`.
+
+#### Fixed
+- The process-TCP harness transport could silently, permanently strand a node one
+  message short under gate parallelism — its accept thread died on a transient
+  `accept()` error, and `send()` never replaced a dead outbound stream — timing out the
+  quorum-5 convergence and sub-quorum-recovery join tests on ~15% of runs. The accept
+  loop now survives transient errors and `send` drops the dead stream, reconnects, and
+  retries; validated across 30 consecutive clean gate runs.
 
 ### Self-describing entry point, Architecture Decision Records, and a documentation sweep
 

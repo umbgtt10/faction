@@ -2,7 +2,7 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-07-21  
+**Last updated:** 2026-07-22  
 **Current status:** Phase 1 — dynamic joining landed
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
@@ -78,8 +78,7 @@ callers can use their own identifier type.
 
 ## Phase 1 — Dynamic membership: joining
 
-**Status:** Planned  
-**Target:** 4–6 weeks  
+**Status:** ✅ Complete  
 **Removes limitation:** L1 — static peer list  
 
 `faction` answers: *"Can a new peer join the cluster?"*
@@ -102,6 +101,22 @@ treated as valid member signals.
 and acts on the caller's decision. Admission policy belongs to the protocol above.
 
 **Gate:** 100% `(state, input)` coverage. Phase 2 does not begin until this gate is green.
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| `(state, command)` coverage | 100% — explicitly |
+| Unsafe code | 0 |
+| Crappy functions (CRAP score) | 0 |
+| System test cases | 134 |
+| Join scenarios | 6 + natural timeout, across Task/Thread × {memory, channels, TCP, gRPC} and Process × {TCP, gRPC} |
+| Spawn models validated | 3 — Task, Thread, Process |
+| Transport protocols validated | 4 — Memory, Channels, TCP, gRPC |
+
+`Members` are carried in each `State` (genesis ∪ admitted); admission stays a local
+control-plane decision, with policy owned by the caller. The single deferred scenario —
+`join-raises-quorum` — awaits the Phase-3/4 quorum-change command (see `OPEN_POINTS.md`).
 
 ---
 
@@ -294,7 +309,7 @@ release candidate.
 | Phase | Deliverable | Target | Status |
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
-| 1 | Dynamic joining | 4–6 weeks | Planned |
+| 1 | Dynamic joining | 4–6 weeks | ✅ Complete |
 | 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
 | 3 | Single-node addition | 4–6 weeks | Planned |
 | 4 | Single-node removal | 4–6 weeks | Planned |
