@@ -16,6 +16,12 @@
   subsequent `Probe` for every `(state, command)` case.
 
 #### Changed
+- Upgraded `#![deny(unsafe_code)]` to `#![forbid(unsafe_code)]` at all six
+  crate roots. `deny` could still be lifted locally with a reviewed
+  `#[allow(unsafe_code)]`; `forbid` cannot, so the zero-unsafe guarantee now
+  holds absolutely rather than by convention. `docs/ADRs/P0-ADR-NoStdZeroUnsafe.md`,
+  `README.md`, `ROADMAP.md`, and the `docs/Applications/` pitches updated to
+  match.
 - **Breaking** — `ProcessResult::Accepted` now carries an `admissible` field:
   `Accepted { cluster_view, admissible, outcomes }`. All three result variants
   (`Accepted`, `Rejected`, `Probed`) now expose the set of next-admissible

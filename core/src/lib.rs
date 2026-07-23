@@ -24,7 +24,7 @@
 //! * **Protocol-agnostic** — no opinion on what a peer *is* or how messages move
 //! * **Deterministic** — same inputs → same outputs, always
 //! * **Exhaustively tested** — every `(state, command)` pair covered by an explicit matrix
-//! * **Zero unsafe** — `#![deny(unsafe_code)]`
+//! * **Zero unsafe** — `#![forbid(unsafe_code)]`
 //! * **`no_std + alloc`** — runs on bare metal, WASM, embedded, and cloud
 //!
 //! Design rationale is recorded as Architecture Decision Records in
@@ -118,7 +118,7 @@
 //! * [Transition matrix tests](https://github.com/umbgtt10/faction/blob/main/core/tests/transition_matrix/) — exhaustive `(state × command)` coverage
 
 #![no_std]
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 extern crate alloc;
 

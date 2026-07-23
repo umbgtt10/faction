@@ -10,7 +10,7 @@ The intended deployment spans bare-metal Cortex-M research clusters and cloud
 processes — ideally the same source, the same crate.
 
 ## Decision
-`#![no_std]` with `alloc`, and `#![deny(unsafe_code)]`. One crate runs from
+`#![no_std]` with `alloc`, and `#![forbid(unsafe_code)]`. One crate runs from
 microcontroller to cloud, with correctness resting on ownership rather than
 unsafe.
 
@@ -22,12 +22,15 @@ throughout (zero-unsafe clears procurement review by inspection).
 ## Rejected alternatives
 `std` — richer, but excludes bare-metal. `unsafe` for micro-optimisation —
 rejected: ownership already delivers the correctness, and any unsafe block
-would forfeit the zero-unsafe guarantee.
+would forfeit the zero-unsafe guarantee. `#![deny(unsafe_code)]` — superseded
+by `forbid`: `deny` can still be lifted locally with a reviewed
+`#[allow(unsafe_code)]`; `forbid` cannot, so the zero-unsafe guarantee holds
+absolutely instead of by convention.
 
 ## Consequences
 State is `Box<dyn State>` plus `alloc` collections; no threads; `State: Send`.
 No `std`-only types anywhere.
 
 ## Enforcement
-`#![no_std]` and `#![deny(unsafe_code)]` at the crate root — compiler-enforced,
+`#![no_std]` and `#![forbid(unsafe_code)]` at the crate root — compiler-enforced,
 not review-enforced.

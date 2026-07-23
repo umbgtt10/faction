@@ -205,7 +205,7 @@ The caller owns the network. `faction` owns the state.
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
-| Unsafe code | 0 — enforced by `#![deny(unsafe_code)]` |
+| Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified |
 | System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
 | Published | [crates.io](https://crates.io/crates/faction) |

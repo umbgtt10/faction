@@ -308,7 +308,7 @@ release candidate.
 - [ ] Phases 1–6 complete with 100% `(state, input)` coverage
 - [ ] System test matrix extended for all new states and transitions
 - [ ] `no_std + alloc` verified at every phase boundary
-- [ ] `#![deny(unsafe_code)]` enforced throughout
+- [ ] `#![forbid(unsafe_code)]` enforced throughout
 - [ ] CRAP score 0 across all crates
 - [ ] Observer coverage — every new transition pair verified
 - [ ] `NodeId` generic trait replacing `u64`

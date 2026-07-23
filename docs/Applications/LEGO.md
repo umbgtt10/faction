@@ -135,7 +135,7 @@ verifiable.
 | Code coverage | 100% |
 | `(state, command)` pairs tested | All — explicitly |
 | CRAP score (crappy functions) | 0 |
-| Unsafe code | 0 — enforced by `#![deny(unsafe_code)]` |
+| Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified by CI |
 | System test combinations | 10 |
 | Spawn models validated | 3 — Task, Thread, Process |
@@ -286,7 +286,7 @@ gate is publicly verifiable without self-reporting.
 Quality gates at every phase boundary:
 - 100% `(state, command)` coverage — transition matrix test file (public, executable)
 - CRAP score 0 — `crap4rust` quality gate
-- `#![deny(unsafe_code)]` — enforced at compile time
+- `#![forbid(unsafe_code)]` — enforced at compile time
 - `no_std` — enforced at compile time
 
 ---

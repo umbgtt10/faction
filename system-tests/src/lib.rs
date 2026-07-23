@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 pub mod cluster;
 pub mod cluster_builder;

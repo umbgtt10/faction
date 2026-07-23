@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #![no_std]
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 extern crate alloc;
 

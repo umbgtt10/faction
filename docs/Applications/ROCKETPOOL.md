@@ -145,7 +145,7 @@ test file is public, executable code that anyone can run with `cargo test`.
 Quality gates enforced at every phase boundary, all publicly verifiable:
 - 100% `(state, command)` coverage — transition matrix test file
 - CRAP score 0 — `crap4rust` quality gate
-- `#![deny(unsafe_code)]` — enforced at compile time
+- `#![forbid(unsafe_code)]` — enforced at compile time
 - `no_std` — verified by CI check script
 - permutation system tests (tasks, threads and processes) — 10 spawn/transport combinations
 
@@ -168,7 +168,7 @@ Each phase is accepted when:
 2. The transition matrix test file covers every `(state, command)` pair for
    that phase (publicly verifiable — run `cargo test`)
 3. `crap4rust` reports CRAP score 0
-4. The `no_std` and #![deny(unsafe_code)]` enforced by the compiler
+4. The `no_std` and #![forbid(unsafe_code)]` enforced by the compiler
 5. The 10+ spawn/transport system tests pass
 
 No self-reporting required. The crates.io publish date, test count, and CI
@@ -207,7 +207,7 @@ Every milestone deliverable is a publicly verifiable crates.io publication:
   by anyone — `cargo test` either passes every `(state, command)` pair or does
   not
 - **`crap4rust` ** runnable from the command line
-- **`#![deny(unsafe_code)]` and `no_std` ** enforced by the compiler
+- **`#![forbid(unsafe_code)]` and `no_std` ** enforced by the compiler
 
 The GMC does not need to trust the applicant. The artifacts verify themselves.
 

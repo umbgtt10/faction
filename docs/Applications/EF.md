@@ -157,7 +157,7 @@ Phase 0 is complete. The evidence is public and verifiable.
 | Code coverage | 100% |
 | `(state, command)` pairs tested | All — explicitly |
 | Crappy functions (CRAP score) | 0 |
-| Unsafe code | 0 — enforced by `#![deny(unsafe_code)]` |
+| Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified |
 | System test combinations | 10 |
 | Spawn models validated | 3 — Task, Thread, Process |
@@ -286,7 +286,7 @@ until the artifact is published and the quality gates pass.
 Every published version carries:
 - 100% `(state, command)` coverage — verified by the transition matrix test file
 - CRAP score 0 — verified by the `crap4rust` quality gate
-- `#![deny(unsafe_code)]` — enforced at compile time
+- `#![forbid(unsafe_code)]` — enforced at compile time
 - `no_std` — verified by the CI `no_std` check script
 
 The quality gates are not self-reported. They are publicly verifiable from the

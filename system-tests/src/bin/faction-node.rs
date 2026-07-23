@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 use std::fs::create_dir_all;
 use std::process::exit;
