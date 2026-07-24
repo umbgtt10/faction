@@ -120,6 +120,54 @@ control-plane decision, with policy owned by the caller. The single deferred sce
 
 ---
 
+## Cross-cutting — Specification & conformance suite
+
+**Status:** Decided (six ADRs, all `Proposed`) — implementation not started.
+**Depends on:** Phase 1 validated on real NUCLEO hardware (see gate below).
+**Not a numbered phase:** this spans every phase rather than removing one
+limitation; it does not fit the L1-L7 framing above and does not shift any
+phase's numbering.
+
+`faction` today has one implementation and no independent specification.
+This initiative promotes it to a normative specification with the Rust
+crate as a conformant reference implementation, so a non-Rust port has a
+machine-checkable conformance target instead of only the Rust source to
+read. Full rationale in `docs/ADRs/`, starting from
+`P0-ADR-SpecificationIsNormativeCrateIsReference.md`.
+
+**Decided:**
+- A separate, versioned, language-neutral canonical model, mapped from
+  (not derived onto) `Command`/`Outcome`/`ProcessResult` — no invented
+  vocabulary, only existing, tested variants.
+- The six existing transition-matrix test files consolidated into one
+  declarative table, consumed by both the test suite and a new
+  vector-exporter tool.
+- No compile-time-only invariant exists anywhere in `core/src` today
+  (verified against the full source tree, not assumed) — stated as a
+  checked, falsifiable claim in the eventual specification rather than
+  silently relied on.
+- Effects are an ordered sequence; collections serialize in insertion
+  order — both already true today, not new behavior to build.
+- The canonical model targets `Command`/`Outcome` with Phase 1 joining
+  already included.
+
+**Deliberately deferred:** implementation (the matrix refactor, the
+canonical-model crate, the vector-exporter, the reference harness, new CI
+gates) does not begin until Phase 1 is validated on real NUCLEO hardware
+across `etheram-ibft-embassy` and `etheram-raft-embassy` (both reaching
+their own stage 4-6) and `etheram-raft`'s own Phase 1 integration lands —
+building the matrix/canonical-model mapping against a target hardware
+testing could still change risks doing that work twice. See
+`P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md`.
+
+**Delivery:** once unblocked, ships as its own release versioned to stay
+under `0.5.0`, contingent on adding zero new `Command`/`Outcome`/
+`ProcessResult` variants (a new enum variant is a breaking change for any
+downstream exhaustive match) — purely additive alongside the
+already-published surface.
+
+---
+
 ## Phase 2 — Failure detection
 
 **Status:** Planned  
@@ -309,7 +357,8 @@ release candidate.
 | Phase | Deliverable | Target | Status |
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
-| 1 | Dynamic joining | 4–6 weeks | ✅ Complete |
+| 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
+| cross-cutting | Specification & conformance suite | After Phase 1 HW validation | Decided, implementation deferred |
 | 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
 | 3 | Single-node addition | 4–6 weeks | Planned |
 | 4 | Single-node removal | 4–6 weeks | Planned |
@@ -318,7 +367,22 @@ release candidate.
 
 ---
 
-## Publication readiness checklist
+## Phase 1 publication readiness checklist (interim, near-term)
+
+Publishing the Phase-1-inclusive release to crates.io does **not** wait for
+Phases 2-6 — see the checklist below this one for that. This interim gate
+is what the cross-cutting specification work above is itself waiting on:
+
+- [ ] `etheram-ibft-embassy` stages 4-6 green on real NUCLEO hardware
+- [ ] `etheram-raft-embassy` stages 4-6 green on real NUCLEO hardware
+- [ ] `etheram-raft`'s own Phase 1 integration designed and landed
+- [ ] `(state, command)` coverage remains 100% after all three integrations
+- [ ] crates.io metadata complete for the Phase-1-inclusive release
+
+## Full publication readiness checklist (Phases 1–6, longer-term)
+
+This is the eventual, complete-dynamic-membership publication milestone —
+distinct from, and later than, the interim checklist above.
 
 - [ ] Phases 1–6 complete with 100% `(state, input)` coverage
 - [ ] System test matrix extended for all new states and transitions

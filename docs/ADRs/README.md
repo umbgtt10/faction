@@ -26,6 +26,13 @@ importance:
 | [P2-ADR-StateAsTraitObject](P2-ADR-StateAsTraitObject.md) | One struct per state behind a `State` trait; growth is additive. |
 | [P2-ADR-ClusterViewBuilderAndDto](P2-ADR-ClusterViewBuilderAndDto.md) | The view consumers receive is a pure DTO; construction lives in a separate builder. |
 | [P2-ADR-TestingLadder](P2-ADR-TestingLadder.md) | A fixed test-tier ladder — unit, matrix, property, simulation, system — run by one gate. |
+| [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) | From spec v1.0.0, the specification is normative and this crate is a conformant reference implementation. **Proposed** — decided, not yet built. |
+| [P1-ADR-CanonicalModelSeparateFromCoreTypes](P1-ADR-CanonicalModelSeparateFromCoreTypes.md) | A language-neutral canonical model, mapped from (not derived-`Serialize`-on) `Command`/`Outcome`/`ProcessResult`. **Proposed**. |
+| [P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors](P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors.md) | The six existing test files become one declarative `matrix.rs`, consumed by both the test suite and the vector exporter. **Proposed**. |
+| [P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors](P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors.md) | No compile-time-only invariant was found in `core/src`; every invariant is the `Probe → accept() → step()` runtime contract. **Proposed**. |
+| [P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder](P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder.md) | Effects are an ordered sequence; collections serialize in insertion order — both already true, not new behavior. **Proposed**. |
+| [P2-ADR-CanonicalModelBuiltAgainstJoiningBranch](P2-ADR-CanonicalModelBuiltAgainstJoiningBranch.md) | The canonical model targets `Command`/`Outcome` with Phase 1 joining already included — there is no smaller baseline left. **Proposed**. |
+| [P2-ADR-SpecImplementationDeferredUntilHardwareValidation](P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md) | Decided now; implementation waits for Phase 1's NUCLEO hardware validation across `ibft-embassy`/`raft-embassy`/`raft`. **Proposed**. |
 
 ## Template
 
@@ -57,3 +64,12 @@ The specific test, gate, or structural mechanism that keeps it true.
 ```
 
 Fields that do not apply are marked `N/A` rather than padded.
+
+Each ADR is a snapshot of the decision as it stands today, not a changelog:
+state the current shape as fact, and do not narrate what an earlier version
+of this document — or of any other document — used to say. Keep
+cross-references minimal; link another ADR only where the relationship is
+load-bearing, and never cite a living or frequently-changing document
+(`OPEN_POINTS.md`, `CHANGELOG.md`, or similar tracking/status files) — an
+ADR whose meaning depends on another document's current state goes stale
+the moment that document changes.

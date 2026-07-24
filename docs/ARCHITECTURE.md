@@ -369,6 +369,40 @@ configurable per spawn model to account for OS scheduling overhead.
 
 ---
 
+## Specification & conformance (planned, not yet built)
+
+`faction` today has one implementation and no independent specification —
+every guarantee in this document is checkable only by reading or testing
+the Rust crate. A cross-cutting initiative (spanning every phase, not tied
+to one) is decided and recorded in `docs/ADRs/` — see
+`P0-ADR-SpecificationIsNormativeCrateIsReference.md` and the six sibling
+ADRs it anchors — to promote `faction` to a normative specification with
+this crate as a conformant reference implementation, so a non-Rust port has
+something machine-checkable to conform to.
+
+The decided shape: a separate, versioned, language-neutral canonical model
+mapped from (not derived onto) `Command`/`Outcome`/`ProcessResult`; the six
+existing transition-matrix test files consolidated into one declarative
+table consumed by both the test suite and a new vector-exporter; vectors
+that are reachable-by-construction from the initial state, requiring no
+test-only API; and CI gates that fail if the crate and the exported
+vectors drift apart. Full detail, including the finding that no
+compile-time-only invariant exists anywhere in `core/src` today, is in the
+ADRs themselves, not repeated here.
+
+This connects to, but is distinct from, the "Formal verifiability" property
+above: a TLA+ model would check the Mealy machine's logic exhaustively; the
+canonical model and vectors check that independent implementations agree
+with this one. Both use the same underlying vocabulary; neither has shipped
+yet.
+
+**Status:** decided (`Proposed` ADRs), implementation not started.
+Implementation is deliberately sequenced after Phase 1 (dynamic joining) is
+validated on real NUCLEO hardware — see `ROADMAP.md` and
+`P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md` for why.
+
+---
+
 ## Design decisions
 
 **No generic `NodeId` (current limitation).** Peer IDs are currently `u64`. A generic

@@ -41,6 +41,11 @@ Faction still never computes what the new threshold *should* be, under either
 version — that stays the protocol's fault-model-driven formula, recomputed and
 injected by the consumer, same as at construction.
 
+Whenever this command is added, it extends the canonical model alongside
+`Command`/`Outcome` in the same change — see `docs/ADRs/` for the
+cross-cutting specification decisions requiring every command/outcome to
+carry a canonical counterpart, not just a Rust variant.
+
 The postponed **`join-raises-quorum`** system test (Phase 1 scenario 5) awaits this
 command: it presupposes the caller can inject a larger threshold on admission — exactly
 the uncoordinated threshold swap deferred here — so it returns only once the
