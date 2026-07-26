@@ -321,6 +321,7 @@ MIT. See [LICENSE](./LICENSE).
 ## Links
 
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
+- [GRIP-BRAINTAX-VALIDATION.md](./docs/GRIP-BRAINTAX-VALIDATION.md) — testability and cognitive-load scores across `core/`'s commit history, as a real-world validation corpus for [`grip`](https://crates.io/crates/cargo-grip4rust)/[`braintax`](https://crates.io/crates/cargo-braintax4rust)
 - [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
 - [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
 - [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, `PeerId` genericization)
