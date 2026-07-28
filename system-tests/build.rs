@@ -4,6 +4,7 @@
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    std::fs::create_dir_all("src/transport/grpc/generated")?;
     tonic_build::configure()
         .out_dir("src/transport/grpc/generated")
         .compile_protos(
