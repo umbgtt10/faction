@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::boxed::Box;
-use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
+use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
+use crate::members::Members;
 use crate::observer::Observer;
-use crate::peer_state::PeerState;
 use crate::process_result::ProcessResult;
 use crate::state::State;
 use crate::states::initial::Initial;
@@ -24,14 +24,11 @@ pub struct Faction {
 impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
-        let state: Box<dyn State> = Box::new(Initial);
-        let base = ClusterView::new(
-            PeerState::Fresh,
-            false,
-            Vec::new(),
-            Vec::new(),
-            config.required_count(),
-        );
+        let state: Box<dyn State> = Box::new(Initial::new(Members::new(config.peers().to_vec())));
+        let base = ClusterViewBuilder::new()
+            .with_required_count(config.required_count())
+            .with_members(Members::new(config.peers().to_vec()))
+            .build();
         let cluster_view = state.cluster_view(&base);
         Self {
             config,

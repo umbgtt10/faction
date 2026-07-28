@@ -1,14 +1,13 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use std::path::PathBuf;
-
-use chrono::Utc;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::spawn::Spawn;
 use faction_system_tests::timer_delay::TimerDelay;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
+
+use crate::support::log_dir;
 
 #[rstest]
 #[case::task_real_inmemory_quorum4(Spawn::Task, TransportKind::InMemory, TimerDelay::Minimal, 4)]
@@ -58,14 +57,13 @@ fn cluster_reaches_bootstrapped(
     #[case] required: usize,
 ) {
     // Arrange
-    let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-    let name = format!("{timestamp}_{spawn:?}_{transport:?}_{required:?}.jsonl").to_lowercase();
-
     let mut cluster = ClusterBuilder::new(5, required)
         .spawn(spawn)
         .transport(transport)
         .timer_delay(delay)
-        .log_path(PathBuf::from("logs").join(name))
+        .log_dir(log_dir(&format!(
+            "bootstrap-{spawn:?}-{transport:?}-q{required}"
+        )))
         .build();
 
     // Act

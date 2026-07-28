@@ -6,29 +6,29 @@ extern crate alloc;
 use alloc::vec;
 
 use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::transition::Transition;
 
 fn cluster_view(pinging_peers: Vec<u64>, collecting_peers: Vec<u64>) -> ClusterView {
-    ClusterView::new(
-        PeerState::Pinging,
-        false,
-        pinging_peers,
-        collecting_peers,
-        4,
-    )
+    ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_pinging_peers(pinging_peers)
+        .with_collecting_peers(collecting_peers)
+        .with_required_count(4)
+        .build()
 }
 
 fn snapshot_exited() -> ClusterView {
-    ClusterView::new(
-        PeerState::Bootstrapped,
-        true,
-        vec![1, 2, 3],
-        vec![1, 2, 3, 4, 5],
-        4,
-    )
+    ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Bootstrapped)
+        .with_is_pinging_completed(true)
+        .with_pinging_peers(vec![1, 2, 3])
+        .with_collecting_peers(vec![1, 2, 3, 4, 5])
+        .with_required_count(4)
+        .build()
 }
 
 #[test]

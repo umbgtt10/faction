@@ -2,6 +2,59 @@
 
 ## [Unreleased]
 
+### Phase 1 — dynamic joining across the full spawn/transport matrix
+
+#### Added
+- Dynamic joining. The `JoinRequested` / `JoinApproved` / `JoinRejected` commands
+  drive a membership axis orthogonal to the `Initial → Pinging → Collecting →
+  Bootstrapped` progression, so a node in any state — including terminal
+  `Bootstrapped` and non-terminal `TimedOut` — admits or denies a newcomer and keeps
+  converging. Live `Members` are carried in each `State` (`Config` is the immutable
+  genesis; membership is genesis ∪ admitted). Admission is a local control-plane
+  decision, not a wire message.
+- Natural timeout. A `DeadlineExpired` timer is scheduled at start (from
+  `--freshness-margin`), so a node that never reaches quorum times out on its own,
+  not only via an injected expiry.
+- `ClusterView` split into a pure DTO (public fields, no mutation methods) plus a
+  `ClusterViewBuilder`, and now exposes live `members`.
+- System-test join suite — 61 tests: six scenarios (join-then-converge,
+  join-before-bootstrap, rejected, duplicate, concurrent multi-join,
+  join-after-timeout) plus a natural-timeout scenario, across Task/Thread ×
+  {in-memory, channels, TCP, gRPC} and Process × {TCP, gRPC}. The harness gained
+  late-join for every transport, a Thread control plane (an mpsc command queue with
+  live snapshots) and a Process control plane (an stdin/stdout line protocol).
+- ADRs: `P2-ADR-ClusterViewBuilderAndDto`, `P2-ADR-TestingLadder`, and
+  `P1-ADR-CollectingIsNotASink`.
+- `FaultyTransport` — a harness `Transport` decorator that injects seeded transport
+  faults (loss, duplication, delay, reorder, partition, asymmetric, selective) behind a
+  loud per-fault banner, as the instrument for the Phase-2 hardening assessment.
+
+#### Changed
+- The stage-1 gate runs the system tests as bounded-parallel per-test processes via
+  [`slotgate`](https://crates.io/crates/slotgate) — a disjoint port range per slot —
+  instead of a serial `--test-threads=1` pass; the gate dropped from ~3 min to ~50 s.
+- License headers corrected from Apache-2.0 to the MIT SPDX one-liner across the
+  workspace.
+- System-test logs restructured for scale: one timestamped run folder under `logs/`,
+  one subfolder per test (`<scenario>-<spawn>-<transport>-q<n>/`) holding a per-node
+  `node-<id>.jsonl` and a merged `consolidated.jsonl`; the gate writes a per-run
+  `summary.json` (failures first) and prunes to the newest `-MaxLogRuns` folders.
+  slotgate's per-job stdout/stderr capture nests under the same run folder.
+- Process nodes derive their listen port from slotgate's per-slot `PORT_RANGE`
+  (distinct per node) instead of `bind(":0")`-drop-rebind.
+- Harness restructure: `ProcessSpec` / `spawn_process_node` extracted into
+  `process_spawn`; the `cluster` module split one-struct-per-file into `cluster.rs`
+  plus a `join/` module; `wait_for_tcp_ready`, `allocate_port_addr`, and `node_writer`
+  folded into `ClusterBuilder`.
+
+#### Fixed
+- The process-TCP harness transport could silently, permanently strand a node one
+  message short under gate parallelism — its accept thread died on a transient
+  `accept()` error, and `send()` never replaced a dead outbound stream — timing out the
+  quorum-5 convergence and sub-quorum-recovery join tests on ~15% of runs. The accept
+  loop now survives transient errors and `send` drops the dead stream, reconnects, and
+  retries; validated across 30 consecutive clean gate runs.
+
 ### Self-describing entry point, Architecture Decision Records, and a documentation sweep
 
 #### Added

@@ -11,6 +11,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
 use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
@@ -54,7 +55,12 @@ impl Drop for TempFile {
 }
 
 fn make_cluster_view() -> ClusterView {
-    ClusterView::new(PeerState::Pinging, false, vec![0, 3], vec![1], 4)
+    ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_pinging_peers(vec![0, 3])
+        .with_collecting_peers(vec![1])
+        .with_required_count(4)
+        .build()
 }
 
 fn make_transition() -> Transition {
@@ -196,7 +202,11 @@ fn observe_writes_bootstrapped_exit_state() {
     let tmp = TempFile::new();
     let writer = tmp.reader();
     let mut observer = SharedFileObserver::new(writer, 7);
-    let view = ClusterView::new(PeerState::Bootstrapped, true, vec![], vec![], 4);
+    let view = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Bootstrapped)
+        .with_is_pinging_completed(true)
+        .with_required_count(4)
+        .build();
     let transition = Transition::new(view.clone(), vec![], view);
 
     // Act

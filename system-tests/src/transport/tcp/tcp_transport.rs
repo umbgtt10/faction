@@ -12,7 +12,11 @@ use std::sync::{Arc, Mutex};
 use std::thread::{JoinHandle, sleep, spawn};
 use std::time::Duration;
 
+pub type AddressBook = Arc<Mutex<Vec<(PeerId, SocketAddr)>>>;
+
 pub struct TcpTransport {
+    peer_id: PeerId,
+    address_book: AddressBook,
     outbound: HashMap<PeerId, TcpStream>,
     inbound: Arc<Mutex<Vec<TcpStream>>>,
     buf: Vec<u8>,
@@ -40,7 +44,6 @@ impl TcpTransport {
         peer_id: PeerId,
         peer_addrs: &[(PeerId, SocketAddr)],
     ) -> Self {
-        let inbound = Arc::new(Mutex::new(Vec::new()));
         let listener = TcpListener::bind(listen_addr).unwrap();
 
         {
@@ -50,26 +53,9 @@ impl TcpTransport {
             drop(conn);
         }
 
-        let shutdown = Arc::new(AtomicBool::new(false));
-        let thread_listener = listener.try_clone().unwrap();
-        let ib = inbound.clone();
-        let sd = shutdown.clone();
-        let accept_thread = spawn(move || {
-            for incoming in thread_listener.incoming() {
-                if sd.load(Ordering::Relaxed) {
-                    break;
-                }
-                match incoming {
-                    Ok(stream) => {
-                        stream.set_nonblocking(true).unwrap();
-                        ib.lock().unwrap().push(stream);
-                    }
-                    Err(_) => break,
-                }
-            }
-        });
+        let address_book: AddressBook = Arc::new(Mutex::new(peer_addrs.to_vec()));
+        let mut transport = Self::from_listener(peer_id, listener, address_book);
 
-        let mut outbound = HashMap::new();
         for &(pid, addr) in peer_addrs {
             if pid != peer_id {
                 let mut attempts = 0;
@@ -84,12 +70,65 @@ impl TcpTransport {
                     }
                 };
                 stream.set_nonblocking(true).unwrap();
-                outbound.insert(pid, stream);
+                transport.outbound.insert(pid, stream);
             }
         }
 
+        transport
+    }
+
+    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<TcpTransport> {
+        let address_book: AddressBook = Arc::new(Mutex::new(Vec::new()));
+        peer_ids
+            .iter()
+            .map(|&peer_id| Self::bind(peer_id, address_book.clone()))
+            .collect()
+    }
+
+    #[must_use]
+    pub fn registry(&self) -> AddressBook {
+        self.address_book.clone()
+    }
+
+    #[must_use]
+    pub fn join_mesh(peer_id: PeerId, address_book: AddressBook) -> TcpTransport {
+        Self::bind(peer_id, address_book)
+    }
+
+    fn bind(peer_id: PeerId, address_book: AddressBook) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        address_book.lock().unwrap().push((peer_id, addr));
+        Self::from_listener(peer_id, listener, address_book)
+    }
+
+    fn from_listener(peer_id: PeerId, listener: TcpListener, address_book: AddressBook) -> Self {
+        let inbound = Arc::new(Mutex::new(Vec::new()));
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let thread_listener = listener.try_clone().unwrap();
+        let ib = inbound.clone();
+        let sd = shutdown.clone();
+        let accept_thread = spawn(move || {
+            for incoming in thread_listener.incoming() {
+                if sd.load(Ordering::Relaxed) {
+                    break;
+                }
+                match incoming {
+                    Ok(stream) => {
+                        stream.set_nonblocking(true).unwrap();
+                        ib.lock().unwrap().push(stream);
+                    }
+                    Err(_) => {
+                        sleep(Duration::from_millis(1));
+                    }
+                }
+            }
+        });
+
         Self {
-            outbound,
+            peer_id,
+            address_book,
+            outbound: HashMap::new(),
             inbound,
             buf: Vec::new(),
             _listener: listener,
@@ -98,36 +137,23 @@ impl TcpTransport {
         }
     }
 
-    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<TcpTransport> {
-        let n = peer_ids.len();
-        let mut listeners: Vec<TcpListener> = Vec::new();
-        let mut addrs: Vec<String> = Vec::new();
-        for _ in 0..n {
-            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-            addrs.push(listener.local_addr().unwrap().to_string());
-            listeners.push(listener);
+    fn connect_to(&mut self, to: PeerId) {
+        if self.outbound.contains_key(&to) {
+            return;
         }
-        let mut all: Vec<HashMap<PeerId, TcpStream>> = (0..n).map(|_| HashMap::new()).collect();
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let a_to_b = TcpStream::connect(&addrs[j]).unwrap();
-                a_to_b.set_nonblocking(true).unwrap();
-                all[i].insert(peer_ids[j], a_to_b);
-                let (b_to_a, _) = listeners[j].accept().unwrap();
-                b_to_a.set_nonblocking(true).unwrap();
-                all[j].insert(peer_ids[i], b_to_a);
+        let addr = self
+            .address_book
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|(pid, _)| *pid == to)
+            .map(|(_, addr)| *addr);
+        if let Some(addr) = addr {
+            if let Ok(stream) = TcpStream::connect(addr) {
+                stream.set_nonblocking(true).unwrap();
+                self.outbound.insert(to, stream);
             }
         }
-        all.into_iter()
-            .map(|streams| TcpTransport {
-                outbound: streams,
-                inbound: Arc::new(Mutex::new(Vec::new())),
-                buf: Vec::new(),
-                _listener: TcpListener::bind("127.0.0.1:0").unwrap(),
-                _shutdown: Arc::new(AtomicBool::new(false)),
-                _accept_thread: None,
-            })
-            .collect()
     }
 
     fn encode(from: PeerId, tag: u8) -> Vec<u8> {
@@ -161,17 +187,42 @@ impl TcpTransport {
             }
         }
     }
+
+    fn write_all(stream: &mut TcpStream, data: &[u8]) -> bool {
+        let mut written = 0;
+        while written < data.len() {
+            match stream.write(&data[written..]) {
+                Ok(0) => return false,
+                Ok(n) => written += n,
+                Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                    sleep(Duration::from_millis(1));
+                }
+                Err(_) => return false,
+            }
+        }
+        true
+    }
 }
 
 impl Transport for TcpTransport {
     fn send(&mut self, to: PeerId, message: TransportMessage) {
-        if let Some(stream) = self.outbound.get_mut(&to) {
-            let data = match &message {
-                TransportMessage::Ping { from } => Self::encode(*from, 0),
-                TransportMessage::Ready { from } => Self::encode(*from, 1),
-                TransportMessage::Bootstrapped { from } => Self::encode(*from, 2),
+        if to == self.peer_id {
+            return;
+        }
+        let data = match &message {
+            TransportMessage::Ping { from } => Self::encode(*from, 0),
+            TransportMessage::Ready { from } => Self::encode(*from, 1),
+            TransportMessage::Bootstrapped { from } => Self::encode(*from, 2),
+        };
+        for _ in 0..2 {
+            self.connect_to(to);
+            let Some(stream) = self.outbound.get_mut(&to) else {
+                return;
             };
-            let _ = stream.write(&data);
+            if Self::write_all(stream, &data) {
+                return;
+            }
+            self.outbound.remove(&to);
         }
     }
 

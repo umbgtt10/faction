@@ -6,11 +6,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -113,14 +114,17 @@ fn process_probe_returns_correct_snapshot() {
 #[test]
 fn cluster_view_overrides_all_fields() {
     // Arrange
-    let bootstrapped = Bootstrapped::new(vec![1, 2], vec![1, 2, 3, 4, 5]);
-    let prev = ClusterView::new(
-        PeerState::Pinging,
-        false,
+    let bootstrapped = Bootstrapped::new(
+        Members::new(vec![1, 2, 3, 4, 5]),
         vec![1, 2],
         vec![1, 2, 3, 4, 5],
-        4,
     );
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_pinging_peers(vec![1, 2])
+        .with_collecting_peers(vec![1, 2, 3, 4, 5])
+        .with_required_count(4)
+        .build();
 
     // Act
     let result = bootstrapped.cluster_view(&prev);

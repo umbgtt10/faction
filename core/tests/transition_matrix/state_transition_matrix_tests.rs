@@ -16,7 +16,8 @@ use rstest::rstest;
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 use super::helpers::{
-    all_admissible, bootstrapped_admissible, collecting_admissible, participation, ready,
+    all_admissible, bootstrapped_admissible, collecting_admissible, initial_admissible,
+    join_approved, join_rejected, join_requested, participation, ready,
 };
 
 #[rstest]
@@ -124,6 +125,146 @@ use super::helpers::{
     &[AcknowledgeRejoin { peer_id: 1 }],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     bootstrapped_admissible(),
+)]
+#[case::initial_join_requested(
+    Init::Initial,
+    join_requested(99),
+    &[EmitJoinRequest { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::initial_join_approved_new_member(
+    Init::Initial,
+    join_approved(99),
+    &[MemberAdmitted { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::initial_join_approved_existing_member(
+    Init::Initial,
+    join_approved(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::initial_join_rejected(
+    Init::Initial,
+    join_rejected(99),
+    &[JoinDenied { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::pinging_join_requested(
+    Init::Fresh,
+    join_requested(99),
+    &[EmitJoinRequest { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
+)]
+#[case::pinging_join_approved_new_member(
+    Init::Fresh,
+    join_approved(99),
+    &[MemberAdmitted { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
+)]
+#[case::pinging_join_approved_existing_member(
+    Init::Fresh,
+    join_approved(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
+)]
+#[case::pinging_join_rejected(
+    Init::Fresh,
+    join_rejected(99),
+    &[JoinDenied { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
+)]
+#[case::collecting_join_requested(
+    Init::CollectingNoReadiness,
+    join_requested(99),
+    &[EmitJoinRequest { peer_id: 99 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_join_approved_new_member(
+    Init::CollectingNoReadiness,
+    join_approved(99),
+    &[MemberAdmitted { peer_id: 99 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_join_approved_existing_member(
+    Init::CollectingNoReadiness,
+    join_approved(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_join_rejected(
+    Init::CollectingNoReadiness,
+    join_rejected(99),
+    &[JoinDenied { peer_id: 99 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_acknowledges_member_participation(
+    Init::CollectingNoReadiness,
+    participation(1),
+    &[AcknowledgeRejoin { peer_id: 1 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_ignores_non_member_participation(
+    Init::CollectingNoReadiness,
+    participation(99),
+    &[NonMemberIgnored { peer_id: 99 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::bootstrapped_join_requested(
+    Init::Bootstrapped,
+    join_requested(99),
+    &[EmitJoinRequest { peer_id: 99 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_join_approved_new_member(
+    Init::Bootstrapped,
+    join_approved(99),
+    &[MemberAdmitted { peer_id: 99 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_join_approved_existing_member(
+    Init::Bootstrapped,
+    join_approved(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_join_rejected(
+    Init::Bootstrapped,
+    join_rejected(99),
+    &[JoinDenied { peer_id: 99 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::pinging_join_requested_existing_member(
+    Init::Fresh,
+    join_requested(1),
+    &[EmitJoinRequest { peer_id: 1 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
+)]
+#[case::timed_out_join_requested(
+    Init::TimedOut,
+    join_requested(99),
+    &[EmitJoinRequest { peer_id: 99 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    all_admissible(),
 )]
 fn valid_transition(
     #[case] init: Init,

@@ -15,5 +15,9 @@ pub enum Outcome {
     BroadcastLocalReady,
     AcknowledgeRejoin { peer_id: PeerId },
     DeadlineMissed { confirmed_count: usize },
+    EmitJoinRequest { peer_id: PeerId },
+    MemberAdmitted { peer_id: PeerId },
+    DuplicateMemberIgnored { peer_id: PeerId },
+    JoinDenied { peer_id: PeerId },
     Concluded { mode: Conclusion },
 }

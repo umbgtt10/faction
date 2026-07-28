@@ -25,6 +25,9 @@ pub trait State: Send {
             Command::ReadyObserved { peer_id: 0 },
             Command::LocalParticipationCompleted,
             Command::DeadlineExpired,
+            Command::JoinRequested { peer_id: 0 },
+            Command::JoinApproved { peer_id: 0 },
+            Command::JoinRejected { peer_id: 0 },
             Command::Probe,
         ]
     }

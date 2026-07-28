@@ -5,6 +5,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::vec;
+use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
@@ -39,16 +40,14 @@ struct ModelClusterView {
 
 struct ModelCoordinator {
     local_peer_id: u64,
-    peer_set: [u64; 5],
+    members: Vec<u64>,
     required_count: usize,
     initial: bool,
     peer_state: ModelLifecycleState,
     exit_mode: Option<Conclusion>,
     is_pinging_completed: bool,
-    pinging_confirmed: [bool; 5],
-    collecting_confirmed: [bool; 5],
-    pinging_confirmed_count: usize,
-    collecting_confirmed_count: usize,
+    pinging_confirmed: Vec<u64>,
+    collecting_confirmed: Vec<u64>,
     deadline_missed: bool,
 }
 
@@ -56,18 +55,20 @@ impl ModelCoordinator {
     fn new() -> Self {
         Self {
             local_peer_id: 0,
-            peer_set: [0, 1, 2, 3, 4],
+            members: vec![0, 1, 2, 3, 4],
             required_count: 4,
             initial: true,
             peer_state: ModelLifecycleState::Fresh,
             exit_mode: None,
             is_pinging_completed: false,
-            pinging_confirmed: [false; 5],
-            collecting_confirmed: [false; 5],
-            pinging_confirmed_count: 0,
-            collecting_confirmed_count: 0,
+            pinging_confirmed: Vec::new(),
+            collecting_confirmed: Vec::new(),
             deadline_missed: false,
         }
+    }
+
+    fn is_member(&self, peer_id: u64) -> bool {
+        self.members.contains(&peer_id)
     }
 
     fn cluster_view(&self) -> ModelClusterView {
@@ -82,13 +83,22 @@ impl ModelCoordinator {
             exit_mode: self.exit_mode,
             is_pinging_completed: self.is_pinging_completed,
             readiness_exited: self.exit_mode.is_some(),
-            pinging_confirmed_count: self.pinging_confirmed_count,
-            collecting_confirmed_count: self.collecting_confirmed_count,
+            pinging_confirmed_count: self.pinging_confirmed.len(),
+            collecting_confirmed_count: self.collecting_confirmed.len(),
             required_count: self.required_count,
         }
     }
 
-    fn process(&mut self, command: Command) -> alloc::vec::Vec<Outcome> {
+    fn process(&mut self, command: Command) -> Vec<Outcome> {
+        match command {
+            Command::JoinRequested { peer_id } => {
+                return vec![Outcome::EmitJoinRequest { peer_id }]
+            }
+            Command::JoinApproved { peer_id } => return self.apply_join_approved(peer_id),
+            Command::JoinRejected { peer_id } => return vec![Outcome::JoinDenied { peer_id }],
+            _ => {}
+        }
+
         if self.initial {
             match command {
                 Command::ParticipationObserved { .. }
@@ -104,9 +114,10 @@ impl ModelCoordinator {
         if self.has_exited() {
             if self.peer_state == ModelLifecycleState::Bootstrapped {
                 if let Command::ParticipationObserved { peer_id } = command {
-                    return match self.peer_index(peer_id) {
-                        Some(_) => vec![Outcome::AcknowledgeRejoin { peer_id }],
-                        None => vec![Outcome::NonMemberIgnored { peer_id }],
+                    return if self.is_member(peer_id) {
+                        vec![Outcome::AcknowledgeRejoin { peer_id }]
+                    } else {
+                        vec![Outcome::NonMemberIgnored { peer_id }]
                     };
                 }
             }
@@ -115,9 +126,14 @@ impl ModelCoordinator {
 
         if self.is_pinging_completed {
             match command {
-                Command::ParticipationObserved { .. } | Command::LocalParticipationCompleted => {
-                    return Vec::new()
+                Command::ParticipationObserved { peer_id } => {
+                    return if self.is_member(peer_id) {
+                        vec![Outcome::AcknowledgeRejoin { peer_id }]
+                    } else {
+                        vec![Outcome::NonMemberIgnored { peer_id }]
+                    };
                 }
+                Command::LocalParticipationCompleted => return Vec::new(),
                 _ => {}
             }
         }
@@ -127,48 +143,45 @@ impl ModelCoordinator {
                 self.apply_participation_observed(peer_id)
             }
             Command::ReadyObserved { peer_id } => self.apply_ready_observed(peer_id),
-            Command::LocalParticipationCompleted => self.apply_is_pinging_completedd(),
+            Command::LocalParticipationCompleted => self.apply_local_participation_completed(),
             Command::DeadlineExpired => self.apply_deadline_expired(),
+            Command::JoinRequested { .. }
+            | Command::JoinApproved { .. }
+            | Command::JoinRejected { .. } => unreachable!("join commands handled above"),
             Command::Probe => unreachable!("Probe handled in Faction::process"),
         }
     }
 
-    fn apply_participation_observed(&mut self, peer_id: u64) -> alloc::vec::Vec<Outcome> {
-        if self.has_exited() {
-            return vec![];
+    fn apply_join_approved(&mut self, peer_id: u64) -> Vec<Outcome> {
+        if self.is_member(peer_id) {
+            vec![Outcome::DuplicateMemberIgnored { peer_id }]
+        } else {
+            self.members.push(peer_id);
+            vec![Outcome::MemberAdmitted { peer_id }]
         }
+    }
 
-        let Some(index) = self.peer_index(peer_id) else {
+    fn apply_participation_observed(&mut self, peer_id: u64) -> Vec<Outcome> {
+        if !self.is_member(peer_id) {
             return vec![Outcome::NonMemberIgnored { peer_id }];
-        };
-
-        if self.pinging_confirmed[index] {
+        }
+        if self.pinging_confirmed.contains(&peer_id) {
             return vec![Outcome::DuplicateParticipationIgnored { peer_id }];
         }
-
-        self.pinging_confirmed[index] = true;
-        self.pinging_confirmed_count += 1;
-
+        self.pinging_confirmed.push(peer_id);
         vec![Outcome::ParticipationAccepted { peer_id }]
     }
 
-    fn apply_ready_observed(&mut self, peer_id: u64) -> alloc::vec::Vec<Outcome> {
-        if self.has_exited() {
-            return vec![];
-        }
-
-        let Some(index) = self.peer_index(peer_id) else {
+    fn apply_ready_observed(&mut self, peer_id: u64) -> Vec<Outcome> {
+        if !self.is_member(peer_id) {
             return vec![Outcome::NonMemberIgnored { peer_id }];
-        };
-
-        if self.collecting_confirmed[index] {
+        }
+        if self.collecting_confirmed.contains(&peer_id) {
             return vec![Outcome::DuplicateReadyIgnored { peer_id }];
         }
+        self.collecting_confirmed.push(peer_id);
 
-        self.collecting_confirmed[index] = true;
-        self.collecting_confirmed_count += 1;
-
-        if self.is_pinging_completed && self.collecting_confirmed_count >= self.required_count {
+        if self.is_pinging_completed && self.collecting_confirmed.len() >= self.required_count {
             self.exit_mode = Some(Conclusion::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             vec![
@@ -182,20 +195,12 @@ impl ModelCoordinator {
         }
     }
 
-    fn apply_is_pinging_completedd(&mut self) -> alloc::vec::Vec<Outcome> {
-        if self.has_exited() || self.is_pinging_completed {
-            return vec![];
-        }
-
+    fn apply_local_participation_completed(&mut self) -> Vec<Outcome> {
         self.is_pinging_completed = true;
         self.peer_state = ModelLifecycleState::Collecting;
 
-        let local_index = self
-            .peer_index(self.local_peer_id)
-            .expect("local peer must be in peer set");
-        if !self.collecting_confirmed[local_index] {
-            self.collecting_confirmed[local_index] = true;
-            self.collecting_confirmed_count += 1;
+        if !self.collecting_confirmed.contains(&self.local_peer_id) {
+            self.collecting_confirmed.push(self.local_peer_id);
         }
 
         let mut outputs = vec![
@@ -203,7 +208,7 @@ impl ModelCoordinator {
             Outcome::BroadcastLocalReady,
         ];
 
-        if self.collecting_confirmed_count >= self.required_count {
+        if self.collecting_confirmed.len() >= self.required_count {
             self.exit_mode = Some(Conclusion::Bootstrapped);
             self.peer_state = ModelLifecycleState::Bootstrapped;
             outputs.push(Outcome::Concluded {
@@ -214,22 +219,12 @@ impl ModelCoordinator {
         outputs
     }
 
-    fn apply_deadline_expired(&mut self) -> alloc::vec::Vec<Outcome> {
-        if self.has_exited() {
-            return vec![];
-        }
-
+    fn apply_deadline_expired(&mut self) -> Vec<Outcome> {
         self.deadline_missed = true;
 
         vec![Outcome::DeadlineMissed {
-            confirmed_count: self.collecting_confirmed_count,
+            confirmed_count: self.collecting_confirmed.len(),
         }]
-    }
-
-    fn peer_index(&self, peer_id: u64) -> Option<usize> {
-        self.peer_set
-            .iter()
-            .position(|candidate| *candidate == peer_id)
     }
 
     fn has_exited(&self) -> bool {
@@ -266,12 +261,18 @@ fn faction() -> Faction {
 fn input_strategy() -> impl Strategy<Value = Command> {
     let participation = (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id });
     let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id });
+    let join_requested = (0u64..=6).prop_map(|peer_id| Command::JoinRequested { peer_id });
+    let join_approved = (0u64..=6).prop_map(|peer_id| Command::JoinApproved { peer_id });
+    let join_rejected = (0u64..=6).prop_map(|peer_id| Command::JoinRejected { peer_id });
 
     prop_oneof![
         participation,
         ready,
         Just(Command::LocalParticipationCompleted),
         Just(Command::DeadlineExpired),
+        join_requested,
+        join_approved,
+        join_rejected,
     ]
 }
 

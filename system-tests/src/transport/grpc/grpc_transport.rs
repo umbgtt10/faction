@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::net::{SocketAddr, TcpListener};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -27,8 +28,11 @@ type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 type Clients = Arc<AsyncMutex<HashMap<PeerId, TransportClient<Channel>>>>;
 type Tx = UnboundedSender<(PeerId, TransportMessage)>;
 
+pub type AddressBook = Arc<Mutex<Vec<(PeerId, SocketAddr)>>>;
+
 pub struct GrpcTransport {
     inbox: Inbox,
+    address_book: AddressBook,
     _shutdown_tx: Option<OneshotSender<()>>,
     _tx: Tx,
 }
@@ -54,10 +58,31 @@ impl GrpcTransport {
         d
     }
 
-    fn spawn_sender(mut rx: UnboundedReceiver<(PeerId, TransportMessage)>, clients: Clients) {
+    fn spawn_sender(
+        mut rx: UnboundedReceiver<(PeerId, TransportMessage)>,
+        clients: Clients,
+        address_book: AddressBook,
+    ) {
         Self::runtime().spawn(async move {
             while let Some((to, msg)) = rx.recv().await {
                 let mut guard = clients.lock().await;
+                if let Entry::Vacant(entry) = guard.entry(to) {
+                    let addr = address_book
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .find(|(pid, _)| *pid == to)
+                        .map(|(_, addr)| *addr);
+                    if let Some(addr) = addr {
+                        if let Ok(ch) = Endpoint::from_shared(format!("http://{addr}"))
+                            .unwrap()
+                            .connect()
+                            .await
+                        {
+                            entry.insert(TransportClient::new(ch));
+                        }
+                    }
+                }
                 if let Some(c) = guard.get_mut(&to) {
                     let d = Self::encode(&msg);
                     let _ = c.deliver(Request::new(Envelope { data: d })).await;
@@ -124,66 +149,85 @@ impl GrpcTransport {
         let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
 
         let shutdown_tx = Self::build_server(inbox.clone(), listen_addr);
+        let address_book: AddressBook = Arc::new(Mutex::new(peer_addrs.to_vec()));
         let clients = Self::build_clients(peer_id, peer_addrs);
 
         let (tx, rx) = unbounded_channel();
-        Self::spawn_sender(rx, clients);
+        Self::spawn_sender(rx, clients, address_book.clone());
 
         Self {
             inbox,
+            address_book,
             _shutdown_tx: Some(shutdown_tx),
             _tx: tx,
         }
     }
 
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
-        let n = peer_ids.len();
         let rt = Self::runtime();
-        let mut peer_addrs = Vec::new();
+        let address_book: AddressBook = Arc::new(Mutex::new(Vec::new()));
         let mut inboxes = Vec::new();
         let mut shutdown_txs = Vec::new();
 
         {
             let _guard = rt.enter();
-            for _ in 0..n {
+            for &peer_id in peer_ids {
                 let ib: Inbox = Arc::new(Mutex::new(VecDeque::new()));
-                let ib_for_server = ib.clone();
                 let l = TcpListener::bind("127.0.0.1:0").unwrap();
                 l.set_nonblocking(true).unwrap();
                 let a = l.local_addr().unwrap();
-                peer_addrs.push((PeerId::default(), a));
+                address_book.lock().unwrap().push((peer_id, a));
                 let tl = TokioTcpListener::from_std(l).unwrap();
-                let stx = Self::spawn_server(ib_for_server, TcpListenerStream::new(tl));
+                let stx = Self::spawn_server(ib.clone(), TcpListenerStream::new(tl));
                 shutdown_txs.push(stx);
                 inboxes.push(ib);
             }
         }
 
-        let peer_addrs: Vec<(PeerId, SocketAddr)> = peer_ids
-            .iter()
-            .zip(peer_addrs.iter().map(|(_, a)| a))
-            .map(|(&id, &a)| (id, a))
-            .collect();
-
-        let client_lists: Vec<Clients> = peer_ids
-            .iter()
-            .map(|&pid| Self::build_clients(pid, &peer_addrs))
-            .collect();
-
         inboxes
             .into_iter()
-            .zip(client_lists)
             .zip(shutdown_txs)
-            .map(|((ib, clients), stx)| {
+            .map(|(ib, stx)| {
+                let clients: Clients = Arc::new(AsyncMutex::new(HashMap::new()));
                 let (tx, rx) = unbounded_channel();
-                Self::spawn_sender(rx, clients);
+                Self::spawn_sender(rx, clients, address_book.clone());
                 GrpcTransport {
                     inbox: ib,
+                    address_book: address_book.clone(),
                     _shutdown_tx: Some(stx),
                     _tx: tx,
                 }
             })
             .collect()
+    }
+
+    #[must_use]
+    pub fn registry(&self) -> AddressBook {
+        self.address_book.clone()
+    }
+
+    #[must_use]
+    pub fn join_mesh(peer_id: PeerId, address_book: AddressBook) -> GrpcTransport {
+        let _guard = Self::runtime().enter();
+        let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
+
+        let l = TcpListener::bind("127.0.0.1:0").unwrap();
+        l.set_nonblocking(true).unwrap();
+        let a = l.local_addr().unwrap();
+        address_book.lock().unwrap().push((peer_id, a));
+        let tl = TokioTcpListener::from_std(l).unwrap();
+        let stx = Self::spawn_server(inbox.clone(), TcpListenerStream::new(tl));
+
+        let clients: Clients = Arc::new(AsyncMutex::new(HashMap::new()));
+        let (tx, rx) = unbounded_channel();
+        Self::spawn_sender(rx, clients, address_book.clone());
+
+        GrpcTransport {
+            inbox,
+            address_book,
+            _shutdown_tx: Some(stx),
+            _tx: tx,
+        }
     }
 }
 

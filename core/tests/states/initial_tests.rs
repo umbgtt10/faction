@@ -6,11 +6,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -226,7 +227,7 @@ fn process_ready_non_member_from_initial() {
 #[test]
 fn new_returns_initial_state() {
     // Arrange & Act
-    let initial = Initial::new();
+    let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]));
     let config = Config::new(0, vec![0], QuorumPolicy::new(1));
     let (outcomes, new_state) =
         initial.step(Command::ParticipationObserved { peer_id: 0 }, &config);
@@ -239,13 +240,13 @@ fn new_returns_initial_state() {
     assert!(
         new_state
             .as_ref()
-            .cluster_view(&ClusterView::new(
-                PeerState::Pinging,
-                false,
-                vec![0],
-                vec![],
-                1
-            ))
+            .cluster_view(
+                &ClusterViewBuilder::new()
+                    .with_peer_state(PeerState::Pinging)
+                    .with_pinging_peers(vec![0])
+                    .with_required_count(1)
+                    .build(),
+            )
             .pinging_peers()
             .len()
             > 0
@@ -307,10 +308,16 @@ fn process_local_participation_completed_single_node_bootstraps() {
 #[test]
 fn cluster_view_inherits_correctly() {
     // Arrange
-    let prev = ClusterView::new(PeerState::Collecting, true, vec![99], vec![99], 4);
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Collecting)
+        .with_is_pinging_completed(true)
+        .with_pinging_peers(vec![99])
+        .with_collecting_peers(vec![99])
+        .with_required_count(4)
+        .build();
 
     // Act
-    let result = Initial.cluster_view(&prev);
+    let result = Initial::new(Members::new(vec![0, 1, 2, 3, 4])).cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Fresh);

@@ -95,4 +95,31 @@ impl Protocol {
             }
         }
     }
+
+    pub fn request_join(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::JoinRequested { peer_id })
+    }
+
+    pub fn admit(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::JoinApproved { peer_id })
+    }
+
+    pub fn deny(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::JoinRejected { peer_id })
+    }
+
+    pub fn expire_deadline(&mut self) -> Vec<OutputMessage> {
+        self.apply(Command::DeadlineExpired)
+    }
+
+    fn apply(&mut self, command: Command) -> Vec<OutputMessage> {
+        match self.faction.process(command) {
+            ProcessResult::Accepted { outcomes, .. } => {
+                self.translator.to_output_messages(outcomes)
+            }
+            ProcessResult::Probed { .. } | ProcessResult::Rejected { .. } => {
+                vec![OutputMessage::Noop]
+            }
+        }
+    }
 }

@@ -6,11 +6,12 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec;
 
-use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -75,7 +76,7 @@ fn process_accepts_deadline_expired() {
 }
 
 #[test]
-fn process_rejects_participation_observed() {
+fn process_acknowledges_member_participation() {
     // Arrange
     let mut faction = faction_in_collecting();
     let snap_before = match faction.process(Command::Probe) {
@@ -84,10 +85,14 @@ fn process_rejects_participation_observed() {
     };
 
     // Act
-    assert!(matches!(
-        faction.process(Command::ParticipationObserved { peer_id: 2 }),
-        ProcessResult::Rejected { .. }
-    ));
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 2 }]);
     assert_eq!(
         match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
@@ -121,7 +126,7 @@ fn process_rejects_local_participation_completed() {
 }
 
 #[test]
-fn process_rejects_participation_non_member() {
+fn process_ignores_non_member_participation() {
     // Arrange
     let mut faction = faction_in_collecting();
     let snap_before = match faction.process(Command::Probe) {
@@ -129,11 +134,15 @@ fn process_rejects_participation_non_member() {
         _ => unreachable!(),
     };
 
-    // Act & Assert
-    assert!(matches!(
-        faction.process(Command::ParticipationObserved { peer_id: 99 }),
-        ProcessResult::Rejected { .. }
-    ));
+    // Act
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(
         match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
@@ -357,8 +366,16 @@ fn process_probe_returns_correct_snapshot() {
 fn cluster_view_inherits_correctly() {
     // Arrange
     let collecting_set = vec![1, 3];
-    let collecting = Collecting::new(collecting_set, vec![5, 6], false);
-    let prev = ClusterView::new(PeerState::Pinging, false, vec![], vec![], 4);
+    let collecting = Collecting::new(
+        Members::new(vec![0, 1, 2, 3, 4]),
+        collecting_set,
+        vec![5, 6],
+        false,
+    );
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_required_count(4)
+        .build();
 
     // Act
     let result = collecting.cluster_view(&prev);

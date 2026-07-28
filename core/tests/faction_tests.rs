@@ -83,6 +83,9 @@ fn all_commands() -> Vec<Command> {
         Command::ReadyObserved { peer_id: 0 },
         Command::LocalParticipationCompleted,
         Command::DeadlineExpired,
+        Command::JoinRequested { peer_id: 0 },
+        Command::JoinApproved { peer_id: 0 },
+        Command::JoinRejected { peer_id: 0 },
         Command::Probe,
     ]
 }
@@ -125,6 +128,9 @@ fn process_accepted_into_bootstrapped_reports_rejoin_and_probe() {
         admissible,
         vec![
             Command::ParticipationObserved { peer_id: 0 },
+            Command::JoinRequested { peer_id: 0 },
+            Command::JoinApproved { peer_id: 0 },
+            Command::JoinRejected { peer_id: 0 },
             Command::Probe
         ]
     );

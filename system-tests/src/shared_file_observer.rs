@@ -21,8 +21,10 @@ use faction_protocol::output_message::OutputMessage;
 
 use crate::node_observer::NodeObserver;
 
+pub type SharedWriter = Arc<Mutex<BufWriter<File>>>;
+
 pub struct SharedFileObserver {
-    writer: Arc<Mutex<BufWriter<File>>>,
+    writer: SharedWriter,
     peer_id: PeerId,
 }
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 pub mod channels;
+pub mod faulty;
 pub mod grpc;
 pub mod in_memory;
 pub mod tcp;

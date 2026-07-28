@@ -1,56 +1,63 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol::transport_trait::Transport;
 
-pub struct ChannelsTransport {
-    inbox: Receiver<TransportMessage>,
-    outboxes: Vec<(PeerId, Sender<TransportMessage>)>,
-}
+pub type ChannelRegistry = Arc<Mutex<Vec<(PeerId, Sender<TransportMessage>)>>>;
 
-impl Drop for ChannelsTransport {
-    fn drop(&mut self) {}
+pub struct ChannelsTransport {
+    peer_id: PeerId,
+    inbox: Receiver<TransportMessage>,
+    registry: ChannelRegistry,
 }
 
 impl ChannelsTransport {
     pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<ChannelsTransport> {
-        let n = peer_ids.len();
-        let mut inbox_senders: Vec<Sender<TransportMessage>> = Vec::new();
-        let mut inbox_receivers: Vec<Receiver<TransportMessage>> = Vec::new();
-
-        for _ in 0..n {
-            let (tx, rx) = channel();
-            inbox_senders.push(tx);
-            inbox_receivers.push(rx);
-        }
+        let registry: ChannelRegistry = Arc::new(Mutex::new(Vec::new()));
 
         peer_ids
             .iter()
-            .enumerate()
-            .map(|(i, &_local_id)| {
-                let outboxes: Vec<_> = peer_ids
-                    .iter()
-                    .enumerate()
-                    .filter(|(j, _)| *j != i)
-                    .map(|(j, &peer_id)| (peer_id, inbox_senders[j].clone()))
-                    .collect();
-
+            .map(|&peer_id| {
+                let (tx, rx) = channel();
+                registry.lock().unwrap().push((peer_id, tx));
                 ChannelsTransport {
-                    inbox: inbox_receivers.remove(0),
-                    outboxes,
+                    peer_id,
+                    inbox: rx,
+                    registry: registry.clone(),
                 }
             })
             .collect()
+    }
+
+    #[must_use]
+    pub fn registry(&self) -> ChannelRegistry {
+        self.registry.clone()
+    }
+
+    #[must_use]
+    pub fn join_mesh(peer_id: PeerId, registry: ChannelRegistry) -> ChannelsTransport {
+        let (tx, rx) = channel();
+        registry.lock().unwrap().push((peer_id, tx));
+        ChannelsTransport {
+            peer_id,
+            inbox: rx,
+            registry,
+        }
     }
 }
 
 impl Transport for ChannelsTransport {
     fn send(&mut self, to: PeerId, message: TransportMessage) {
-        for (peer_id, sender) in &self.outboxes {
+        if to == self.peer_id {
+            return;
+        }
+        for (peer_id, sender) in self.registry.lock().unwrap().iter() {
             if *peer_id == to {
                 let _ = sender.send(message.clone());
             }
