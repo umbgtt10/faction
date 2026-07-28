@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.0] — 2026-07-28
 
 ### Phase 1 — dynamic joining across the full spawn/transport matrix
 

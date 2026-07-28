@@ -2,7 +2,7 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-07-22  
+**Last updated:** 2026-07-28  
 **Current status:** Phase 1 — dynamic joining landed
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
