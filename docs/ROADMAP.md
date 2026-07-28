@@ -379,6 +379,15 @@ is what the cross-cutting specification work above is itself waiting on:
 - [ ] `(state, command)` coverage remains 100% after all three integrations
 - [ ] crates.io metadata complete for the Phase-1-inclusive release
 
+**Progress, 2026-07-28:** `etheram-raft` (on its own
+`feat/faction-0.4-integration` branch, not yet merged to its `main`) has
+re-pinned from Faction's git+branch reference to the released `0.4.0` and
+re-confirmed its own stages 1, 2, and 5 green — design is done and the
+integration builds clean against the real release. Not checking the box
+yet: "landed" reads as merged to `etheram-raft`'s own `main`, which is
+still gated on `etheram-raft-embassy`'s own re-pin and both embassy repos'
+hardware stages 4-6.
+
 ## Full publication readiness checklist (Phases 1–6, longer-term)
 
 This is the eventual, complete-dynamic-membership publication milestone —
