@@ -1,13 +1,12 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::vec;
-
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction_core_validation::scenario_harness::ScenarioHarness;
+
+extern crate alloc;
 
 #[test]
 fn duplicate_signals_across_nodes_remain_idempotent() {

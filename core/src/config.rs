@@ -22,6 +22,15 @@ impl Config {
         }
     }
 
+    pub fn is_member(&self, peer_id: PeerId) -> bool {
+        self.peers.contains(&peer_id)
+    }
+
+    #[must_use]
+    pub fn peer_count(&self) -> usize {
+        self.peers.len()
+    }
+
     #[must_use]
     pub const fn peer_id(&self) -> PeerId {
         self.peer_id
@@ -33,21 +42,12 @@ impl Config {
     }
 
     #[must_use]
-    pub fn peer_count(&self) -> usize {
-        self.peers.len()
+    pub const fn quorum_policy(&self) -> QuorumPolicy {
+        self.quorum_policy
     }
 
     #[must_use]
     pub fn required_count(&self) -> usize {
         self.quorum_policy.threshold()
-    }
-
-    #[must_use]
-    pub const fn quorum_policy(&self) -> QuorumPolicy {
-        self.quorum_policy
-    }
-
-    pub fn is_member(&self, peer_id: PeerId) -> bool {
-        self.peers.contains(&peer_id)
     }
 }

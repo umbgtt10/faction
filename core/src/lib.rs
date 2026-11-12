@@ -115,7 +115,7 @@
 //!
 //! * [README](https://crates.io/crates/faction) — project overview and design principles
 //! * [Architecture](https://github.com/umbgtt10/faction/blob/main/docs/ARCHITECTURE.md)
-//! * [Transition matrix tests](https://github.com/umbgtt10/faction/blob/main/core/tests/transition_matrix/) — exhaustive `(state × command)` coverage
+//! * [Transition matrix tests](https://github.com/umbgtt10/faction/blob/main/ladder/tests/matrix/) — exhaustive `(state × command)` coverage
 
 #![no_std]
 #![forbid(unsafe_code)]
@@ -136,11 +136,11 @@ pub mod outcome;
 pub mod peer_state;
 pub mod process_result;
 pub mod quorum_policy;
+pub mod stage;
 pub mod state;
 pub mod states;
 pub mod transition;
 pub mod types;
 
 #[cfg(doctest)]
-#[doc = include_str!("../../README.md")]
-pub struct ReadmeDoctests;
+pub mod readme_doctests;

@@ -1,13 +1,12 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::vec;
-
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::states::local_completion_step::LocalCompletionStep;
+
+extern crate alloc;
 
 #[test]
 fn new_adds_peer_when_not_present() {
@@ -43,6 +42,19 @@ fn new_does_not_add_when_already_present() {
 }
 
 #[test]
+fn new_does_not_reach_quorum_below_threshold() {
+    // Arrange
+    let confirmed = vec![1];
+
+    // Act
+    let step = LocalCompletionStep::new(confirmed, 2, 5);
+
+    // Assert
+    assert!(!step.is_quorum());
+    assert_eq!(step.outcomes().len(), 2);
+}
+
+#[test]
 fn new_reaches_quorum_when_count_meets_threshold() {
     // Arrange
     let confirmed = vec![1, 2, 3];
@@ -62,17 +74,4 @@ fn new_reaches_quorum_when_count_meets_threshold() {
             },
         ]
     );
-}
-
-#[test]
-fn new_does_not_reach_quorum_below_threshold() {
-    // Arrange
-    let confirmed = vec![1];
-
-    // Act
-    let step = LocalCompletionStep::new(confirmed, 2, 5);
-
-    // Assert
-    assert!(!step.is_quorum());
-    assert_eq!(step.outcomes().len(), 2);
 }

@@ -308,7 +308,7 @@ can assert on every transition without modifying production code.
 ### Unit test coverage
 
 The core/ test suite covers every (state, command) pair explicitly. The complete matrix is documented and tested in
-[transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) — every combination named, every outcome asserted.
+[transition_matrix_tests.rs](../ladder/tests/matrix/state_transition_matrix_tests.rs) — every combination named, every outcome asserted.
 
 ### Property-based invariants
 

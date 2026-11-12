@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.5.0] — unreleased
+
+### Clean-up and restructure to the house rules
+
+#### Changed — breaking
+- The states are held in a `Stage` enum (`faction::stage::Stage`), one variant per
+  state struct, instead of `Box<dyn State>` (`P2-ADR-StateStructsBehindStageEnum`,
+  superseding `P2-ADR-StateAsTraitObject`). `State::step` returns
+  `(Vec<Outcome>, Stage)`; the trait has no default bodies and no
+  `admissible_commands`, which `Stage` now derives from `accept`.
+- `ClusterView`'s fields are private, read through the getters it already had. It is
+  built through `ClusterViewBuilder` or `ClusterView::new`, which resolves a missed
+  deadline into `TimedOut` before bootstrap, so no view carries fields that disagree
+  (`P2-ADR-ClusterViewBuilderAndDto`, amended).
+- `Transition` is a record: public `previous_view`, `outputs` and `new_view`, built by
+  literal; `Transition::new` and its getters are gone.
+- `faction-protocol` (workspace-only): the modules `timer_trait` and
+  `transport_trait` are renamed `timer` and `transport`.
+
+#### Added
+- `just stage1` and `just stage2`, driven by an `xtask` crate: formatting, clippy over
+  every target, the `no_std` check for a bare-metal target and every test tier, then
+  `cargo stern4rust`, `cargo dry4rust`, `cargo crap4rust`, 100% coverage, `cargo
+  twin4rust`, `cargo iceberg4rust` and `cargo deny`. The toolchain is pinned.
+- `faction-ladder`, the package holding the transition matrix and the property tiers.
+- `ClusterInvariants` in `faction-core-validation`: no peer counted twice, only
+  members counted, no conclusion short of quorum.
+- `Members::non_member_observed`, `Collecting::resolve` and
+  `ProcessResult::into_cluster_view`.
+- Core tests assert that a probe is observed only as a query and a rejected command
+  only as a rejection.
+
+#### Changed
+- The system-test harness takes its clock, sleep and wall clock as injected ports,
+  and its tests wait on the event rather than on a sleep. An in-process newcomer uses
+  the cluster's freshness margin, as a process newcomer already did.
+
+#### Removed
+- `scripts/run_stage_1.ps1` and `scripts/run_stage_2.ps1`, replaced by the `just`
+  recipes.
+- `ScenarioEvent`, `ScenarioNode`, `ScenarioTraceEntry` and
+  `ClusterSimulation::all_exited` from `faction-core-validation`, none of them used.
+
+#### Fixed
+- A gRPC process node dialled its peers at start-up and panicked if one was not yet
+  listening, failing the process-gRPC system tests on about two runs in three. It now
+  dials on first send.
+- The harness `RealTimer` fires timers that fall due at the same instant in the order
+  they were scheduled.
+- Dependency advisories: `h2` and `tokio` updated past theirs, and the yanked `spin`
+  release replaced.
+
 ## [0.4.0] — 2026-07-28
 
 ### Phase 1 — dynamic joining across the full spawn/transport matrix

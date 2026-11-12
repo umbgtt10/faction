@@ -1,0 +1,24 @@
+# House coding rules, enforced by `cargo stern4rust` first in stage 2.
+#
+# One file for the whole workspace: a hand-run of `cargo stern4rust` checks
+# exactly what the gate checks.
+header-file = "docs/header.txt"
+
+# The gRPC code tonic-build writes is regenerated on every build and never
+# edited by hand. The system tests are named for the scenarios and the
+# transports they exercise, as the other scenario packages' are.
+[package.faction-system-tests]
+exclude = ["**/generated/**"]
+skip = ["paired-test-file"]
+
+# The scenario tiers and the cluster simulations: their tests are named for
+# the scenarios they run, not for a source file, as beggar's ladder and
+# core-validation are.
+[package.faction-ladder]
+skip = ["paired-test-file"]
+
+[package.faction-core-validation]
+skip = ["paired-test-file"]
+
+[package.faction-protocol-validation]
+skip = ["paired-test-file"]

@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod cluster_invariants_tests;
+pub mod cluster_simulation_tests;
 pub mod conclusion_tests;
 pub mod convergence_tests;
 pub mod harness_tests;

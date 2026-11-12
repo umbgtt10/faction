@@ -1,12 +1,11 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::vec;
-
 use faction::outcome::Outcome;
 use faction::states::pinging_step::PingingStep;
+
+extern crate alloc;
 
 #[test]
 fn new_adds_peer_when_not_dup() {

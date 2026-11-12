@@ -33,34 +33,12 @@ impl Protocol {
         }
     }
 
-    pub fn cluster_view(&mut self) -> ClusterView {
-        match self.faction.process(Command::Probe) {
-            ProcessResult::Probed { cluster_view, .. } => cluster_view,
-            _ => unreachable!(),
-        }
+    pub fn admit(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::JoinApproved { peer_id })
     }
 
-    pub fn initialize(&self) -> Vec<OutputMessage> {
-        let mut actions = Vec::new();
-
-        for peer in &self.peers {
-            if *peer != self.local_peer_id {
-                actions.push(OutputMessage::Schedule(TimerEvent::Fire(
-                    TimerMessage::ParticipationObserved { peer_id: *peer },
-                )));
-            }
-        }
-
-        actions.push(OutputMessage::Schedule(TimerEvent::Fire(
-            TimerMessage::LocalParticipationCompleted,
-        )));
-
-        actions.push(OutputMessage::BroadcastPing);
-        actions.push(OutputMessage::Schedule(TimerEvent::Fire(
-            TimerMessage::RetryPing,
-        )));
-
-        actions
+    pub fn cluster_view(&mut self) -> ClusterView {
+        self.faction.process(Command::Probe).into_cluster_view()
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
@@ -96,20 +74,39 @@ impl Protocol {
         }
     }
 
-    pub fn request_join(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
-        self.apply(Command::JoinRequested { peer_id })
-    }
-
-    pub fn admit(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
-        self.apply(Command::JoinApproved { peer_id })
-    }
-
     pub fn deny(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::JoinRejected { peer_id })
     }
 
     pub fn expire_deadline(&mut self) -> Vec<OutputMessage> {
         self.apply(Command::DeadlineExpired)
+    }
+
+    pub fn initialize(&self) -> Vec<OutputMessage> {
+        let mut actions = Vec::new();
+
+        for peer in &self.peers {
+            if *peer != self.local_peer_id {
+                actions.push(OutputMessage::Schedule(TimerEvent::Fire(
+                    TimerMessage::ParticipationObserved { peer_id: *peer },
+                )));
+            }
+        }
+
+        actions.push(OutputMessage::Schedule(TimerEvent::Fire(
+            TimerMessage::LocalParticipationCompleted,
+        )));
+
+        actions.push(OutputMessage::BroadcastPing);
+        actions.push(OutputMessage::Schedule(TimerEvent::Fire(
+            TimerMessage::RetryPing,
+        )));
+
+        actions
+    }
+
+    pub fn request_join(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::JoinRequested { peer_id })
     }
 
     fn apply(&mut self, command: Command) -> Vec<OutputMessage> {

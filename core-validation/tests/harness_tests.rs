@@ -1,11 +1,10 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::vec;
-
 use faction_core_validation::scenario_harness::ScenarioHarness;
+
+extern crate alloc;
 
 #[test]
 fn new_creates_one_coordinator_per_peer() {

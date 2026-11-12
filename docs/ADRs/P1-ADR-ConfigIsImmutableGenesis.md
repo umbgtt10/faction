@@ -27,7 +27,7 @@ Determinism (`P0-ADR-DeterministicReplayable`): `output = F(state, input)`. A
 membership setter is ambient mutation outside the command stream — it breaks
 replay. Growth must therefore be a `Command` (`JoinApproved`), gated by the same
 `accept`/`step` machinery and `Observer` routing as every other input. Purity
-(`P0-ADR-PureMealyNoIO`) with state-as-trait-object (`P2-ADR-StateAsTraitObject`):
+(`P0-ADR-PureMealyNoIO`) with per-state structs (`P2-ADR-StateStructsBehindStageEnum`):
 `step` returns the next state, so a state that already carries the grown `Members`
 keeps `step` a pure state→state function; a machine-owned set could not be mutated
 from inside `step` and would have to be returned separately or inferred from the
@@ -38,7 +38,7 @@ happen.
 ## Rejected alternatives
 Machine-owned membership (representation B, a `Members` field on the `Faction`
 wrapper) — forces `process` to infer growth from outcomes and splits the state
-vector across the boxed state and the wrapper, breaking self-containment. A mutable
+vector across the stage and the wrapper, breaking self-containment. A mutable
 `Config` / a `Config::admit` setter — bypasses the machine's input gating (no
 `accept`/`step`, no matrix coverage, no `Observer` routing) and collapses "genesis"
 and "live" into one mutable cell, exactly the uncoordinated shared-state hazard
@@ -60,7 +60,7 @@ still-open quorum question (a coordinated Phase 3 concern) and remains deferred.
 That carve-out is what unblocks writing this ADR.
 
 ## Enforcement
-`join_tests::participation_from_an_admitted_peer_is_accepted` proves a signal that
+`faction_tests::participation_from_an_admitted_peer_is_accepted` proves a signal that
 was `NonMemberIgnored` before admission becomes `ParticipationAccepted` after — so
 growth is real and carried in state; `admission_does_not_change_the_quorum_threshold`
 pins the scope carve-out. The exhaustive `(state, command)` matrix covers all three

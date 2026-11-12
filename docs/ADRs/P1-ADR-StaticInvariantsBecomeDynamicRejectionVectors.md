@@ -16,12 +16,12 @@ codebase.
 
 ## Decision
 
-**Finding, not assumption:** a full read of `core/src` (all 25 files) and
-`core/tests/property_tests/` (all three files) found no invariant that is
+**Finding, not assumption:** a full read of `core/src` and
+`ladder/tests/property/` (all three files) found no invariant that is
 compile-time-only. Every transition that looks structurally prevented is
 in fact a two-tier runtime contract in `Faction::process()`
-(`core/src/faction.rs:42-83`): `Command::Probe` is intercepted first,
-then `self.state.accept(&command)` is checked — only a command passing
+(`core/src/faction.rs`): `Command::Probe` is intercepted first,
+then `self.stage.accept(&command)` is checked — only a command passing
 both reaches `step()`. Every `unreachable!()` inside a `step()`
 implementation is dead code given `process()`'s own calling order, not a
 case the type system makes impossible to construct. Given this, the
@@ -40,14 +40,14 @@ ahead of need.
 ## Forcing constraints / Evidence
 
 Every state (`Initial`, `Pinging`, `Collecting`, `Bootstrapped`) implements
-`State` as a plain `Box<dyn State>` trait object; nothing restricts which
-`Command` variant can be offered to which state's `step()`. The
+`State`, and `Stage` delegates to it; nothing restricts which `Command`
+variant can be offered to which state's `step()`. The
 `unreachable!()` messages themselves say so directly:
-`"accept() rejects this command for Collecting"` (`states/collecting.rs:149`),
-`"accept() rejects this command for Bootstrapped"` (`states/bootstrapped.rs:67`),
-`"Probe handled in Faction::process"` (`states/pinging.rs:175`) — each
+`"accept() rejects this command for Collecting"` (`states/collecting.rs`),
+`"accept() rejects this command for Bootstrapped"` (`states/bootstrapped.rs`),
+`"Probe handled in Faction::process"` (`states/pinging.rs`) — each
 names a *calling-order* guarantee, not a type-level one.
-`core/tests/property_tests/{invariant_tests,model_tests,safety_tests}.rs`
+`ladder/tests/property/{invariant_tests,model_tests,safety_tests}.rs`
 independently confirm this: every safety property there (exit is
 terminal, counts never decrease, duplicate/non-member commands never
 mutate state) is checked via `proptest` over generated runtime input,

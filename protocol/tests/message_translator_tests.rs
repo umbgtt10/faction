@@ -4,7 +4,6 @@
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
-
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::message_translator::MessageTranslator;
 use faction_protocol::output_message::OutputMessage;
@@ -12,8 +11,98 @@ use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
+fn defaulted<T: Default>() -> T {
+    T::default()
+}
+
 fn translator() -> MessageTranslator {
     MessageTranslator::new()
+}
+
+#[test]
+fn default_translates_as_new_does() {
+    // Arrange
+    let translator: MessageTranslator = defaulted();
+
+    // Act
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
+
+    // Assert
+    assert_eq!(command, Command::DeadlineExpired);
+}
+
+#[test]
+fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
+
+    // Assert
+    assert_eq!(command, Command::DeadlineExpired);
+}
+
+#[test]
+fn to_command_timer_local_participation_completed_maps_to_local_participation_completed() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+
+    // Assert
+    assert_eq!(command, Command::LocalParticipationCompleted);
+}
+
+#[test]
+fn to_command_timer_participation_observed_maps_to_participation_observed() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::ParticipationObserved {
+        peer_id: 3,
+    }));
+
+    // Assert
+    assert_eq!(command, Command::ParticipationObserved { peer_id: 3 });
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
+fn to_command_timer_retry_ping_panics() {
+    // Arrange
+    let translator = translator();
+
+    // Act & Assert
+    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryPing));
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
+fn to_command_timer_retry_ready_panics() {
+    // Arrange
+    let translator = translator();
+
+    // Act & Assert
+    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryReady));
+}
+
+#[test]
+fn to_command_transport_bootstrapped_maps_to_probe() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Transport(TransportMessage::Bootstrapped {
+        from: 1,
+    }));
+
+    // Assert
+    assert_eq!(command, Command::Probe);
 }
 
 #[test]
@@ -43,86 +132,18 @@ fn to_command_transport_ready_maps_to_ready_observed() {
 }
 
 #[test]
-fn to_command_transport_bootstrapped_maps_to_probe() {
+fn to_output_messages_all_non_matching_returns_noop() {
     // Arrange
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Transport(TransportMessage::Bootstrapped {
-        from: 1,
-    }));
-
-    // Assert
-    assert_eq!(command, Command::Probe);
-}
-
-#[test]
-fn to_command_timer_participation_observed_maps_to_participation_observed() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::ParticipationObserved {
-        peer_id: 3,
-    }));
-
-    // Assert
-    assert_eq!(command, Command::ParticipationObserved { peer_id: 3 });
-}
-
-#[test]
-fn to_command_timer_local_participation_completed_maps_to_local_participation_completed() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let command = translator.to_command(InputMessage::Timer(
-        TimerMessage::LocalParticipationCompleted,
-    ));
-
-    // Assert
-    assert_eq!(command, Command::LocalParticipationCompleted);
-}
-
-#[test]
-#[should_panic(expected = "handled in decide()")]
-fn to_command_timer_retry_ping_panics() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryPing));
-}
-
-#[test]
-#[should_panic(expected = "handled in decide()")]
-fn to_command_timer_retry_ready_panics() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryReady));
-}
-
-#[test]
-fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
-
-    // Assert
-    assert_eq!(command, Command::DeadlineExpired);
-}
-
-#[test]
-fn to_output_messages_empty_outcomes_returns_noop() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let result = translator.to_output_messages(vec![]);
+    let result = translator.to_output_messages(vec![
+        Outcome::ParticipationAccepted { peer_id: 0 },
+        Outcome::ReadyAccepted { peer_id: 1 },
+        Outcome::DuplicateParticipationIgnored { peer_id: 0 },
+        Outcome::NonMemberIgnored { peer_id: 99 },
+        Outcome::LocalParticipationCompleted,
+    ]);
 
     // Assert
     assert_eq!(result, vec![OutputMessage::Noop]);
@@ -146,23 +167,6 @@ fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
 }
 
 #[test]
-fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let result = translator.to_output_messages(vec![Outcome::Concluded {
-        mode: Conclusion::Bootstrapped,
-    }]);
-
-    // Assert
-    assert_eq!(result.len(), 3);
-    assert!(matches!(result[0], OutputMessage::Cancel(_)));
-    assert!(matches!(result[1], OutputMessage::Cancel(_)));
-    assert!(matches!(result[2], OutputMessage::Cancel(_)));
-}
-
-#[test]
 fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
     // Arrange
     let translator = translator();
@@ -182,6 +186,35 @@ fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
         result[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
     ));
+}
+
+#[test]
+fn to_output_messages_empty_outcomes_returns_noop() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let result = translator.to_output_messages(vec![]);
+
+    // Assert
+    assert_eq!(result, vec![OutputMessage::Noop]);
+}
+
+#[test]
+fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let result = translator.to_output_messages(vec![Outcome::Concluded {
+        mode: Conclusion::Bootstrapped,
+    }]);
+
+    // Assert
+    assert_eq!(result.len(), 3);
+    assert!(matches!(result[0], OutputMessage::Cancel(_)));
+    assert!(matches!(result[1], OutputMessage::Cancel(_)));
+    assert!(matches!(result[2], OutputMessage::Cancel(_)));
 }
 
 #[test]
@@ -237,22 +270,4 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
     // Assert
     assert_eq!(result.len(), 3);
     assert!(matches!(result[0], OutputMessage::Cancel(_)));
-}
-
-#[test]
-fn to_output_messages_all_non_matching_returns_noop() {
-    // Arrange
-    let translator = translator();
-
-    // Act
-    let result = translator.to_output_messages(vec![
-        Outcome::ParticipationAccepted { peer_id: 0 },
-        Outcome::ReadyAccepted { peer_id: 1 },
-        Outcome::DuplicateParticipationIgnored { peer_id: 0 },
-        Outcome::NonMemberIgnored { peer_id: 99 },
-        Outcome::LocalParticipationCompleted,
-    ]);
-
-    // Assert
-    assert_eq!(result, vec![OutputMessage::Noop]);
 }

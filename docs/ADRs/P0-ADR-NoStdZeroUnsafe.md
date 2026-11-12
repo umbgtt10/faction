@@ -28,7 +28,8 @@ by `forbid`: `deny` can still be lifted locally with a reviewed
 absolutely instead of by convention.
 
 ## Consequences
-State is `Box<dyn State>` plus `alloc` collections; no threads; `State: Send`.
+State is the `Stage` enum over per-state structs plus `alloc` collections; no
+threads; `State: Send`.
 No `std`-only types anywhere.
 
 ## Enforcement

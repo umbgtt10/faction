@@ -30,14 +30,13 @@ Separate methods per command, or a read API distinct from the write API.
 Rejected: duplicates the state-gating logic in two places and lets them drift.
 
 ## Consequences
-Consumers branch on three result variants. The `State` trait's default
-`admissible_commands()` returns every command, so each non-trivial state
-carries a real obligation to override it in lockstep with `accept()` — or the
-self-description lies.
+Consumers branch on three result variants. `Stage::admissible_commands()` is
+computed from `accept()` rather than declared beside it, so a state's
+self-description cannot drift from what it accepts.
 
 ## Enforcement
 Every transition's admissible set is asserted against its expected value in
 the exhaustive `(state × command)` matrix, every result variant is exercised
 there, and a dedicated invariant test
-(`transition_matrix/admissible_invariant_tests.rs`) checks
+(`ladder/tests/matrix/admissible_invariant_tests.rs`) checks
 `admissible == { c ≠ Probe : accept(c) } ∪ { Probe }` per state directly.

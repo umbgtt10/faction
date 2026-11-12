@@ -39,5 +39,6 @@ the same three exits.
 
 ## Enforcement
 The three exit paths in `process` each call an `Observer` method;
-`core/tests/observer_tests.rs` asserts observation on the transition, query,
-and rejection paths.
+`core/tests/faction_tests.rs` asserts that each path is observed exactly once
+and on its own channel — an accepted command only as a transition, a `Probe`
+only as a query, a rejected command only as a rejection.

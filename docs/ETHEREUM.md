@@ -50,7 +50,7 @@ Every Ethereum client team that integrates `faction` stops writing and maintaini
 They replace it with a formally specified [Mealy state machine](./ARCHITECTURE.md)
 where every `(state, command)` pair is explicitly tested, every transition is
 observable, and the correctness guarantees are stated up front and proven by
-the [complete transition matrix](./core/tests/transition_matrix/state_transition_matrix_tests.rs).
+the [complete transition matrix](../ladder/tests/matrix/state_transition_matrix_tests.rs).
 
 The client team's engineers focus on what makes their client unique — their fork
 choice optimizations, their attestation aggregation strategy, their sync protocol.
@@ -75,7 +75,7 @@ deliberate constraint that means `faction` runs on the same binary on an
 STM32-class embedded board and a 1000-node cloud cluster.
 
 See the [design constraints](./ROADMAP.md#non-negotiable-constraints) for the
-full rationale. See the [system test matrix](./README.md#validation-harness) for
+full rationale. See the [system test matrix](../README.md#validation-harness) for
 the empirical proof: the same protocol code, validated across tasks, threads, and
 real OS processes, over Memory, Channels, TCP, and gRPC transports, with a timing
 regime configurable enough to handle both nanosecond in-memory latency and
@@ -134,7 +134,7 @@ here is one error case, here is one Byzantine input — is a statement about the
 you thought of. A test suite that covers every `(state, command)` pair is a statement
 about the machine. Not "we tested many cases." But "there are no untested cases."
 
-The [transition matrix](./core/tests/transition_matrix/state_transition_matrix_tests.rs)
+The [transition matrix](../ladder/tests/matrix/state_transition_matrix_tests.rs)
 is that statement made executable.
 
 This methodology is applicable beyond `faction`. Any Ethereum client team that adopts
@@ -231,7 +231,7 @@ the completion.
 All technical claims in this document are substantiated by the standard documentation,
 which contains no Ethereum-specific content:
 
-- [README.md](./README.md) — what `faction` does, how to use it, project status
-- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
-- [ROADMAP.md](./docs/ROADMAP.md) — phased development plan and hard rules
-- [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) — the complete `(state × input)` proof
+- [README.md](../README.md) — what `faction` does, how to use it, project status
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — complete technical specification
+- [ROADMAP.md](./ROADMAP.md) — phased development plan and hard rules
+- [transition_matrix_tests.rs](../ladder/tests/matrix/state_transition_matrix_tests.rs) — the complete `(state × input)` proof

@@ -51,7 +51,7 @@ command: it presupposes the caller can inject a larger threshold on admission â€
 the uncoordinated threshold swap deferred here â€” so it returns only once the
 quorum-change command lands. That admission alone never moves the threshold as the set
 grows is already covered at the core level by
-`join_tests.rs::admission_does_not_change_the_quorum_threshold`.
+`faction_tests.rs::admission_does_not_change_the_quorum_threshold`.
 
 ---
 

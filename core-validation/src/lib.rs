@@ -6,8 +6,6 @@
 
 extern crate alloc;
 
+pub mod cluster_invariants;
 pub mod cluster_simulation;
-pub mod scenario_event;
 pub mod scenario_harness;
-pub mod scenario_node;
-pub mod scenario_trace_entry;

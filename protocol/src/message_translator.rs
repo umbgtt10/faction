@@ -30,6 +30,26 @@ impl Default for MessageTranslator {
 
 impl MessageTranslator {
     #[must_use]
+    pub fn to_command(&self, message: InputMessage) -> Command {
+        match message {
+            InputMessage::Transport(msg) => match msg {
+                TransportMessage::Ping { from } => Command::ParticipationObserved { peer_id: from },
+                TransportMessage::Ready { from } => Command::ReadyObserved { peer_id: from },
+                TransportMessage::Bootstrapped { .. } => Command::Probe,
+            },
+            InputMessage::Timer(msg) => match msg {
+                TimerMessage::ParticipationObserved { peer_id } => {
+                    Command::ParticipationObserved { peer_id }
+                }
+                TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
+                TimerMessage::RetryPing => unreachable!("handled in decide()"),
+                TimerMessage::RetryReady => unreachable!("handled in decide()"),
+                TimerMessage::DeadlineExpired => Command::DeadlineExpired,
+            },
+        }
+    }
+
+    #[must_use]
     pub fn to_output_messages(&self, outcomes: Vec<Outcome>) -> Vec<OutputMessage> {
         for outcome in outcomes {
             match outcome {
@@ -56,25 +76,5 @@ impl MessageTranslator {
         }
 
         vec![OutputMessage::Noop]
-    }
-
-    #[must_use]
-    pub fn to_command(&self, message: InputMessage) -> Command {
-        match message {
-            InputMessage::Transport(msg) => match msg {
-                TransportMessage::Ping { from } => Command::ParticipationObserved { peer_id: from },
-                TransportMessage::Ready { from } => Command::ReadyObserved { peer_id: from },
-                TransportMessage::Bootstrapped { .. } => Command::Probe,
-            },
-            InputMessage::Timer(msg) => match msg {
-                TimerMessage::ParticipationObserved { peer_id } => {
-                    Command::ParticipationObserved { peer_id }
-                }
-                TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
-                TimerMessage::RetryPing => unreachable!("handled in decide()"),
-                TimerMessage::RetryReady => unreachable!("handled in decide()"),
-                TimerMessage::DeadlineExpired => Command::DeadlineExpired,
-            },
-        }
     }
 }

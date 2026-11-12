@@ -13,12 +13,12 @@ impl QuorumPolicy {
     }
 
     #[must_use]
-    pub const fn threshold(&self) -> usize {
-        self.threshold
+    pub const fn is_satisfied(&self, confirmed_count: usize) -> bool {
+        confirmed_count >= self.threshold
     }
 
     #[must_use]
-    pub const fn is_satisfied(&self, confirmed_count: usize) -> bool {
-        confirmed_count >= self.threshold
+    pub const fn threshold(&self) -> usize {
+        self.threshold
     }
 }

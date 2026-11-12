@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -12,6 +11,7 @@ use crate::config::Config;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
+use crate::stage::Stage;
 use crate::state::State;
 use crate::states::join_step::JoinStep;
 use crate::types::PeerId;
@@ -34,7 +34,7 @@ impl Bootstrapped {
 }
 
 impl State for Bootstrapped {
-    fn step(&self, command: Command, _config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+    fn step(&self, command: Command, _config: &Config) -> (Vec<Outcome>, Stage) {
         match command {
             Command::ParticipationObserved { peer_id } => {
                 let outcome = if self.members.is_member(peer_id) {
@@ -44,7 +44,7 @@ impl State for Bootstrapped {
                 };
                 (
                     vec![outcome],
-                    Box::new(Self::new(
+                    Stage::Bootstrapped(Self::new(
                         self.members.clone(),
                         self.pinged_peers.clone(),
                         self.collected_peers.clone(),
@@ -57,7 +57,7 @@ impl State for Bootstrapped {
                 let join = JoinStep::new(self.members.clone(), &command);
                 (
                     join.outcomes().to_vec(),
-                    Box::new(Self::new(
+                    Stage::Bootstrapped(Self::new(
                         join.members().clone(),
                         self.pinged_peers.clone(),
                         self.collected_peers.clone(),
@@ -86,15 +86,5 @@ impl State for Bootstrapped {
             .with_collecting_peers(self.collected_peers.clone())
             .with_members(self.members.clone())
             .build()
-    }
-
-    fn admissible_commands(&self) -> Vec<Command> {
-        vec![
-            Command::ParticipationObserved { peer_id: 0 },
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::Probe,
-        ]
     }
 }

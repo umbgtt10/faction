@@ -18,9 +18,9 @@ explicitly, and the suite is a strict superset across phases — a Phase-N test
 passes unchanged at Phase N+6.
 
 ## Forcing constraints / Evidence
-Totality is the property; the exhaustive matrix is its proof. `accept()`
-defaulting to true, per-state overrides, and the `Rejected` result together
-achieve totality structurally rather than by convention.
+Totality is the property; the exhaustive matrix is its proof. Each state's
+`accept()`, the `Rejected` result for what it refuses, and `step()` for what it
+accepts together achieve totality structurally rather than by convention.
 
 ## Rejected alternatives
 Returning `Err` or panicking on unexpected input. Rejected: it converts a
@@ -36,5 +36,5 @@ tests once (the terminal-state-sink fix — see
 not a superset break.
 
 ## Enforcement
-`core/tests/transition_matrix/state_transition_matrix_tests.rs`, gated by the
+`ladder/tests/matrix/state_transition_matrix_tests.rs`, gated by the
 rule that no phase begins until its `(state, command)` coverage is 100%.

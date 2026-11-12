@@ -3,6 +3,7 @@
 
 use alloc::vec::Vec;
 
+use crate::command::Command;
 use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,8 +18,35 @@ impl Members {
     }
 
     #[must_use]
+    pub fn as_slice(&self) -> &[PeerId] {
+        &self.peers
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.peers.is_empty()
+    }
+
+    #[must_use]
     pub fn is_member(&self, peer_id: PeerId) -> bool {
         self.peers.contains(&peer_id)
+    }
+
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.peers.len()
+    }
+
+    #[must_use]
+    pub fn non_member_observed(&self, command: &Command) -> Option<PeerId> {
+        match command {
+            Command::ParticipationObserved { peer_id } | Command::ReadyObserved { peer_id }
+                if !self.is_member(*peer_id) =>
+            {
+                Some(*peer_id)
+            }
+            _ => None,
+        }
     }
 
     #[must_use]
@@ -28,20 +56,5 @@ impl Members {
             peers.push(peer_id);
         }
         Self { peers }
-    }
-
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.peers.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.peers.is_empty()
-    }
-
-    #[must_use]
-    pub fn as_slice(&self) -> &[PeerId] {
-        &self.peers
     }
 }

@@ -1,6 +1,6 @@
 # P2-ADR-StateAsTraitObject
 
-- **Status:** Accepted
+- **Status:** Superseded by [P2-ADR-StateStructsBehindStageEnum](P2-ADR-StateStructsBehindStageEnum.md)
 - **Date:** 2026-07-19
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting

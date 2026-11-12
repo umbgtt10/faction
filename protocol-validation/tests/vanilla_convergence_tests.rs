@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::peer_state::PeerState;
 use faction_protocol_validation::cluster::Cluster;
 use rstest::rstest;
 
@@ -48,4 +49,23 @@ fn cluster_converges_to_bootstrapped(#[case] size: usize, #[case] quorum: usize)
         cluster.is_bootstrapped(),
         "size {size}, quorum {quorum}: cluster did not reach Bootstrapped"
     );
+}
+
+#[test]
+fn node_state_after_convergence_returns_bootstrapped() {
+    // Arrange
+    let mut cluster = Cluster::new(3, 2);
+    cluster.start_all();
+    for _ in 0..80 {
+        for i in 0..3 {
+            cluster.step_timer_node(i);
+            cluster.step_transport_node(i);
+        }
+    }
+
+    // Act
+    let states: Vec<PeerState> = (0..3).map(|i| cluster.node_state(i)).collect();
+
+    // Assert
+    assert_eq!(states, vec![PeerState::Bootstrapped; 3]);
 }

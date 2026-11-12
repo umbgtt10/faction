@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use faction_protocol::transport_message::TransportMessage;
-
 use faction_protocol_validation::cluster::Cluster;
 use rstest::rstest;
 
