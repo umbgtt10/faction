@@ -5,6 +5,7 @@ use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::faction::Faction;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 
 #[derive(Debug, Clone, Copy)]
@@ -27,9 +28,13 @@ pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
         match *check {
             Assert::PingingCount(n) => assert_eq!(cluster_view.pinging_peers().len(), n),
             Assert::CollectingCount(n) => assert_eq!(cluster_view.collecting_peers().len(), n),
-            Assert::Exited => assert!(cluster_view.is_concluded()),
-            Assert::NotExited => assert!(!cluster_view.is_concluded()),
-            Assert::Conclusion(mode) => assert_eq!(cluster_view.conclusion(), Some(mode)),
+            Assert::Exited => assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped),
+            Assert::NotExited => assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped),
+            Assert::Conclusion(mode) => assert_eq!(
+                (cluster_view.peer_state() == PeerState::Bootstrapped)
+                    .then_some(Conclusion::Bootstrapped),
+                Some(mode)
+            ),
             Assert::LocalComplete => assert!(cluster_view.is_pinging_completed()),
             Assert::NotLocalComplete => assert!(!cluster_view.is_pinging_completed()),
         }

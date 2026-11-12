@@ -25,7 +25,7 @@ impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let stage = Stage::Initial(Initial::new(Members::new(config.peers().to_vec())));
-        let base = ClusterViewBuilder::new()
+        let base = ClusterViewBuilder::default()
             .with_required_count(config.required_count())
             .with_members(Members::new(config.peers().to_vec()))
             .build();
@@ -39,11 +39,6 @@ impl Faction {
     }
 
     #[must_use]
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    #[must_use]
     pub fn process(&mut self, command: Command) -> ProcessResult {
         let result = self.answer(command);
         self.observer.observe(&command, &result);
@@ -51,27 +46,24 @@ impl Faction {
     }
 
     fn answer(&mut self, command: Command) -> ProcessResult {
-        if let Command::Probe = command {
-            return ProcessResult::Probed {
+        match self.stage.step(command, &self.config) {
+            Some((outcomes, stage)) => {
+                self.stage = stage;
+                self.cluster_view = self.stage.cluster_view(&self.cluster_view);
+                ProcessResult::Accepted {
+                    cluster_view: self.cluster_view.clone(),
+                    admissible: self.stage.admissible_commands(&self.config),
+                    outcomes,
+                }
+            }
+            None if command == Command::Probe => ProcessResult::Probed {
                 cluster_view: self.cluster_view.clone(),
-                admissible: self.stage.admissible_commands(),
-            };
-        }
-
-        if !self.stage.accept(&command) {
-            return ProcessResult::Rejected {
+                admissible: self.stage.admissible_commands(&self.config),
+            },
+            None => ProcessResult::Rejected {
                 cluster_view: self.cluster_view.clone(),
-                admissible: self.stage.admissible_commands(),
-            };
-        }
-
-        let (outcomes, stage) = self.stage.step(command, &self.config);
-        self.stage = stage;
-        self.cluster_view = self.stage.cluster_view(&self.cluster_view);
-        ProcessResult::Accepted {
-            cluster_view: self.cluster_view.clone(),
-            admissible: self.stage.admissible_commands(),
-            outcomes,
+                admissible: self.stage.admissible_commands(&self.config),
+            },
         }
     }
 }

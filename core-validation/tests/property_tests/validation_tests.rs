@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::vec;
+use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction_core_validation::scenario_harness::ScenarioHarness;
@@ -104,12 +105,12 @@ proptest! {
                         previous.collecting_peers().len()
                     );
                     prop_assert_eq!(current.peer_state(), previous.peer_state());
-                    prop_assert_eq!(current.conclusion(), previous.conclusion());
+                    prop_assert_eq!((current.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped), (previous.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped));
                     prop_assert_eq!(
                         current.is_pinging_completed(),
                         previous.is_pinging_completed()
                     );
-                    prop_assert_eq!(current.is_concluded(), previous.is_concluded());
+                    prop_assert_eq!(current.peer_state() == PeerState::Bootstrapped, previous.peer_state() == PeerState::Bootstrapped);
                 }
             }
         }
@@ -130,7 +131,7 @@ proptest! {
             // Assert
             for (index, has_exited) in exited.iter_mut().enumerate() {
                 let cluster_view = harness.cluster_view(index);
-                if cluster_view.is_concluded() {
+                if cluster_view.peer_state() == PeerState::Bootstrapped {
                     *has_exited = true;
                     prop_assert!(matches!(
                         cluster_view.peer_state(),
@@ -140,7 +141,7 @@ proptest! {
                 }
 
                 if *has_exited {
-                    prop_assert!(cluster_view.is_concluded());
+                    prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
                     prop_assert!(matches!(
                         cluster_view.peer_state(),
                         PeerState::Bootstrapped

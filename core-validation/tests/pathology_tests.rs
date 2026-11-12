@@ -24,7 +24,7 @@ fn duplicate_signals_across_nodes_remain_idempotent() {
     assert_eq!(outputs, vec![Outcome::DuplicateReadyIgnored { peer_id: 1 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -43,5 +43,5 @@ fn non_member_signal_does_not_perturb_multi_peer_state() {
     assert_eq!(outputs, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(cluster_view.collecting_peers().len(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }

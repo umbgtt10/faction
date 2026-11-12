@@ -34,7 +34,11 @@ fn invalid_transition(
     let table = MatrixTable::new(SpecFiles::matrix());
     let probed = faction.process(Command::Probe);
     let before = table.stage_of(&SpecWriter::result(&probed));
-    let old_cluster_view = probed.into_cluster_view();
+    let old_cluster_view = match probed {
+        ProcessResult::Accepted { cluster_view, .. }
+        | ProcessResult::Rejected { cluster_view, .. }
+        | ProcessResult::Probed { cluster_view, .. } => cluster_view,
+    };
 
     // Act
     let result = faction.process(command);

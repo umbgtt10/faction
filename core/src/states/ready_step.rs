@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 use crate::conclusion::Conclusion;
 use crate::outcome::Outcome;
+use crate::quorum_policy::QuorumPolicy;
 use crate::types::PeerId;
 
 pub struct ReadyStep {
@@ -16,7 +17,7 @@ pub struct ReadyStep {
 
 impl ReadyStep {
     #[must_use]
-    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId, quorum_threshold: usize) -> Self {
+    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId, quorum_policy: QuorumPolicy) -> Self {
         let is_dup = confirmed_peers.contains(&peer_id);
         let confirmed_new = !is_dup;
 
@@ -25,7 +26,7 @@ impl ReadyStep {
             new_confirmed_peers.push(peer_id);
         }
 
-        let is_quorum = confirmed_new && new_confirmed_peers.len() >= quorum_threshold;
+        let is_quorum = confirmed_new && quorum_policy.is_satisfied(new_confirmed_peers.len());
 
         let outcome = if is_dup {
             Outcome::DuplicateReadyIgnored { peer_id }

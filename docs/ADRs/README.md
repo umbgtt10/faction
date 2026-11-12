@@ -28,6 +28,7 @@ importance:
 | [P2-ADR-ClusterViewBuilderAndDto](P2-ADR-ClusterViewBuilderAndDto.md) | The view consumers receive is an immutable read-model; construction lives in a separate builder. |
 | [P2-ADR-TestingLadder](P2-ADR-TestingLadder.md) | A fixed test-tier ladder — unit, matrix, property, simulation, system — run by one gate. |
 | [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) | The specification in `spec/` — schema, decision table, prose, vectors, written by hand — is normative; this crate is one implementation of it. |
+| [P1-ADR-NoLineTheSpecificationDoesNotAskFor](P1-ADR-NoLineTheSpecificationDoesNotAskFor.md) | 100% coverage over every tier and over the conformance vectors alone: no line the specification does not ask for. |
 | [P1-ADR-CanonicalModelSeparateFromCoreTypes](P1-ADR-CanonicalModelSeparateFromCoreTypes.md) | The canonical model is `spec/schema.json`, mapped to `Command`/`Outcome`/`ProcessResult` by the conformance tests, never derived from them. |
 | [P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors](P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors.md) | A `matrix.rs` exported to vectors. **Superseded** by `P0-ADR-SpecificationIsNormativeCrateIsReference`: the decision table is `spec/matrix.json`. |
 | [P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors](P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors.md) | No compile-time-only invariant exists in `core/src`; admission is decided at run time, so every vector runs everywhere. |

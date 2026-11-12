@@ -16,6 +16,7 @@ use crate::state::State;
 use crate::types::PeerId;
 
 use super::collecting::Collecting;
+use super::join_decision::JoinDecision;
 use super::join_step::JoinStep;
 use super::local_completion_step::LocalCompletionStep;
 use super::pinging_step::PingingStep;
@@ -40,10 +41,6 @@ impl Pinging {
 }
 
 impl State for Pinging {
-    fn accept(&self, _command: &Command) -> bool {
-        true
-    }
-
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Pinging)
@@ -54,9 +51,9 @@ impl State for Pinging {
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage) {
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         if let Some(peer_id) = self.members.non_member_observed(&command) {
-            return (
+            Some((
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Stage::Pinging(Self {
                     members: self.members.clone(),
@@ -64,95 +61,91 @@ impl State for Pinging {
                     collecting_peers: self.collecting_peers.clone(),
                     deadline_missed: self.deadline_missed,
                 }),
-            );
-        }
-
-        match command {
-            Command::ParticipationObserved { peer_id } => {
-                let step = PingingStep::new(self.pinging_peers.clone(), peer_id);
-
-                (
-                    step.outcomes().to_vec(),
-                    Stage::Pinging(Self {
-                        members: self.members.clone(),
-                        pinging_peers: step.confirmed_peers().to_vec(),
-                        collecting_peers: self.collecting_peers.clone(),
-                        deadline_missed: self.deadline_missed,
-                    }),
-                )
-            }
-
-            Command::ReadyObserved { peer_id } => {
-                let is_dup = self.collecting_peers.contains(&peer_id);
-                let mut new_collecting = self.collecting_peers.clone();
-                if !is_dup {
-                    new_collecting.push(peer_id);
-                }
-
-                let outcome = if is_dup {
-                    Outcome::DuplicateReadyIgnored { peer_id }
-                } else {
-                    Outcome::ReadyAccepted { peer_id }
-                };
-
-                (
-                    vec![outcome],
-                    Stage::Pinging(Self {
-                        members: self.members.clone(),
-                        pinging_peers: self.pinging_peers.clone(),
-                        collecting_peers: new_collecting,
-                        deadline_missed: self.deadline_missed,
-                    }),
-                )
-            }
-
-            Command::LocalParticipationCompleted => {
-                let step = LocalCompletionStep::new(
-                    self.collecting_peers.clone(),
-                    config.peer_id(),
-                    config.required_count(),
-                );
-
-                (
-                    step.outcomes().to_vec(),
-                    Collecting::new(
-                        self.members.clone(),
-                        step.confirmed_peers().to_vec(),
-                        self.pinging_peers.clone(),
-                        self.deadline_missed,
-                    )
-                    .resolve(step.is_quorum()),
-                )
-            }
-
-            Command::DeadlineExpired => (
-                vec![Outcome::DeadlineMissed {
-                    confirmed_count: self.collecting_peers.len(),
-                }],
+            ))
+        } else if let Some(decision) = JoinDecision::of(&command) {
+            let join = JoinStep::new(self.members.clone(), decision);
+            Some((
+                join.outcomes().to_vec(),
                 Stage::Pinging(Self {
-                    members: self.members.clone(),
+                    members: join.members().clone(),
                     pinging_peers: self.pinging_peers.clone(),
                     collecting_peers: self.collecting_peers.clone(),
-                    deadline_missed: true,
+                    deadline_missed: self.deadline_missed,
                 }),
-            ),
+            ))
+        } else {
+            match command {
+                Command::ParticipationObserved { peer_id } => {
+                    let step = PingingStep::new(self.pinging_peers.clone(), peer_id);
 
-            Command::JoinRequested { .. }
-            | Command::JoinApproved { .. }
-            | Command::JoinRejected { .. } => {
-                let join = JoinStep::new(self.members.clone(), &command);
-                (
-                    join.outcomes().to_vec(),
+                    Some((
+                        step.outcomes().to_vec(),
+                        Stage::Pinging(Self {
+                            members: self.members.clone(),
+                            pinging_peers: step.confirmed_peers().to_vec(),
+                            collecting_peers: self.collecting_peers.clone(),
+                            deadline_missed: self.deadline_missed,
+                        }),
+                    ))
+                }
+
+                Command::ReadyObserved { peer_id } => {
+                    let is_dup = self.collecting_peers.contains(&peer_id);
+                    let mut new_collecting = self.collecting_peers.clone();
+                    if !is_dup {
+                        new_collecting.push(peer_id);
+                    }
+
+                    let outcome = if is_dup {
+                        Outcome::DuplicateReadyIgnored { peer_id }
+                    } else {
+                        Outcome::ReadyAccepted { peer_id }
+                    };
+
+                    Some((
+                        vec![outcome],
+                        Stage::Pinging(Self {
+                            members: self.members.clone(),
+                            pinging_peers: self.pinging_peers.clone(),
+                            collecting_peers: new_collecting,
+                            deadline_missed: self.deadline_missed,
+                        }),
+                    ))
+                }
+
+                Command::LocalParticipationCompleted => {
+                    let step = LocalCompletionStep::new(
+                        self.collecting_peers.clone(),
+                        config.peer_id(),
+                        config.quorum_policy(),
+                    );
+
+                    Some((
+                        step.outcomes().to_vec(),
+                        Collecting::new(
+                            self.members.clone(),
+                            step.confirmed_peers().to_vec(),
+                            self.pinging_peers.clone(),
+                            self.deadline_missed,
+                        )
+                        .resolve(step.is_quorum()),
+                    ))
+                }
+
+                Command::DeadlineExpired => Some((
+                    vec![Outcome::DeadlineMissed {
+                        confirmed_count: self.collecting_peers.len(),
+                    }],
                     Stage::Pinging(Self {
-                        members: join.members().clone(),
+                        members: self.members.clone(),
                         pinging_peers: self.pinging_peers.clone(),
                         collecting_peers: self.collecting_peers.clone(),
-                        deadline_missed: self.deadline_missed,
+                        deadline_missed: true,
                     }),
-                )
-            }
+                )),
 
-            Command::Probe => unreachable!("Probe handled in Faction::process"),
+                _ => None,
+            }
         }
     }
 }

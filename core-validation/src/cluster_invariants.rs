@@ -6,6 +6,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use faction::cluster_view::ClusterView;
+use faction::peer_state::PeerState;
 use faction::types::PeerId;
 
 pub struct ClusterInvariants {
@@ -52,7 +53,8 @@ impl ClusterInvariants {
             .iter()
             .enumerate()
             .filter(|(_, view)| {
-                view.is_concluded() && view.collecting_peers().len() < view.required_count()
+                view.peer_state() == PeerState::Bootstrapped
+                    && view.collecting_peers().len() < view.required_count()
             })
             .map(|(node, view)| {
                 format!(

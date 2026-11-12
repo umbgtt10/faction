@@ -38,12 +38,18 @@ fn assert_duplicate_outputs_do_not_mutate_counts(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.conclusion(), previous.conclusion());
+        prop_assert_eq!(
+            (current.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped),
+            (previous.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped)
+        );
         prop_assert_eq!(
             current.is_pinging_completed(),
             previous.is_pinging_completed()
         );
-        prop_assert_eq!(current.is_concluded(), previous.is_concluded());
+        prop_assert_eq!(
+            current.peer_state() == PeerState::Bootstrapped,
+            previous.peer_state() == PeerState::Bootstrapped
+        );
     }
     Ok(())
 }
@@ -62,12 +68,18 @@ fn assert_non_member_outputs_do_not_mutate_state(
             current.collecting_peers().len(),
             previous.collecting_peers().len()
         );
-        prop_assert_eq!(current.conclusion(), previous.conclusion());
+        prop_assert_eq!(
+            (current.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped),
+            (previous.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped)
+        );
         prop_assert_eq!(
             current.is_pinging_completed(),
             previous.is_pinging_completed()
         );
-        prop_assert_eq!(current.is_concluded(), previous.is_concluded());
+        prop_assert_eq!(
+            current.peer_state() == PeerState::Bootstrapped,
+            previous.peer_state() == PeerState::Bootstrapped
+        );
     }
     Ok(())
 }
@@ -128,8 +140,8 @@ proptest! {
 
             // Assert
             if let Some(mode) = exited_mode {
-                prop_assert_eq!(cluster_view.conclusion(), Some(mode));
-            } else if let Some(mode) = cluster_view.conclusion() {
+                prop_assert_eq!((cluster_view.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped), Some(mode));
+            } else if let Some(mode) = (cluster_view.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped) {
                 exited_mode = Some(mode);
             }
         }
@@ -150,13 +162,13 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.is_concluded() {
+            if cluster_view.peer_state() == PeerState::Bootstrapped {
                 has_exited = true;
                 prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
             }
 
             if has_exited {
-                prop_assert!(cluster_view.is_concluded());
+                prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
                 prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
             }
         }
@@ -255,12 +267,12 @@ proptest! {
 
             // Assert
             if has_exited {
-                prop_assert!(current.is_concluded());
+                prop_assert_eq!(current.peer_state(), PeerState::Bootstrapped);
             }
-            if previous.is_concluded() {
-                prop_assert!(current.is_concluded());
+            if previous.peer_state() == PeerState::Bootstrapped {
+                prop_assert_eq!(current.peer_state(), PeerState::Bootstrapped);
             }
-            if current.is_concluded() {
+            if current.peer_state() == PeerState::Bootstrapped {
                 has_exited = true;
             }
         }
@@ -307,9 +319,9 @@ proptest! {
             };
 
             // Assert
-            if cluster_view.conclusion() == Some(Conclusion::Bootstrapped) {
+            if (cluster_view.peer_state() == PeerState::Bootstrapped).then_some(Conclusion::Bootstrapped) == Some(Conclusion::Bootstrapped) {
                 prop_assert!(cluster_view.is_pinging_completed());
-                prop_assert!(cluster_view.is_concluded());
+                prop_assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
                 prop_assert_eq!(
                     cluster_view.peer_state(),
                     PeerState::Bootstrapped
@@ -335,8 +347,8 @@ proptest! {
             if cluster_view.deadline_missed()
                 && cluster_view.peer_state() == PeerState::TimedOut
             {
-                prop_assert!(!cluster_view.is_concluded());
-                prop_assert_eq!(cluster_view.conclusion(), None);
+                prop_assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
+                prop_assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
             }
         }
     }

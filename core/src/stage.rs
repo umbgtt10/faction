@@ -33,10 +33,10 @@ pub enum Stage {
 
 impl Stage {
     #[must_use]
-    pub fn admissible_commands(&self) -> Vec<Command> {
+    pub fn admissible_commands(&self, config: &Config) -> Vec<Command> {
         COMMANDS
             .into_iter()
-            .filter(|command| *command == Command::Probe || self.accept(command))
+            .filter(|command| *command == Command::Probe || self.step(*command, config).is_some())
             .collect()
     }
 
@@ -51,15 +51,11 @@ impl Stage {
 }
 
 impl State for Stage {
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage) {
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         self.current().step(command, config)
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         self.current().cluster_view(previous)
-    }
-
-    fn accept(&self, command: &Command) -> bool {
-        self.current().accept(command)
     }
 }

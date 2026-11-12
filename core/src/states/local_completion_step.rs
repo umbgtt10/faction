@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 use crate::conclusion::Conclusion;
 use crate::outcome::Outcome;
+use crate::quorum_policy::QuorumPolicy;
 use crate::types::PeerId;
 
 pub struct LocalCompletionStep {
@@ -16,14 +17,14 @@ pub struct LocalCompletionStep {
 
 impl LocalCompletionStep {
     #[must_use]
-    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId, quorum_threshold: usize) -> Self {
+    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId, quorum_policy: QuorumPolicy) -> Self {
         let was_present = confirmed_peers.contains(&peer_id);
         let mut new_confirmed_peers = confirmed_peers;
         if !was_present {
             new_confirmed_peers.push(peer_id);
         }
 
-        let is_quorum = new_confirmed_peers.len() >= quorum_threshold;
+        let is_quorum = quorum_policy.is_satisfied(new_confirmed_peers.len());
         let mut outcomes = vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,

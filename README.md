@@ -173,6 +173,7 @@ use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 
@@ -195,7 +196,7 @@ machine.process(Command::ReadyObserved { peer_id: 2 });
 // Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
 let result = machine.process(Command::ReadyObserved { peer_id: 3 });
 if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
-    assert!(cluster_view.is_concluded());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining
     // peer) plus the Phase 1 join commands.

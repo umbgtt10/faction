@@ -16,9 +16,10 @@ cluster_view }`, `Rejected { cluster_view, admissible }`, or `Probed {
 cluster_view, admissible }`. The machine is self-describing: on a probe or a
 rejection it returns the set of commands admissible in the current state. The
 load-bearing invariant is that a state's admissible set is exactly the
-non-`Probe` commands it accepts, plus the always-available `Probe`:
-`admissible_commands() == { c ≠ Probe : accept(c) } ∪ { Probe }`. (`Probe` is
-always admissible because it is read-only and intercepted before `accept()`.)
+non-`Probe` commands its `step` answers, plus the always-available `Probe`:
+`admissible_commands() == { c ≠ Probe : step(c) answers } ∪ { Probe }`. (`Probe`
+is always admissible: it is read-only, and no stage steps on it, so it is answered
+`Probed`.)
 
 ## Forcing constraints / Evidence
 A self-describing entry point lets a consumer steer its loop by asking the
@@ -31,12 +32,12 @@ Rejected: duplicates the state-gating logic in two places and lets them drift.
 
 ## Consequences
 Consumers branch on three result variants. `Stage::admissible_commands()` is
-computed from `accept()` rather than declared beside it, so a state's
-self-description cannot drift from what it accepts.
+computed from what `step` answers rather than declared beside it, so a state's
+self-description cannot drift from what it steps on.
 
 ## Enforcement
 Every transition's admissible set is asserted against its expected value in
 the exhaustive `(state × command)` matrix, every result variant is exercised
 there, and a dedicated invariant test
 (`ladder/tests/matrix/admissible_invariant_tests.rs`) checks
-`admissible == { c ≠ Probe : accept(c) } ∪ { Probe }` per state directly.
+`admissible == { c ≠ Probe : c is not rejected } ∪ { Probe }` per state directly.

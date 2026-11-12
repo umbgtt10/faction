@@ -16,6 +16,7 @@ use crate::state::State;
 use crate::types::PeerId;
 
 use super::bootstrapped::Bootstrapped;
+use super::join_decision::JoinDecision;
 use super::join_step::JoinStep;
 use super::ready_step::ReadyStep;
 
@@ -57,18 +58,6 @@ impl Collecting {
 }
 
 impl State for Collecting {
-    fn accept(&self, command: &Command) -> bool {
-        matches!(
-            command,
-            Command::ParticipationObserved { .. }
-                | Command::ReadyObserved { .. }
-                | Command::DeadlineExpired
-                | Command::JoinRequested { .. }
-                | Command::JoinApproved { .. }
-                | Command::JoinRejected { .. }
-        )
-    }
-
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Collecting)
@@ -80,9 +69,9 @@ impl State for Collecting {
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage) {
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         if let Some(peer_id) = self.members.non_member_observed(&command) {
-            return (
+            Some((
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Stage::Collecting(Self::new(
                     self.members.clone(),
@@ -90,72 +79,61 @@ impl State for Collecting {
                     self.pinged_peers.clone(),
                     self.deadline_missed,
                 )),
-            );
-        }
-
-        match command {
-            Command::ParticipationObserved { peer_id } => (
-                vec![Outcome::AcknowledgeRejoin { peer_id }],
+            ))
+        } else if let Some(decision) = JoinDecision::of(&command) {
+            let join = JoinStep::new(self.members.clone(), decision);
+            Some((
+                join.outcomes().to_vec(),
                 Stage::Collecting(Self::new(
-                    self.members.clone(),
+                    join.members().clone(),
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
                     self.deadline_missed,
                 )),
-            ),
-
-            Command::ReadyObserved { peer_id } => {
-                let step = ReadyStep::new(
-                    self.collecting_peers.clone(),
-                    peer_id,
-                    config.required_count(),
-                );
-
-                (
-                    step.outcomes().to_vec(),
-                    Self::new(
-                        self.members.clone(),
-                        step.confirmed_peers().to_vec(),
-                        self.pinged_peers.clone(),
-                        self.deadline_missed,
-                    )
-                    .resolve(step.is_quorum()),
-                )
-            }
-
-            Command::LocalParticipationCompleted => {
-                unreachable!("accept() rejects this command for Collecting")
-            }
-
-            Command::DeadlineExpired => (
-                vec![Outcome::DeadlineMissed {
-                    confirmed_count: self.collecting_peers.len(),
-                }],
-                Stage::Collecting(Self::new(
-                    self.members.clone(),
-                    self.collecting_peers.clone(),
-                    self.pinged_peers.clone(),
-                    true,
-                )),
-            ),
-
-            Command::JoinRequested { .. }
-            | Command::JoinApproved { .. }
-            | Command::JoinRejected { .. } => {
-                let join = JoinStep::new(self.members.clone(), &command);
-                (
-                    join.outcomes().to_vec(),
+            ))
+        } else {
+            match command {
+                Command::ParticipationObserved { peer_id } => Some((
+                    vec![Outcome::AcknowledgeRejoin { peer_id }],
                     Stage::Collecting(Self::new(
-                        join.members().clone(),
+                        self.members.clone(),
                         self.collecting_peers.clone(),
                         self.pinged_peers.clone(),
                         self.deadline_missed,
                     )),
-                )
-            }
+                )),
 
-            Command::Probe => {
-                unreachable!("Probe handled in Faction::process")
+                Command::ReadyObserved { peer_id } => {
+                    let step = ReadyStep::new(
+                        self.collecting_peers.clone(),
+                        peer_id,
+                        config.quorum_policy(),
+                    );
+                    Some((
+                        step.outcomes().to_vec(),
+                        Self::new(
+                            self.members.clone(),
+                            step.confirmed_peers().to_vec(),
+                            self.pinged_peers.clone(),
+                            self.deadline_missed,
+                        )
+                        .resolve(step.is_quorum()),
+                    ))
+                }
+
+                Command::DeadlineExpired => Some((
+                    vec![Outcome::DeadlineMissed {
+                        confirmed_count: self.collecting_peers.len(),
+                    }],
+                    Stage::Collecting(Self::new(
+                        self.members.clone(),
+                        self.collecting_peers.clone(),
+                        self.pinged_peers.clone(),
+                        true,
+                    )),
+                )),
+
+                _ => None,
             }
         }
     }

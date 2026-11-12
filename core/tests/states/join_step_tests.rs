@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::vec;
-use faction::command::Command;
 use faction::members::Members;
 use faction::outcome::Outcome;
+use faction::states::join_decision::JoinDecision;
 use faction::states::join_step::JoinStep;
 
 extern crate alloc;
@@ -16,7 +16,7 @@ fn members() -> Members {
 #[test]
 fn new_join_approved_member_returns_duplicate_ignored() {
     // Arrange & Act
-    let join = JoinStep::new(members(), &Command::JoinApproved { peer_id: 1 });
+    let join = JoinStep::new(members(), JoinDecision::Approved(1));
 
     // Assert
     assert_eq!(
@@ -29,7 +29,7 @@ fn new_join_approved_member_returns_duplicate_ignored() {
 #[test]
 fn new_join_approved_non_member_returns_member_admitted() {
     // Arrange & Act
-    let join = JoinStep::new(members(), &Command::JoinApproved { peer_id: 5 });
+    let join = JoinStep::new(members(), JoinDecision::Approved(5));
 
     // Assert
     assert_eq!(join.outcomes(), &[Outcome::MemberAdmitted { peer_id: 5 }]);
@@ -39,7 +39,7 @@ fn new_join_approved_non_member_returns_member_admitted() {
 #[test]
 fn new_join_rejected_returns_join_denied() {
     // Arrange & Act
-    let join = JoinStep::new(members(), &Command::JoinRejected { peer_id: 5 });
+    let join = JoinStep::new(members(), JoinDecision::Rejected(5));
 
     // Assert
     assert_eq!(join.outcomes(), &[Outcome::JoinDenied { peer_id: 5 }]);
@@ -49,19 +49,9 @@ fn new_join_rejected_returns_join_denied() {
 #[test]
 fn new_join_requested_returns_emit_join_request() {
     // Arrange & Act
-    let join = JoinStep::new(members(), &Command::JoinRequested { peer_id: 5 });
+    let join = JoinStep::new(members(), JoinDecision::Requested(5));
 
     // Assert
     assert_eq!(join.outcomes(), &[Outcome::EmitJoinRequest { peer_id: 5 }]);
     assert_eq!(join.members(), &members());
-}
-
-#[test]
-#[should_panic(expected = "JoinStep only handles join commands")]
-fn new_non_join_command_panics() {
-    // Arrange
-    let members = members();
-
-    // Act & Assert
-    let _ = JoinStep::new(members, &Command::DeadlineExpired);
 }

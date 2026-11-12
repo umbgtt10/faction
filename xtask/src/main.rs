@@ -31,6 +31,7 @@ use xtask::reports::scores::message_scoring::MessageScoring;
 
 const CORE_PACKAGE: &str = "faction";
 const CORE_VALIDATION_PACKAGE: &str = "faction-core-validation";
+const CONFORMANCE_TIER: &str = "conformance";
 const LADDER_PACKAGE: &str = "faction-ladder";
 const PROTOCOL_PACKAGE: &str = "faction-protocol";
 const PROTOCOL_VALIDATION_PACKAGE: &str = "faction-protocol-validation";
@@ -140,6 +141,16 @@ fn stage2() -> Result<&'static str, String> {
         String::from(LADDER_PACKAGE),
     ];
     let coverage = CoverageGate::new(&runner, manifest_path.clone(), measured, None);
+    // faction's lines again, over the conformance tier alone: a line no vector
+    // of the specification reaches is one it does not ask for
+    // (P1-ADR-NoLineTheSpecificationDoesNotAskFor). faction-protocol is not
+    // the specified component, so it is measured over every tier only.
+    let conformance_coverage = CoverageGate::new(
+        &runner,
+        manifest_path.clone(),
+        vec![String::from(CORE_PACKAGE), String::from(LADDER_PACKAGE)],
+        Some(String::from(CONFORMANCE_TIER)),
+    );
     let twin = TwinGate::new(&runner, manifest_path.clone(), library.clone());
     let iceberg = IcebergGate::new(
         &runner,
@@ -150,7 +161,16 @@ fn stage2() -> Result<&'static str, String> {
     // Last: its advisories change without the code changing (see DenyGate).
     let deny = DenyGate::new(&runner, manifest_path);
 
-    let gates: Vec<&dyn Gate> = vec![&stern, &dry, &crap, &coverage, &twin, &iceberg, &deny];
+    let gates: Vec<&dyn Gate> = vec![
+        &stern,
+        &dry,
+        &crap,
+        &coverage,
+        &conformance_coverage,
+        &twin,
+        &iceberg,
+        &deny,
+    ];
     GateSequence::new(gates)
         .run()
         .map(|()| "faction Stage 2")

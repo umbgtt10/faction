@@ -21,7 +21,7 @@ fn apply_participation_accepts_timely_member_observation() {
     assert_eq!(outputs, vec![Outcome::ParticipationAccepted { peer_id: 1 }]);
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -45,5 +45,5 @@ fn complete_local_participation_updates_snapshot_and_outputs() {
     assert!(cluster_view.is_pinging_completed());
     assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
     assert_eq!(cluster_view.collecting_peers().len(), 1);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }

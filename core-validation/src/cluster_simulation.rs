@@ -8,6 +8,7 @@ use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 
 use faction::cluster_view::ClusterView;
@@ -58,7 +59,9 @@ impl ClusterSimulation {
             .iter_mut()
             .all(|n| match n.process(Command::Probe) {
                 ProcessResult::Probed { cluster_view, .. } => {
-                    cluster_view.conclusion() == Some(mode)
+                    (cluster_view.peer_state() == PeerState::Bootstrapped)
+                        .then_some(Conclusion::Bootstrapped)
+                        == Some(mode)
                 }
                 _ => unreachable!(),
             })

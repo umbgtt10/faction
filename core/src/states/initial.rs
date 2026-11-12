@@ -12,6 +12,7 @@ use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::stage::Stage;
 use crate::state::State;
+use crate::states::join_decision::JoinDecision;
 use crate::states::join_step::JoinStep;
 use crate::states::pinging::Pinging;
 
@@ -37,30 +38,18 @@ impl State for Initial {
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage) {
-        match command {
-            Command::JoinRequested { .. }
-            | Command::JoinApproved { .. }
-            | Command::JoinRejected { .. } => {
-                let join = JoinStep::new(self.members.clone(), &command);
-                (
-                    join.outcomes().to_vec(),
-                    Stage::Initial(Self::new(join.members().clone())),
-                )
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
+        if let Some(decision) = JoinDecision::of(&command) {
+            let join = JoinStep::new(self.members.clone(), decision);
+            Some((
+                join.outcomes().to_vec(),
+                Stage::Initial(Self::new(join.members().clone())),
+            ))
+        } else {
+            match command {
+                Command::DeadlineExpired => None,
+                _ => Pinging::new(self.members.clone()).step(command, config),
             }
-            _ => Pinging::new(self.members.clone()).step(command, config),
         }
-    }
-
-    fn accept(&self, command: &Command) -> bool {
-        matches!(
-            command,
-            Command::ParticipationObserved { .. }
-                | Command::ReadyObserved { .. }
-                | Command::LocalParticipationCompleted
-                | Command::JoinRequested { .. }
-                | Command::JoinApproved { .. }
-                | Command::JoinRejected { .. }
-        )
     }
 }

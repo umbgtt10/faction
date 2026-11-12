@@ -184,7 +184,7 @@ pinging can always recover.
 | `Concluded { mode }` | The node concluded bootstrapping (`mode` is `Bootstrapped`) |
 
 The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
-The view says so from then on: `cluster_view.conclusion()` is `Some(Bootstrapped)`.
+The view says so from then on: its peer state is `Bootstrapped`.
 `Bootstrapped` is the only conclusion.
 
 ### Data flow
@@ -192,10 +192,9 @@ The view says so from then on: `cluster_view.conclusion()` is `Some(Bootstrapped
 ```text
 Command
   │
-  ├─ Probe? ──────────► ProcessResult::Probed (no mutation)
-  │
-  ├─ accept() false? ─► ProcessResult::Rejected { admissible }
-  │
+  ▼
+the stage's step ── answers nothing? ─► ProcessResult::Probed for a Probe,
+  │                                     ProcessResult::Rejected otherwise (no mutation)
   ▼
 Gate 1: non-member? ──► NonMemberIgnored
   │
@@ -284,7 +283,6 @@ returns:
 
 - Current peer state (`PeerState`) — `TimedOut` is reported here as a derived
   "missed deadline" flag, distinct from being concluded
-- `Conclusion`, if concluded (only ever `Bootstrapped`)
 - Pinging peers — peers observed in Phase 1
 - Collecting peers — peers observed in Phase 2
 - Whether pinging phase is complete

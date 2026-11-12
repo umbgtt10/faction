@@ -10,9 +10,7 @@ use crate::outcome::Outcome;
 use crate::stage::Stage;
 
 pub trait State: Send {
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage);
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)>;
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView;
-
-    fn accept(&self, command: &Command) -> bool;
 }

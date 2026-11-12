@@ -44,6 +44,7 @@ code. It runs, in this order:
 | `cargo dry4rust` | is any code duplicated in the library crates' source (`dry4rust.toml`, floor 25 nodes, no baseline) |
 | `cargo crap4rust` | is any function of `faction` or `faction-protocol` complex and untested (threshold 15) |
 | `cargo llvm-cov` | is every line, region and function of the library crates covered, the ladder's tiers counted |
+| `cargo llvm-cov`, conformance alone | is every line, region and function of `faction` reached by the specification's vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`) |
 | `cargo twin4rust` | does every source file of the library crates have a mirrored test file |
 | `cargo iceberg4rust` | is any file's private implementation risk too high (threshold 5) |
 | `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source (`deny.toml`) |
@@ -136,7 +137,7 @@ gaps.
   `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`) under the row
   `not-admitted`; `pinging_invalid_tests.rs` asserts Pinging rejects nothing, and
   `admissible_invariant_tests.rs` checks each stage's admissible set against the table's
-  `admits` and against `{ c ≠ Probe : accept(c) } ∪ { Probe }`.
+  `admits` and against `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
 - Any new state or command variant MUST add its rows to the table first, then the
   matching cases here.
 - `Bootstrapped` is the only terminal state; a missed deadline is non-terminal
@@ -150,6 +151,6 @@ Every `punch` arm MUST follow this exact pipeline in order:
 2. **outputs** — compute the output vector via a pure function (`compute::observed_output(...)`) or equivalent
 3. **new_state** — compute the new state values via a pure `match` expression that returns a tuple, with NO mutation inside the match arms (use `iter().enumerate().map().collect()` instead of `let mut v = ...; v[i] = true`)
 4. **mutation** — assign the computed values back to the working variables (e.g. `phase1_confirmed = new_phase1_confirmed;`)
-5. **single return** — exactly one `(outputs, Stage::<State>(Self { ... }))` expression per arm
+5. **single return** — exactly one `Some((outputs, Stage::<State>(Self { ... })))` expression per arm; the commands a stage does not admit, a probe among them, end in one arm answering `None`
 
 Violations of this model (early returns, mutation inside match arms, multiple exit points) are not acceptable.

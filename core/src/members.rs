@@ -23,18 +23,8 @@ impl Members {
     }
 
     #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.peers.is_empty()
-    }
-
-    #[must_use]
     pub fn is_member(&self, peer_id: PeerId) -> bool {
         self.peers.contains(&peer_id)
-    }
-
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.peers.len()
     }
 
     #[must_use]
@@ -50,11 +40,13 @@ impl Members {
     }
 
     #[must_use]
-    pub fn with_admitted(&self, peer_id: PeerId) -> Self {
-        let mut peers = self.peers.clone();
-        if !peers.contains(&peer_id) {
+    pub fn with_admitted(&self, peer_id: PeerId) -> Option<Self> {
+        if self.is_member(peer_id) {
+            None
+        } else {
+            let mut peers = self.peers.clone();
             peers.push(peer_id);
+            Some(Self { peers })
         }
-        Self { peers }
     }
 }

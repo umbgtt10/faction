@@ -7,7 +7,6 @@ pub mod config_tests;
 pub mod faction_tests;
 pub mod members_tests;
 pub mod no_op_observer_tests;
-pub mod process_result_tests;
 pub mod quorum_policy_tests;
 pub mod stage_tests;
 pub mod states;

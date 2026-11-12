@@ -8,6 +8,7 @@ use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use proptest::prelude::*;
@@ -16,7 +17,7 @@ fn assert_post_exit_inputs_do_not_change_any_field(
     previous: ClusterView,
     current: ClusterView,
 ) -> Result<(), TestCaseError> {
-    if previous.is_concluded() {
+    if previous.peer_state() == PeerState::Bootstrapped {
         prop_assert_eq!(current, previous);
     }
     Ok(())
@@ -106,7 +107,7 @@ proptest! {
         };
 
         // Assert
-        if previous.is_pinging_completed() || previous.is_concluded() {
+        if previous.is_pinging_completed() || previous.peer_state() == PeerState::Bootstrapped {
             let first_rejected = matches!(first_status, ProcessResult::Rejected { .. });
             prop_assert!(first_rejected);
             prop_assert_eq!(after_first.clone(), previous);

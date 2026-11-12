@@ -74,7 +74,11 @@ fn reported_outcomes(result: &ProcessResult) -> Vec<Outcome> {
 }
 
 fn reported_view(result: &ProcessResult) -> ClusterView {
-    result.clone().into_cluster_view()
+    match result.clone() {
+        ProcessResult::Accepted { cluster_view, .. }
+        | ProcessResult::Rejected { cluster_view, .. }
+        | ProcessResult::Probed { cluster_view, .. } => cluster_view,
+    }
 }
 
 #[test]
@@ -137,23 +141,6 @@ fn approving_the_local_member_is_a_duplicate() {
         outcomes,
         vec![Outcome::DuplicateMemberIgnored { peer_id: 0 }]
     );
-}
-
-#[test]
-fn config_returns_the_configuration_given_to_new() {
-    // Arrange
-    let faction = Faction::new(
-        Config::new(2, vec![1, 2, 3], QuorumPolicy::new(2)),
-        Box::new(NoOpObserver),
-    );
-
-    // Act
-    let config = faction.config();
-
-    // Assert
-    assert_eq!(config.peer_id(), 2);
-    assert_eq!(config.peers(), &[1, 2, 3]);
-    assert_eq!(config.required_count(), 2);
 }
 
 #[test]
@@ -330,14 +317,14 @@ fn process_observes_deadline_missed_from_pinging() {
     assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(previous.peer_state(), PeerState::Pinging);
     assert!(!previous.is_pinging_completed());
-    assert!(!previous.is_concluded());
+    assert_ne!(previous.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         reported_outcomes(reported),
         &[Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
     assert_eq!(view.peer_state(), PeerState::TimedOut);
-    assert_eq!(view.conclusion(), None);
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
     assert!(!view.is_pinging_completed());
 }
 
@@ -365,10 +352,10 @@ fn process_observes_deadline_missed_transition() {
     assert_eq!(*observed_input, input);
     assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(previous.peer_state(), PeerState::Collecting);
-    assert!(!previous.is_concluded());
+    assert_ne!(previous.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.peer_state(), PeerState::TimedOut);
-    assert_eq!(view.conclusion(), None);
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
     assert!(view.deadline_missed());
     assert_eq!(
         reported_outcomes(reported),
@@ -438,7 +425,7 @@ fn process_observes_duplicate_ready_from_collecting() {
     assert_eq!(previous, view);
     assert_eq!(view.peer_state(), PeerState::Collecting);
     assert_eq!(view.collecting_peers().len(), 2);
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -496,10 +483,10 @@ fn process_observes_local_participation_completion_transition() {
     assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(previous.peer_state(), PeerState::Pinging);
     assert!(!previous.is_pinging_completed());
-    assert!(!previous.is_concluded());
+    assert_ne!(previous.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.peer_state(), PeerState::Collecting);
     assert!(view.is_pinging_completed());
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.collecting_peers().len(), 1);
     assert_eq!(
         reported_outcomes(reported),
@@ -539,7 +526,7 @@ fn process_observes_non_member_participation_from_initial() {
     assert_eq!(previous.peer_state(), PeerState::Fresh);
     assert_eq!(view.peer_state(), PeerState::Pinging);
     assert_eq!(view.pinging_peers().len(), 0);
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -571,7 +558,7 @@ fn process_observes_non_member_ready_from_initial() {
     assert_eq!(previous.peer_state(), PeerState::Fresh);
     assert_eq!(view.peer_state(), PeerState::Pinging);
     assert_eq!(view.collecting_peers().len(), 0);
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -610,10 +597,10 @@ fn process_observes_quorum_exit_from_pinging() {
     );
     assert_eq!(previous.peer_state(), PeerState::Pinging);
     assert!(!previous.is_pinging_completed());
-    assert!(!previous.is_concluded());
+    assert_ne!(previous.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(view.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(view.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.collecting_peers().len(), 4);
 }
 
@@ -644,10 +631,10 @@ fn process_observes_quorum_exit_transition() {
     assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(previous.peer_state(), PeerState::Collecting);
     assert_eq!(previous.collecting_peers().len(), 3);
-    assert!(!previous.is_concluded());
+    assert_ne!(previous.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(view.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(view.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.collecting_peers().len(), 4);
     assert_eq!(
         reported_outcomes(reported),
@@ -690,10 +677,10 @@ fn process_observes_timely_ready_from_collecting_no_quorum() {
     );
     assert_eq!(previous.peer_state(), PeerState::Collecting);
     assert_eq!(previous.collecting_peers().len(), 2);
-    assert!(!previous.is_concluded());
+    assert_ne!(previous.peer_state(), PeerState::Bootstrapped);
     assert_eq!(view.peer_state(), PeerState::Collecting);
     assert_eq!(view.collecting_peers().len(), 3);
-    assert!(!view.is_concluded());
+    assert_ne!(view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -733,9 +720,9 @@ fn process_probe_returns_cluster_view_with_initial_state() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Fresh);
-    assert_eq!(cluster_view.conclusion(), None);
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert!(!cluster_view.is_pinging_completed());
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.pinging_peers().len(), 0);
     assert_eq!(cluster_view.collecting_peers().len(), 0);
 }
@@ -836,5 +823,8 @@ fn process_state_transition_outputs_fully_observable() {
         ]
     );
     assert_eq!(outcomes_4, reported_outcomes(reported4));
-    assert!(reported_view(reported4).is_concluded());
+    assert_eq!(
+        reported_view(reported4).peer_state(),
+        PeerState::Bootstrapped
+    );
 }

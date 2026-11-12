@@ -10,6 +10,7 @@ pub mod input_message;
 pub mod message_translator;
 pub mod output_message;
 pub mod protocol;
+pub mod result_view;
 pub mod timer;
 pub mod timer_event;
 pub mod timer_message;

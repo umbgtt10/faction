@@ -90,7 +90,7 @@ fn not_enough_signals_records_deadline_miss() {
     for peer in 0..5 {
         let view = sim.cluster_view(peer);
         assert_eq!(view.peer_state(), PeerState::TimedOut);
-        assert!(!view.is_concluded());
+        assert_ne!(view.peer_state(), PeerState::Bootstrapped);
         assert!(view.deadline_missed());
     }
 }

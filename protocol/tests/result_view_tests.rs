@@ -8,11 +8,12 @@ use faction::command::Command;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction_protocol::result_view::ResultView;
 
 extern crate alloc;
 
 fn view() -> ClusterView {
-    ClusterViewBuilder::new()
+    ClusterViewBuilder::default()
         .with_peer_state(PeerState::Collecting)
         .with_collecting_peers(vec![0, 2])
         .with_required_count(3)
@@ -20,7 +21,7 @@ fn view() -> ClusterView {
 }
 
 #[test]
-fn into_cluster_view_of_accepted_returns_its_view() {
+fn of_accepted_returns_its_view() {
     // Arrange
     let result = ProcessResult::Accepted {
         cluster_view: view(),
@@ -29,14 +30,14 @@ fn into_cluster_view_of_accepted_returns_its_view() {
     };
 
     // Act
-    let cluster_view = result.into_cluster_view();
+    let cluster_view = ResultView::of(result);
 
     // Assert
     assert_eq!(cluster_view, view());
 }
 
 #[test]
-fn into_cluster_view_of_probed_returns_its_view() {
+fn of_probed_returns_its_view() {
     // Arrange
     let result = ProcessResult::Probed {
         cluster_view: view(),
@@ -44,14 +45,14 @@ fn into_cluster_view_of_probed_returns_its_view() {
     };
 
     // Act
-    let cluster_view = result.into_cluster_view();
+    let cluster_view = ResultView::of(result);
 
     // Assert
     assert_eq!(cluster_view, view());
 }
 
 #[test]
-fn into_cluster_view_of_rejected_returns_its_view() {
+fn of_rejected_returns_its_view() {
     // Arrange
     let result = ProcessResult::Rejected {
         cluster_view: view(),
@@ -59,7 +60,7 @@ fn into_cluster_view_of_rejected_returns_its_view() {
     };
 
     // Act
-    let cluster_view = result.into_cluster_view();
+    let cluster_view = ResultView::of(result);
 
     // Assert
     assert_eq!(cluster_view, view());

@@ -37,6 +37,7 @@
 //! use faction::config::Config;
 //! use faction::faction::Faction;
 //! use faction::no_op_observer::NoOpObserver;
+//! use faction::peer_state::PeerState;
 //! use faction::process_result::ProcessResult;
 //! use faction::quorum_policy::QuorumPolicy;
 //!
@@ -81,7 +82,7 @@
 //! // Self plus peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
 //! let result = machine.process(Command::ReadyObserved { peer_id: 3 });
 //! if let ProcessResult::Accepted { cluster_view, .. } = result {
-//!     assert!(cluster_view.is_concluded());
+//!     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 //!     // The cluster is live. Hand off to the application.
 //! }
 //! ```
