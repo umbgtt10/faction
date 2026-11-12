@@ -121,6 +121,70 @@ node's writer) — so faults land inline in the per-node files and the merged
 
 ---
 
+## An independent model of the specification, in Rust
+
+The vectors of specification 0.1.0 were checked against an independent model,
+built from the prose, before the crate was run on them
+(`P0-ADR-SpecificationIsNormativeCrateIsReference`). That model was a throwaway
+script outside the repository, never committed: the check it made cannot be
+repeated from the repository. The model belongs in the repository, in Rust, under the house rules.
+
+**Independent of the crate, or worthless.** A model that shares the crate's types
+or its shape shares its mistakes. So it depends on nothing of `faction` — its own
+types, compared with the crate only in the specification's encoding, the
+dependency refused by `cargo deny`'s bans — and is written from `spec/SPEC.md`
+and `spec/matrix.json`, never from `core/`. Its shape is the specification's
+rule, not the crate's states: the answer is the first row of the matrix that
+applies, in the matrix's order, so the model reads the rows and owns only the
+situations, the changes the prose gives them, the outcomes' peers and the view.
+
+**Gated like the crate.** A package of its own (`spec-model/`, unpublished), under
+every stage-2 gate, and covered whole by the vectors alone: a line of the model
+no vector reaches is a situation or a change the specification never exercises.
+
+**What it checks.** That it answers every vector as written, each step and the
+final answer; that each step's deciding row is one its vector names; that it
+knows exactly the matrix's rows. Then the one check made nowhere today: the crate
+and the model agree on random command sequences — the vectors' 103 steps become
+as many as a run asks for. With that in place, the property tier's own
+`ModelCoordinator` is redundant, and the system-test logs can be replayed against
+the model as well as the crate.
+
+**When.** Not needed while the specification stands still: 0.1.0 was checked, and
+the crate answers it. Needed before it next changes — Phase 3's change, the
+first under `P2-ADR-SpecifiedBeforeAnyNewPhase` — whose new vectors need a judge
+other than the crate.
+
+---
+
+## The system tests' logs, replayed
+
+The replay tier replays logs written in-process — random command sequences and
+the simulated cluster. The system tests run real nodes, in threads, tasks and
+processes, over every transport, and each writes a log nothing reads back; nor
+could it be replayed. It is not the log `spec/SPEC.md` §3 defines: it opens with
+no configuration, its commands are Rust's debug text rather than the
+specification's encoding, its results keep only the variant, the peer state and
+the sizes of the two peer lists, and the node's own events share its file.
+
+**The likely form.** Two files per node: the specification's log — the
+configuration, then one step per call, valid against the schema as it stands —
+and the timestamped timeline `consolidated.jsonl` merges. The encoding and the
+replay leave the ladder's test support for a library of their own, which the
+system tests can depend on (not the ladder's: the conformance-alone coverage gate
+measures it, and the conformance tier never replays). Each system test then
+replays its nodes' logs once they shut down: every line admitted by the schema,
+no departure.
+
+**What it proves.** Replayed against the crate, a log reconstructs by
+construction unless the path that writes it is broken: it checks that every call
+is reported once and in order, nothing lost by the writer, on every spawn and
+transport. Replayed against the independent model, it judges the behaviour too —
+on interleavings the vectors and the simulation never produce. So it waits for
+the model.
+
+---
+
 ## Deferred
 
 - `PeerId` genericization (currently `u64`) — deferred to post-Phase-6.
