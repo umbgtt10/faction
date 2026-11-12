@@ -5,19 +5,11 @@ use std::net::SocketAddr;
 
 use faction::types::PeerId;
 
-use crate::process_spawn::ProcessSpec;
+use crate::infra::network::port_allocator::PortAllocator;
+use crate::process_spec::ProcessSpec;
 
 pub struct ProcessJoinContext {
     pub spec: ProcessSpec,
     pub genesis_addrs: Vec<(PeerId, SocketAddr)>,
-}
-
-impl ProcessJoinContext {
-    #[must_use]
-    pub fn new(spec: ProcessSpec, genesis_addrs: Vec<(PeerId, SocketAddr)>) -> Self {
-        Self {
-            spec,
-            genesis_addrs,
-        }
-    }
+    pub ports: PortAllocator,
 }

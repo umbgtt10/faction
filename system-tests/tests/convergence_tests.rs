@@ -1,13 +1,13 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::log_dir;
+use crate::support::real_time;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::spawn::Spawn;
 use faction_system_tests::timer_delay::TimerDelay;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
-
-use crate::support::log_dir;
 
 #[rstest]
 #[case::task_real_inmemory_quorum4(Spawn::Task, TransportKind::InMemory, TimerDelay::Minimal, 4)]
@@ -57,7 +57,7 @@ fn cluster_reaches_bootstrapped(
     #[case] required: usize,
 ) {
     // Arrange
-    let mut cluster = ClusterBuilder::new(5, required)
+    let mut cluster = ClusterBuilder::new(5, required, real_time())
         .spawn(spawn)
         .transport(transport)
         .timer_delay(delay)

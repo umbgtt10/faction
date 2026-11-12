@@ -1,11 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::boxed::Box;
 use alloc::vec;
-
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
@@ -17,11 +14,13 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
+use faction::stage::Stage;
 use faction::state::State;
-
 use faction::states::collecting::Collecting;
 
 const THRESHOLD: usize = 4;
+
+extern crate alloc;
 
 fn faction_in_collecting() -> Faction {
     let mut faction = Faction::new(
@@ -38,17 +37,30 @@ fn ready(peer_id: u64) -> Command {
 }
 
 #[test]
-fn process_accepts_ready_observed() {
-    // Arrange & Act
-    let mut faction = faction_in_collecting();
-    let outcomes = match faction.process(ready(1)) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
+fn cluster_view_inherits_correctly() {
+    // Arrange
+    let collecting_set = vec![1, 3];
+    let collecting = Collecting::new(
+        Members::new(vec![0, 1, 2, 3, 4]),
+        collecting_set,
+        vec![5, 6],
+        false,
+    );
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_required_count(4)
+        .build();
+
+    // Act
+    let result = collecting.cluster_view(&prev);
 
     // Assert
-    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+    assert_eq!(result.peer_state(), PeerState::Collecting);
+    assert!(result.is_pinging_completed());
+    assert_eq!(result.pinging_peers().len(), 2);
+    assert_eq!(result.collecting_peers(), &[1, 3]);
+    assert_eq!(result.conclusion(), None);
+    assert!(!result.is_concluded());
 }
 
 #[test]
@@ -73,110 +85,6 @@ fn process_accepts_deadline_expired() {
     assert!(snap.deadline_missed());
     assert!(!snap.is_concluded());
     assert_eq!(snap.conclusion(), None);
-}
-
-#[test]
-fn process_acknowledges_member_participation() {
-    // Arrange
-    let mut faction = faction_in_collecting();
-    let snap_before = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        _ => unreachable!(),
-    };
-
-    // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 2 }]);
-    assert_eq!(
-        match faction.process(Command::Probe) {
-            ProcessResult::Probed { cluster_view, .. } => cluster_view,
-            _ => unreachable!(),
-        },
-        snap_before
-    );
-}
-
-#[test]
-fn process_rejects_local_participation_completed() {
-    // Arrange
-    let mut faction = faction_in_collecting();
-    let snap_before = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        _ => unreachable!(),
-    };
-
-    // Act
-    assert!(matches!(
-        faction.process(Command::LocalParticipationCompleted),
-        ProcessResult::Rejected { .. }
-    ));
-    assert_eq!(
-        match faction.process(Command::Probe) {
-            ProcessResult::Probed { cluster_view, .. } => cluster_view,
-            _ => unreachable!(),
-        },
-        snap_before
-    );
-}
-
-#[test]
-fn process_ignores_non_member_participation() {
-    // Arrange
-    let mut faction = faction_in_collecting();
-    let snap_before = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        _ => unreachable!(),
-    };
-
-    // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(
-        match faction.process(Command::Probe) {
-            ProcessResult::Probed { cluster_view, .. } => cluster_view,
-            _ => unreachable!(),
-        },
-        snap_before
-    );
-}
-
-#[test]
-fn process_accepts_ready_non_member() {
-    // Arrange
-    let mut faction = faction_in_collecting();
-    let snap_before = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        _ => unreachable!(),
-    };
-
-    // Act
-    let outcomes = match faction.process(ready(99)) {
-        ProcessResult::Accepted { outcomes, .. } => outcomes,
-        ProcessResult::Probed { .. } => unreachable!(),
-        ProcessResult::Rejected { .. } => panic!("expected accepted"),
-    };
-
-    // Assert
-    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
-    assert_eq!(
-        match faction.process(Command::Probe) {
-            ProcessResult::Probed { cluster_view, .. } => cluster_view,
-            _ => unreachable!(),
-        },
-        snap_before
-    );
 }
 
 #[test]
@@ -284,7 +192,7 @@ fn process_accepts_ready_first_timely_triggers_quorum() {
 }
 
 #[test]
-fn process_rejects_local_completion() {
+fn process_accepts_ready_non_member() {
     // Arrange
     let mut faction = faction_in_collecting();
     let snap_before = match faction.process(Command::Probe) {
@@ -292,11 +200,56 @@ fn process_rejects_local_completion() {
         _ => unreachable!(),
     };
 
-    // Act & Assert
-    assert!(matches!(
-        faction.process(Command::LocalParticipationCompleted),
-        ProcessResult::Rejected { .. }
-    ));
+    // Act
+    let outcomes = match faction.process(ready(99)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(
+        match faction.process(Command::Probe) {
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
+}
+
+#[test]
+fn process_accepts_ready_observed() {
+    // Arrange & Act
+    let mut faction = faction_in_collecting();
+    let outcomes = match faction.process(ready(1)) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
+}
+
+#[test]
+fn process_acknowledges_member_participation() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+    let snap_before = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
+        _ => unreachable!(),
+    };
+
+    // Act
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 2 }]);
     assert_eq!(
         match faction.process(Command::Probe) {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
@@ -344,6 +297,33 @@ fn process_deadline_expired_stays_receptive_in_collecting() {
 }
 
 #[test]
+fn process_ignores_non_member_participation() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+    let snap_before = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
+        _ => unreachable!(),
+    };
+
+    // Act
+    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
+        ProcessResult::Accepted { outcomes, .. } => outcomes,
+        ProcessResult::Probed { .. } => unreachable!(),
+        ProcessResult::Rejected { .. } => panic!("expected accepted"),
+    };
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
+    assert_eq!(
+        match faction.process(Command::Probe) {
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
+}
+
+#[test]
 fn process_probe_returns_correct_snapshot() {
     // Arrange & Act
     let mut faction = faction_in_collecting();
@@ -363,28 +343,105 @@ fn process_probe_returns_correct_snapshot() {
 }
 
 #[test]
-fn cluster_view_inherits_correctly() {
+fn process_rejects_local_completion() {
     // Arrange
-    let collecting_set = vec![1, 3];
+    let mut faction = faction_in_collecting();
+    let snap_before = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
+    assert!(matches!(
+        faction.process(Command::LocalParticipationCompleted),
+        ProcessResult::Rejected { .. }
+    ));
+    assert_eq!(
+        match faction.process(Command::Probe) {
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
+}
+
+#[test]
+fn process_rejects_local_participation_completed() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+    let snap_before = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
+        _ => unreachable!(),
+    };
+
+    // Act & Assert
+    assert!(matches!(
+        faction.process(Command::LocalParticipationCompleted),
+        ProcessResult::Rejected { .. }
+    ));
+    assert_eq!(
+        match faction.process(Command::Probe) {
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
+            _ => unreachable!(),
+        },
+        snap_before
+    );
+}
+
+#[test]
+fn resolve_at_quorum_returns_bootstrapped() {
+    // Arrange
     let collecting = Collecting::new(
         Members::new(vec![0, 1, 2, 3, 4]),
-        collecting_set,
-        vec![5, 6],
+        vec![0, 1, 2, 3],
+        vec![1],
         false,
     );
-    let prev = ClusterViewBuilder::new()
-        .with_peer_state(PeerState::Pinging)
-        .with_required_count(4)
-        .build();
 
     // Act
-    let result = collecting.cluster_view(&prev);
+    let stage = collecting.resolve(true);
 
     // Assert
-    assert_eq!(result.peer_state(), PeerState::Collecting);
-    assert!(result.is_pinging_completed());
-    assert_eq!(result.pinging_peers().len(), 2);
-    assert_eq!(result.collecting_peers(), &[1, 3]);
-    assert_eq!(result.conclusion(), None);
-    assert!(!result.is_concluded());
+    let cluster_view = stage.cluster_view(&ClusterViewBuilder::new().build());
+    assert!(matches!(stage, Stage::Bootstrapped(_)));
+    assert_eq!(cluster_view.collecting_peers(), &[0, 1, 2, 3]);
+    assert_eq!(cluster_view.pinging_peers(), &[1]);
+}
+
+#[test]
+fn resolve_below_quorum_returns_collecting() {
+    // Arrange
+    let collecting = Collecting::new(Members::new(vec![0, 1, 2, 3, 4]), vec![0, 1], vec![1], true);
+
+    // Act
+    let stage = collecting.resolve(false);
+
+    // Assert
+    let cluster_view = stage.cluster_view(&ClusterViewBuilder::new().build());
+    assert!(matches!(stage, Stage::Collecting(_)));
+    assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
+    assert_eq!(cluster_view.collecting_peers(), &[0, 1]);
+    assert_eq!(cluster_view.pinging_peers(), &[1]);
+}
+
+#[test]
+#[should_panic(expected = "accept() rejects this command for Collecting")]
+fn step_local_participation_completed_panics() {
+    // Arrange
+    let state = Collecting::new(Members::new(vec![0, 1, 2]), vec![0], vec![1], false);
+    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
+
+    // Act & Assert
+    let _ = state.step(Command::LocalParticipationCompleted, &config);
+}
+
+#[test]
+#[should_panic(expected = "Probe handled in Faction::process")]
+fn step_probe_panics() {
+    // Arrange
+    let state = Collecting::new(Members::new(vec![0, 1, 2]), vec![0], vec![1], false);
+    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
+
+    // Act & Assert
+    let _ = state.step(Command::Probe, &config);
 }

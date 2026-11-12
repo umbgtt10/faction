@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -12,6 +11,7 @@ use crate::config::Config;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
+use crate::stage::Stage;
 use crate::state::State;
 use crate::types::PeerId;
 
@@ -42,32 +42,16 @@ impl Collecting {
         }
     }
 
-    fn compute_new_state(&self, is_quorum: bool, confirmed_peers: Vec<PeerId>) -> Box<dyn State> {
+    #[must_use]
+    pub fn resolve(self, is_quorum: bool) -> Stage {
         if is_quorum {
-            Box::new(Bootstrapped::new(
-                self.members.clone(),
-                self.pinged_peers.clone(),
-                confirmed_peers,
+            Stage::Bootstrapped(Bootstrapped::new(
+                self.members,
+                self.pinged_peers,
+                self.collecting_peers,
             ))
         } else {
-            Box::new(Self::new(
-                self.members.clone(),
-                confirmed_peers,
-                self.pinged_peers.clone(),
-                self.deadline_missed,
-            ))
-        }
-    }
-
-    fn non_member_peer(&self, command: &Command) -> Option<PeerId> {
-        match command {
-            Command::ParticipationObserved { peer_id, .. }
-            | Command::ReadyObserved { peer_id, .. }
-                if !self.members.is_member(*peer_id) =>
-            {
-                Some(*peer_id)
-            }
-            _ => None,
+            Stage::Collecting(self)
         }
     }
 }
@@ -85,18 +69,6 @@ impl State for Collecting {
         )
     }
 
-    fn admissible_commands(&self) -> Vec<Command> {
-        vec![
-            Command::ParticipationObserved { peer_id: 0 },
-            Command::ReadyObserved { peer_id: 0 },
-            Command::DeadlineExpired,
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::Probe,
-        ]
-    }
-
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Collecting)
@@ -108,11 +80,11 @@ impl State for Collecting {
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
-        if let Some(peer_id) = self.non_member_peer(&command) {
+    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage) {
+        if let Some(peer_id) = self.members.non_member_observed(&command) {
             return (
                 vec![Outcome::NonMemberIgnored { peer_id }],
-                Box::new(Self::new(
+                Stage::Collecting(Self::new(
                     self.members.clone(),
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
@@ -124,7 +96,7 @@ impl State for Collecting {
         match command {
             Command::ParticipationObserved { peer_id } => (
                 vec![Outcome::AcknowledgeRejoin { peer_id }],
-                Box::new(Self::new(
+                Stage::Collecting(Self::new(
                     self.members.clone(),
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
@@ -141,7 +113,13 @@ impl State for Collecting {
 
                 (
                     step.outcomes().to_vec(),
-                    self.compute_new_state(step.is_quorum(), step.confirmed_peers().to_vec()),
+                    Self::new(
+                        self.members.clone(),
+                        step.confirmed_peers().to_vec(),
+                        self.pinged_peers.clone(),
+                        self.deadline_missed,
+                    )
+                    .resolve(step.is_quorum()),
                 )
             }
 
@@ -153,7 +131,7 @@ impl State for Collecting {
                 vec![Outcome::DeadlineMissed {
                     confirmed_count: self.collecting_peers.len(),
                 }],
-                Box::new(Self::new(
+                Stage::Collecting(Self::new(
                     self.members.clone(),
                     self.collecting_peers.clone(),
                     self.pinged_peers.clone(),
@@ -167,7 +145,7 @@ impl State for Collecting {
                 let join = JoinStep::new(self.members.clone(), &command);
                 (
                     join.outcomes().to_vec(),
-                    Box::new(Self::new(
+                    Stage::Collecting(Self::new(
                         join.members().clone(),
                         self.collecting_peers.clone(),
                         self.pinged_peers.clone(),

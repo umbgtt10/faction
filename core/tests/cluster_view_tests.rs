@@ -1,76 +1,111 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::vec;
-
-use faction::cluster_view_builder::ClusterViewBuilder;
+use faction::cluster_view::ClusterView;
 use faction::conclusion::Conclusion;
 use faction::members::Members;
 use faction::peer_state::PeerState;
 
-fn base() -> ClusterViewBuilder {
-    ClusterViewBuilder::new()
-        .with_peer_state(PeerState::Bootstrapped)
-        .with_is_pinging_completed(true)
-        .with_pinging_peers(vec![1, 2, 3, 4, 5])
-        .with_collecting_peers(vec![1, 2, 3, 4, 5, 6, 7])
-        .with_required_count(3)
+extern crate alloc;
+
+fn view(peer_state: PeerState) -> ClusterView {
+    ClusterView::new(
+        peer_state,
+        true,
+        vec![1, 2],
+        vec![0, 1, 2],
+        3,
+        false,
+        Members::new(vec![0, 1, 2]),
+    )
 }
 
 #[test]
-fn with_peer_state_updates_only_peer_state() {
-    // Arrange & Act
-    let result = base().with_peer_state(PeerState::Pinging).build();
+fn conclusion_bootstrapped_returns_bootstrapped() {
+    // Arrange
+    let view = view(PeerState::Bootstrapped);
+
+    // Act
+    let conclusion = view.conclusion();
 
     // Assert
-    assert_eq!(result.peer_state(), PeerState::Pinging);
-    assert_eq!(result.conclusion(), None);
-    assert!(result.is_pinging_completed());
-    assert!(!result.is_concluded());
-    assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
-    assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5, 6, 7]);
-    assert_eq!(result.required_count(), 3);
+    assert_eq!(conclusion, Some(Conclusion::Bootstrapped));
 }
 
 #[test]
-fn with_collecting_peers_updates_only_collecting_peers() {
-    // Arrange & Act
-    let result = base().with_collecting_peers(vec![99]).build();
+fn conclusion_timed_out_returns_none() {
+    // Arrange
+    let view = view(PeerState::TimedOut);
+
+    // Act
+    let conclusion = view.conclusion();
 
     // Assert
-    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(result.is_pinging_completed());
-    assert!(result.is_concluded());
-    assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
-    assert_eq!(result.collecting_peers(), &[99]);
-    assert_eq!(result.required_count(), 3);
+    assert_eq!(conclusion, None);
 }
 
 #[test]
-fn with_members_is_exposed_on_the_view() {
-    // Arrange & Act
-    let result = base().with_members(Members::new(vec![7, 8, 9])).build();
+fn is_concluded_bootstrapped_returns_true() {
+    // Arrange
+    let view = view(PeerState::Bootstrapped);
+
+    // Act
+    let is_concluded = view.is_concluded();
 
     // Assert
-    assert_eq!(result.members().as_slice(), &[7, 8, 9]);
-    assert_eq!(result.members().len(), 3);
-    assert!(result.members().is_member(8));
-    assert!(!result.members().is_member(1));
+    assert!(is_concluded);
 }
 
 #[test]
-fn deadline_missed_resolves_to_timed_out_at_build() {
-    // Arrange & Act
-    let result = base()
-        .with_peer_state(PeerState::Collecting)
-        .with_deadline_missed(true)
-        .build();
+fn is_concluded_collecting_returns_false() {
+    // Arrange
+    let view = view(PeerState::Collecting);
+
+    // Act
+    let is_concluded = view.is_concluded();
 
     // Assert
-    assert_eq!(result.peer_state(), PeerState::TimedOut);
-    assert!(result.deadline_missed());
-    assert!(!result.is_concluded());
+    assert!(!is_concluded);
+}
+
+#[test]
+fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
+    // Arrange & Act
+    let view = ClusterView::new(
+        PeerState::Bootstrapped,
+        true,
+        vec![1, 2],
+        vec![0, 1, 2],
+        3,
+        true,
+        Members::new(vec![0, 1, 2]),
+    );
+
+    // Assert
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
+    assert!(view.deadline_missed());
+}
+
+#[test]
+fn new_stores_every_field() {
+    // Arrange & Act
+    let view = ClusterView::new(
+        PeerState::Pinging,
+        false,
+        vec![4],
+        vec![5, 6],
+        2,
+        true,
+        Members::new(vec![4, 5, 6]),
+    );
+
+    // Assert
+    assert_eq!(view.peer_state(), PeerState::TimedOut);
+    assert!(!view.is_pinging_completed());
+    assert_eq!(view.pinging_peers(), &[4]);
+    assert_eq!(view.collecting_peers(), &[5, 6]);
+    assert_eq!(view.required_count(), 2);
+    assert!(view.deadline_missed());
+    assert_eq!(view.members().as_slice(), &[4, 5, 6]);
 }

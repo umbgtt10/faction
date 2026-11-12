@@ -1,68 +1,11 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::vec;
-
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction_core_validation::scenario_harness::ScenarioHarness;
 use proptest::prelude::*;
-
-#[derive(Debug, Clone, Copy)]
-enum ScenarioOperation {
-    Participation {
-        coordinator_index: usize,
-        peer_id: u64,
-    },
-    Ready {
-        coordinator_index: usize,
-        peer_id: u64,
-    },
-    CompleteLocalParticipation {
-        coordinator_index: usize,
-    },
-    ExpireDeadline {
-        coordinator_index: usize,
-    },
-}
-
-fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
-    prop_oneof![
-        (0usize..5, 0u64..=6).prop_map(|(coordinator_index, peer_id)| {
-            ScenarioOperation::Participation {
-                coordinator_index,
-                peer_id,
-            }
-        }),
-        (0usize..5, 0u64..=6).prop_map(|(coordinator_index, peer_id)| {
-            ScenarioOperation::Ready {
-                coordinator_index,
-                peer_id,
-            }
-        }),
-        (0usize..5).prop_map(|coordinator_index| {
-            ScenarioOperation::CompleteLocalParticipation { coordinator_index }
-        }),
-        (0usize..5).prop_map(|coordinator_index| {
-            ScenarioOperation::ExpireDeadline { coordinator_index }
-        }),
-    ]
-}
-
-fn harness() -> ScenarioHarness {
-    ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4)
-}
-
-fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
-    outputs.iter().any(|output| {
-        matches!(
-            output,
-            Outcome::DuplicateParticipationIgnored { .. } | Outcome::DuplicateReadyIgnored { .. }
-        )
-    })
-}
 
 fn apply_operation(
     harness: &mut ScenarioHarness,
@@ -92,6 +35,44 @@ fn apply_operation(
             harness.expire_deadline(coordinator_index),
         )),
     }
+}
+
+extern crate alloc;
+
+fn harness() -> ScenarioHarness {
+    ScenarioHarness::new(vec![0, 1, 2, 3, 4], 4)
+}
+
+fn operation_strategy() -> impl Strategy<Value = ScenarioOperation> {
+    prop_oneof![
+        (0usize..5, 0u64..=6).prop_map(|(coordinator_index, peer_id)| {
+            ScenarioOperation::Participation {
+                coordinator_index,
+                peer_id,
+            }
+        }),
+        (0usize..5, 0u64..=6).prop_map(|(coordinator_index, peer_id)| {
+            ScenarioOperation::Ready {
+                coordinator_index,
+                peer_id,
+            }
+        }),
+        (0usize..5).prop_map(|coordinator_index| {
+            ScenarioOperation::CompleteLocalParticipation { coordinator_index }
+        }),
+        (0usize..5).prop_map(|coordinator_index| {
+            ScenarioOperation::ExpireDeadline { coordinator_index }
+        }),
+    ]
+}
+
+fn outputs_contain_duplicate(outputs: &[Outcome]) -> bool {
+    outputs.iter().any(|output| {
+        matches!(
+            output,
+            Outcome::DuplicateParticipationIgnored { .. } | Outcome::DuplicateReadyIgnored { .. }
+        )
+    })
 }
 
 proptest! {
@@ -169,4 +150,22 @@ proptest! {
             }
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ScenarioOperation {
+    Participation {
+        coordinator_index: usize,
+        peer_id: u64,
+    },
+    Ready {
+        coordinator_index: usize,
+        peer_id: u64,
+    },
+    CompleteLocalParticipation {
+        coordinator_index: usize,
+    },
+    ExpireDeadline {
+        coordinator_index: usize,
+    },
 }

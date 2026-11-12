@@ -2,19 +2,19 @@
 // SPDX-License-Identifier: MIT
 
 use faction::types::PeerId;
-use faction_protocol::transport_trait::Transport;
+use faction_protocol::transport::Transport;
 
 use super::late_join_mesh::LateJoinMesh;
-use crate::transport::grpc::grpc_transport::AddressBook as GrpcAddressBook;
-use crate::transport::grpc::grpc_transport::GrpcTransport;
+use crate::infra::network::address_book::AddressBook;
+use crate::infra::transport::grpc::grpc_transport::GrpcTransport;
 
 pub struct GrpcJoinMesh {
-    registry: GrpcAddressBook,
+    registry: AddressBook,
 }
 
 impl GrpcJoinMesh {
     #[must_use]
-    pub fn new(registry: GrpcAddressBook) -> Self {
+    pub fn new(registry: AddressBook) -> Self {
         Self { registry }
     }
 }

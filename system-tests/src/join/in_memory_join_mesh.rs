@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 use faction::types::PeerId;
-use faction_protocol::transport_trait::Transport;
+use faction_protocol::transport::Transport;
 
 use super::late_join_mesh::LateJoinMesh;
-use crate::transport::in_memory::in_memory_transport::InMemoryTransport;
-use crate::transport::in_memory::in_memory_transport::Registry;
+use crate::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
+use crate::infra::transport::in_memory::in_memory_transport::Registry;
 
 pub struct InMemoryJoinMesh {
     registry: Registry,

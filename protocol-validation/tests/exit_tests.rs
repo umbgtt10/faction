@@ -3,19 +3,8 @@
 
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
-
 use faction_protocol_validation::cluster::Cluster;
 use rstest::rstest;
-
-fn converge(cluster: &mut Cluster, size: usize) {
-    cluster.start_all();
-    for _ in 0..(10 * size + 50) {
-        for i in 0..size {
-            cluster.step_timer_node(i);
-            cluster.step_transport_node(i);
-        }
-    }
-}
 
 #[rstest]
 #[case(3, 2)]
@@ -68,4 +57,14 @@ fn bootstrapped_node_stays_silent_to_further_signals(#[case] size: usize, #[case
         "size {size}: bootstrapped node replied to a peer ready"
     );
     assert!(cluster.is_bootstrapped());
+}
+
+fn converge(cluster: &mut Cluster, size: usize) {
+    cluster.start_all();
+    for _ in 0..(10 * size + 50) {
+        for i in 0..size {
+            cluster.step_timer_node(i);
+            cluster.step_transport_node(i);
+        }
+    }
 }

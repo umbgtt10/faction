@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 use faction::types::PeerId;
-use faction_protocol::transport_trait::Transport;
+use faction_protocol::transport::Transport;
 
 use super::late_join_mesh::LateJoinMesh;
-use crate::transport::channels::channels_transport::ChannelRegistry;
-use crate::transport::channels::channels_transport::ChannelsTransport;
+use crate::infra::transport::channels::channels_transport::ChannelRegistry;
+use crate::infra::transport::channels::channels_transport::ChannelsTransport;
 
 pub struct ChannelsJoinMesh {
     registry: ChannelRegistry,

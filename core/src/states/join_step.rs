@@ -43,12 +43,12 @@ impl JoinStep {
     }
 
     #[must_use]
-    pub fn outcomes(&self) -> &[Outcome] {
-        &self.outcomes
+    pub fn members(&self) -> &Members {
+        &self.members
     }
 
     #[must_use]
-    pub fn members(&self) -> &Members {
-        &self.members
+    pub fn outcomes(&self) -> &[Outcome] {
+        &self.outcomes
     }
 }

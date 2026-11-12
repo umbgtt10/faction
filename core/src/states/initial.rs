@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use alloc::boxed::Box;
-use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
@@ -12,6 +10,7 @@ use crate::config::Config;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
+use crate::stage::Stage;
 use crate::state::State;
 use crate::states::join_step::JoinStep;
 use crate::states::pinging::Pinging;
@@ -38,7 +37,7 @@ impl State for Initial {
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Box<dyn State>) {
+    fn step(&self, command: Command, config: &Config) -> (Vec<Outcome>, Stage) {
         match command {
             Command::JoinRequested { .. }
             | Command::JoinApproved { .. }
@@ -46,13 +45,10 @@ impl State for Initial {
                 let join = JoinStep::new(self.members.clone(), &command);
                 (
                     join.outcomes().to_vec(),
-                    Box::new(Self::new(join.members().clone())),
+                    Stage::Initial(Self::new(join.members().clone())),
                 )
             }
-            _ => {
-                let pinging = Pinging::new(self.members.clone());
-                pinging.step(command, config)
-            }
+            _ => Pinging::new(self.members.clone()).step(command, config),
         }
     }
 
@@ -66,17 +62,5 @@ impl State for Initial {
                 | Command::JoinApproved { .. }
                 | Command::JoinRejected { .. }
         )
-    }
-
-    fn admissible_commands(&self) -> Vec<Command> {
-        vec![
-            Command::ParticipationObserved { peer_id: 0 },
-            Command::ReadyObserved { peer_id: 0 },
-            Command::LocalParticipationCompleted,
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::Probe,
-        ]
     }
 }

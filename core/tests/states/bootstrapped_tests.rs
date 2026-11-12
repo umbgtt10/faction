@@ -1,11 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-extern crate alloc;
-
 use alloc::boxed::Box;
 use alloc::vec;
-
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
@@ -18,8 +15,9 @@ use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::state::State;
-
 use faction::states::bootstrapped::Bootstrapped;
+
+extern crate alloc;
 
 fn reach_bootstrapped() -> Faction {
     let mut faction = Faction::new(
@@ -35,18 +33,31 @@ fn reach_bootstrapped() -> Faction {
 }
 
 #[test]
-fn process_rejects_participation_observed() {
-    // Arrange & Act
-    let mut faction = reach_bootstrapped();
-    let cluster_view = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        _ => unreachable!(),
-    };
+fn cluster_view_overrides_all_fields() {
+    // Arrange
+    let bootstrapped = Bootstrapped::new(
+        Members::new(vec![1, 2, 3, 4, 5]),
+        vec![1, 2],
+        vec![1, 2, 3, 4, 5],
+    );
+    let prev = ClusterViewBuilder::new()
+        .with_peer_state(PeerState::Pinging)
+        .with_pinging_peers(vec![1, 2])
+        .with_collecting_peers(vec![1, 2, 3, 4, 5])
+        .with_required_count(4)
+        .build();
+
+    // Act
+    let result = bootstrapped.cluster_view(&prev);
 
     // Assert
-    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(cluster_view.is_concluded());
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
+    assert!(result.is_pinging_completed());
+    assert!(result.is_concluded());
+    assert_eq!(result.pinging_peers(), &[1, 2]);
+    assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
+    assert_eq!(result.required_count(), 4);
 }
 
 #[test]
@@ -112,29 +123,27 @@ fn process_probe_returns_correct_snapshot() {
 }
 
 #[test]
-fn cluster_view_overrides_all_fields() {
-    // Arrange
-    let bootstrapped = Bootstrapped::new(
-        Members::new(vec![1, 2, 3, 4, 5]),
-        vec![1, 2],
-        vec![1, 2, 3, 4, 5],
-    );
-    let prev = ClusterViewBuilder::new()
-        .with_peer_state(PeerState::Pinging)
-        .with_pinging_peers(vec![1, 2])
-        .with_collecting_peers(vec![1, 2, 3, 4, 5])
-        .with_required_count(4)
-        .build();
-
-    // Act
-    let result = bootstrapped.cluster_view(&prev);
+fn process_rejects_participation_observed() {
+    // Arrange & Act
+    let mut faction = reach_bootstrapped();
+    let cluster_view = match faction.process(Command::Probe) {
+        ProcessResult::Probed { cluster_view, .. } => cluster_view,
+        _ => unreachable!(),
+    };
 
     // Assert
-    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(result.is_pinging_completed());
-    assert!(result.is_concluded());
-    assert_eq!(result.pinging_peers(), &[1, 2]);
-    assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
-    assert_eq!(result.required_count(), 4);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert!(cluster_view.is_concluded());
+}
+
+#[test]
+#[should_panic(expected = "accept() rejects this command for Bootstrapped")]
+fn step_ready_observed_panics() {
+    // Arrange
+    let state = Bootstrapped::new(Members::new(vec![0, 1, 2]), vec![1], vec![0, 1]);
+    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
+
+    // Act & Assert
+    let _ = state.step(Command::ReadyObserved { peer_id: 1 }, &config);
 }

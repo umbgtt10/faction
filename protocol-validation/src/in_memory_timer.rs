@@ -3,8 +3,8 @@
 
 use alloc::collections::VecDeque;
 
+use faction_protocol::timer::Timer;
 use faction_protocol::timer_event::TimerEvent;
-use faction_protocol::timer_trait::Timer;
 
 pub struct InMemoryTimer {
     events: VecDeque<TimerEvent>,

@@ -7,8 +7,8 @@ use alloc::vec::Vec;
 use spin::Mutex;
 
 use faction::types::PeerId;
+use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
-use faction_protocol::transport_trait::Transport;
 
 type Message = TransportMessage;
 type Inbox = Arc<Mutex<VecDeque<Message>>>;

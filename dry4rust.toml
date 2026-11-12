@@ -1,0 +1,5 @@
+# What the duplication gate scans: the two library crates' source, as
+# beggar's scans its library's. Tests, generated code, the build tree, the
+# validation crates, the system tests and the gates' own crate are left out.
+exclude = ["/tests/", "target/", "generated", "core-validation/", "protocol-validation/", "system-tests/", "xtask/"]
+exclude_tests = true

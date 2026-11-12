@@ -1,0 +1,21 @@
+[package]
+name = "faction-ladder"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+autotests = false
+
+[dependencies]
+
+[dev-dependencies]
+faction.workspace = true
+proptest.workspace = true
+rstest.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[test]]
+name = "all_tests"
+path = "tests/all_tests.rs"

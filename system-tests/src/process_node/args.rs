@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use std::env::args;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
@@ -16,10 +15,9 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn from_env() -> Self {
-        Self {
-            args: args().collect(),
-        }
+    #[must_use]
+    pub fn new(args: Vec<String>) -> Self {
+        Self { args }
     }
 
     pub fn parse(&self) -> ProcessNodeConfig {

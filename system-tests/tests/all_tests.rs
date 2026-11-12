@@ -3,8 +3,14 @@
 
 pub mod support;
 
+pub mod cluster_tests;
 pub mod convergence_tests;
+pub mod faction_node_tests;
+pub mod infra;
 pub mod joining_tests;
-pub mod shared_file_observer_tests;
-pub mod timer;
-pub mod transport;
+pub mod node_recipe_tests;
+pub mod node_tests;
+pub mod process_node;
+pub mod thread_runner_tests;
+pub mod timer_delay_tests;
+pub mod traits;

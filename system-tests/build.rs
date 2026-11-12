@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: MIT
 
 use std::error::Error;
+use std::fs::create_dir_all;
+use tonic_build::configure;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    std::fs::create_dir_all("src/transport/grpc/generated")?;
-    tonic_build::configure()
-        .out_dir("src/transport/grpc/generated")
+    create_dir_all("src/infra/transport/grpc/generated")?;
+    configure()
+        .out_dir("src/infra/transport/grpc/generated")
         .compile_protos(
-            &["src/transport/grpc/proto/faction.proto"],
-            &["src/transport/grpc/proto"],
+            &["src/infra/transport/grpc/proto/faction.proto"],
+            &["src/infra/transport/grpc/proto"],
         )?;
     Ok(())
 }

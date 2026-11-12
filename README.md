@@ -220,7 +220,7 @@ The caller owns the network. `faction` owns the state.
 | Core productive LOC | ~895 |
 | Total tests | 506 |
 | Code coverage (productive) | 100% |
-| `(state, command)` matrix | [transition_matrix_tests.rs](./core/tests/transition_matrix/state_transition_matrix_tests.rs) |
+| `(state, command)` matrix | [state_transition_matrix_tests.rs](./ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified |
@@ -268,18 +268,25 @@ Each principle above is recorded as an Architecture Decision Record — see
 
 ## Quality gates
 
-```powershell
-powershell -File scripts\run_stage_1.ps1   # format, clippy, no_std checks, full test suite
-powershell -File scripts\run_stage_2.ps1   # CRAP complexity score
+```sh
+just stage1   # format, clippy, no_std check, the tests, then the system tests
+just stage2   # house rules, duplication, CRAP, coverage, mirrored tests, file risk, dependencies
 ```
 
-Both gates must pass before any commit lands. They drive two tools, each installed
+Both gates must pass before any commit lands. They drive these tools, each installed
 once from crates.io:
 
 | Tool | Used by | Install |
 |---|---|---|
+| [`just`](https://crates.io/crates/just) | Runs the two stages | `cargo install just` |
 | [`slotgate`](https://crates.io/crates/slotgate) | Stage 1 runs the system tests as bounded-parallel per-test processes (a disjoint port range per slot) instead of a serial `--test-threads=1` pass | `cargo install slotgate` |
+| [`cargo-stern4rust`](https://crates.io/crates/cargo-stern4rust) | Stage 2 checks the house coding rules in every package | `cargo install cargo-stern4rust` |
+| [`cargo-dry4rust`](https://crates.io/crates/cargo-dry4rust) | Stage 2 refuses duplicated code in `core` and `protocol` | `cargo install cargo-dry4rust` |
 | [`cargo-crap4rust`](https://crates.io/crates/cargo-crap4rust) | Stage 2 scores CRAP (Change Risk Anti-Patterns) complexity over `core` and `protocol` | `cargo install cargo-crap4rust` |
+| [`cargo-llvm-cov`](https://crates.io/crates/cargo-llvm-cov) | Stage 2 requires every line, region and function of `core` and `protocol` covered | `cargo install cargo-llvm-cov` |
+| [`cargo-twin4rust`](https://crates.io/crates/cargo-twin4rust) | Stage 2 requires a mirrored test file for every source file of `core` and `protocol` | `cargo install cargo-twin4rust` |
+| [`cargo-iceberg4rust`](https://crates.io/crates/cargo-iceberg4rust) | Stage 2 bounds each file's private implementation risk | `cargo install cargo-iceberg4rust` |
+| [`cargo-deny`](https://crates.io/crates/cargo-deny) | Stage 2 checks advisories, licences and sources | `cargo install --locked cargo-deny` |
 
 ---
 

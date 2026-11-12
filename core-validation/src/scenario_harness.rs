@@ -35,17 +35,6 @@ impl ScenarioHarness {
         Self { factions }
     }
 
-    pub fn coordinator_count(&self) -> usize {
-        self.factions.len()
-    }
-
-    pub fn cluster_view(&mut self, faction_index: usize) -> ClusterView {
-        match self.factions[faction_index].process(Command::Probe) {
-            ProcessResult::Probed { cluster_view, .. } => cluster_view,
-            _ => unreachable!(),
-        }
-    }
-
     pub fn apply_participation(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
         match self.factions[faction_index].process(Command::ParticipationObserved { peer_id }) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
@@ -62,12 +51,23 @@ impl ScenarioHarness {
         }
     }
 
+    pub fn cluster_view(&mut self, faction_index: usize) -> ClusterView {
+        match self.factions[faction_index].process(Command::Probe) {
+            ProcessResult::Probed { cluster_view, .. } => cluster_view,
+            _ => unreachable!(),
+        }
+    }
+
     pub fn complete_local_participation(&mut self, faction_index: usize) -> Vec<Outcome> {
         match self.factions[faction_index].process(Command::LocalParticipationCompleted) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
         }
+    }
+
+    pub fn coordinator_count(&self) -> usize {
+        self.factions.len()
     }
 
     pub fn expire_deadline(&mut self, faction_index: usize) -> Vec<Outcome> {
