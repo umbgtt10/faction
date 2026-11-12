@@ -3,6 +3,7 @@ members = ["core", "core-validation", "ladder", "protocol", "protocol-validation
 resolver = "2"
 
 [workspace.dependencies]
+boon = "0.6"
 chrono = "0.4"
 faction = { path = "core" }
 faction-protocol = { path = "protocol" }

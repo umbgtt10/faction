@@ -107,9 +107,11 @@
 //!
 //! ## Observer
 //!
-//! Every transition fires a callback through the [`Observer`] trait. Wire it
-//! to telemetry, an audit log, or a test assertion. The machine doesn't care.
-//! [`NoOpObserver`] is provided for the common "just drive the machine" case.
+//! Every call — an accepted command, a rejected one, a probe — is reported once
+//! to the [`Observer`], with the command and its result. Wire it to telemetry,
+//! an audit log, or a test assertion: it is told and answers nothing, so the
+//! machine doesn't care. [`NoOpObserver`] is provided for the common "just drive
+//! the machine" case.
 //!
 //! ## Further reading
 //!
@@ -139,7 +141,6 @@ pub mod quorum_policy;
 pub mod stage;
 pub mod state;
 pub mod states;
-pub mod transition;
 pub mod types;
 
 #[cfg(doctest)]

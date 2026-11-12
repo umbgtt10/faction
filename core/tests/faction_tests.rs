@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::support::recording::Recording;
 use crate::support::recording_observer::Observations;
 use crate::support::recording_observer::RecordingObserver;
 use alloc::boxed::Box;
@@ -57,12 +56,25 @@ fn process(faction: &mut Faction, command: Command) -> Vec<Outcome> {
 }
 
 fn recording_faction() -> (Faction, Observations) {
-    let observations: Observations = Arc::new(Mutex::new(Recording::default()));
+    let observations: Observations = Arc::new(Mutex::new(Vec::new()));
     let faction = Faction::new(
         Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
         Box::new(RecordingObserver::new(Arc::clone(&observations))),
     );
     (faction, observations)
+}
+
+fn reported_outcomes(result: &ProcessResult) -> Vec<Outcome> {
+    match result {
+        ProcessResult::Accepted { outcomes, .. } => outcomes.clone(),
+        ProcessResult::Rejected { .. } | ProcessResult::Probed { .. } => {
+            panic!("expected an accepted result")
+        }
+    }
+}
+
+fn reported_view(result: &ProcessResult) -> ClusterView {
+    result.clone().into_cluster_view()
 }
 
 #[test]
@@ -247,20 +259,51 @@ fn process_accepted_into_non_terminal_reports_full_admissible_set() {
 }
 
 #[test]
-fn process_observes_accepted_command_only_as_a_transition() {
+fn process_observes_a_probe_once_with_its_result() {
+    // Arrange
+    let (mut faction, observations) = recording_faction();
+    let accepted = faction.process(Command::ParticipationObserved { peer_id: 1 });
+
+    // Act
+    let result = faction.process(Command::Probe);
+
+    // Assert
+    assert_eq!(
+        *observations.lock().unwrap(),
+        vec![
+            (Command::ParticipationObserved { peer_id: 1 }, accepted),
+            (Command::Probe, result),
+        ]
+    );
+}
+
+#[test]
+fn process_observes_a_rejected_command_once_with_its_result() {
+    // Arrange
+    let (mut faction, observations) = recording_faction();
+
+    // Act
+    let result = faction.process(Command::DeadlineExpired);
+
+    // Assert
+    assert!(matches!(result, ProcessResult::Rejected { .. }));
+    assert_eq!(
+        *observations.lock().unwrap(),
+        vec![(Command::DeadlineExpired, result)]
+    );
+}
+
+#[test]
+fn process_observes_an_accepted_command_once_with_its_result() {
     // Arrange
     let (mut faction, observations) = recording_faction();
     let input = Command::ParticipationObserved { peer_id: 1 };
 
     // Act
-    let _ = faction.process(input);
+    let result = faction.process(input);
 
     // Assert
-    let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 1);
-    assert_eq!(obs.transitions[0].0, input);
-    assert!(obs.queries.is_empty());
-    assert!(obs.rejections.is_empty());
+    assert_eq!(*observations.lock().unwrap(), vec![(input, result)]);
 }
 
 #[test]
@@ -279,21 +322,23 @@ fn process_observes_deadline_missed_from_pinging() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 2);
-    let (observed_input, transition) = &obs.transitions[1];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, reported) = &obs[1];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[0].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Pinging);
-    assert!(!transition.previous_view.is_pinging_completed());
-    assert!(!transition.previous_view.is_concluded());
+    assert_eq!(outcomes, reported_outcomes(reported));
+    assert_eq!(previous.peer_state(), PeerState::Pinging);
+    assert!(!previous.is_pinging_completed());
+    assert!(!previous.is_concluded());
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
-    assert_eq!(transition.new_view.peer_state(), PeerState::TimedOut);
-    assert_eq!(transition.new_view.conclusion(), None);
-    assert!(!transition.new_view.is_concluded());
-    assert!(!transition.new_view.is_pinging_completed());
+    assert_eq!(view.peer_state(), PeerState::TimedOut);
+    assert_eq!(view.conclusion(), None);
+    assert!(!view.is_concluded());
+    assert!(!view.is_pinging_completed());
 }
 
 #[test]
@@ -313,18 +358,20 @@ fn process_observes_deadline_missed_transition() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 3);
-    let (observed_input, transition) = &obs.transitions[2];
+    assert_eq!(obs.len(), 3);
+    let (observed_input, reported) = &obs[2];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[1].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Collecting);
-    assert!(!transition.previous_view.is_concluded());
-    assert_eq!(transition.new_view.peer_state(), PeerState::TimedOut);
-    assert_eq!(transition.new_view.conclusion(), None);
-    assert!(!transition.new_view.is_concluded());
-    assert!(transition.new_view.deadline_missed());
+    assert_eq!(outcomes, reported_outcomes(reported));
+    assert_eq!(previous.peer_state(), PeerState::Collecting);
+    assert!(!previous.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::TimedOut);
+    assert_eq!(view.conclusion(), None);
+    assert!(!view.is_concluded());
+    assert!(view.deadline_missed());
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
 }
@@ -345,17 +392,19 @@ fn process_observes_duplicate_participation_transition_without_state_change() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 2);
-    let (observed_input, transition) = &obs.transitions[1];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, reported) = &obs[1];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[0].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
+    assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::DuplicateParticipationIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_view, transition.new_view);
-    assert_eq!(transition.new_view.pinging_peers().len(), 1);
-    assert_eq!(transition.new_view.peer_state(), PeerState::Pinging);
+    assert_eq!(previous, view);
+    assert_eq!(view.pinging_peers().len(), 1);
+    assert_eq!(view.peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -376,18 +425,20 @@ fn process_observes_duplicate_ready_from_collecting() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 4);
-    let (observed_input, transition) = &obs.transitions[3];
+    assert_eq!(obs.len(), 4);
+    let (observed_input, reported) = &obs[3];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[2].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
+    assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_view, transition.new_view);
-    assert_eq!(transition.new_view.peer_state(), PeerState::Collecting);
-    assert_eq!(transition.new_view.collecting_peers().len(), 2);
-    assert!(!transition.new_view.is_concluded());
+    assert_eq!(previous, view);
+    assert_eq!(view.peer_state(), PeerState::Collecting);
+    assert_eq!(view.collecting_peers().len(), 2);
+    assert!(!view.is_concluded());
 }
 
 #[test]
@@ -406,17 +457,19 @@ fn process_observes_duplicate_ready_from_pinging() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 2);
-    let (observed_input, transition) = &obs.transitions[1];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, reported) = &obs[1];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[0].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
+    assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::DuplicateReadyIgnored { peer_id: 1 }]
     );
-    assert_eq!(transition.previous_view, transition.new_view);
-    assert_eq!(transition.new_view.collecting_peers().len(), 1);
-    assert_eq!(transition.new_view.peer_state(), PeerState::Pinging);
+    assert_eq!(previous, view);
+    assert_eq!(view.collecting_peers().len(), 1);
+    assert_eq!(view.peer_state(), PeerState::Pinging);
 }
 
 #[test]
@@ -435,19 +488,21 @@ fn process_observes_local_participation_completion_transition() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 2);
-    let (observed_input, transition) = &obs.transitions[1];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, reported) = &obs[1];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[0].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Pinging);
-    assert!(!transition.previous_view.is_pinging_completed());
-    assert!(!transition.previous_view.is_concluded());
-    assert_eq!(transition.new_view.peer_state(), PeerState::Collecting);
-    assert!(transition.new_view.is_pinging_completed());
-    assert!(!transition.new_view.is_concluded());
-    assert_eq!(transition.new_view.collecting_peers().len(), 1);
+    assert_eq!(outcomes, reported_outcomes(reported));
+    assert_eq!(previous.peer_state(), PeerState::Pinging);
+    assert!(!previous.is_pinging_completed());
+    assert!(!previous.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::Collecting);
+    assert!(view.is_pinging_completed());
+    assert!(!view.is_concluded());
+    assert_eq!(view.collecting_peers().len(), 1);
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
@@ -459,6 +514,7 @@ fn process_observes_local_participation_completion_transition() {
 fn process_observes_non_member_participation_from_initial() {
     // Arrange
     let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::Probe);
     let input = Command::ParticipationObserved { peer_id: 99 };
 
     // Act
@@ -470,24 +526,27 @@ fn process_observes_non_member_participation_from_initial() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 1);
-    let (observed_input, transition) = &obs.transitions[0];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, reported) = &obs[1];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[0].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
+    assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Fresh);
-    assert_eq!(transition.new_view.peer_state(), PeerState::Pinging);
-    assert_eq!(transition.new_view.pinging_peers().len(), 0);
-    assert!(!transition.new_view.is_concluded());
+    assert_eq!(previous.peer_state(), PeerState::Fresh);
+    assert_eq!(view.peer_state(), PeerState::Pinging);
+    assert_eq!(view.pinging_peers().len(), 0);
+    assert!(!view.is_concluded());
 }
 
 #[test]
 fn process_observes_non_member_ready_from_initial() {
     // Arrange
     let (mut faction, observations) = recording_faction();
+    let _ = faction.process(Command::Probe);
     let input = Command::ReadyObserved { peer_id: 99 };
 
     // Act
@@ -499,39 +558,20 @@ fn process_observes_non_member_ready_from_initial() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 1);
-    let (observed_input, transition) = &obs.transitions[0];
+    assert_eq!(obs.len(), 2);
+    let (observed_input, reported) = &obs[1];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[0].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
+    assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[Outcome::NonMemberIgnored { peer_id: 99 }]
     );
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Fresh);
-    assert_eq!(transition.new_view.peer_state(), PeerState::Pinging);
-    assert_eq!(transition.new_view.collecting_peers().len(), 0);
-    assert!(!transition.new_view.is_concluded());
-}
-
-#[test]
-fn process_observes_probe_only_as_a_query() {
-    // Arrange
-    let (mut faction, observations) = recording_faction();
-    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
-
-    // Act
-    let cluster_view = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        ProcessResult::Accepted { .. } | ProcessResult::Rejected { .. } => {
-            panic!("expected probed")
-        }
-    };
-
-    // Assert
-    let obs = observations.lock().unwrap();
-    assert_eq!(obs.queries, vec![(Command::Probe, cluster_view)]);
-    assert_eq!(obs.transitions.len(), 1);
-    assert!(obs.rejections.is_empty());
+    assert_eq!(previous.peer_state(), PeerState::Fresh);
+    assert_eq!(view.peer_state(), PeerState::Pinging);
+    assert_eq!(view.collecting_peers().len(), 0);
+    assert!(!view.is_concluded());
 }
 
 #[test]
@@ -552,12 +592,14 @@ fn process_observes_quorum_exit_from_pinging() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 4);
-    let (observed_input, transition) = &obs.transitions[3];
+    assert_eq!(obs.len(), 4);
+    let (observed_input, reported) = &obs[3];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[2].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
+    assert_eq!(outcomes, reported_outcomes(reported));
     assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
@@ -566,16 +608,13 @@ fn process_observes_quorum_exit_from_pinging() {
             },
         ]
     );
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Pinging);
-    assert!(!transition.previous_view.is_pinging_completed());
-    assert!(!transition.previous_view.is_concluded());
-    assert_eq!(transition.new_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(
-        transition.new_view.conclusion(),
-        Some(Conclusion::Bootstrapped)
-    );
-    assert!(transition.new_view.is_concluded());
-    assert_eq!(transition.new_view.collecting_peers().len(), 4);
+    assert_eq!(previous.peer_state(), PeerState::Pinging);
+    assert!(!previous.is_pinging_completed());
+    assert!(!previous.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert!(view.is_concluded());
+    assert_eq!(view.collecting_peers().len(), 4);
 }
 
 #[test]
@@ -597,22 +636,21 @@ fn process_observes_quorum_exit_transition() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 5);
-    let (observed_input, transition) = &obs.transitions[4];
+    assert_eq!(obs.len(), 5);
+    let (observed_input, reported) = &obs[4];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[3].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Collecting);
-    assert_eq!(transition.previous_view.collecting_peers().len(), 3);
-    assert!(!transition.previous_view.is_concluded());
-    assert_eq!(transition.new_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(outcomes, reported_outcomes(reported));
+    assert_eq!(previous.peer_state(), PeerState::Collecting);
+    assert_eq!(previous.collecting_peers().len(), 3);
+    assert!(!previous.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert!(view.is_concluded());
+    assert_eq!(view.collecting_peers().len(), 4);
     assert_eq!(
-        transition.new_view.conclusion(),
-        Some(Conclusion::Bootstrapped)
-    );
-    assert!(transition.new_view.is_concluded());
-    assert_eq!(transition.new_view.collecting_peers().len(), 4);
-    assert_eq!(
-        transition.outputs,
+        reported_outcomes(reported),
         &[
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::Concluded {
@@ -620,32 +658,6 @@ fn process_observes_quorum_exit_transition() {
             },
         ]
     );
-}
-
-#[test]
-fn process_observes_rejected_command_only_as_a_rejection() {
-    // Arrange
-    let (mut faction, observations) = recording_faction();
-
-    // Act
-    let (cluster_view, admissible) = match faction.process(Command::DeadlineExpired) {
-        ProcessResult::Rejected {
-            cluster_view,
-            admissible,
-        } => (cluster_view, admissible),
-        ProcessResult::Accepted { .. } | ProcessResult::Probed { .. } => {
-            panic!("expected rejected")
-        }
-    };
-
-    // Assert
-    let obs = observations.lock().unwrap();
-    assert_eq!(
-        obs.rejections,
-        vec![(Command::DeadlineExpired, cluster_view, admissible)]
-    );
-    assert!(obs.transitions.is_empty());
-    assert!(obs.queries.is_empty());
 }
 
 #[test]
@@ -666,17 +678,22 @@ fn process_observes_timely_ready_from_collecting_no_quorum() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 4);
-    let (observed_input, transition) = &obs.transitions[3];
+    assert_eq!(obs.len(), 4);
+    let (observed_input, reported) = &obs[3];
+    let view = reported_view(reported);
+    let previous = reported_view(&obs[2].1);
     assert_eq!(*observed_input, input);
-    assert_eq!(outcomes, transition.outputs);
-    assert_eq!(transition.outputs, &[Outcome::ReadyAccepted { peer_id: 2 }]);
-    assert_eq!(transition.previous_view.peer_state(), PeerState::Collecting);
-    assert_eq!(transition.previous_view.collecting_peers().len(), 2);
-    assert!(!transition.previous_view.is_concluded());
-    assert_eq!(transition.new_view.peer_state(), PeerState::Collecting);
-    assert_eq!(transition.new_view.collecting_peers().len(), 3);
-    assert!(!transition.new_view.is_concluded());
+    assert_eq!(outcomes, reported_outcomes(reported));
+    assert_eq!(
+        reported_outcomes(reported),
+        &[Outcome::ReadyAccepted { peer_id: 2 }]
+    );
+    assert_eq!(previous.peer_state(), PeerState::Collecting);
+    assert_eq!(previous.collecting_peers().len(), 2);
+    assert!(!previous.is_concluded());
+    assert_eq!(view.peer_state(), PeerState::Collecting);
+    assert_eq!(view.collecting_peers().len(), 3);
+    assert!(!view.is_concluded());
 }
 
 #[test]
@@ -775,42 +792,42 @@ fn process_state_transition_outputs_fully_observable() {
 
     // Assert
     let obs = observations.lock().unwrap();
-    assert_eq!(obs.transitions.len(), 5);
+    assert_eq!(obs.len(), 5);
 
-    let (_, transition0) = &obs.transitions[0];
+    let (_, reported0) = &obs[0];
     assert_eq!(
-        transition0.outputs,
+        reported_outcomes(reported0),
         &[Outcome::ParticipationAccepted { peer_id: 1 }]
     );
-    assert_eq!(outcomes_0, transition0.outputs);
+    assert_eq!(outcomes_0, reported_outcomes(reported0));
 
-    let (_, transition1) = &obs.transitions[1];
+    let (_, reported1) = &obs[1];
     assert_eq!(
-        transition1.outputs,
+        reported_outcomes(reported1),
         &[
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
         ]
     );
-    assert_eq!(outcomes_1, transition1.outputs);
+    assert_eq!(outcomes_1, reported_outcomes(reported1));
 
-    let (_, transition2) = &obs.transitions[2];
+    let (_, reported2) = &obs[2];
     assert_eq!(
-        transition2.outputs,
+        reported_outcomes(reported2),
         &[Outcome::ReadyAccepted { peer_id: 1 }]
     );
-    assert_eq!(outcomes_2, transition2.outputs);
+    assert_eq!(outcomes_2, reported_outcomes(reported2));
 
-    let (_, transition3) = &obs.transitions[3];
+    let (_, reported3) = &obs[3];
     assert_eq!(
-        transition3.outputs,
+        reported_outcomes(reported3),
         &[Outcome::ReadyAccepted { peer_id: 2 }]
     );
-    assert_eq!(outcomes_3, transition3.outputs);
+    assert_eq!(outcomes_3, reported_outcomes(reported3));
 
-    let (_, transition4) = &obs.transitions[4];
+    let (_, reported4) = &obs[4];
     assert_eq!(
-        transition4.outputs,
+        reported_outcomes(reported4),
         &[
             Outcome::ReadyAccepted { peer_id: 3 },
             Outcome::Concluded {
@@ -818,6 +835,6 @@ fn process_state_transition_outputs_fully_observable() {
             },
         ]
     );
-    assert_eq!(outcomes_4, transition4.outputs);
-    assert!(transition4.new_view.is_concluded());
+    assert_eq!(outcomes_4, reported_outcomes(reported4));
+    assert!(reported_view(reported4).is_concluded());
 }

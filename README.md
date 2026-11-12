@@ -55,8 +55,9 @@ reproduce and expensive to diagnose.
   paths exist. The test suite is a proof, not a sample.
 - **Embeddable** — `no_std + alloc`, zero `unsafe`. Runs on bare metal, WASM, embedded
   RTOS, and cloud without modification.
-- **Observable** — every transition reaches a trait-based `Observer`. Wire it to
-  telemetry, audit logs, or test assertions. No instrumentation surprises.
+- **Observable** — every call reaches a trait-based `Observer`, once, with the command
+  and its result. Wire it to telemetry, audit logs, or test assertions. No
+  instrumentation surprises.
 - **Queryable** — probe the machine at any time for the current cluster view and the
   set of admissible commands. Zero side effects.
 - **Slim by construction** — each state carries only its active data. The terminal
@@ -238,8 +239,9 @@ The caller owns the network. `faction` owns the state.
 - **No silent sinks** — the sole terminal state (`Bootstrapped`) still answers a
   still-pinging peer by re-advertising its readiness, and a missed deadline is a
   non-terminal fact — so a concluded node never strands the peers it coordinated.
-- **Observer, not logger** — the `Observer` trait receives every transition, query,
-  and rejection. Wire it to anything. The machine does not care.
+- **Observer, not logger** — the `Observer` trait receives every call with its result:
+  an accepted command, a rejected one, a probe. Wire it to anything. The machine does
+  not care.
 - **Protocol-agnostic** — `faction` does not know what a peer is, what the network
   looks like, or what your protocol does. It knows state transitions.
 - **One struct per file** — each step, state, and policy is its own file. Navigation

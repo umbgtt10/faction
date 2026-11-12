@@ -13,7 +13,6 @@ use crate::process_result::ProcessResult;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::states::initial::Initial;
-use crate::transition::Transition;
 
 pub struct Faction {
     config: Config,
@@ -46,45 +45,33 @@ impl Faction {
 
     #[must_use]
     pub fn process(&mut self, command: Command) -> ProcessResult {
+        let result = self.answer(command);
+        self.observer.observe(&command, &result);
+        result
+    }
+
+    fn answer(&mut self, command: Command) -> ProcessResult {
         if let Command::Probe = command {
-            let cluster_view = self.cluster_view.clone();
-            let admissible = self.stage.admissible_commands();
-            self.observer.observe_query(command, cluster_view.clone());
             return ProcessResult::Probed {
-                cluster_view,
-                admissible,
+                cluster_view: self.cluster_view.clone(),
+                admissible: self.stage.admissible_commands(),
             };
         }
 
         if !self.stage.accept(&command) {
-            let cluster_view = self.cluster_view.clone();
-            let admissible = self.stage.admissible_commands();
-            self.observer
-                .observe_rejection(command, cluster_view.clone(), admissible.clone());
             return ProcessResult::Rejected {
-                cluster_view,
-                admissible,
+                cluster_view: self.cluster_view.clone(),
+                admissible: self.stage.admissible_commands(),
             };
         }
 
-        let previous_cluster_view = self.cluster_view.clone();
-
-        let (outputs, stage) = self.stage.step(command, &self.config);
+        let (outcomes, stage) = self.stage.step(command, &self.config);
         self.stage = stage;
-
-        let admissible = self.stage.admissible_commands();
-        let new_cluster_view = self.stage.cluster_view(&previous_cluster_view);
-        let transition = Transition {
-            previous_view: previous_cluster_view,
-            outputs: outputs.clone(),
-            new_view: new_cluster_view.clone(),
-        };
-        self.observer.observe(command, transition);
-        self.cluster_view = new_cluster_view.clone();
+        self.cluster_view = self.stage.cluster_view(&self.cluster_view);
         ProcessResult::Accepted {
-            cluster_view: new_cluster_view,
-            admissible,
-            outcomes: outputs,
+            cluster_view: self.cluster_view.clone(),
+            admissible: self.stage.admissible_commands(),
+            outcomes,
         }
     }
 }

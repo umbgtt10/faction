@@ -193,11 +193,11 @@ Gate 2: duplicate? ───► Duplicate*Ignored
 Step struct ──────────► outcomes + new_state
   │
   ▼
-Observer.observe()
-  │
-  ▼
 ProcessResult::Accepted { cluster_view, admissible, outcomes }
 ```
+
+Whichever result a command gets, it is reported — `Observer::observe(&command, &result)` —
+and then returned.
 
 ### Process results
 
@@ -280,18 +280,14 @@ aggregated picture of the cluster from multiple vantage points.
 
 ## Observability
 
-Every transition is delivered to the `Observer` trait. The observer receives the full
-before-and-after context — not just a log line.
+Every call is reported to the `Observer` trait, once: `observe(&command, &result)`,
+with the command and the `ProcessResult` it was answered — an accepted command, a
+rejected one and a probe alike, by the time the result is returned. The result carries
+the whole view and the admissible commands, so a report is not a log line but the
+answer itself, and a node's reports, in order, are its log (`spec/SPEC.md` §3). The
+view a command found is the one the report before it carried.
 
-| Method | Triggered by |
-|---|---|
-| `observe(command, transition)` | Any accepted command |
-| `observe_query(command, cluster_view)` | Any `Probe` command |
-| `observe_rejection(command, cluster_view, admissible)` | Any rejected command |
-
-A `Transition` carries the full before-and-after context: the previous `ClusterView`,
-the `Vec<Outcome>` produced by the step, and the new `ClusterView`. No partial
-snapshots. No guesswork.
+The observer is told and answers nothing, so it cannot change a result.
 
 The observer is a trait. It can be wired to structured logging, metrics pipelines,
 distributed tracing, test assertions, or audit logs. The machine does not know or care
