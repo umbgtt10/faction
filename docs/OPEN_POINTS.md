@@ -121,39 +121,14 @@ node's writer) — so faults land inline in the per-node files and the merged
 
 ---
 
-## An independent model of the specification, in Rust
+## The property tier's reference model, beside the specification's
 
-The vectors of specification 0.1.0 were checked against an independent model,
-built from the prose, before the crate was run on them
-(`P0-ADR-SpecificationIsNormativeCrateIsReference`). That model was a throwaway
-script outside the repository, never committed: the check it made cannot be
-repeated from the repository. The model belongs in the repository, in Rust, under the house rules.
-
-**Independent of the crate, or worthless.** A model that shares the crate's types
-or its shape shares its mistakes. So it depends on nothing of `faction` — its own
-types, compared with the crate only in the specification's encoding, the
-dependency refused by `cargo deny`'s bans — and is written from `spec/SPEC.md`
-and `spec/matrix.json`, never from `core/`. Its shape is the specification's
-rule, not the crate's states: the answer is the first row of the matrix that
-applies, in the matrix's order, so the model reads the rows and owns only the
-situations, the changes the prose gives them, the outcomes' peers and the view.
-
-**Gated like the crate.** A package of its own (`spec-model/`, unpublished), under
-every stage-2 gate, and covered whole by the vectors alone: a line of the model
-no vector reaches is a situation or a change the specification never exercises.
-
-**What it checks.** That it answers every vector as written, each step and the
-final answer; that each step's deciding row is one its vector names; that it
-knows exactly the matrix's rows. Then the one check made nowhere today: the crate
-and the model agree on random command sequences — the vectors' 103 steps become
-as many as a run asks for. With that in place, the property tier's own
-`ModelCoordinator` is redundant, and the system-test logs can be replayed against
-the model as well as the crate.
-
-**When.** Not needed while the specification stands still: 0.1.0 was checked, and
-the crate answers it. Needed before it next changes — Phase 3's change, the
-first under `P2-ADR-SpecifiedBeforeAnyNewPhase` — whose new vectors need a judge
-other than the crate.
+`ladder/tests/property/model_tests.rs` replays random command sequences against
+a `ModelCoordinator` of its own, written with the crate before the specification
+existed. The specification's independent model (`spec-model/`,
+`P1-ADR-IndependentModelOfTheSpecification`) now answers random sequences beside
+the crate, every result compared whole, so the older model checks a subset of
+what the newer does. Retiring it removes tests, so it waits for the owner's word.
 
 ---
 
@@ -179,9 +154,10 @@ no departure.
 **What it proves.** Replayed against the crate, a log reconstructs by
 construction unless the path that writes it is broken: it checks that every call
 is reported once and in order, nothing lost by the writer, on every spawn and
-transport. Replayed against the independent model, it judges the behaviour too —
-on interleavings the vectors and the simulation never produce. So it waits for
-the model.
+transport. Replayed against the independent model (`spec-model/`), it judges
+the behaviour too — on interleavings the vectors and the simulation never
+produce. The model takes the specification's encoding as it is, so a log in the
+specification's form needs nothing more of it.
 
 ---
 

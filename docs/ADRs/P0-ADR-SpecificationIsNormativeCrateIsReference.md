@@ -30,7 +30,9 @@ The crate came first, so the specification is drawn from what it does — but no
 from its tests. The prose and the decision table were written from the crate's
 behaviour, every vector's expected answers by hand, and each vector was checked
 against an independent model built from the prose before the crate was run on
-it. The crate then answered all of them as written.
+it. The crate then answered all of them as written. That model is now in the
+repository, `spec-model/`, and checks every vector on every run
+(`P1-ADR-IndependentModelOfTheSpecification`).
 
 ## Rejected alternatives
 **The Rust crate as the definition**, its documentation and tests standing for a
@@ -73,4 +75,6 @@ versioned apart.
 
 ## Enforcement
 The conformance tests run every vector; every vector validates against the
-schema; every row of `matrix.json` is exercised by at least one vector.
+schema; every row of `matrix.json` is exercised by at least one vector. The
+independent model answers every vector as written, each deciding by exactly the
+rows it names, before the crate runs them.

@@ -17,6 +17,14 @@
   a simulated cluster; a log altered, cut, reordered or opened with another configuration does not.
 - `P2-ADR-SpecifiedBeforeAnyNewPhase`, superseding the deferral of the specification until hardware
   validation: every later phase changes the specification first.
+- `spec-model/`, the specification's independent model (`faction-spec-model`, unpublished): a second
+  implementation, written from the prose and the decision table, depending on nothing of the crate
+  — `deny.toml` refuses it — `no_std`, free of unsafe code, and held to every gate the library is.
+  It reads the decision table and answers each command, in the specification's encoding, by the first
+  row that applies; its conformance tier checks every vector before the crate runs it, each deciding
+  by exactly the rows it names, and the property tier checks the crate against it over random
+  command sequences (`P1-ADR-IndependentModelOfTheSpecification`). Its grip and braintax join every
+  commit message's scores.
 
 #### Changed — breaking
 - The observer is one method, `observe(&command, &result)`: every call — accepted, rejected or a

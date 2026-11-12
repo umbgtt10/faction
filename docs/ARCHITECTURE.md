@@ -389,7 +389,11 @@ configurable per spawn model to account for OS scheduling overhead.
 data model, a JSON decision table, prose for what JSON cannot say, and
 conformance vectors, versioned together and written by hand. This crate is one
 implementation of it; where the two disagree, the specification is right
-(`P0-ADR-SpecificationIsNormativeCrateIsReference`).
+(`P0-ADR-SpecificationIsNormativeCrateIsReference`). A second, `spec-model/`, is
+independent of the crate: it reads the decision table and answers each command
+by the first row that applies, checks every vector before the crate runs it, and
+is the judge the crate is checked against over random command sequences
+(`P1-ADR-IndependentModelOfTheSpecification`).
 
 The data model keeps the vocabulary of `Command`, `Outcome` and
 `ProcessResult`, and is mapped to them by the crate's conformance tests, never
