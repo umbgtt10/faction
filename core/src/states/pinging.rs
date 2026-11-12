@@ -110,7 +110,7 @@ impl State for Pinging {
                 let step = LocalCompletionStep::new(
                     self.collecting_peers.clone(),
                     config.peer_id(),
-                    config.required_count(),
+                    config.quorum_policy(),
                 );
 
                 (

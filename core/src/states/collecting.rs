@@ -108,7 +108,7 @@ impl State for Collecting {
                 let step = ReadyStep::new(
                     self.collecting_peers.clone(),
                     peer_id,
-                    config.required_count(),
+                    config.quorum_policy(),
                 );
 
                 (

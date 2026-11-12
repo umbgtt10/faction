@@ -4,6 +4,7 @@
 use alloc::vec;
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
+use faction::quorum_policy::QuorumPolicy;
 use faction::states::local_completion_step::LocalCompletionStep;
 
 extern crate alloc;
@@ -14,7 +15,7 @@ fn new_adds_peer_when_not_present() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = LocalCompletionStep::new(confirmed, 3, 5);
+    let step = LocalCompletionStep::new(confirmed, 3, QuorumPolicy::new(5));
 
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
@@ -34,7 +35,7 @@ fn new_does_not_add_when_already_present() {
     let confirmed = vec![1, 2, 3];
 
     // Act
-    let step = LocalCompletionStep::new(confirmed.clone(), 2, 5);
+    let step = LocalCompletionStep::new(confirmed.clone(), 2, QuorumPolicy::new(5));
 
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);
@@ -47,7 +48,7 @@ fn new_does_not_reach_quorum_below_threshold() {
     let confirmed = vec![1];
 
     // Act
-    let step = LocalCompletionStep::new(confirmed, 2, 5);
+    let step = LocalCompletionStep::new(confirmed, 2, QuorumPolicy::new(5));
 
     // Assert
     assert!(!step.is_quorum());
@@ -60,7 +61,7 @@ fn new_reaches_quorum_when_count_meets_threshold() {
     let confirmed = vec![1, 2, 3];
 
     // Act
-    let step = LocalCompletionStep::new(confirmed, 99, 3);
+    let step = LocalCompletionStep::new(confirmed, 99, QuorumPolicy::new(3));
 
     // Assert
     assert!(step.is_quorum());
