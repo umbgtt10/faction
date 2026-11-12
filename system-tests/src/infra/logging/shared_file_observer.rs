@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use faction::command::Command;
 use faction::observer::Observer;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::types::PeerId;
 
@@ -72,7 +73,7 @@ impl Observer for SharedFileObserver {
                 r#"{{"timestamp":"{ts}","peer_id":{},"event":"{event}","command":"{command:?}","peer_state":"{:?}","is_exited":{},"pinging_peers":{},"collecting_peers":{}}}"#,
                 self.peer_id,
                 cluster_view.peer_state(),
-                cluster_view.is_concluded(),
+                cluster_view.peer_state() == PeerState::Bootstrapped,
                 cluster_view.pinging_peers().len(),
                 cluster_view.collecting_peers().len(),
             ),

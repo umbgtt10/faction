@@ -12,30 +12,6 @@ fn members() -> Members {
 }
 
 #[test]
-fn is_empty_no_peers_returns_true() {
-    // Arrange
-    let members = Members::new(vec![]);
-
-    // Act
-    let is_empty = members.is_empty();
-
-    // Assert
-    assert!(is_empty);
-}
-
-#[test]
-fn is_empty_with_peers_returns_false() {
-    // Arrange
-    let members = members();
-
-    // Act
-    let is_empty = members.is_empty();
-
-    // Assert
-    assert!(!is_empty);
-}
-
-#[test]
 fn non_member_observed_join_request_from_non_member_returns_none() {
     // Arrange
     let members = members();

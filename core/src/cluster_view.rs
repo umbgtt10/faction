@@ -3,7 +3,6 @@
 
 use alloc::vec::Vec;
 
-use crate::conclusion::Conclusion;
 use crate::members::Members;
 use crate::peer_state::PeerState;
 use crate::types::PeerId;
@@ -53,21 +52,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn conclusion(&self) -> Option<Conclusion> {
-        match self.peer_state {
-            PeerState::Bootstrapped => Some(Conclusion::Bootstrapped),
-            _ => None,
-        }
-    }
-
-    #[must_use]
     pub fn deadline_missed(&self) -> bool {
         self.deadline_missed
-    }
-
-    #[must_use]
-    pub fn is_concluded(&self) -> bool {
-        matches!(self.peer_state, PeerState::Bootstrapped)
     }
 
     #[must_use]

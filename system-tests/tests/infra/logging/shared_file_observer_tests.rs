@@ -33,7 +33,7 @@ fn make_accepted() -> ProcessResult {
 }
 
 fn make_cluster_view() -> ClusterView {
-    ClusterViewBuilder::new()
+    ClusterViewBuilder::default()
         .with_peer_state(PeerState::Pinging)
         .with_pinging_peers(vec![0, 3])
         .with_collecting_peers(vec![1])
@@ -229,7 +229,7 @@ fn observe_writes_bootstrapped_exit_state() {
     let tmp = TempFile::new();
     let writer = tmp.reader();
     let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
-    let view = ClusterViewBuilder::new()
+    let view = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Bootstrapped)
         .with_is_pinging_completed(true)
         .with_required_count(4)

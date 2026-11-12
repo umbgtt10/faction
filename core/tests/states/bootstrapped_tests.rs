@@ -5,7 +5,6 @@ use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
-use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::members::Members;
@@ -40,7 +39,7 @@ fn cluster_view_overrides_all_fields() {
         vec![1, 2],
         vec![1, 2, 3, 4, 5],
     );
-    let prev = ClusterViewBuilder::new()
+    let prev = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Pinging)
         .with_pinging_peers(vec![1, 2])
         .with_collecting_peers(vec![1, 2, 3, 4, 5])
@@ -52,9 +51,9 @@ fn cluster_view_overrides_all_fields() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert!(result.is_pinging_completed());
-    assert!(result.is_concluded());
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.pinging_peers(), &[1, 2]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.required_count(), 4);
@@ -114,9 +113,9 @@ fn process_probe_returns_correct_snapshot() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert!(cluster_view.is_pinging_completed());
-    assert!(cluster_view.is_concluded());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 4);
     assert_eq!(cluster_view.required_count(), 4);
@@ -133,6 +132,6 @@ fn process_rejects_participation_observed() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(cluster_view.is_concluded());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }

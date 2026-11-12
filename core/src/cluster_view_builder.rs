@@ -20,19 +20,6 @@ pub struct ClusterViewBuilder {
 
 impl ClusterViewBuilder {
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            peer_state: PeerState::Fresh,
-            is_pinging_completed: false,
-            pinging_peers: Vec::new(),
-            collecting_peers: Vec::new(),
-            required_count: 0,
-            deadline_missed: false,
-            members: Members::new(Vec::new()),
-        }
-    }
-
-    #[must_use]
     pub fn from_view(view: &ClusterView) -> Self {
         Self {
             peer_state: view.peer_state(),
@@ -103,6 +90,14 @@ impl ClusterViewBuilder {
 
 impl Default for ClusterViewBuilder {
     fn default() -> Self {
-        Self::new()
+        Self {
+            peer_state: PeerState::Fresh,
+            is_pinging_completed: false,
+            pinging_peers: Vec::new(),
+            collecting_peers: Vec::new(),
+            required_count: 0,
+            deadline_missed: false,
+            members: Members::new(Vec::new()),
+        }
     }
 }

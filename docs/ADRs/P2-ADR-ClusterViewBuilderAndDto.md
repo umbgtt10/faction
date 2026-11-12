@@ -37,20 +37,22 @@ missed deadline surfacing as `TimedOut` before bootstrap — is resolved in `new
 Phase 1 made membership authoritative, observable state
 (`P1-ADR-ConfigIsImmutableGenesis`), which had to appear on the view — and a
 read-model gaining new observable state is exactly when its boundary shape has to be
-pinned. The house rules settle the field visibility: `ClusterView` has behaviour
-(`conclusion`, `is_concluded`), so `cargo stern4rust`'s `records-and-objects` makes
-it an object with private fields, out of reach of the builder in its own file; the
-builder therefore goes through a constructor, and `public-or-private` makes that
-constructor `pub` rather than crate-only.
+pinned. The house rules settle the field visibility: `ClusterView` has behaviour —
+its one constructor resolves the missed deadline — so `cargo stern4rust`'s
+`records-and-objects` makes it an object with private fields, out of reach of the
+builder in its own file; the builder therefore goes through that constructor, and
+`public-or-private` makes it `pub` rather than crate-only. The view answers what it
+holds and nothing derived from it: whether a node is concluded is its peer state.
 
 ## Rejected alternatives
 Keep one dual-hat type plus a "don't mutate the view" convention — a reminder, not a
 structural guarantee; the `with_*` methods would still sit on the consumer's value.
 Hide the builder behind visibility — encapsulation is not the point; both types are
 `pub`. Public fields — a held view could be rewritten field by field, and a literal
-could pair a missed deadline with a state other than `TimedOut`. A pure record with
-no methods, moving `conclusion` and `is_concluded` onto `PeerState` — rewrites every
-read site across the consumers for no behavioural gain.
+could pair a missed deadline with a state other than `TimedOut`. Accessors derived
+from the peer state, such as whether the node is concluded — no vector asks for them,
+so they are lines the specification does not state
+(`P1-ADR-NoLineTheSpecificationDoesNotAskFor`).
 
 ## Consequences
 `ClusterViewBuilder` (`core/src/cluster_view_builder.rs`) owns
@@ -66,6 +68,6 @@ seven-argument constructor that only the builder needs to call by hand.
 only its field, `from_view` copies every field, `members` is exposed on the built
 view, and a deadline-miss resolves to `TimedOut` at `build()`.
 `core/tests/cluster_view_tests.rs` checks that `new` stores every field, resolves a
-missed deadline unless bootstrapped, and answers `conclusion` and `is_concluded`.
+missed deadline unless bootstrapped.
 `cargo stern4rust` holds `records-and-objects` and `public-or-private` over `faction`
 in stage 2.

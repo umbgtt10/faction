@@ -49,9 +49,10 @@ fn model_snapshot(cluster_view: ClusterView) -> ModelClusterView {
             PeerState::Bootstrapped => ModelLifecycleState::Bootstrapped,
             PeerState::TimedOut => ModelLifecycleState::TimedOut,
         },
-        exit_mode: cluster_view.conclusion(),
+        exit_mode: (cluster_view.peer_state() == PeerState::Bootstrapped)
+            .then_some(Conclusion::Bootstrapped),
         is_pinging_completed: cluster_view.is_pinging_completed(),
-        readiness_exited: cluster_view.is_concluded(),
+        readiness_exited: cluster_view.peer_state() == PeerState::Bootstrapped,
         pinging_confirmed_count: cluster_view.pinging_peers().len(),
         collecting_confirmed_count: cluster_view.collecting_peers().len(),
         required_count: cluster_view.required_count(),

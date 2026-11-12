@@ -25,14 +25,3 @@ pub enum ProcessResult {
         admissible: Vec<Command>,
     },
 }
-
-impl ProcessResult {
-    #[must_use]
-    pub fn into_cluster_view(self) -> ClusterView {
-        match self {
-            Self::Accepted { cluster_view, .. }
-            | Self::Rejected { cluster_view, .. }
-            | Self::Probed { cluster_view, .. } => cluster_view,
-        }
-    }
-}

@@ -31,9 +31,9 @@ fn deadline_fallback_preserves_progress_when_quorum_never_forms() {
         vec![Outcome::DeadlineMissed { confirmed_count: 3 }]
     );
     let cluster_view = harness.cluster_view(0);
-    assert_eq!(cluster_view.conclusion(), None);
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.collecting_peers().len(), 3);
 }
 
@@ -53,9 +53,9 @@ fn deadline_from_bootstrapped_is_noop() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.collecting_peers().len(), 4);
-    assert!(cluster_view.is_concluded());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -73,9 +73,9 @@ fn deadline_from_pinging() {
         outputs,
         vec![Outcome::DeadlineMissed { confirmed_count: 0 }]
     );
-    assert_eq!(cluster_view.conclusion(), None);
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert!(!cluster_view.is_pinging_completed());
     assert_eq!(cluster_view.pinging_peers().len(), 1);
     assert_eq!(cluster_view.collecting_peers().len(), 0);
@@ -97,9 +97,9 @@ fn expire_deadline_records_miss_and_stays_receptive() {
         outputs,
         vec![Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
-    assert_eq!(cluster_view.conclusion(), None);
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert!(cluster_view.deadline_missed());
 }
 
@@ -119,9 +119,9 @@ fn post_exit_ready_is_ignored() {
 
     // Assert
     assert!(outputs.is_empty());
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.collecting_peers().len(), 4);
-    assert!(cluster_view.is_concluded());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -154,12 +154,12 @@ fn post_exit_ready_signals_are_harmless_across_multiple_nodes() {
     let snapshot_0 = harness.cluster_view(0);
     let snapshot_1 = harness.cluster_view(1);
     let snapshot_2 = harness.cluster_view(2);
-    assert_eq!(snapshot_0.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(snapshot_0.is_concluded());
-    assert_eq!(snapshot_1.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(snapshot_1.is_concluded());
-    assert_eq!(snapshot_2.conclusion(), Some(Conclusion::Bootstrapped));
-    assert!(snapshot_2.is_concluded());
+    assert_eq!(snapshot_0.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(snapshot_0.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(snapshot_1.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(snapshot_1.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(snapshot_2.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(snapshot_2.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -179,9 +179,9 @@ fn repeated_deadline_expiry_is_repeatable() {
         outputs,
         vec![Outcome::DeadlineMissed { confirmed_count: 1 }]
     );
-    assert_eq!(cluster_view.conclusion(), None);
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
-    assert!(!cluster_view.is_concluded());
+    assert_ne!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -207,7 +207,7 @@ fn slow_member_does_not_block_quorum_exit() {
             },
         ]
     );
-    assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.collecting_peers().len(), 4);
-    assert!(cluster_view.is_concluded());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }

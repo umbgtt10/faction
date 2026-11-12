@@ -139,7 +139,7 @@ fn admissible_commands_pinging_returns_every_command() {
 fn cluster_view_bootstrapped_reports_bootstrapped() {
     // Arrange
     let stage = bootstrapped();
-    let previous = ClusterViewBuilder::new().with_required_count(4).build();
+    let previous = ClusterViewBuilder::default().with_required_count(4).build();
 
     // Act
     let cluster_view = stage.cluster_view(&previous);
@@ -154,7 +154,7 @@ fn cluster_view_bootstrapped_reports_bootstrapped() {
 fn cluster_view_collecting_reports_collecting() {
     // Arrange
     let stage = collecting();
-    let previous = ClusterViewBuilder::new().with_required_count(4).build();
+    let previous = ClusterViewBuilder::default().with_required_count(4).build();
 
     // Act
     let cluster_view = stage.cluster_view(&previous);
@@ -169,7 +169,7 @@ fn cluster_view_collecting_reports_collecting() {
 fn cluster_view_initial_reports_fresh() {
     // Arrange
     let stage = initial();
-    let previous = ClusterViewBuilder::new()
+    let previous = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Pinging)
         .with_pinging_peers(vec![9])
         .build();
@@ -186,7 +186,7 @@ fn cluster_view_initial_reports_fresh() {
 fn cluster_view_pinging_reports_pinging() {
     // Arrange
     let stage = pinging();
-    let previous = ClusterViewBuilder::new().build();
+    let previous = ClusterViewBuilder::default().build();
 
     // Act
     let cluster_view = stage.cluster_view(&previous);

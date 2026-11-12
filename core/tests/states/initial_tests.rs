@@ -29,7 +29,7 @@ fn test_faction() -> Faction {
 #[test]
 fn cluster_view_inherits_correctly() {
     // Arrange
-    let prev = ClusterViewBuilder::new()
+    let prev = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Collecting)
         .with_is_pinging_completed(true)
         .with_pinging_peers(vec![99])
@@ -44,9 +44,9 @@ fn cluster_view_inherits_correctly() {
     assert_eq!(result.peer_state(), PeerState::Fresh);
     assert_eq!(result.pinging_peers().len(), 0);
     assert_eq!(result.collecting_peers().len(), 0);
-    assert_eq!(result.conclusion(), None);
+    assert_ne!(result.peer_state(), PeerState::Bootstrapped);
     assert!(!result.is_pinging_completed());
-    assert!(!result.is_concluded());
+    assert_ne!(result.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn new_returns_initial_state() {
     );
     assert!(!new_state
         .cluster_view(
-            &ClusterViewBuilder::new()
+            &ClusterViewBuilder::default()
                 .with_peer_state(PeerState::Pinging)
                 .with_pinging_peers(vec![0])
                 .with_required_count(1)
@@ -180,7 +180,7 @@ fn process_local_participation_completed_single_node_bootstraps() {
         ]
     );
     assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
-    assert!(snap.is_concluded());
+    assert_eq!(snap.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -216,9 +216,9 @@ fn process_probe_returns_fresh_state() {
 
     // Assert
     assert_eq!(snap.peer_state(), PeerState::Fresh);
-    assert_eq!(snap.conclusion(), None);
+    assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
     assert!(!snap.is_pinging_completed());
-    assert!(!snap.is_concluded());
+    assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
     assert_eq!(snap.required_count(), 4);
@@ -264,7 +264,7 @@ fn process_rejects_deadline_expired() {
 
     // Assert
     assert_eq!(snap.peer_state(), PeerState::Fresh);
-    assert_eq!(snap.conclusion(), None);
+    assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -292,8 +292,8 @@ fn process_rejects_invalid_commands() {
     assert_eq!(snap.peer_state(), PeerState::Fresh);
     assert_eq!(snap.pinging_peers().len(), 0);
     assert_eq!(snap.collecting_peers().len(), 0);
-    assert_eq!(snap.conclusion(), None);
-    assert!(!snap.is_concluded());
+    assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
+    assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
     assert!(!snap.is_pinging_completed());
 }
 

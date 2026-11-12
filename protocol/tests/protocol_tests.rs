@@ -121,7 +121,10 @@ fn decide_deadline_expired_stays_receptive() {
     assert_eq!(decisions.len(), 1);
     assert!(matches!(decisions[0], OutputMessage::Noop));
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::TimedOut);
-    assert!(!protocol.cluster_view().is_concluded());
+    assert_ne!(
+        protocol.cluster_view().peer_state(),
+        PeerState::Bootstrapped
+    );
 }
 
 #[test]

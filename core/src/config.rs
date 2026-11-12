@@ -22,15 +22,6 @@ impl Config {
         }
     }
 
-    pub fn is_member(&self, peer_id: PeerId) -> bool {
-        self.peers.contains(&peer_id)
-    }
-
-    #[must_use]
-    pub fn peer_count(&self) -> usize {
-        self.peers.len()
-    }
-
     #[must_use]
     pub const fn peer_id(&self) -> PeerId {
         self.peer_id

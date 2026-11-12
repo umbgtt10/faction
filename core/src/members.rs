@@ -23,18 +23,8 @@ impl Members {
     }
 
     #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.peers.is_empty()
-    }
-
-    #[must_use]
     pub fn is_member(&self, peer_id: PeerId) -> bool {
         self.peers.contains(&peer_id)
-    }
-
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.peers.len()
     }
 
     #[must_use]

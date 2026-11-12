@@ -7,12 +7,14 @@ use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
+use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
 use crate::message_translator::MessageTranslator;
 use crate::output_message::OutputMessage;
+use crate::result_view::ResultView;
 use crate::timer_event::TimerEvent;
 use crate::timer_message::TimerMessage;
 
@@ -38,12 +40,12 @@ impl Protocol {
     }
 
     pub fn cluster_view(&mut self) -> ClusterView {
-        self.faction.process(Command::Probe).into_cluster_view()
+        ResultView::of(self.faction.process(Command::Probe))
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
         if let InputMessage::Timer(TimerMessage::RetryPing) = &input_message {
-            if self.cluster_view().is_concluded() {
+            if self.cluster_view().peer_state() == PeerState::Bootstrapped {
                 vec![OutputMessage::Noop]
             } else {
                 vec![
@@ -52,7 +54,7 @@ impl Protocol {
                 ]
             }
         } else if let InputMessage::Timer(TimerMessage::RetryReady) = &input_message {
-            if self.cluster_view().is_concluded() {
+            if self.cluster_view().peer_state() == PeerState::Bootstrapped {
                 vec![OutputMessage::Noop]
             } else {
                 vec![

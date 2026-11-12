@@ -63,7 +63,7 @@ impl FactionNode {
     }
 
     pub fn member_count(&mut self) -> usize {
-        self.protocol.cluster_view().members().len()
+        self.protocol.cluster_view().members().as_slice().len()
     }
 
     #[must_use]
@@ -80,7 +80,7 @@ impl FactionNode {
         let view = self.protocol.cluster_view();
         NodeSnapshot {
             peer_state: view.peer_state(),
-            member_count: view.members().len(),
+            member_count: view.members().as_slice().len(),
         }
     }
 

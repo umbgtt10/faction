@@ -3,12 +3,11 @@
 
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
-use faction::conclusion::Conclusion;
 use faction::members::Members;
 use faction::peer_state::PeerState;
 
 fn base() -> ClusterViewBuilder {
-    ClusterViewBuilder::new()
+    ClusterViewBuilder::default()
         .with_peer_state(PeerState::Bootstrapped)
         .with_is_pinging_completed(true)
         .with_pinging_peers(vec![1, 2, 3, 4, 5])
@@ -29,16 +28,7 @@ fn deadline_missed_resolves_to_timed_out_at_build() {
     // Assert
     assert_eq!(result.peer_state(), PeerState::TimedOut);
     assert!(result.deadline_missed());
-    assert!(!result.is_concluded());
-}
-
-#[test]
-fn default_builds_what_new_builds() {
-    // Arrange & Act
-    let built = ClusterViewBuilder::default().build();
-
-    // Assert
-    assert_eq!(built, ClusterViewBuilder::new().build());
+    assert_ne!(result.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -68,9 +58,9 @@ fn with_collecting_peers_updates_only_collecting_peers() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(result.conclusion(), Some(Conclusion::Bootstrapped));
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert!(result.is_pinging_completed());
-    assert!(result.is_concluded());
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.collecting_peers(), &[99]);
     assert_eq!(result.required_count(), 3);
@@ -83,7 +73,7 @@ fn with_members_is_exposed_on_the_view() {
 
     // Assert
     assert_eq!(result.members().as_slice(), &[7, 8, 9]);
-    assert_eq!(result.members().len(), 3);
+    assert_eq!(result.members().as_slice().len(), 3);
     assert!(result.members().is_member(8));
     assert!(!result.members().is_member(1));
 }
@@ -95,9 +85,9 @@ fn with_peer_state_updates_only_peer_state() {
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Pinging);
-    assert_eq!(result.conclusion(), None);
+    assert_ne!(result.peer_state(), PeerState::Bootstrapped);
     assert!(result.is_pinging_completed());
-    assert!(!result.is_concluded());
+    assert_ne!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5, 6, 7]);
     assert_eq!(result.required_count(), 3);

@@ -25,7 +25,7 @@ impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
         let stage = Stage::Initial(Initial::new(Members::new(config.peers().to_vec())));
-        let base = ClusterViewBuilder::new()
+        let base = ClusterViewBuilder::default()
             .with_required_count(config.required_count())
             .with_members(Members::new(config.peers().to_vec()))
             .build();
@@ -36,11 +36,6 @@ impl Faction {
             stage,
             cluster_view,
         }
-    }
-
-    #[must_use]
-    pub fn config(&self) -> &Config {
-        &self.config
     }
 
     #[must_use]
