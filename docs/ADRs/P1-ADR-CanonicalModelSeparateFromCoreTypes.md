@@ -39,7 +39,7 @@ A canonical model that only translates `Outcome` cannot represent a
 rejected command at all. Two rejection-shape alternatives were considered
 before this decision (see Rejected alternatives) — mapping as-is was chosen
 because every existing variant is already verified behavior, cited in
-`core/tests/transition_matrix/` and `core/tests/property_tests/`.
+`ladder/tests/matrix/` and `ladder/tests/property/`.
 
 ## Rejected alternatives
 
