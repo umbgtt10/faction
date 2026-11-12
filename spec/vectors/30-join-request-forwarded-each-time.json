@@ -1,0 +1,135 @@
+{
+  "description": "A join request is forwarded, again when repeated, and changes nothing: an Initial node stays Initial.",
+  "rows": [
+    "join-requested"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "required_count": "3"
+  },
+  "steps": [
+    {
+      "command": {
+        "JoinRequested": {
+          "peer_id": "9"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "EmitJoinRequest": {
+                "peer_id": "9"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "JoinRequested": {
+          "peer_id": "9"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "EmitJoinRequest": {
+                "peer_id": "9"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Fresh": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [],
+      "collecting_peers": [],
+      "required_count": "3",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "LocalParticipationCompleted",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "Probe"
+    ]
+  }
+}

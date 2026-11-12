@@ -1,0 +1,143 @@
+{
+  "description": "A missed deadline carries how many collecting peers the node has.",
+  "rows": [
+    "ready-before-completion",
+    "deadline-missed"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "required_count": "3"
+  },
+  "steps": [
+    {
+      "command": {
+        "ReadyObserved": {
+          "peer_id": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "ReadyAccepted": {
+                "peer_id": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Pinging": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "2"
+            ],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "DeadlineExpired": {}
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "DeadlineMissed": {
+                "confirmed_count": "1"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "TimedOut": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "2"
+            ],
+            "required_count": "3",
+            "deadline_missed": true,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "TimedOut": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [],
+      "collecting_peers": [
+        "2"
+      ],
+      "required_count": "3",
+      "deadline_missed": true,
+      "members": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "LocalParticipationCompleted",
+      "DeadlineExpired",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "Probe"
+    ]
+  }
+}

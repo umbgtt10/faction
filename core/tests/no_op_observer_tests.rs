@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::support::recording::Recording;
 use crate::support::recording_observer::RecordingObserver;
 use alloc::boxed::Box;
 use alloc::vec;
@@ -30,7 +29,7 @@ fn process_given_a_no_op_observer_answers_as_given_one_that_records() {
     // Arrange
     let mut silent = faction(Box::new(NoOpObserver));
     let mut recorded = faction(Box::new(RecordingObserver::new(Arc::new(Mutex::new(
-        Recording::default(),
+        Vec::new(),
     )))));
     let commands = vec![
         Command::DeadlineExpired,

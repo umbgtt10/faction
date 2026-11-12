@@ -1,0 +1,146 @@
+{
+  "description": "The node's own completion makes it a collecting peer; below the required count it is Collecting.",
+  "rows": [
+    "participation-accepted",
+    "local-completed"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "required_count": "3"
+  },
+  "steps": [
+    {
+      "command": {
+        "ParticipationObserved": {
+          "peer_id": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "ParticipationAccepted": {
+                "peer_id": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Pinging": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [
+              "2"
+            ],
+            "collecting_peers": [],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "LocalParticipationCompleted": {}
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "LocalParticipationCompleted": {}
+            },
+            {
+              "BroadcastLocalReady": {}
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Collecting": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [
+              "2"
+            ],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Collecting": {}
+      },
+      "is_pinging_completed": true,
+      "pinging_peers": [
+        "2"
+      ],
+      "collecting_peers": [
+        "1"
+      ],
+      "required_count": "3",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "DeadlineExpired",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "Probe"
+    ]
+  }
+}

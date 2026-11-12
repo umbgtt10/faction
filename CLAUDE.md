@@ -111,23 +111,36 @@ Specifically:
 - **test naming**: `<method>_<description>_<outcome>` where `<method>` is the function called in the Act section. Property tests are exempt.
 - **variable naming**: match the type. `<StructName>` → `<name>`, `Config` → `config`. No single-letter vars. No legacy or cryptic names.
 
+### The specification comes first
+
+The specification in `spec/` is normative and the crate is one implementation of it
+(`docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md`). A change of behaviour
+changes the specification first — the prose, the schema, the decision table's rows, a
+vector for every row it adds or changes, and its version — then the crate
+(`docs/ADRs/P2-ADR-SpecifiedBeforeAnyNewPhase.md`). The specification sits at the
+repository root, read by the ladder and never by the crate. Vectors are written by hand
+and checked against a model independent of the crate before the crate runs them; never
+export them from the crate.
+
 ### State transition test coverage — invariant
 
-The transition matrix tests under `ladder/tests/matrix/` provide **exhaustive** coverage of every (state × command) pair. This coverage MUST be maintained — no regression, no gaps.
+`spec/matrix.json` gives every (stage × command) pair its row: what each stage admits,
+and the rows in check order. The conformance tier (`ladder/tests/conformance/`) runs
+every vector, and every row is exercised by one. The transition matrix tests under
+`ladder/tests/matrix/` cover every (stage × command) pair, each case naming the row it
+exercises and checked against it. This coverage MUST be maintained — no regression, no
+gaps.
 
-| State | `ParticipationObserved` | `ReadyObserved` | `LocalParticipationCompleted` | `DeadlineExpired` |
-|---|---|---|---|---|
-| Initial | valid (via Fresh) | valid (via Fresh) | valid | **invalid** |
-| Pinging | valid | valid | valid | valid |
-| Collecting | **invalid** | valid (quorum triggers, duplicate) | **invalid** | valid (`DeadlineMissed`) |
-| Bootstrapped | valid (`AcknowledgeRejoin`) | **invalid** | **invalid** | **invalid** |
-
-`Bootstrapped` is the only terminal state; a missed deadline is non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view flag.
-
-- **valid** = present in `valid_transition` rstest, expects `ProcessResult::Accepted`
-- **invalid** = present in per-state `*_invalid_tests.rs` rstest, expects `ProcessResult::Rejected`
-- Any new state or command variant MUST add the corresponding valid/invalid cases to preserve exhaustive coverage.
-- Valid transitions live in `state_transition_matrix_tests.rs`. Invalid transitions live in per-state files (`initial_invalid_tests.rs`, `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`); `pinging_invalid_tests.rs` asserts Pinging rejects nothing, and `admissible_invariant_tests.rs` checks `admissible == { c ≠ Probe : accept(c) } ∪ { Probe }` per state. Common helpers (`Init`, `Assert`, `build()`, `verify()` etc.) live in `helpers.rs`.
+- Valid transitions live in `state_transition_matrix_tests.rs` and expect the row's
+  result; rejected commands live in per-state files (`initial_invalid_tests.rs`,
+  `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`) under the row
+  `not-admitted`; `pinging_invalid_tests.rs` asserts Pinging rejects nothing, and
+  `admissible_invariant_tests.rs` checks each stage's admissible set against the table's
+  `admits` and against `{ c ≠ Probe : accept(c) } ∪ { Probe }`.
+- Any new state or command variant MUST add its rows to the table first, then the
+  matching cases here.
+- `Bootstrapped` is the only terminal state; a missed deadline is non-terminal
+  (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view flag.
 
 ### State transition model
 

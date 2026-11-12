@@ -2,16 +2,18 @@
 // SPDX-License-Identifier: MIT
 
 use super::builder::{build, Init};
+use crate::support::matrix_table::MatrixTable;
+use crate::support::spec_files::SpecFiles;
 use faction::command::Command;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
 
 #[rstest]
-#[case(Init::Initial)]
-#[case(Init::Fresh)]
-#[case(Init::CollectingNoReadiness)]
-#[case(Init::Bootstrapped)]
-fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init) {
+#[case(Init::Initial, "Initial")]
+#[case(Init::Fresh, "Pinging")]
+#[case(Init::CollectingNoReadiness, "Collecting")]
+#[case(Init::Bootstrapped, "Bootstrapped")]
+fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case] stage: &str) {
     let candidates = [
         Command::ParticipationObserved { peer_id: 0 },
         Command::ReadyObserved { peer_id: 0 },
@@ -27,6 +29,13 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init) {
         ProcessResult::Probed { admissible, .. } => admissible,
         _ => unreachable!(),
     };
+
+    // Act & Assert — the stage admits what the specification's table says it does
+    assert_eq!(
+        admissible,
+        MatrixTable::new(SpecFiles::matrix()).admits(stage),
+        "{init:?}: admissible disagrees with the table's {stage}"
+    );
 
     // Act & Assert — Probe is always admissible
     assert!(

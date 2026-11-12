@@ -1,16 +1,26 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use faction::conclusion::Conclusion;
+use faction::no_op_observer::NoOpObserver;
+use faction::observer::Observer;
 use faction::peer_state::PeerState;
 use faction_core_validation::cluster_simulation::ClusterSimulation;
 
 extern crate alloc;
 
+fn quiet(count: usize) -> Vec<Box<dyn Observer>> {
+    (0..count)
+        .map(|_| Box::new(NoOpObserver) as Box<dyn Observer>)
+        .collect()
+}
+
 #[test]
 fn check_after_convergence_returns_no_violation() {
     // Arrange
-    let mut sim = ClusterSimulation::new(5, 4);
+    let mut sim = ClusterSimulation::new(quiet(5), 4);
     for peer in 1..5 {
         sim.inject_participation(peer);
     }
@@ -29,7 +39,7 @@ fn check_after_convergence_returns_no_violation() {
 #[test]
 fn duplicate_signals_dont_disrupt_convergence() {
     // Arrange
-    let mut sim = ClusterSimulation::new(5, 4);
+    let mut sim = ClusterSimulation::new(quiet(5), 4);
 
     // Act
     for peer in 1..5 {
@@ -48,7 +58,7 @@ fn duplicate_signals_dont_disrupt_convergence() {
 #[test]
 fn five_nodes_converge_on_quorum() {
     // Arrange
-    let mut sim = ClusterSimulation::new(5, 4);
+    let mut sim = ClusterSimulation::new(quiet(5), 4);
 
     // Act
     for peer in 1..5 {
@@ -65,7 +75,7 @@ fn five_nodes_converge_on_quorum() {
 #[test]
 fn not_enough_signals_records_deadline_miss() {
     // Arrange
-    let mut sim = ClusterSimulation::new(5, 4);
+    let mut sim = ClusterSimulation::new(quiet(5), 4);
     sim.inject_participation(1);
     sim.complete_local(0);
     sim.inject_ready(1);

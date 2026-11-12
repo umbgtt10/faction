@@ -120,16 +120,21 @@ let machine = Faction::new(config, observer);
 `Config` holds the static peer list and quorum threshold. `QuorumPolicy` wraps an
 integer — the machine only checks "does the confirmed count meet or exceed this?"
 `Faction::new` takes both plus an `Observer` trait object. Construction produces a
-machine in the `Initial` state with an empty `ClusterView`.
+machine in the `Initial` state, its view `Fresh`: the configuration's peers as its
+members, its required count, and nothing confirmed.
 
 ### States
 
 | State | Meaning | Carries |
 |---|---|---|
-| `Initial` | Freshly created, no action taken | Nothing — unit struct |
-| `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
-| `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
-| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
+| `Initial` | Freshly created, no signal taken | Its members |
+| `Pinging` | Collecting participation signals from peers | Members, the participation and readiness accepted so far, and whether the deadline was missed |
+| `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
+| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Members, and the peer sets at the conclusion |
+
+Every stage carries the node's members: the configuration's peers, then each peer
+admitted by `JoinApproved`. Join decisions are admitted in every stage and never
+change it.
 
 `Bootstrapped` is the only terminal state. A missed deadline is **not** a state: it is
 recorded as a non-terminal fact — surfaced as `PeerState::TimedOut` through a derived
@@ -154,6 +159,9 @@ pinging can always recover.
 | `ReadyObserved { peer_id }` | A peer sent a readiness signal |
 | `LocalParticipationCompleted` | The local node finished its own participation |
 | `DeadlineExpired` | External deadline timer fired |
+| `JoinRequested { peer_id }` | A newcomer asked to join |
+| `JoinApproved { peer_id }` | The caller admitted the newcomer |
+| `JoinRejected { peer_id }` | The caller refused the newcomer |
 | `Probe` | Query current state without mutation |
 
 ### Outcomes
@@ -169,10 +177,15 @@ pinging can always recover.
 | `BroadcastLocalReady` | Local readiness should be broadcast to peers |
 | `AcknowledgeRejoin { peer_id }` | A concluded node should re-advertise readiness to a still-pinging member |
 | `DeadlineMissed { confirmed_count }` | The deadline fired before quorum — recorded, non-terminal |
+| `EmitJoinRequest { peer_id }` | Forward the newcomer's request to whoever decides |
+| `MemberAdmitted { peer_id }` | The newcomer is now a member |
+| `DuplicateMemberIgnored { peer_id }` | The peer approved was already a member |
+| `JoinDenied { peer_id }` | The newcomer was refused; nothing changed |
+| `Concluded { mode }` | The node concluded bootstrapping (`mode` is `Bootstrapped`) |
 
-Conclusion is computed from the `ClusterView`, not emitted as a standalone outcome.
-The only conclusion is `Bootstrapped`; callers inspect `cluster_view.conclusion()`
-(`Some(Bootstrapped)` or `None`) to see whether the cluster is live.
+The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
+The view says so from then on: `cluster_view.conclusion()` is `Some(Bootstrapped)`.
+`Bootstrapped` is the only conclusion.
 
 ### Data flow
 
@@ -193,11 +206,11 @@ Gate 2: duplicate? ───► Duplicate*Ignored
 Step struct ──────────► outcomes + new_state
   │
   ▼
-Observer.observe()
-  │
-  ▼
 ProcessResult::Accepted { cluster_view, admissible, outcomes }
 ```
+
+Whichever result a command gets, it is reported — `Observer::observe(&command, &result)` —
+and then returned.
 
 ### Process results
 
@@ -222,8 +235,9 @@ is valid next, on every path. This eliminates defensive programming on the calle
 Every command passes through two gates before mutation occurs:
 
 **Gate 1 — Non-member check.** Signals from peers not in the static member set produce
-`NonMemberIgnored`. Membership is checked against the `Config` peer list, which is
-fixed at construction. This gate is unconditional — it fires regardless of state.
+`NonMemberIgnored`. Membership is checked against the node's members — the
+configuration's peers, and every peer admitted since — in every stage that admits
+the signal.
 
 **Gate 2 — Duplicate check.** Signals from already-confirmed peers produce
 `Duplicate*Ignored`. The duplicate check is per-phase: a peer confirmed in the pinging
@@ -241,19 +255,24 @@ Quorum is checked in exactly two places:
 1. `ReadyStep` — after a new (non-duplicate) readiness signal is confirmed
 2. `LocalCompletionStep` — when the local node signals completion
 
-Duplicate signals never re-trigger quorum checks. Quorum is never checked in the
-pinging phase. This ensures the two-phase invariant holds under all inputs.
+Duplicate signals never re-trigger quorum checks. Quorum is never checked before the
+node's own completion: readiness accumulates while `Pinging` and counts at completion.
+This ensures the two-phase invariant holds under all inputs.
 
 ### Step structs
 
-Decision logic is split into three focused step structs. Each handles exactly one
-kind of observation. There is no branching on a command kind enum within a step struct.
+Decision logic is split into focused step structs. Each handles one kind of
+observation.
 
 | Struct | Handles | Checks quorum? |
 |---|---|---|
-| `PingingStep` | `ParticipationObserved` in pinging phase | Never |
-| `ReadyStep` | `ReadyObserved` in any phase | Yes, with threshold |
+| `PingingStep` | `ParticipationObserved` before the node's own completion | Never |
+| `ReadyStep` | `ReadyObserved` while `Collecting` | Yes, with threshold |
 | `LocalCompletionStep` | `LocalParticipationCompleted` | Yes, always |
+| `JoinStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, in every stage | Never |
+
+Readiness before the node's own completion is accepted by `Pinging` itself, with no
+quorum check.
 
 This design means that adding a new command type cannot accidentally affect existing
 command handling. Each step struct is independently testable.
@@ -271,6 +290,7 @@ returns:
 - Whether pinging phase is complete
 - Whether the deadline has been missed (`deadline_missed`)
 - Required quorum count
+- Members — the configuration's peers, then every admitted peer, in arrival order
 
 The queryability model means external monitors can poll any node's view without
 perturbing the machine. Composition of multiple nodes' cluster views gives an
@@ -280,18 +300,14 @@ aggregated picture of the cluster from multiple vantage points.
 
 ## Observability
 
-Every transition is delivered to the `Observer` trait. The observer receives the full
-before-and-after context — not just a log line.
+Every call is reported to the `Observer` trait, once: `observe(&command, &result)`,
+with the command and the `ProcessResult` it was answered — an accepted command, a
+rejected one and a probe alike, by the time the result is returned. The result carries
+the whole view and the admissible commands, so a report is not a log line but the
+answer itself, and a node's reports, in order, are its log (`spec/SPEC.md` §3). The
+view a command found is the one the report before it carried.
 
-| Method | Triggered by |
-|---|---|
-| `observe(command, transition)` | Any accepted command |
-| `observe_query(command, cluster_view)` | Any `Probe` command |
-| `observe_rejection(command, cluster_view, admissible)` | Any rejected command |
-
-A `Transition` carries the full before-and-after context: the previous `ClusterView`,
-the `Vec<Outcome>` produced by the step, and the new `ClusterView`. No partial
-snapshots. No guesswork.
+The observer is told and answers nothing, so it cannot change a result.
 
 The observer is a trait. It can be wired to structured logging, metrics pipelines,
 distributed tracing, test assertions, or audit logs. The machine does not know or care
@@ -369,37 +385,27 @@ configurable per spawn model to account for OS scheduling overhead.
 
 ---
 
-## Specification & conformance (planned, not yet built)
+## Specification & conformance
 
-`faction` today has one implementation and no independent specification —
-every guarantee in this document is checkable only by reading or testing
-the Rust crate. A cross-cutting initiative (spanning every phase, not tied
-to one) is decided and recorded in `docs/ADRs/` — see
-`P0-ADR-SpecificationIsNormativeCrateIsReference.md` and the six sibling
-ADRs it anchors — to promote `faction` to a normative specification with
-this crate as a conformant reference implementation, so a non-Rust port has
-something machine-checkable to conform to.
+`faction` is specified in [`spec/`](../spec/SPEC.md), normatively: a JSON Schema
+data model, a JSON decision table, prose for what JSON cannot say, and
+conformance vectors, versioned together and written by hand. This crate is one
+implementation of it; where the two disagree, the specification is right
+(`P0-ADR-SpecificationIsNormativeCrateIsReference`).
 
-The decided shape: a separate, versioned, language-neutral canonical model
-mapped from (not derived onto) `Command`/`Outcome`/`ProcessResult`; the six
-existing transition-matrix test files consolidated into one declarative
-table consumed by both the test suite and a new vector-exporter; vectors
-that are reachable-by-construction from the initial state, requiring no
-test-only API; and CI gates that fail if the crate and the exported
-vectors drift apart. Full detail, including the finding that no
-compile-time-only invariant exists anywhere in `core/src` today, is in the
-ADRs themselves, not repeated here.
+The data model keeps the vocabulary of `Command`, `Outcome` and
+`ProcessResult`, and is mapped to them by the crate's conformance tests, never
+derived from them. The decision table says what each stage admits and gives
+every `(stage, command)` its row; each vector names the rows it exercises, and
+every row is exercised. Outcomes are an ordered sequence and peers are listed in
+arrival order, so a vector is checked by deep equality. No invariant rests on the
+type system: admission is decided when a command arrives, so every vector runs
+on every conforming implementation.
 
 This connects to, but is distinct from, the "Formal verifiability" property
 above: a TLA+ model would check the Mealy machine's logic exhaustively; the
-canonical model and vectors check that independent implementations agree
-with this one. Both use the same underlying vocabulary; neither has shipped
-yet.
-
-**Status:** decided (`Proposed` ADRs), implementation not started.
-Implementation is deliberately sequenced after Phase 1 (dynamic joining) is
-validated on real NUCLEO hardware — see `ROADMAP.md` and
-`P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md` for why.
+specification and its vectors check that independent implementations agree
+with this one.
 
 ---
 

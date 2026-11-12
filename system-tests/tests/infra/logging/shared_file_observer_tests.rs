@@ -7,7 +7,7 @@ use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
-use faction::transition::Transition;
+use faction::process_result::ProcessResult;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::timer_message::TimerMessage;
@@ -24,6 +24,14 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
+fn make_accepted() -> ProcessResult {
+    ProcessResult::Accepted {
+        cluster_view: make_cluster_view(),
+        admissible: vec![],
+        outcomes: vec![],
+    }
+}
+
 fn make_cluster_view() -> ClusterView {
     ClusterViewBuilder::new()
         .with_peer_state(PeerState::Pinging)
@@ -31,14 +39,6 @@ fn make_cluster_view() -> ClusterView {
         .with_collecting_peers(vec![1])
         .with_required_count(4)
         .build()
-}
-
-fn make_transition() -> Transition {
-    Transition {
-        previous_view: make_cluster_view(),
-        outputs: vec![],
-        new_view: make_cluster_view(),
-    }
 }
 
 fn read_file(path: &Path) -> String {
@@ -161,6 +161,69 @@ fn node_observer_on_step_writes_step_event_with_decision_count() {
 }
 
 #[test]
+fn observe_accepted_writes_accepted_event() {
+    // Arrange
+    let tmp = TempFile::new();
+    let writer = tmp.reader();
+    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let command = Command::ParticipationObserved { peer_id: 3 };
+
+    // Act
+    observer.observe(&command, &make_accepted());
+    drop(observer);
+
+    // Assert
+    let content = read_file(tmp.path());
+    assert!(content.contains("\"event\":\"accepted\""));
+    assert!(content.contains("\"peer_state\":\"Pinging\""));
+    assert!(content.contains("\"is_exited\":false"));
+    assert!(content.contains("\"pinging_peers\":2"));
+    assert!(content.contains("\"collecting_peers\":1"));
+}
+
+#[test]
+fn observe_probed_writes_query_event() {
+    // Arrange
+    let tmp = TempFile::new();
+    let writer = tmp.reader();
+    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let result = ProcessResult::Probed {
+        cluster_view: make_cluster_view(),
+        admissible: vec![],
+    };
+
+    // Act
+    observer.observe(&Command::Probe, &result);
+    drop(observer);
+
+    // Assert
+    let content = read_file(tmp.path());
+    assert!(content.contains("\"event\":\"query\""));
+    assert!(content.contains("\"command\":\"Probe\""));
+}
+
+#[test]
+fn observe_rejected_writes_rejected_event() {
+    // Arrange
+    let tmp = TempFile::new();
+    let writer = tmp.reader();
+    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let result = ProcessResult::Rejected {
+        cluster_view: make_cluster_view(),
+        admissible: vec![],
+    };
+
+    // Act
+    observer.observe(&Command::DeadlineExpired, &result);
+    drop(observer);
+
+    // Assert
+    let content = read_file(tmp.path());
+    assert!(content.contains("\"event\":\"rejected\""));
+    assert!(content.contains("DeadlineExpired"));
+}
+
+#[test]
 fn observe_writes_bootstrapped_exit_state() {
     // Arrange
     let tmp = TempFile::new();
@@ -171,81 +234,19 @@ fn observe_writes_bootstrapped_exit_state() {
         .with_is_pinging_completed(true)
         .with_required_count(4)
         .build();
-    let transition = Transition {
-        previous_view: view.clone(),
-        outputs: vec![],
-        new_view: view,
+    let result = ProcessResult::Probed {
+        cluster_view: view,
+        admissible: vec![],
     };
 
     // Act
-    observer.observe(Command::Probe, transition);
+    observer.observe(&Command::Probe, &result);
     drop(observer);
 
     // Assert
     let content = read_file(tmp.path());
     assert!(content.contains("\"peer_state\":\"Bootstrapped\""));
     assert!(content.contains("\"is_exited\":true"));
-}
-
-#[test]
-fn observer_observe_query_writes_query_event() {
-    // Arrange
-    let tmp = TempFile::new();
-    let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
-    let command = Command::Probe;
-    let view = make_cluster_view();
-
-    // Act
-    observer.observe_query(command, view);
-    drop(observer);
-
-    // Assert
-    let content = read_file(tmp.path());
-    assert!(content.contains("\"event\":\"query\""));
-    assert!(content.contains("\"command\":\"Probe\""));
-}
-
-#[test]
-fn observer_observe_rejection_writes_rejected_event() {
-    // Arrange
-    let tmp = TempFile::new();
-    let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
-    let command = Command::DeadlineExpired;
-    let view = make_cluster_view();
-    let admissible = vec![];
-
-    // Act
-    observer.observe_rejection(command, view, admissible);
-    drop(observer);
-
-    // Assert
-    let content = read_file(tmp.path());
-    assert!(content.contains("\"event\":\"rejected\""));
-    assert!(content.contains("DeadlineExpired"));
-}
-
-#[test]
-fn observer_observe_writes_accepted_event() {
-    // Arrange
-    let tmp = TempFile::new();
-    let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
-    let command = Command::ParticipationObserved { peer_id: 3 };
-    let transition = make_transition();
-
-    // Act
-    observer.observe(command, transition);
-    drop(observer);
-
-    // Assert
-    let content = read_file(tmp.path());
-    assert!(content.contains("\"event\":\"accepted\""));
-    assert!(content.contains("\"peer_state\":\"Pinging\""));
-    assert!(content.contains("\"is_exited\":false"));
-    assert!(content.contains("\"pinging_peers\":2"));
-    assert!(content.contains("\"collecting_peers\":1"));
 }
 
 #[test]
@@ -273,15 +274,23 @@ fn write_json_output_is_valid() {
     // Act
     observer.on_start();
     observer.observe(
-        Command::Probe,
-        Transition {
-            previous_view: make_cluster_view(),
-            outputs: vec![],
-            new_view: make_cluster_view(),
+        &Command::ParticipationObserved { peer_id: 1 },
+        &make_accepted(),
+    );
+    observer.observe(
+        &Command::Probe,
+        &ProcessResult::Probed {
+            cluster_view: make_cluster_view(),
+            admissible: vec![],
         },
     );
-    observer.observe_query(Command::Probe, make_cluster_view());
-    observer.observe_rejection(Command::DeadlineExpired, make_cluster_view(), vec![]);
+    observer.observe(
+        &Command::DeadlineExpired,
+        &ProcessResult::Rejected {
+            cluster_view: make_cluster_view(),
+            admissible: vec![],
+        },
+    );
     drop(observer);
 
     // Assert

@@ -1,7 +1,7 @@
 # P2-ADR-CanonicalModelBuiltAgainstJoiningBranch
 
-- **Status:** Proposed
-- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Date:** 2026-11-12
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting
 
@@ -13,10 +13,9 @@ canonical model against a pre-joining baseline and extend it later, or
 design it directly against the joining vocabulary as it stands now.
 
 ## Decision
-
-The canonical model is designed against `Command`/`Outcome` as they exist
-with joining already included — there is no smaller, pre-joining baseline
-left to target.
+The specification's first version, 0.1.0, is designed against `Command`/`Outcome`
+as they exist with joining already included — there is no smaller, pre-joining
+baseline left to target.
 
 ## Forcing constraints / Evidence
 
@@ -33,16 +32,14 @@ isn't already superseded.
 **Design the canonical model against a pre-joining baseline, extend it
 once joining is confirmed stable.** Rejected: joining is not provisional —
 it is complete, tested, and the current state of `main`. Designing against
-an earlier baseline would mean redoing the canonical-model mapping work a
-second time for no benefit, against a state that no longer exists.
+an earlier baseline would mean specifying twice, against a state that no longer
+exists.
 
 ## Consequences
 
-The canonical model's first version already includes join-related states,
-commands, and effects — there is no "joining not yet in scope" caveat to
-carry through the specification. Any future phase (2 through 6) that adds
-new commands/outcomes extends this same canonical model incrementally,
-using the same discipline established by
+The specification's 0.1.0 already includes the join commands and outcomes —
+there is no "joining not yet in scope" caveat to carry. Any later phase that
+adds commands or outcomes extends the same specification, by the discipline of
 `P1-ADR-CanonicalModelSeparateFromCoreTypes`.
 
 ## Enforcement

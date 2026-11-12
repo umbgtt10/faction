@@ -55,8 +55,9 @@ reproduce and expensive to diagnose.
   paths exist. The test suite is a proof, not a sample.
 - **Embeddable** — `no_std + alloc`, zero `unsafe`. Runs on bare metal, WASM, embedded
   RTOS, and cloud without modification.
-- **Observable** — every transition reaches a trait-based `Observer`. Wire it to
-  telemetry, audit logs, or test assertions. No instrumentation surprises.
+- **Observable** — every call reaches a trait-based `Observer`, once, with the command
+  and its result. Wire it to telemetry, audit logs, or test assertions. No
+  instrumentation surprises.
 - **Queryable** — probe the machine at any time for the current cluster view and the
   set of admissible commands. Zero side effects.
 - **Slim by construction** — each state carries only its active data. The terminal
@@ -136,13 +137,15 @@ not a wire message, so no transport has to learn a new message type.
 
 | Harness | What it tests |
 |---|---|
-| `core/` unit tests | Every `(state, command)` pair — 169 tests |
-| `core-validation/` | Multi-node deterministic scenarios — 23 tests |
-| `protocol/` | Message translation and protocol runtime — 33 tests |
-| `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 156 tests |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 18 rows and 41 conformance vectors |
+| `core/` unit tests | Each type and each step in isolation — 149 tests |
+| `ladder/` | Conformance to the specification; every `(state, command)` pair, checked against the decision table; properties over random command sequences; logs replayed — 78 tests |
+| `core-validation/` | Multi-node deterministic scenarios — 39 tests |
+| `protocol/` | Message translation and protocol runtime — 39 tests |
+| `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 169 tests |
 | `system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
 | `system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
-| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing — 44 tests |
+| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 155 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -217,8 +220,9 @@ The caller owns the network. `faction` owns the state.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~895 |
-| Total tests | 506 |
+| Core productive LOC | ~1,130 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.1.0 — the crate answers all 41 vectors as written |
+| Total tests | 873 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -238,8 +242,9 @@ The caller owns the network. `faction` owns the state.
 - **No silent sinks** — the sole terminal state (`Bootstrapped`) still answers a
   still-pinging peer by re-advertising its readiness, and a missed deadline is a
   non-terminal fact — so a concluded node never strands the peers it coordinated.
-- **Observer, not logger** — the `Observer` trait receives every transition, query,
-  and rejection. Wire it to anything. The machine does not care.
+- **Observer, not logger** — the `Observer` trait receives every call with its result:
+  an accepted command, a rejected one, a probe. Wire it to anything. The machine does
+  not care.
 - **Protocol-agnostic** — `faction` does not know what a peer is, what the network
   looks like, or what your protocol does. It knows state transitions.
 - **One struct per file** — each step, state, and policy is its own file. Navigation
@@ -309,13 +314,15 @@ for the complete technical specification.
 
 | Crate | Role | Tests |
 |---|---|---|
-| `core/` | State machine | 169 |
-| `core-validation/` | Deterministic multi-node scenario harness | 23 |
-| `protocol/` | Message translator and protocol runtime | 33 |
-| `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 156 |
+| `core/` | State machine | 149 |
+| `ladder/` | Conformance, the decision-table matrix, property and replay tiers | 78 |
+| `core-validation/` | Deterministic multi-node scenario harness | 39 |
+| `protocol/` | Message translator and protocol runtime | 39 |
+| `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 169 |
 | `system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `system-tests/` joining | Dynamic joining across spawn/transport | 61 |
-| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing | 44 |
+| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 155 |
+| `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores | 163 |
 
 ---
 
@@ -327,7 +334,8 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Links
 
-- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
+- [SPEC.md](./spec/SPEC.md) — the normative specification: data model, decision table, prose and conformance vectors
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — the design, and how the crate implements the specification
 - [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
 - [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
 - [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, `PeerId` genericization)

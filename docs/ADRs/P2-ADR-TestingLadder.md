@@ -20,17 +20,26 @@ all run by one gate:
 
 1. **Unit** — each type and each `*Step` in isolation (`core/tests/**`: `states/`,
    `config_tests`, `quorum_policy_tests`, `cluster_view_tests`, …).
-2. **Exhaustive transition matrix** — every `(state, command)` cell is a defined
+2. **Conformance** — every vector of the specification run against the crate: each
+   step's result, the final answer, and every call reported to the observer as it was
+   answered (`ladder/tests/conformance/`, `P0-ADR-SpecificationIsNormativeCrateIsReference`).
+3. **Exhaustive transition matrix** — every `(state, command)` cell is a defined
    transition (`P1-ADR-TotalityExhaustiveMatrix`) plus the admissible-command
-   invariant (`ladder/tests/matrix/`).
-3. **Property-based** — invariants and a reference model replayed over random command
+   invariant, each case checked against the row of `spec/matrix.json` it names
+   (`ladder/tests/matrix/`).
+4. **Property-based** — invariants and a reference model replayed over random command
    sequences with `proptest` (`ladder/tests/property/`).
-4. **Cluster simulation** — deterministic multi-node convergence over in-memory
+5. **Replay** — a node's log, its configuration then every call it reported as the
+   specification writes a step, replays whole into a node created from the
+   configuration: for random command sequences, and for every node of a simulated
+   cluster; a log altered, cut, reordered or misconfigured does not
+   (`ladder/tests/replay/`).
+6. **Cluster simulation** — deterministic multi-node convergence over in-memory
    transport/timer (`core-validation`, `protocol-validation`).
-5. **System** — end-to-end over the real transports (in-memory, channels, TCP, gRPC)
+7. **System** — end-to-end over the real transports (in-memory, channels, TCP, gRPC)
    and spawn models (task, thread, process) (`system-tests`).
 
-"Tested" means all five tiers pass under the gate; "done" means the gate is green.
+"Tested" means every tier passes under the gate; "done" means the gate is green.
 
 ## Forcing constraints / Evidence
 Each tier is load-bearing because it is the only one that catches its class of
@@ -47,15 +56,15 @@ gaps drift in silently. No gate / manual runs — tiers get skipped under deadli
 pressure, which is exactly when they matter.
 
 ## Consequences
-A new command or state must land in every applicable tier — unit, matrix,
-admissible-invariant, and the property model — and a system scenario when it changes
-runtime behaviour. The gate is slower than unit-only, and the system tier spawns
+A new command or state lands in the specification first — its rows and its vectors —
+then in every applicable tier: unit, matrix, admissible-invariant and the property
+model, and a system scenario when it changes runtime behaviour. The gate is slower than unit-only, and the system tier spawns
 processes and opens real sockets; that cost is the price of the "exhaustively tested"
 claim.
 
 ## Enforcement
 `just stage1` runs formatting, `clippy -D warnings` over every target, the `no_std`
-check against a bare-metal target, and tiers 1–5 — the system tier under `slotgate`,
+check against a bare-metal target, and every tier — the system tier under `slotgate`,
 each test in a process of its own with ports of its own. `just stage2` runs the house
 gates, among them 100% line, region and function coverage of `faction` and
 `faction-protocol` measured with the ladder's tiers running. Both green is the

@@ -1,0 +1,917 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:faction:spec:0.1.0:schema",
+  "title": "faction 0.1.0 -- the data model",
+  "description": "Every command, result, outcome and view, and the forms of a conformance vector and of the decision table. Normative with SPEC.md.",
+  "$ref": "#/$defs/vector",
+  "$defs": {
+    "u64": {
+      "description": "A u64 as a string of decimal digits: no sign, no leading zero, no exponent.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "nothing": {
+      "description": "The payload of a value that carries nothing.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
+    "peers": {
+      "description": "Peer ids in arrival order, none twice.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/u64"
+      }
+    },
+    "configuration": {
+      "description": "What a node is created from: its own peer id, its genesis peers and the required count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "peer_id",
+        "peers",
+        "required_count"
+      ],
+      "properties": {
+        "peer_id": {
+          "$ref": "#/$defs/u64"
+        },
+        "peers": {
+          "$ref": "#/$defs/peers"
+        },
+        "required_count": {
+          "$ref": "#/$defs/u64"
+        }
+      }
+    },
+    "command_name": {
+      "enum": [
+        "ParticipationObserved",
+        "ReadyObserved",
+        "LocalParticipationCompleted",
+        "DeadlineExpired",
+        "JoinRequested",
+        "JoinApproved",
+        "JoinRejected",
+        "Probe"
+      ]
+    },
+    "command": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ParticipationObserved"
+          ],
+          "properties": {
+            "ParticipationObserved": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ReadyObserved"
+          ],
+          "properties": {
+            "ReadyObserved": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "LocalParticipationCompleted"
+          ],
+          "properties": {
+            "LocalParticipationCompleted": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DeadlineExpired"
+          ],
+          "properties": {
+            "DeadlineExpired": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "JoinRequested"
+          ],
+          "properties": {
+            "JoinRequested": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "JoinApproved"
+          ],
+          "properties": {
+            "JoinApproved": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "JoinRejected"
+          ],
+          "properties": {
+            "JoinRejected": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Probe"
+          ],
+          "properties": {
+            "Probe": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        }
+      ]
+    },
+    "conclusion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Bootstrapped"
+          ],
+          "properties": {
+            "Bootstrapped": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ParticipationAccepted"
+          ],
+          "properties": {
+            "ParticipationAccepted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ReadyAccepted"
+          ],
+          "properties": {
+            "ReadyAccepted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DuplicateParticipationIgnored"
+          ],
+          "properties": {
+            "DuplicateParticipationIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DuplicateReadyIgnored"
+          ],
+          "properties": {
+            "DuplicateReadyIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "NonMemberIgnored"
+          ],
+          "properties": {
+            "NonMemberIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "LocalParticipationCompleted"
+          ],
+          "properties": {
+            "LocalParticipationCompleted": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "BroadcastLocalReady"
+          ],
+          "properties": {
+            "BroadcastLocalReady": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AcknowledgeRejoin"
+          ],
+          "properties": {
+            "AcknowledgeRejoin": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DeadlineMissed"
+          ],
+          "properties": {
+            "DeadlineMissed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "confirmed_count"
+              ],
+              "properties": {
+                "confirmed_count": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "EmitJoinRequest"
+          ],
+          "properties": {
+            "EmitJoinRequest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "MemberAdmitted"
+          ],
+          "properties": {
+            "MemberAdmitted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DuplicateMemberIgnored"
+          ],
+          "properties": {
+            "DuplicateMemberIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "JoinDenied"
+          ],
+          "properties": {
+            "JoinDenied": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Concluded"
+          ],
+          "properties": {
+            "Concluded": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode"
+              ],
+              "properties": {
+                "mode": {
+                  "$ref": "#/$defs/conclusion"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "peer_state": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Fresh"
+          ],
+          "properties": {
+            "Fresh": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Pinging"
+          ],
+          "properties": {
+            "Pinging": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Collecting"
+          ],
+          "properties": {
+            "Collecting": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Bootstrapped"
+          ],
+          "properties": {
+            "Bootstrapped": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "TimedOut"
+          ],
+          "properties": {
+            "TimedOut": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        }
+      ]
+    },
+    "cluster_view": {
+      "description": "What a node shows of its state.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "peer_state",
+        "is_pinging_completed",
+        "pinging_peers",
+        "collecting_peers",
+        "required_count",
+        "deadline_missed",
+        "members"
+      ],
+      "properties": {
+        "peer_state": {
+          "$ref": "#/$defs/peer_state"
+        },
+        "is_pinging_completed": {
+          "type": "boolean"
+        },
+        "pinging_peers": {
+          "$ref": "#/$defs/peers"
+        },
+        "collecting_peers": {
+          "$ref": "#/$defs/peers"
+        },
+        "required_count": {
+          "$ref": "#/$defs/u64"
+        },
+        "deadline_missed": {
+          "type": "boolean"
+        },
+        "members": {
+          "$ref": "#/$defs/peers"
+        }
+      }
+    },
+    "admissible": {
+      "description": "The commands the node's stage admits, by name, in the commands' order.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/command_name"
+      }
+    },
+    "result": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Accepted"
+          ],
+          "properties": {
+            "Accepted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "outcomes",
+                "cluster_view",
+                "admissible"
+              ],
+              "properties": {
+                "outcomes": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/outcome"
+                  }
+                },
+                "cluster_view": {
+                  "$ref": "#/$defs/cluster_view"
+                },
+                "admissible": {
+                  "$ref": "#/$defs/admissible"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Rejected"
+          ],
+          "properties": {
+            "Rejected": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cluster_view",
+                "admissible"
+              ],
+              "properties": {
+                "cluster_view": {
+                  "$ref": "#/$defs/cluster_view"
+                },
+                "admissible": {
+                  "$ref": "#/$defs/admissible"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Probed"
+          ],
+          "properties": {
+            "Probed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cluster_view",
+                "admissible"
+              ],
+              "properties": {
+                "cluster_view": {
+                  "$ref": "#/$defs/cluster_view"
+                },
+                "admissible": {
+                  "$ref": "#/$defs/admissible"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "result"
+      ],
+      "properties": {
+        "command": {
+          "$ref": "#/$defs/command"
+        },
+        "result": {
+          "$ref": "#/$defs/result"
+        }
+      }
+    },
+    "final": {
+      "description": "What a Probe after the last step must be answered: the view and the admissible commands.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cluster_view",
+        "admissible"
+      ],
+      "properties": {
+        "cluster_view": {
+          "$ref": "#/$defs/cluster_view"
+        },
+        "admissible": {
+          "$ref": "#/$defs/admissible"
+        }
+      }
+    },
+    "vector": {
+      "description": "A conformance vector: a configuration, steps, and the final answer a closing Probe must be given.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "rows",
+        "configuration",
+        "steps",
+        "final"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "configuration": {
+          "$ref": "#/$defs/configuration"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "final": {
+          "$ref": "#/$defs/final"
+        }
+      }
+    },
+    "stage": {
+      "enum": [
+        "Initial",
+        "Pinging",
+        "Collecting",
+        "Bootstrapped"
+      ]
+    },
+    "matrix": {
+      "description": "The decision table: what each stage admits, then the rows in the order they are checked.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "admits",
+        "rows"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "admits": {
+          "description": "What each stage admits, by name, in the commands' order.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Initial",
+            "Pinging",
+            "Collecting",
+            "Bootstrapped"
+          ],
+          "properties": {
+            "Initial": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/command_name"
+              }
+            },
+            "Pinging": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/command_name"
+              }
+            },
+            "Collecting": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/command_name"
+              }
+            },
+            "Bootstrapped": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/command_name"
+              }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "stages",
+              "commands",
+              "situation",
+              "result",
+              "outcomes",
+              "next"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z]+(-[a-z]+)*$"
+              },
+              "stages": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/stage"
+                }
+              },
+              "commands": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/command_name"
+                }
+              },
+              "situation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result": {
+                "enum": [
+                  "Accepted",
+                  "Rejected",
+                  "Probed"
+                ]
+              },
+              "outcomes": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "ParticipationAccepted",
+                    "ReadyAccepted",
+                    "DuplicateParticipationIgnored",
+                    "DuplicateReadyIgnored",
+                    "NonMemberIgnored",
+                    "LocalParticipationCompleted",
+                    "BroadcastLocalReady",
+                    "AcknowledgeRejoin",
+                    "DeadlineMissed",
+                    "EmitJoinRequest",
+                    "MemberAdmitted",
+                    "DuplicateMemberIgnored",
+                    "JoinDenied",
+                    "Concluded"
+                  ]
+                }
+              },
+              "next": {
+                "description": "The stage after, or unchanged.",
+                "enum": [
+                  "Initial",
+                  "Pinging",
+                  "Collecting",
+                  "Bootstrapped",
+                  "unchanged"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

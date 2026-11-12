@@ -15,7 +15,7 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
-use faction::no_op_observer::NoOpObserver;
+use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::PeerId;
@@ -29,15 +29,18 @@ pub struct ClusterSimulation {
 }
 
 impl ClusterSimulation {
+    // One node per observer, its peer id its place among them, each reporting
+    // its calls to its own observer.
     #[must_use]
-    pub fn new(peer_count: usize, required_count: usize) -> Self {
-        let peer_ids: Vec<PeerId> = (0..peer_count as PeerId).collect();
-        let peers = peer_ids
-            .iter()
-            .map(|&peer_id| {
+    pub fn new(observers: Vec<Box<dyn Observer>>, required_count: usize) -> Self {
+        let peer_ids: Vec<PeerId> = (0..observers.len() as PeerId).collect();
+        let peers = observers
+            .into_iter()
+            .zip(&peer_ids)
+            .map(|(observer, &peer_id)| {
                 Faction::new(
                     Config::new(peer_id, peer_ids.clone(), QuorumPolicy::new(required_count)),
-                    Box::new(NoOpObserver),
+                    observer,
                 )
             })
             .collect();

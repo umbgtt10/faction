@@ -1,6 +1,6 @@
 # P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors
 
-- **Status:** Proposed
+- **Status:** Superseded by [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) — the decision table is `spec/matrix.json`, written by hand, and the vectors are written by hand, not exported
 - **Date:** 2026-07-24
 - **Priority:** P1 (derived from `P0-ADR-SpecificationIsNormativeCrateIsReference`)
 - **Phase:** cross-cutting

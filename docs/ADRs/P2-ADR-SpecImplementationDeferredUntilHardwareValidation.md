@@ -1,6 +1,6 @@
 # P2-ADR-SpecImplementationDeferredUntilHardwareValidation
 
-- **Status:** Proposed
+- **Status:** Superseded by [P2-ADR-SpecifiedBeforeAnyNewPhase](P2-ADR-SpecifiedBeforeAnyNewPhase.md)
 - **Date:** 2026-07-24
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting
