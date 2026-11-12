@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod matrix_table;
 pub mod recording_observer;
 pub mod spec_files;
 pub mod spec_reader;

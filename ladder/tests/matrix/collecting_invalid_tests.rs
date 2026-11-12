@@ -3,6 +3,9 @@
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
+use crate::support::matrix_table::MatrixTable;
+use crate::support::spec_files::SpecFiles;
+use crate::support::spec_writer::SpecWriter;
 use faction::command::Command;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
@@ -28,15 +31,22 @@ fn invalid_transition(
 ) {
     // Arrange
     let mut faction = build(init);
-    let old_cluster_view = match faction.process(Command::Probe) {
-        ProcessResult::Probed { cluster_view, .. } => cluster_view,
-        _ => unreachable!(),
-    };
+    let table = MatrixTable::new(SpecFiles::matrix());
+    let probed = faction.process(Command::Probe);
+    let before = table.stage_of(&SpecWriter::result(&probed));
+    let old_cluster_view = probed.into_cluster_view();
 
     // Act
     let result = faction.process(command);
 
     // Assert
+    let departures = table.departures(
+        "not-admitted",
+        &before,
+        &SpecWriter::command(&command),
+        &SpecWriter::result(&result),
+    );
+    assert!(departures.is_empty(), "{departures:?}");
     let (new_cluster_view, admissible) = match result {
         ProcessResult::Rejected {
             cluster_view,
