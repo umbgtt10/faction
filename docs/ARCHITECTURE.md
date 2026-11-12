@@ -120,16 +120,21 @@ let machine = Faction::new(config, observer);
 `Config` holds the static peer list and quorum threshold. `QuorumPolicy` wraps an
 integer — the machine only checks "does the confirmed count meet or exceed this?"
 `Faction::new` takes both plus an `Observer` trait object. Construction produces a
-machine in the `Initial` state with an empty `ClusterView`.
+machine in the `Initial` state, its view `Fresh`: the configuration's peers as its
+members, its required count, and nothing confirmed.
 
 ### States
 
 | State | Meaning | Carries |
 |---|---|---|
-| `Initial` | Freshly created, no action taken | Nothing — unit struct |
-| `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
-| `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
-| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
+| `Initial` | Freshly created, no signal taken | Its members |
+| `Pinging` | Collecting participation signals from peers | Members, the participation and readiness accepted so far, and whether the deadline was missed |
+| `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
+| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Members, and the peer sets at the conclusion |
+
+Every stage carries the node's members: the configuration's peers, then each peer
+admitted by `JoinApproved`. Join decisions are admitted in every stage and never
+change it.
 
 `Bootstrapped` is the only terminal state. A missed deadline is **not** a state: it is
 recorded as a non-terminal fact — surfaced as `PeerState::TimedOut` through a derived
@@ -154,6 +159,9 @@ pinging can always recover.
 | `ReadyObserved { peer_id }` | A peer sent a readiness signal |
 | `LocalParticipationCompleted` | The local node finished its own participation |
 | `DeadlineExpired` | External deadline timer fired |
+| `JoinRequested { peer_id }` | A newcomer asked to join |
+| `JoinApproved { peer_id }` | The caller admitted the newcomer |
+| `JoinRejected { peer_id }` | The caller refused the newcomer |
 | `Probe` | Query current state without mutation |
 
 ### Outcomes
@@ -169,10 +177,15 @@ pinging can always recover.
 | `BroadcastLocalReady` | Local readiness should be broadcast to peers |
 | `AcknowledgeRejoin { peer_id }` | A concluded node should re-advertise readiness to a still-pinging member |
 | `DeadlineMissed { confirmed_count }` | The deadline fired before quorum — recorded, non-terminal |
+| `EmitJoinRequest { peer_id }` | Forward the newcomer's request to whoever decides |
+| `MemberAdmitted { peer_id }` | The newcomer is now a member |
+| `DuplicateMemberIgnored { peer_id }` | The peer approved was already a member |
+| `JoinDenied { peer_id }` | The newcomer was refused; nothing changed |
+| `Concluded { mode }` | The node concluded bootstrapping (`mode` is `Bootstrapped`) |
 
-Conclusion is computed from the `ClusterView`, not emitted as a standalone outcome.
-The only conclusion is `Bootstrapped`; callers inspect `cluster_view.conclusion()`
-(`Some(Bootstrapped)` or `None`) to see whether the cluster is live.
+The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
+The view says so from then on: `cluster_view.conclusion()` is `Some(Bootstrapped)`.
+`Bootstrapped` is the only conclusion.
 
 ### Data flow
 
@@ -222,8 +235,9 @@ is valid next, on every path. This eliminates defensive programming on the calle
 Every command passes through two gates before mutation occurs:
 
 **Gate 1 — Non-member check.** Signals from peers not in the static member set produce
-`NonMemberIgnored`. Membership is checked against the `Config` peer list, which is
-fixed at construction. This gate is unconditional — it fires regardless of state.
+`NonMemberIgnored`. Membership is checked against the node's members — the
+configuration's peers, and every peer admitted since — in every stage that admits
+the signal.
 
 **Gate 2 — Duplicate check.** Signals from already-confirmed peers produce
 `Duplicate*Ignored`. The duplicate check is per-phase: a peer confirmed in the pinging
@@ -241,19 +255,24 @@ Quorum is checked in exactly two places:
 1. `ReadyStep` — after a new (non-duplicate) readiness signal is confirmed
 2. `LocalCompletionStep` — when the local node signals completion
 
-Duplicate signals never re-trigger quorum checks. Quorum is never checked in the
-pinging phase. This ensures the two-phase invariant holds under all inputs.
+Duplicate signals never re-trigger quorum checks. Quorum is never checked before the
+node's own completion: readiness accumulates while `Pinging` and counts at completion.
+This ensures the two-phase invariant holds under all inputs.
 
 ### Step structs
 
-Decision logic is split into three focused step structs. Each handles exactly one
-kind of observation. There is no branching on a command kind enum within a step struct.
+Decision logic is split into focused step structs. Each handles one kind of
+observation.
 
 | Struct | Handles | Checks quorum? |
 |---|---|---|
-| `PingingStep` | `ParticipationObserved` in pinging phase | Never |
-| `ReadyStep` | `ReadyObserved` in any phase | Yes, with threshold |
+| `PingingStep` | `ParticipationObserved` before the node's own completion | Never |
+| `ReadyStep` | `ReadyObserved` while `Collecting` | Yes, with threshold |
 | `LocalCompletionStep` | `LocalParticipationCompleted` | Yes, always |
+| `JoinStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, in every stage | Never |
+
+Readiness before the node's own completion is accepted by `Pinging` itself, with no
+quorum check.
 
 This design means that adding a new command type cannot accidentally affect existing
 command handling. Each step struct is independently testable.
@@ -271,6 +290,7 @@ returns:
 - Whether pinging phase is complete
 - Whether the deadline has been missed (`deadline_missed`)
 - Required quorum count
+- Members — the configuration's peers, then every admitted peer, in arrival order
 
 The queryability model means external monitors can poll any node's view without
 perturbing the machine. Composition of multiple nodes' cluster views gives an

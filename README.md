@@ -137,13 +137,15 @@ not a wire message, so no transport has to learn a new message type.
 
 | Harness | What it tests |
 |---|---|
-| `core/` unit tests | Every `(state, command)` pair — 169 tests |
-| `core-validation/` | Multi-node deterministic scenarios — 23 tests |
-| `protocol/` | Message translation and protocol runtime — 33 tests |
-| `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 156 tests |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 18 rows and 41 conformance vectors |
+| `core/` unit tests | Each type and each step in isolation — 149 tests |
+| `ladder/` | Conformance to the specification; every `(state, command)` pair, checked against the decision table; properties over random command sequences; logs replayed — 78 tests |
+| `core-validation/` | Multi-node deterministic scenarios — 39 tests |
+| `protocol/` | Message translation and protocol runtime — 39 tests |
+| `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 169 tests |
 | `system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
 | `system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
-| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing — 44 tests |
+| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 155 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -218,8 +220,9 @@ The caller owns the network. `faction` owns the state.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~895 |
-| Total tests | 506 |
+| Core productive LOC | ~1,130 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.1.0 — the crate answers all 41 vectors as written |
+| Total tests | 873 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -311,13 +314,15 @@ for the complete technical specification.
 
 | Crate | Role | Tests |
 |---|---|---|
-| `core/` | State machine | 169 |
-| `core-validation/` | Deterministic multi-node scenario harness | 23 |
-| `protocol/` | Message translator and protocol runtime | 33 |
-| `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 156 |
+| `core/` | State machine | 149 |
+| `ladder/` | Conformance, the decision-table matrix, property and replay tiers | 78 |
+| `core-validation/` | Deterministic multi-node scenario harness | 39 |
+| `protocol/` | Message translator and protocol runtime | 39 |
+| `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 169 |
 | `system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `system-tests/` joining | Dynamic joining across spawn/transport | 61 |
-| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing | 44 |
+| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 155 |
+| `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores | 163 |
 
 ---
 

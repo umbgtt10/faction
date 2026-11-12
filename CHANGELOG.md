@@ -2,6 +2,33 @@
 
 ## [0.5.0] — unreleased
 
+### Specified: faction conforms to its specification 0.1.0
+
+#### Added
+- [`spec/`](./spec/SPEC.md), the normative specification, 0.1.0: a JSON Schema data model, a decision
+  table — what each stage admits, and 18 rows in check order — the prose, and 41 conformance vectors,
+  103 steps, each naming the rows it exercises, every row exercised. Written by hand and versioned
+  apart from the crate; the crate is one implementation of it
+  (`P0-ADR-SpecificationIsNormativeCrateIsReference`). Peers are listed in arrival order.
+- The conformance tier in `ladder/`: every vector run against the crate, each result, the final
+  answer and every report to the observer as written.
+- The replay tier in `ladder/`: a node's log — its configuration, then every call it reported, as
+  the specification writes a step — replays whole, for random command sequences and for every node of
+  a simulated cluster; a log altered, cut, reordered or opened with another configuration does not.
+- `P2-ADR-SpecifiedBeforeAnyNewPhase`, superseding the deferral of the specification until hardware
+  validation: every later phase changes the specification first.
+
+#### Changed — breaking
+- The observer is one method, `observe(&command, &result)`: every call — accepted, rejected or a
+  probe — is reported once with the `ProcessResult` it was answered. `observe_query`,
+  `observe_rejection` and `Transition` are gone (`P2-ADR-TotalObservability`, amended).
+
+#### Changed
+- The transition matrix names the row of the decision table each case exercises and is checked
+  against it; its expected admissible lists are the table's.
+- `faction-core-validation`: `ClusterSimulation::new` takes one observer per node, so a simulated
+  cluster's nodes can log.
+
 ### Clean-up and restructure to the house rules
 
 #### Changed — breaking
@@ -14,8 +41,6 @@
   built through `ClusterViewBuilder` or `ClusterView::new`, which resolves a missed
   deadline into `TimedOut` before bootstrap, so no view carries fields that disagree
   (`P2-ADR-ClusterViewBuilderAndDto`, amended).
-- `Transition` is a record: public `previous_view`, `outputs` and `new_view`, built by
-  literal; `Transition::new` and its getters are gone.
 - `faction-protocol` (workspace-only): the modules `timer_trait` and
   `transport_trait` are renamed `timer` and `transport`.
 
