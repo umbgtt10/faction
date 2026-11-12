@@ -35,6 +35,7 @@ const CONFORMANCE_TIER: &str = "conformance";
 const LADDER_PACKAGE: &str = "faction-ladder";
 const PROTOCOL_PACKAGE: &str = "faction-protocol";
 const PROTOCOL_VALIDATION_PACKAGE: &str = "faction-protocol-validation";
+const SPEC_MODEL_PACKAGE: &str = "faction-spec-model";
 const SYSTEM_TESTS_PACKAGE: &str = "faction-system-tests";
 const XTASK_PACKAGE: &str = "xtask";
 const ALL_TESTS: &str = "all_tests";
@@ -106,24 +107,31 @@ fn stage2() -> Result<&'static str, String> {
         String::from(LADDER_PACKAGE),
         String::from(PROTOCOL_PACKAGE),
         String::from(PROTOCOL_VALIDATION_PACKAGE),
+        String::from(SPEC_MODEL_PACKAGE),
         String::from(SYSTEM_TESTS_PACKAGE),
         String::from(XTASK_PACKAGE),
     ];
-    let library = vec![String::from(CORE_PACKAGE), String::from(PROTOCOL_PACKAGE)];
+    // The library: the two crates published, and the specification's model,
+    // held to the same rules though it never is.
+    let library = vec![
+        String::from(CORE_PACKAGE),
+        String::from(PROTOCOL_PACKAGE),
+        String::from(SPEC_MODEL_PACKAGE),
+    ];
 
     // The house rules reach every package, the crate that runs the gates
     // among them.
     let stern = SternGate::new(&runner, manifest_path.clone(), every_package);
     // Second, for the same reason stern4rust is first: removing a duplicate
     // moves code between files, which changes what the gates behind it measure.
-    // The two library crates' source, what dry4rust.toml leaves in.
+    // The library's source, what dry4rust.toml leaves in.
     let root = workspace_root();
     let dry = DryGate::new(
         &runner,
         root.to_string_lossy().into_owned(),
         String::from(DRY_MIN_NODES),
     );
-    // The two library crates: the bill paid here is the library's.
+    // The library: the bill paid here is the library's.
     let crap = CrapGate::new(
         &runner,
         &parser,
@@ -131,24 +139,29 @@ fn stage2() -> Result<&'static str, String> {
         library.clone(),
         String::from(CRAP_THRESHOLD),
     );
-    // Every line of the two library crates is one the protocol asks for. The
-    // ladder runs the scenario tiers -- the transition matrix and the property
-    // tests -- so it is measured with them, the library's lines the ones that
-    // count.
+    // Every line of the library is one the protocol asks for. The ladder runs
+    // the scenario tiers -- the transition matrix, the property tests, the
+    // crate against the model -- so it is measured with them, the library's
+    // lines the ones that count.
     let measured = vec![
         String::from(CORE_PACKAGE),
         String::from(PROTOCOL_PACKAGE),
+        String::from(SPEC_MODEL_PACKAGE),
         String::from(LADDER_PACKAGE),
     ];
     let coverage = CoverageGate::new(&runner, manifest_path.clone(), measured, None);
-    // faction's lines again, over the conformance tier alone: a line no vector
-    // of the specification reaches is one it does not ask for
+    // faction's lines again, and the model's, over the conformance tier alone:
+    // a line no vector of the specification reaches is one it does not ask for
     // (P1-ADR-NoLineTheSpecificationDoesNotAskFor). faction-protocol is not
     // the specified component, so it is measured over every tier only.
     let conformance_coverage = CoverageGate::new(
         &runner,
         manifest_path.clone(),
-        vec![String::from(CORE_PACKAGE), String::from(LADDER_PACKAGE)],
+        vec![
+            String::from(CORE_PACKAGE),
+            String::from(SPEC_MODEL_PACKAGE),
+            String::from(LADDER_PACKAGE),
+        ],
         Some(String::from(CONFORMANCE_TIER)),
     );
     let twin = TwinGate::new(&runner, manifest_path.clone(), library.clone());

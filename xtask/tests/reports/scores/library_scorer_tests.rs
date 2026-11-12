@@ -38,7 +38,7 @@ fn score_exports_the_staged_library_files_then_scores_each_crate_there() {
     assert_eq!(
         runner.calls()[..4],
         [
-            arguments(&["ls-files", "-z", "--", "core", "protocol"]),
+            arguments(&["ls-files", "-z", "--", "core", "protocol", "spec-model"]),
             arguments(&[
                 "checkout-index",
                 "--force",

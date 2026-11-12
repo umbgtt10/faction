@@ -55,5 +55,8 @@ answers the second.
 ## Enforcement
 Two coverage gates in stage 2: `cargo llvm-cov` with `--fail-uncovered-lines 0`,
 `--fail-uncovered-regions 0` and `--fail-uncovered-functions 0`, over every tier
-(`faction`, `faction-protocol`, the ladder), and over the conformance tier alone
-(`faction` and the ladder, its tests filtered to `conformance::`).
+(`faction`, `faction-protocol`, the specification's model, the ladder), and over
+the conformance tier alone (`faction`, the model and the ladder, its tests
+filtered to `conformance::`). The model is held to the same measure: a line of it
+no vector reaches is a situation or a change the specification never exercises
+(`P1-ADR-IndependentModelOfTheSpecification`).

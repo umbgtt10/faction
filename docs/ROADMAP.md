@@ -133,7 +133,9 @@ only the Rust source to read (`P0-ADR-SpecificationIsNormativeCrateIsReference`)
 The specification's four parts — schema, decision table, prose and vectors — are
 written by hand and versioned together; its 0.1.0 is Phase 1's vocabulary,
 joining included. From here every phase changes the specification first, then
-the crate (`P2-ADR-SpecifiedBeforeAnyNewPhase`).
+the crate (`P2-ADR-SpecifiedBeforeAnyNewPhase`). The specification's independent
+model, `spec-model/`, checks each phase's vectors before the crate runs them
+(`P1-ADR-IndependentModelOfTheSpecification`).
 
 ---
 

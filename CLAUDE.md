@@ -29,7 +29,7 @@ Run gates:
 If either gate is not green, the work is not complete. Both run identically on
 Windows, Linux and macOS.
 
-Stage 1 is formatting, clippy over every target, the `no_std` check of the four
+Stage 1 is formatting, clippy over every target, the `no_std` check of the five
 `no_std` crates against `thumbv7em-none-eabihf`, the tests, and then the system
 tests: `cargo xtask system-tests` lists every test the `all_tests` binary holds
 (the cases `rstest` expands among them) and runs each in a process of its own,
@@ -41,13 +41,13 @@ code. It runs, in this order:
 | gate | asks |
 |---|---|
 | `cargo stern4rust` | do the house coding rules hold, in every package (`stern4rust.toml`) |
-| `cargo dry4rust` | is any code duplicated in the library crates' source (`dry4rust.toml`, floor 25 nodes, no baseline) |
-| `cargo crap4rust` | is any function of `faction` or `faction-protocol` complex and untested (threshold 15) |
-| `cargo llvm-cov` | is every line, region and function of the library crates covered, the ladder's tiers counted |
-| `cargo llvm-cov`, conformance alone | is every line, region and function of `faction` reached by the specification's vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`) |
-| `cargo twin4rust` | does every source file of the library crates have a mirrored test file |
+| `cargo dry4rust` | is any code duplicated in the library's source (`dry4rust.toml`, floor 25 nodes, no baseline) |
+| `cargo crap4rust` | is any function of the library -- `faction`, `faction-protocol`, `faction-spec-model` -- complex and untested (threshold 15) |
+| `cargo llvm-cov` | is every line, region and function of the library covered, the ladder's tiers counted |
+| `cargo llvm-cov`, conformance alone | is every line, region and function of `faction` and of the specification's model reached by the specification's vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`) |
+| `cargo twin4rust` | does every source file of the library have a mirrored test file |
 | `cargo iceberg4rust` | is any file's private implementation risk too high (threshold 5) |
-| `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source (`deny.toml`) |
+| `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source, and does anything but the crates written for it take `faction` (`deny.toml`) |
 
 `cargo install just`
 `cargo install slotgate`
@@ -61,15 +61,16 @@ code. It runs, in this order:
 
 ### Every commit carries the library's scores
 
-Every commit message carries the grip and braintax of the two library crates,
-`core/` and `protocol/`, and their ratio, scored as the commit stages them.
-`.githooks/commit-msg` runs `cargo xtask grip-braintax` on the message's file,
-which writes the scores in as a paragraph of their own above the trailers: each
-crate's `grip_absolute_total` over its `total_braintax` and their ratio, then the
-sums and theirs, under a title naming the releases of `cargo-grip4rust` and
-`cargo-braintax4rust` -- scores of different releases do not compare. The files
-under `core/` and `protocol/` that the index holds are exported into a scratch
-directory and scored there, so nothing unstaged counts. An amend scores again, in
+Every commit message carries the grip and braintax of the library's crates,
+`core/`, `protocol/` and `spec-model/`, and their ratio, scored as the commit
+stages them. `.githooks/commit-msg` runs `cargo xtask grip-braintax` on the
+message's file, which writes the scores in as a paragraph of their own above the
+trailers: each crate's `grip_absolute_total` over its `total_braintax` and their
+ratio, then the sums and theirs, under a title naming the releases of
+`cargo-grip4rust` and `cargo-braintax4rust` -- scores of different releases do
+not compare. The files under `core/`, `protocol/` and `spec-model/` that the
+index holds are exported into a scratch directory and scored there, so nothing
+unstaged counts. An amend scores again, in
 place of the earlier scores; a message with no words is left alone, so git still
 aborts its commit; a scoring that fails stops the commit, and `--no-verify` skips
 it, deliberately -- never use it. Git runs a repository's own hooks only where a
@@ -122,6 +123,17 @@ vector for every row it adds or changes, and its version — then the crate
 repository root, read by the ladder and never by the crate. Vectors are written by hand
 and checked against a model independent of the crate before the crate runs them; never
 export them from the crate.
+
+The model is `spec-model/` (`faction-spec-model`,
+`docs/ADRs/P1-ADR-IndependentModelOfTheSpecification.md`): `no_std`, free of unsafe
+code, and held to every gate the library is held to. It is written from `spec/SPEC.md`
+and `spec/matrix.json`, never from `core/`, and depends on nothing of `faction` --
+`deny.toml` refuses it -- so the two meet only in the specification's encoding, in the
+ladder. It reads the decision table and answers a command by the first row that
+applies; what it owns is what the table cannot say, in `rules/rule_book.rs`: each row's
+situation and change. A row the matrix gains needs its rule there, or the model's
+conformance tier fails; a command, an outcome or a stage the vocabulary gains is named in
+`vocabulary/`.
 
 ### State transition test coverage — invariant
 

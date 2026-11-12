@@ -1,6 +1,7 @@
 #!/bin/sh
-# Every commit message carries the library's crates -- core/ and protocol/ --
-# scored as staged: each one's grip, its braintax and their ratio, then the
-# sums, written in above its trailers by `cargo xtask grip-braintax`. Enabled
+# Every commit message carries the library's crates -- core/, protocol/ and
+# spec-model/ -- scored as staged: each one's grip, its braintax and their
+# ratio, then the sums, written in above its trailers by `cargo xtask
+# grip-braintax`. Enabled
 # once a clone by `just hooks`; a scoring that fails stops the commit.
 exec cargo xtask grip-braintax "$1"
