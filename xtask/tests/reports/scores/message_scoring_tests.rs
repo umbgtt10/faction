@@ -3,8 +3,8 @@
 
 use xtask::reports::scores::message_scoring::MessageScoring;
 
-const BLOCK: &str = "Grip / braintax, core/ and protocol/ (cargo-grip4rust 0.10.0, cargo-braintax4rust 0.14.0):\n  total              1.00 /     2.00  0.5000";
-const OLDER_BLOCK: &str = "Grip / braintax, core/ and protocol/ (cargo-grip4rust 0.9.1, cargo-braintax4rust 0.13.1):\n  total              9.00 /     9.00  1.0000";
+const BLOCK: &str = "Grip / braintax, core/, protocol/ and spec-model/ (cargo-grip4rust 0.10.0, cargo-braintax4rust 0.14.0):\n  total              1.00 /     2.00  0.5000";
+const OLDER_BLOCK: &str = "Grip / braintax, core/, protocol/ and spec-model/ (cargo-grip4rust 0.9.1, cargo-braintax4rust 0.13.1):\n  total              9.00 /     9.00  1.0000";
 
 fn scoring() -> MessageScoring {
     MessageScoring::new(String::from(BLOCK))

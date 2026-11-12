@@ -27,13 +27,13 @@ hooks:
 
 # Formatting, clippy, the no_std check, the tests, then the system tests --
 # each in a process of its own with ports of its own, run in parallel by
-# slotgate. The no_std check builds the four no_std crates for a target with no
+# slotgate. The no_std check builds the five no_std crates for a target with no
 # std at all, which a host build cannot prove.
 stage1:
     cargo fmt {{fmt_mode}}
     cargo clippy --workspace --all-targets -- -D warnings
-    cargo check -p faction -p faction-core-validation -p faction-protocol -p faction-protocol-validation --no-default-features --lib --target thumbv7em-none-eabihf
-    cargo test -p faction -p faction-core-validation -p faction-ladder -p faction-protocol -p faction-protocol-validation -p xtask
+    cargo check -p faction -p faction-core-validation -p faction-protocol -p faction-protocol-validation -p faction-spec-model --no-default-features --lib --target thumbv7em-none-eabihf
+    cargo test -p faction -p faction-core-validation -p faction-ladder -p faction-protocol -p faction-protocol-validation -p faction-spec-model -p xtask
     cargo test -p faction-system-tests --lib --bins
     cargo xtask system-tests
 

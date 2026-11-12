@@ -12,9 +12,10 @@ autotests = false
 boon.workspace = true
 faction.workspace = true
 faction-core-validation.workspace = true
+faction-spec-model.workspace = true
 proptest.workspace = true
 rstest.workspace = true
-serde_json.workspace = true
+serde_json = { workspace = true, features = ["std"] }
 
 [lib]
 path = "src/lib.rs"
