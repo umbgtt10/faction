@@ -4,4 +4,5 @@
 pub mod conformance;
 pub mod matrix;
 pub mod property;
+pub mod replay;
 pub mod support;

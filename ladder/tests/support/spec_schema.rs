@@ -7,9 +7,11 @@ use boon::Schemas;
 use serde_json::Value;
 
 // The specification's data model, compiled once: its root is a vector, and the
-// matrix and a step -- a log's line -- have definitions of their own in it.
+// matrix, a configuration and a step -- a log's first line and every line after
+// it -- have definitions of their own in it.
 pub struct SpecSchema {
     schemas: Schemas,
+    configuration: SchemaIndex,
     vector: SchemaIndex,
     matrix: SchemaIndex,
     step: SchemaIndex,
@@ -26,6 +28,9 @@ impl SpecSchema {
         let vector = compiler
             .compile(&id, &mut schemas)
             .expect("a vector's definition compiles");
+        let configuration = compiler
+            .compile(&format!("{id}#/$defs/configuration"), &mut schemas)
+            .expect("a configuration's definition compiles");
         let matrix = compiler
             .compile(&format!("{id}#/$defs/matrix"), &mut schemas)
             .expect("the matrix's definition compiles");
@@ -34,10 +39,17 @@ impl SpecSchema {
             .expect("a step's definition compiles");
         Self {
             schemas,
+            configuration,
             vector,
             matrix,
             step,
         }
+    }
+
+    pub fn admits_configuration(&self, configuration: &Value) -> bool {
+        self.schemas
+            .validate(configuration, self.configuration)
+            .is_ok()
     }
 
     pub fn admits_matrix(&self, matrix: &Value) -> bool {

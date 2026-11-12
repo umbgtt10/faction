@@ -10,3 +10,4 @@ pub mod participation_tests;
 pub mod pathology_tests;
 pub mod property_tests;
 pub mod ready_tests;
+pub mod support;

@@ -1,0 +1,37 @@
+// Copyright (c) 2025-2026 Umberto Gotti
+// SPDX-License-Identifier: MIT
+
+use faction::command::Command;
+use proptest::collection::vec;
+use proptest::prelude::Just;
+use proptest::prop_oneof;
+use proptest::strategy::Strategy;
+
+// Commands drawn at random for the replay tier: every command, its peer among
+// a five-member cluster's ids and two that are not members, so every row of the
+// decision table can be reached.
+pub struct RandomCommands;
+
+impl RandomCommands {
+    pub fn command() -> impl Strategy<Value = Command> {
+        let peer = 0u64..=6;
+        prop_oneof![
+            peer.clone()
+                .prop_map(|peer_id| Command::ParticipationObserved { peer_id }),
+            peer.clone()
+                .prop_map(|peer_id| Command::ReadyObserved { peer_id }),
+            Just(Command::LocalParticipationCompleted),
+            Just(Command::DeadlineExpired),
+            peer.clone()
+                .prop_map(|peer_id| Command::JoinRequested { peer_id }),
+            peer.clone()
+                .prop_map(|peer_id| Command::JoinApproved { peer_id }),
+            peer.prop_map(|peer_id| Command::JoinRejected { peer_id }),
+            Just(Command::Probe),
+        ]
+    }
+
+    pub fn sequence(longest: usize) -> impl Strategy<Value = Vec<Command>> {
+        vec(Self::command(), 0..=longest)
+    }
+}

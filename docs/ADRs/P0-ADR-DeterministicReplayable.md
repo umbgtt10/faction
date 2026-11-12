@@ -32,4 +32,9 @@ ordered input log.
 
 ## Enforcement
 No clock or RNG dependency exists in the crate; the transition matrix asserts
-that identical input sequences yield identical outputs.
+that identical input sequences yield identical outputs. The replay tier
+(`ladder/tests/replay/`) rebuilds a node from its log — its configuration, then
+each call it reported, as `spec/SPEC.md` §3 writes it — for random command
+sequences and for every node of a simulated cluster, and answers every line as
+logged; a log altered, cut, reordered or opened with another configuration does
+not replay.

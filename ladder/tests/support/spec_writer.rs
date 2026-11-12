@@ -4,6 +4,7 @@
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
+use faction::config::Config;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -30,6 +31,14 @@ impl SpecWriter {
                 json!({ Self::name(command): {} })
             }
         }
+    }
+
+    pub fn configuration(config: &Config) -> Value {
+        json!({
+            "peer_id": Self::number(config.peer_id()),
+            "peers": Self::peers(config.peers()),
+            "required_count": Self::number(config.required_count()),
+        })
     }
 
     pub fn result(result: &ProcessResult) -> Value {

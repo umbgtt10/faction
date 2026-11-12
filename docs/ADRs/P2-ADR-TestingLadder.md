@@ -29,9 +29,14 @@ all run by one gate:
    (`ladder/tests/matrix/`).
 4. **Property-based** — invariants and a reference model replayed over random command
    sequences with `proptest` (`ladder/tests/property/`).
-5. **Cluster simulation** — deterministic multi-node convergence over in-memory
+5. **Replay** — a node's log, its configuration then every call it reported as the
+   specification writes a step, replays whole into a node created from the
+   configuration: for random command sequences, and for every node of a simulated
+   cluster; a log altered, cut, reordered or misconfigured does not
+   (`ladder/tests/replay/`).
+6. **Cluster simulation** — deterministic multi-node convergence over in-memory
    transport/timer (`core-validation`, `protocol-validation`).
-6. **System** — end-to-end over the real transports (in-memory, channels, TCP, gRPC)
+7. **System** — end-to-end over the real transports (in-memory, channels, TCP, gRPC)
    and spawn models (task, thread, process) (`system-tests`).
 
 "Tested" means every tier passes under the gate; "done" means the gate is green.
