@@ -369,37 +369,27 @@ configurable per spawn model to account for OS scheduling overhead.
 
 ---
 
-## Specification & conformance (planned, not yet built)
+## Specification & conformance
 
-`faction` today has one implementation and no independent specification —
-every guarantee in this document is checkable only by reading or testing
-the Rust crate. A cross-cutting initiative (spanning every phase, not tied
-to one) is decided and recorded in `docs/ADRs/` — see
-`P0-ADR-SpecificationIsNormativeCrateIsReference.md` and the six sibling
-ADRs it anchors — to promote `faction` to a normative specification with
-this crate as a conformant reference implementation, so a non-Rust port has
-something machine-checkable to conform to.
+`faction` is specified in [`spec/`](../spec/SPEC.md), normatively: a JSON Schema
+data model, a JSON decision table, prose for what JSON cannot say, and
+conformance vectors, versioned together and written by hand. This crate is one
+implementation of it; where the two disagree, the specification is right
+(`P0-ADR-SpecificationIsNormativeCrateIsReference`).
 
-The decided shape: a separate, versioned, language-neutral canonical model
-mapped from (not derived onto) `Command`/`Outcome`/`ProcessResult`; the six
-existing transition-matrix test files consolidated into one declarative
-table consumed by both the test suite and a new vector-exporter; vectors
-that are reachable-by-construction from the initial state, requiring no
-test-only API; and CI gates that fail if the crate and the exported
-vectors drift apart. Full detail, including the finding that no
-compile-time-only invariant exists anywhere in `core/src` today, is in the
-ADRs themselves, not repeated here.
+The data model keeps the vocabulary of `Command`, `Outcome` and
+`ProcessResult`, and is mapped to them by the crate's conformance tests, never
+derived from them. The decision table says what each stage admits and gives
+every `(stage, command)` its row; each vector names the rows it exercises, and
+every row is exercised. Outcomes are an ordered sequence and peers are listed in
+arrival order, so a vector is checked by deep equality. No invariant rests on the
+type system: admission is decided when a command arrives, so every vector runs
+on every conforming implementation.
 
 This connects to, but is distinct from, the "Formal verifiability" property
 above: a TLA+ model would check the Mealy machine's logic exhaustively; the
-canonical model and vectors check that independent implementations agree
-with this one. Both use the same underlying vocabulary; neither has shipped
-yet.
-
-**Status:** decided (`Proposed` ADRs), implementation not started.
-Implementation is deliberately sequenced after Phase 1 (dynamic joining) is
-validated on real NUCLEO hardware — see `ROADMAP.md` and
-`P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md` for why.
+specification and its vectors check that independent implementations agree
+with this one.
 
 ---
 

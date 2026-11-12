@@ -327,7 +327,8 @@ MIT. See [LICENSE](./LICENSE).
 
 ## Links
 
-- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — complete technical specification
+- [SPEC.md](./spec/SPEC.md) — the normative specification: data model, decision table, prose and conformance vectors
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — the design, and how the crate implements the specification
 - [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
 - [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
 - [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, `PeerId` genericization)

@@ -27,13 +27,14 @@ importance:
 | [P2-ADR-StateAsTraitObject](P2-ADR-StateAsTraitObject.md) | The states held as `Box<dyn State>`. **Superseded** by `P2-ADR-StateStructsBehindStageEnum`. |
 | [P2-ADR-ClusterViewBuilderAndDto](P2-ADR-ClusterViewBuilderAndDto.md) | The view consumers receive is an immutable read-model; construction lives in a separate builder. |
 | [P2-ADR-TestingLadder](P2-ADR-TestingLadder.md) | A fixed test-tier ladder — unit, matrix, property, simulation, system — run by one gate. |
-| [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) | From spec v1.0.0, the specification is normative and this crate is a conformant reference implementation. **Proposed** — decided, not yet built. |
-| [P1-ADR-CanonicalModelSeparateFromCoreTypes](P1-ADR-CanonicalModelSeparateFromCoreTypes.md) | A language-neutral canonical model, mapped from (not derived-`Serialize`-on) `Command`/`Outcome`/`ProcessResult`. **Proposed**. |
-| [P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors](P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors.md) | The six existing test files become one declarative `matrix.rs`, consumed by both the test suite and the vector exporter. **Proposed**. |
-| [P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors](P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors.md) | No compile-time-only invariant was found in `core/src`; every invariant is the `Probe → accept() → step()` runtime contract. **Proposed**. |
-| [P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder](P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder.md) | Effects are an ordered sequence; collections serialize in insertion order — both already true, not new behavior. **Proposed**. |
-| [P2-ADR-CanonicalModelBuiltAgainstJoiningBranch](P2-ADR-CanonicalModelBuiltAgainstJoiningBranch.md) | The canonical model targets `Command`/`Outcome` with Phase 1 joining already included — there is no smaller baseline left. **Proposed**. |
-| [P2-ADR-SpecImplementationDeferredUntilHardwareValidation](P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md) | Decided now; implementation waits for Phase 1's NUCLEO hardware validation across `ibft-embassy`/`raft-embassy`/`raft`. **Proposed**. |
+| [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) | The specification in `spec/` — schema, decision table, prose, vectors, written by hand — is normative; this crate is one implementation of it. |
+| [P1-ADR-CanonicalModelSeparateFromCoreTypes](P1-ADR-CanonicalModelSeparateFromCoreTypes.md) | The canonical model is `spec/schema.json`, mapped to `Command`/`Outcome`/`ProcessResult` by the conformance tests, never derived from them. |
+| [P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors](P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors.md) | A `matrix.rs` exported to vectors. **Superseded** by `P0-ADR-SpecificationIsNormativeCrateIsReference`: the decision table is `spec/matrix.json`. |
+| [P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors](P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors.md) | No compile-time-only invariant exists in `core/src`; admission is decided at run time, so every vector runs everywhere. |
+| [P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder](P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder.md) | Outcomes are an ordered sequence; peers are listed in arrival order. |
+| [P2-ADR-CanonicalModelBuiltAgainstJoiningBranch](P2-ADR-CanonicalModelBuiltAgainstJoiningBranch.md) | The specification's 0.1.0 includes joining — there is no smaller baseline left. |
+| [P2-ADR-SpecifiedBeforeAnyNewPhase](P2-ADR-SpecifiedBeforeAnyNewPhase.md) | Faction is specified now, at Phase 1's vocabulary; every later phase changes the specification first. |
+| [P2-ADR-SpecImplementationDeferredUntilHardwareValidation](P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md) | The specification deferred until hardware validation. **Superseded** by `P2-ADR-SpecifiedBeforeAnyNewPhase`. |
 
 ## Template
 

@@ -1,7 +1,7 @@
 # P1-ADR-CanonicalModelSeparateFromCoreTypes
 
-- **Status:** Proposed
-- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Date:** 2026-11-12
 - **Priority:** P1 (derived from `P0-ADR-SpecificationIsNormativeCrateIsReference`)
 - **Phase:** cross-cutting
 
@@ -18,57 +18,50 @@ would miss the `Rejected` tier entirely.
 
 ## Decision
 
-A separate, versioned, language-neutral canonical model is introduced,
-with a `mapping.rs`-equivalent layer as the only code aware of both the
-canonical vocabulary and `core`'s concrete types. Both response tiers are
-mapped: `ProcessResult::Rejected` becomes its own canonical effect (e.g.
-`rejected_not_admissible`, carrying `admissible`); each `Outcome`-level
-soft-rejection (`JoinDenied`, `NonMemberIgnored`, `DuplicateMemberIgnored`,
-`DuplicateParticipationIgnored`, `DuplicateReadyIgnored`) becomes its own
-named canonical effect, alongside the "real" effects (`MemberAdmitted`,
-`EmitJoinRequest`, `Concluded`, ...). No canonical effect is invented that
-isn't already backed by an existing, tested Rust variant — the canonical
-model maps what exists; it does not redesign it.
+The canonical model is the specification's data model, `spec/schema.json`:
+versioned with the specification, language-neutral, and defined by it rather
+than by the crate. It keeps the vocabulary's names, and it carries both response
+tiers: a result is `Accepted`, `Rejected` or `Probed`, a rejection carrying the
+admissible commands; and every `Outcome` — the soft rejections `JoinDenied`,
+`NonMemberIgnored`, `DuplicateMemberIgnored`, `DuplicateParticipationIgnored` and
+`DuplicateReadyIgnored` among them — is a value of its own, beside the effects
+(`MemberAdmitted`, `EmitJoinRequest`, `Concluded`, ...). No value is invented that
+an existing, tested Rust variant does not back: the model maps what exists. The
+only code aware of both the model and the crate's types is the conformance
+tests' mapping.
 
 ## Forcing constraints / Evidence
 
 `core/src/process_result.rs` and `core/src/outcome.rs`, read directly:
-`ProcessResult` has three variants, only one of which (`Accepted`) carries
-an `Outcome` list; `Rejected` carries no reason beyond "not in `admissible`."
-A canonical model that only translates `Outcome` cannot represent a
-rejected command at all. Two rejection-shape alternatives were considered
-before this decision (see Rejected alternatives) — mapping as-is was chosen
-because every existing variant is already verified behavior, cited in
-`ladder/tests/matrix/` and `ladder/tests/property/`.
+`ProcessResult` has three variants, only one of which (`Accepted`) carries an
+`Outcome` list; `Rejected` carries no reason beyond the admissible commands. A
+model that only translated `Outcome` could not represent a rejected command at
+all. Every variant is already verified behaviour, exercised by the transition
+matrix and the property tests.
 
 ## Rejected alternatives
 
-**Unify all rejections into one `{"effect": "rejected", "reason": <enum>}`
-shape**, matching the brief's illustrative JSON more literally. Rejected:
-this requires inventing a `RejectReason` enum spanning both response tiers
-that the Rust code does not currently express as one flat type, and
-deciding whether `admissible` (today only present on `Rejected`/`Probed`)
-becomes a universal field on every rejection — real design work trading
-already-verified precision for a shape that only superficially resembles
-the brief's example.
+**Unify all rejections into one `{"rejected": <reason>}` shape.** Rejected: it
+needs a reason enum spanning both response tiers that the crate does not
+express as one flat type, and it trades already-verified precision for a shape
+that only resembles one.
 
-**Derive `Serialize` on `Command`/`Outcome`/`ProcessResult` directly and
-export those.** Rejected per `P0-ADR-SpecificationIsNormativeCrateIsReference` —
-this makes the crate's Rust types the de facto specification vocabulary,
-the exact inversion that ADR exists to prevent.
+**Derive `Serialize` on `Command`/`Outcome`/`ProcessResult` and export those.**
+Rejected per `P0-ADR-SpecificationIsNormativeCrateIsReference` — the crate's Rust
+types would become the specification's vocabulary.
+
+**A canonical-model crate with a mapping layer of its own.** Rejected: the crate
+would depend on, or be depended on by, a model of itself. The mapping is the
+conformance tests' business, and the crate stays unaware of the specification.
 
 ## Consequences
 
-The canonical model's effect vocabulary is wider than the brief's
-illustrative example (9-10 named effects rather than one generic
-rejection shape), but every one of them is traceable to an existing,
-tested Rust variant with zero invented taxonomy. A future consumer adding
-a new rejection kind adds both a new `Outcome`/`ProcessResult` variant and
-its canonical counterpart in the same change — the mapping layer has
-nowhere else for an untranslated variant to hide.
+A new command or outcome arrives in the schema first, then in the crate, then in
+the tests' mapping, in the same change. A variant the mapping does not know does
+not compile: the mapping matches every variant.
 
 ## Enforcement
 
-None yet — enforced once the canonical-model crate/module and its mapping
-layer exist and the completeness gate (every `Outcome`/`ProcessResult`
-variant has a canonical counterpart) is wired into CI.
+Every vector validates against `schema.json`; the conformance tests map every
+`Command`, `Outcome` and `ProcessResult` variant through exhaustive matches, and
+compare each result as the schema writes it.

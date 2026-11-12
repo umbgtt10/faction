@@ -1,0 +1,173 @@
+{
+  "version": "0.1.0",
+  "admits": {
+    "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "Probe"],
+    "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "Probe"],
+    "Collecting": ["ParticipationObserved", "ReadyObserved", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "Probe"],
+    "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "Probe"]
+  },
+  "rows": [
+    {
+      "id": "probed",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
+      "commands": ["Probe"],
+      "situation": "always",
+      "result": "Probed",
+      "outcomes": [],
+      "next": "unchanged"
+    },
+    {
+      "id": "not-admitted",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
+      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected"],
+      "situation": "the stage does not admit the command (`admits`)",
+      "result": "Rejected",
+      "outcomes": [],
+      "next": "unchanged"
+    },
+    {
+      "id": "non-member-before-completion",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["ParticipationObserved", "ReadyObserved"],
+      "situation": "`peer_id` is not a member",
+      "result": "Accepted",
+      "outcomes": ["NonMemberIgnored"],
+      "next": "Pinging"
+    },
+    {
+      "id": "non-member",
+      "stages": ["Collecting", "Bootstrapped"],
+      "commands": ["ParticipationObserved", "ReadyObserved"],
+      "situation": "`peer_id` is not a member",
+      "result": "Accepted",
+      "outcomes": ["NonMemberIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "participation-duplicate",
+      "stages": ["Pinging"],
+      "commands": ["ParticipationObserved"],
+      "situation": "`peer_id` is a pinging peer",
+      "result": "Accepted",
+      "outcomes": ["DuplicateParticipationIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "participation-accepted",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["ParticipationObserved"],
+      "situation": "otherwise: `peer_id` becomes the last pinging peer",
+      "result": "Accepted",
+      "outcomes": ["ParticipationAccepted"],
+      "next": "Pinging"
+    },
+    {
+      "id": "rejoin-acknowledged",
+      "stages": ["Collecting", "Bootstrapped"],
+      "commands": ["ParticipationObserved"],
+      "situation": "otherwise: `peer_id` is a member",
+      "result": "Accepted",
+      "outcomes": ["AcknowledgeRejoin"],
+      "next": "unchanged"
+    },
+    {
+      "id": "ready-duplicate",
+      "stages": ["Pinging", "Collecting"],
+      "commands": ["ReadyObserved"],
+      "situation": "`peer_id` is a collecting peer",
+      "result": "Accepted",
+      "outcomes": ["DuplicateReadyIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "ready-before-completion",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["ReadyObserved"],
+      "situation": "otherwise: `peer_id` becomes the last collecting peer, and nothing concludes",
+      "result": "Accepted",
+      "outcomes": ["ReadyAccepted"],
+      "next": "Pinging"
+    },
+    {
+      "id": "ready-concluded",
+      "stages": ["Collecting"],
+      "commands": ["ReadyObserved"],
+      "situation": "with `peer_id` the last collecting peer, the collecting peers number the required count or more",
+      "result": "Accepted",
+      "outcomes": ["ReadyAccepted", "Concluded"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "ready-accepted",
+      "stages": ["Collecting"],
+      "commands": ["ReadyObserved"],
+      "situation": "otherwise: `peer_id` becomes the last collecting peer",
+      "result": "Accepted",
+      "outcomes": ["ReadyAccepted"],
+      "next": "unchanged"
+    },
+    {
+      "id": "local-concluded",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["LocalParticipationCompleted"],
+      "situation": "with the node itself a collecting peer, the collecting peers number the required count or more",
+      "result": "Accepted",
+      "outcomes": ["LocalParticipationCompleted", "BroadcastLocalReady", "Concluded"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "local-completed",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["LocalParticipationCompleted"],
+      "situation": "otherwise: the node itself is a collecting peer",
+      "result": "Accepted",
+      "outcomes": ["LocalParticipationCompleted", "BroadcastLocalReady"],
+      "next": "Collecting"
+    },
+    {
+      "id": "deadline-missed",
+      "stages": ["Pinging", "Collecting"],
+      "commands": ["DeadlineExpired"],
+      "situation": "always: the node has missed its deadline",
+      "result": "Accepted",
+      "outcomes": ["DeadlineMissed"],
+      "next": "unchanged"
+    },
+    {
+      "id": "join-requested",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
+      "commands": ["JoinRequested"],
+      "situation": "always",
+      "result": "Accepted",
+      "outcomes": ["EmitJoinRequest"],
+      "next": "unchanged"
+    },
+    {
+      "id": "join-duplicate-member",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
+      "commands": ["JoinApproved"],
+      "situation": "`peer_id` is a member",
+      "result": "Accepted",
+      "outcomes": ["DuplicateMemberIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "join-admitted",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
+      "commands": ["JoinApproved"],
+      "situation": "otherwise: `peer_id` becomes the last member",
+      "result": "Accepted",
+      "outcomes": ["MemberAdmitted"],
+      "next": "unchanged"
+    },
+    {
+      "id": "join-denied",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
+      "commands": ["JoinRejected"],
+      "situation": "always: a member stays one",
+      "result": "Accepted",
+      "outcomes": ["JoinDenied"],
+      "next": "unchanged"
+    }
+  ]
+}

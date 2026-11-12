@@ -122,49 +122,18 @@ control-plane decision, with policy owned by the caller. The single deferred sce
 
 ## Cross-cutting — Specification & conformance suite
 
-**Status:** Decided (six ADRs, all `Proposed`) — implementation not started.
-**Depends on:** Phase 1 validated on real NUCLEO hardware (see gate below).
+**Status:** specification 0.1.0 written, in [`spec/`](../spec/SPEC.md).
 **Not a numbered phase:** this spans every phase rather than removing one
 limitation; it does not fit the L1-L7 framing above and does not shift any
 phase's numbering.
 
-`faction` today has one implementation and no independent specification.
-This initiative promotes it to a normative specification with the Rust
-crate as a conformant reference implementation, so a non-Rust port has a
-machine-checkable conformance target instead of only the Rust source to
-read. Full rationale in `docs/ADRs/`, starting from
-`P0-ADR-SpecificationIsNormativeCrateIsReference.md`.
-
-**Decided:**
-- A separate, versioned, language-neutral canonical model, mapped from
-  (not derived onto) `Command`/`Outcome`/`ProcessResult` — no invented
-  vocabulary, only existing, tested variants.
-- The six existing transition-matrix test files consolidated into one
-  declarative table, consumed by both the test suite and a new
-  vector-exporter tool.
-- No compile-time-only invariant exists anywhere in `core/src` today
-  (verified against the full source tree, not assumed) — stated as a
-  checked, falsifiable claim in the eventual specification rather than
-  silently relied on.
-- Effects are an ordered sequence; collections serialize in insertion
-  order — both already true today, not new behavior to build.
-- The canonical model targets `Command`/`Outcome` with Phase 1 joining
-  already included.
-
-**Deliberately deferred:** implementation (the matrix refactor, the
-canonical-model crate, the vector-exporter, the reference harness, new CI
-gates) does not begin until Phase 1 is validated on real NUCLEO hardware
-across `etheram-ibft-embassy` and `etheram-raft-embassy` (both reaching
-their own stage 4-6) and `etheram-raft`'s own Phase 1 integration lands —
-building the matrix/canonical-model mapping against a target hardware
-testing could still change risks doing that work twice. See
-`P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md`.
-
-**Delivery:** once unblocked, ships as its own release versioned to stay
-under `0.5.0`, contingent on adding zero new `Command`/`Outcome`/
-`ProcessResult` variants (a new enum variant is a breaking change for any
-downstream exhaustive match) — purely additive alongside the
-already-published surface.
+`faction` is specified as a standard component, the crate one implementation of
+it, so a non-Rust port has a machine-checkable conformance target instead of
+only the Rust source to read (`P0-ADR-SpecificationIsNormativeCrateIsReference`).
+The specification's four parts — schema, decision table, prose and vectors — are
+written by hand and versioned together; its 0.1.0 is Phase 1's vocabulary,
+joining included. From here every phase changes the specification first, then
+the crate (`P2-ADR-SpecifiedBeforeAnyNewPhase`).
 
 ---
 
@@ -358,7 +327,7 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | After Phase 1 HW validation | Decided, implementation deferred |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.1.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
 | 3 | Single-node addition | 4–6 weeks | Planned |
 | 4 | Single-node removal | 4–6 weeks | Planned |

@@ -1,7 +1,7 @@
 # P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors
 
-- **Status:** Proposed
-- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Date:** 2026-11-12
 - **Priority:** P1 (derived from `P0-ADR-SpecificationIsNormativeCrateIsReference`)
 - **Phase:** cross-cutting
 
@@ -18,70 +18,48 @@ codebase.
 
 **Finding, not assumption:** a full read of `core/src` and
 `ladder/tests/property/` (all three files) found no invariant that is
-compile-time-only. Every transition that looks structurally prevented is
-in fact a two-tier runtime contract in `Faction::process()`
-(`core/src/faction.rs`): `Command::Probe` is intercepted first,
-then `self.stage.accept(&command)` is checked — only a command passing
-both reaches `step()`. Every `unreachable!()` inside a `step()`
-implementation is dead code given `process()`'s own calling order, not a
-case the type system makes impossible to construct. Given this, the
-decision is: state this as a checked, falsifiable claim in
-`SPECIFICATION.md`'s "Structurally absent transitions" section — "no
-statically-enforced invariant was identified as of `<date>`; every
-invariant is enforced by the `Probe → accept() → step()` order in
-`Faction::process()`" — rather than assume it silently or build
-speculative `unconstructible_in` tooling for a category that may be
-empty. If a future refactor introduces a genuine static invariant, the
-corresponding vector is tagged `unconstructible_in: ["reference"]` at that
-point, requiring a comment citing the exact enforcing mechanism —
-evidence required at the time it's first used, not infrastructure built
-ahead of need.
+compile-time-only. Every transition that looks structurally prevented is in fact
+a two-tier runtime contract in `Faction::process()` (`core/src/faction.rs`):
+`Command::Probe` is intercepted first, then `self.stage.accept(&command)` is
+checked — only a command passing both reaches `step()`. Every `unreachable!()`
+inside a `step()` implementation is dead code given `process()`'s own calling
+order, not a case the type system makes impossible to construct. The
+specification states it as a checked, falsifiable claim (`spec/SPEC.md` §5):
+admission is decided when a command arrives, so every vector runs on every
+conforming implementation, and none is tagged as unconstructible anywhere.
 
 ## Forcing constraints / Evidence
 
 Every state (`Initial`, `Pinging`, `Collecting`, `Bootstrapped`) implements
-`State`, and `Stage` delegates to it; nothing restricts which `Command`
-variant can be offered to which state's `step()`. The
-`unreachable!()` messages themselves say so directly:
-`"accept() rejects this command for Collecting"` (`states/collecting.rs`),
-`"accept() rejects this command for Bootstrapped"` (`states/bootstrapped.rs`),
-`"Probe handled in Faction::process"` (`states/pinging.rs`) — each
-names a *calling-order* guarantee, not a type-level one.
-`ladder/tests/property/{invariant_tests,model_tests,safety_tests}.rs`
-independently confirm this: every safety property there (exit is
-terminal, counts never decrease, duplicate/non-member commands never
-mutate state) is checked via `proptest` over generated runtime input,
-never via a type constraint.
+`State`, and `Stage` delegates to it; nothing restricts which `Command` variant
+can be offered to which state's `step()`. The `unreachable!()` messages say so
+directly: `"accept() rejects this command for Collecting"`
+(`states/collecting.rs`), `"accept() rejects this command for Bootstrapped"`
+(`states/bootstrapped.rs`), `"Probe handled in Faction::process"`
+(`states/pinging.rs`) — each names a *calling-order* guarantee, not a type-level
+one. `ladder/tests/property/{invariant_tests,model_tests,safety_tests}.rs`
+confirm it: every safety property there is checked by `proptest` over generated
+runtime input, never by a type constraint.
 
 ## Rejected alternatives
 
-**Build the `unconstructible_in` evidence mechanism now, regardless of
-whether any case currently needs it.** Rejected: costs real design effort
-for a set that is empty today; the mechanism is trivial to add the moment
-a genuine case appears, and building it speculatively risks it existing
-unused and unreviewed for a phase or more.
+**An `unconstructible_in` mechanism, built before any case needs it.** Rejected:
+real design effort for a set that is empty; it is trivial to add the moment a
+genuine case appears.
 
-**Skip stating the "zero static invariants" finding in the specification,
-since there's nothing to enforce.** Rejected: an unstated assumption is
-exactly what goes stale silently; a dated, falsifiable claim in
-`SPECIFICATION.md` is what lets a future contributor re-check it rather
-than inherit it as folklore.
+**Leaving the finding unstated, since there is nothing to enforce.** Rejected: an
+unstated assumption is exactly what goes stale silently; a claim in the
+specification lets a future contributor re-check it.
 
 ## Consequences
 
-Every current vector in Phase 1's scope is executable by every conformant
-implementation, Rust or not — there is no vector the reference harness
-gets to skip today. If a future phase (e.g. a typestate-based
-reconfiguration guard in Phase 3 or 4) introduces a genuine static
-invariant, that phase's own ADR states which enforcement class it falls
-into, using this ADR's audit method: grep every call site of the type in
-question; if the type system alone prevents an illegal value from ever
-being constructed, it's static and needs an `unconstructible_in` vector;
-otherwise it's dynamic and needs an ordinary rejection vector.
+Every vector is executable by every conformant implementation, Rust or not. If a
+future phase introduces a genuine static invariant — a typestate guard, say —
+that phase's ADR states which class it falls into, by this ADR's audit method:
+grep every call site of the type; if the type system alone prevents an illegal
+value from being constructed, it is static and its vector says so; otherwise it
+is dynamic and its rejection is an ordinary vector.
 
 ## Enforcement
 
-None yet — enforced once the harness gate (reference harness executes
-the full vector set, skips only where `unconstructible_in` permits) is
-built. Until then, this ADR's finding is checked by re-running the same
-audit method against current source, not by any automated gate.
+The conformance tests run every vector, with no skip mechanism to run any fewer.

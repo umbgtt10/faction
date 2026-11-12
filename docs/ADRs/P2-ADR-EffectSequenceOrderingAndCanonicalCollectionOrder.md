@@ -1,64 +1,55 @@
 # P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder
 
-- **Status:** Proposed
-- **Date:** 2026-07-24
+- **Status:** Accepted
+- **Date:** 2026-11-12
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting
 
 ## Context
 
 Vectors are only checkable if comparison is unambiguous. Two determinism
-questions the brief leaves open need a stated answer: whether a command's
-effects are compared as an ordered sequence or an unordered set, and
-whether canonically-serialized collections (`Vec<PeerId>` peer sets) need
-a defined sort order.
+questions need a stated answer: whether a command's outcomes are compared as an
+ordered sequence or an unordered set, and whether the lists of peers a view
+carries need a defined order.
 
 ## Decision
 
-**Effects are a sequence, order significant.** `State::step()` already
-returns `Vec<Outcome>` — an ordered type — so sequence semantics require
-no code change, only documenting the existing guarantee. **Collections
-serialize in insertion order, not sorted.** `step()`'s purity already
-makes insertion order fully deterministic and reproducible from a given
-command sequence; canonical ordering is a documentation decision, not a
-transformation to add.
+**Outcomes are a sequence, order significant.** `State::step()` already returns
+`Vec<Outcome>` — an ordered type — so sequence semantics need no code change,
+only the existing guarantee stated. **Lists of peers are in arrival order, not
+sorted:** the members as the configuration gives them, then each admitted peer;
+the pinging and the collecting peers in the order their signals were accepted.
+`step()`'s purity already makes that order a function of the commands given, so
+it is reproducible as it is (`spec/SPEC.md` §1).
 
 ## Forcing constraints / Evidence
 
-Every `Outcome`-producing path in `core/src/states/` (e.g.
+Every outcome-producing path in `core/src/states/` (e.g.
 `LocalCompletionStep::new` pushing `LocalParticipationCompleted` then
 `BroadcastLocalReady` then, conditionally, `Concluded`) already produces
-outcomes in a meaningful, causally-ordered sequence — collapsing that to
-set semantics would require every harness to implement order-insensitive
-comparison for no actual benefit, since the order is already
-deterministic and already meaningful. `Members`/`ClusterView`'s
-`Vec<PeerId>` fields are populated in the order peers are observed, and
-that order is a pure function of the input command sequence — already
-reproducible, already comparable by deep equality.
+outcomes in a meaningful, causally ordered sequence — collapsing that to set
+semantics would make every harness compare without order for no benefit.
+`Members` and `ClusterView`'s peer lists are filled in the order peers are
+observed or admitted, and that order is a pure function of the configuration and
+the commands: already reproducible, already comparable by deep equality.
 
 ## Rejected alternatives
 
-**Effects as an unordered set.** Rejected: forces order-insensitive
-comparison in every harness for a property (order) that's already
-deterministic and already carries meaning.
+**Outcomes as an unordered set.** Rejected: every harness would compare without
+order, for a property that is deterministic and carries meaning.
 
-**Sort collections by identifier before serializing.** Rejected: adds a
-transformation step in the mapping layer for a property that's already
-deterministic either way — marginal readability in a hand-inspected
-vector file, no correctness benefit, and one more thing the mapping layer
-has to get right.
+**Peers sorted by id, as `beggar` lists its records.** Rejected: the crate would
+sort what it already holds in a reproducible order, and its consumers would see
+members and peers reordered, for no correctness benefit. `beggar` sorts because
+its records live keyed by name; faction's peers arrive in an order of their own.
 
 ## Consequences
 
-Vector comparison is a simple deep equality check on both effects and
-collections — no custom comparator needed in any harness, in any
-language. The cost is that a vector file's collection ordering reflects
-whatever order the `setup` command sequence happens to produce, which may
-look arbitrary to a reader unfamiliar with that sequence, rather than a
-tidier sorted presentation.
+Vector comparison is deep equality on both outcomes and peer lists — no custom
+comparator in any harness, in any language. A vector's peer lists follow its
+commands, which may look arbitrary to a reader who expects them sorted.
 
 ## Enforcement
 
-None yet — enforced once `FORMAT.md` states both rules explicitly and the
-harness gate checks vectors by deep equality with no custom ordering
-logic.
+`spec/SPEC.md` §1 states both rules; the conformance tests compare each result
+by deep equality, with no ordering logic of their own.
