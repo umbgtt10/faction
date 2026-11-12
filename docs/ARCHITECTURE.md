@@ -192,10 +192,9 @@ The view says so from then on: `cluster_view.conclusion()` is `Some(Bootstrapped
 ```text
 Command
   │
-  ├─ Probe? ──────────► ProcessResult::Probed (no mutation)
-  │
-  ├─ accept() false? ─► ProcessResult::Rejected { admissible }
-  │
+  ▼
+the stage's step ── answers nothing? ─► ProcessResult::Probed for a Probe,
+  │                                     ProcessResult::Rejected otherwise (no mutation)
   ▼
 Gate 1: non-member? ──► NonMemberIgnored
   │

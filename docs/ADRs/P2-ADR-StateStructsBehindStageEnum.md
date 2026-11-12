@@ -12,13 +12,15 @@ It must also own its current state outright: the lifecycle is the machine's
 internal business, never a dependency a consumer supplies.
 
 ## Decision
-Each state is its own struct implementing one `State` trait — `step`,
-`cluster_view`, `accept`, none with a default body — one struct per file under
+Each state is its own struct implementing one `State` trait — `step` and
+`cluster_view`, neither with a default body — one struct per file under
 `core/src/states/`. `Faction` holds the current state as a `Stage`, an enum with
-one variant per state struct (`core/src/stage.rs`). `step` returns the next
-`Stage` and `process` swaps it in. `Stage` implements `State` by delegating
-through one private `match` that lends out the variant's struct as `&dyn State`,
-and derives `admissible_commands()` from `accept`.
+one variant per state struct (`core/src/stage.rs`). Every command is offered to
+`step`, which answers the outcomes and the next `Stage`, or nothing for a command
+the stage does not admit — a probe among them — and `process` swaps the next
+stage in. `Stage` implements `State` by delegating through one private `match`
+that lends out the variant's struct as `&dyn State`, and derives
+`admissible_commands()` from what `step` answers.
 
 ## Forcing constraints / Evidence
 Two forces. Additive growth: a new state must not edit the code of the states
@@ -45,8 +47,10 @@ package, waived for the one whose structure is its product.
 Adding a state is adding its file, one `Stage` variant and one arm in the
 delegating `match`, plus its `(state × command)` matrix coverage; no existing
 state's file changes unless that state transitions into the new one.
-Transitions allocate no box. `admissible_commands()` cannot drift from
-`accept()`: it is computed from it rather than declared beside it. A state
+Transitions allocate no box. `admissible_commands()` cannot drift from what a
+stage steps on: it is computed from `step` rather than declared beside it, at the
+cost of stepping on each command to list them. No state holds an arm that cannot
+be reached. A state
 that hands over to another builds that `Stage` variant itself, so the states
 know `Stage`'s variants — the price of returning owned data instead of a trait
 object.

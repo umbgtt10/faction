@@ -18,9 +18,10 @@ explicitly, and the suite is a strict superset across phases — a Phase-N test
 passes unchanged at Phase N+6.
 
 ## Forcing constraints / Evidence
-Totality is the property; the exhaustive matrix is its proof. Each state's
-`accept()`, the `Rejected` result for what it refuses, and `step()` for what it
-accepts together achieve totality structurally rather than by convention.
+Totality is the property; the exhaustive matrix is its proof. Every command is
+offered to the stage's `step`, which answers it — or answers nothing for what the
+stage refuses, and the command is `Rejected` — so totality holds structurally
+rather than by convention.
 
 ## Rejected alternatives
 Returning `Err` or panicking on unexpected input. Rejected: it converts a

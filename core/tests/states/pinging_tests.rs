@@ -366,14 +366,3 @@ fn process_ready_observed_non_member() {
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(get_collecting_peers_length(&mut faction), before);
 }
-
-#[test]
-#[should_panic(expected = "Probe handled in Faction::process")]
-fn step_probe_panics() {
-    // Arrange
-    let state = Pinging::new(Members::new(vec![0, 1, 2]));
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
-
-    // Act & Assert
-    let _ = state.step(Command::Probe, &config);
-}

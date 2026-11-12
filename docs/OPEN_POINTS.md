@@ -27,7 +27,7 @@ the machinery this needs, not something to bypass by adding mutability to
 **Refinement:** the change should be exposed through the same mechanism as
 everything else — a genuine new `Command` variant (something like
 `Command::QuorumPolicyChanged { new_policy: QuorumPolicy }`), evaluated and
-scoped per state through the normal `accept()`/`step()` gating, inheriting
+scoped per state through each stage's `step`, like every other command, inheriting
 exhaustive `(state, command)` coverage and `Observer` routing like every other
 command, rather than an out-of-band setter that bypasses the state machine's own
 input gating entirely. That's a necessary foundation and a real improvement over

@@ -4,9 +4,9 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::command::Command;
 use crate::members::Members;
 use crate::outcome::Outcome;
+use crate::states::join_decision::JoinDecision;
 
 pub struct JoinStep {
     outcomes: Vec<Outcome>,
@@ -15,30 +15,29 @@ pub struct JoinStep {
 
 impl JoinStep {
     #[must_use]
-    pub fn new(members: Members, command: &Command) -> Self {
-        match command {
-            Command::JoinRequested { peer_id } => Self {
-                outcomes: vec![Outcome::EmitJoinRequest { peer_id: *peer_id }],
+    pub fn new(members: Members, decision: JoinDecision) -> Self {
+        match decision {
+            JoinDecision::Requested(peer_id) => Self {
+                outcomes: vec![Outcome::EmitJoinRequest { peer_id }],
                 members,
             },
-            Command::JoinApproved { peer_id } => {
-                if members.is_member(*peer_id) {
+            JoinDecision::Approved(peer_id) => {
+                if members.is_member(peer_id) {
                     Self {
-                        outcomes: vec![Outcome::DuplicateMemberIgnored { peer_id: *peer_id }],
+                        outcomes: vec![Outcome::DuplicateMemberIgnored { peer_id }],
                         members,
                     }
                 } else {
                     Self {
-                        outcomes: vec![Outcome::MemberAdmitted { peer_id: *peer_id }],
-                        members: members.with_admitted(*peer_id),
+                        outcomes: vec![Outcome::MemberAdmitted { peer_id }],
+                        members: members.with_admitted(peer_id),
                     }
                 }
             }
-            Command::JoinRejected { peer_id } => Self {
-                outcomes: vec![Outcome::JoinDenied { peer_id: *peer_id }],
+            JoinDecision::Rejected(peer_id) => Self {
+                outcomes: vec![Outcome::JoinDenied { peer_id }],
                 members,
             },
-            _ => unreachable!("JoinStep only handles join commands"),
         }
     }
 

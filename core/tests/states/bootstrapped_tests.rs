@@ -136,14 +136,3 @@ fn process_rejects_participation_observed() {
     assert_eq!(cluster_view.conclusion(), Some(Conclusion::Bootstrapped));
     assert!(cluster_view.is_concluded());
 }
-
-#[test]
-#[should_panic(expected = "accept() rejects this command for Bootstrapped")]
-fn step_ready_observed_panics() {
-    // Arrange
-    let state = Bootstrapped::new(Members::new(vec![0, 1, 2]), vec![1], vec![0, 1]);
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
-
-    // Act & Assert
-    let _ = state.step(Command::ReadyObserved { peer_id: 1 }, &config);
-}

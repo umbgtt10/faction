@@ -423,25 +423,3 @@ fn resolve_below_quorum_returns_collecting() {
     assert_eq!(cluster_view.collecting_peers(), &[0, 1]);
     assert_eq!(cluster_view.pinging_peers(), &[1]);
 }
-
-#[test]
-#[should_panic(expected = "accept() rejects this command for Collecting")]
-fn step_local_participation_completed_panics() {
-    // Arrange
-    let state = Collecting::new(Members::new(vec![0, 1, 2]), vec![0], vec![1], false);
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
-
-    // Act & Assert
-    let _ = state.step(Command::LocalParticipationCompleted, &config);
-}
-
-#[test]
-#[should_panic(expected = "Probe handled in Faction::process")]
-fn step_probe_panics() {
-    // Arrange
-    let state = Collecting::new(Members::new(vec![0, 1, 2]), vec![0], vec![1], false);
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2));
-
-    // Act & Assert
-    let _ = state.step(Command::Probe, &config);
-}

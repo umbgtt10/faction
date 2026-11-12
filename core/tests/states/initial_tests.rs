@@ -54,8 +54,9 @@ fn new_returns_initial_state() {
     // Arrange & Act
     let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]));
     let config = Config::new(0, vec![0], QuorumPolicy::new(1));
-    let (outcomes, new_state) =
-        initial.step(Command::ParticipationObserved { peer_id: 0 }, &config);
+    let (outcomes, new_state) = initial
+        .step(Command::ParticipationObserved { peer_id: 0 }, &config)
+        .expect("an Initial node admits participation");
 
     // Assert
     assert_eq!(

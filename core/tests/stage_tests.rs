@@ -25,6 +25,10 @@ fn collecting() -> Stage {
     Stage::Collecting(Collecting::new(members(), vec![0], vec![1], false))
 }
 
+fn config() -> Config {
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
+}
+
 fn every_command() -> Vec<Command> {
     vec![
         Command::ParticipationObserved { peer_id: 0 },
@@ -53,60 +57,12 @@ fn pinging() -> Stage {
 }
 
 #[test]
-fn accept_bootstrapped_ready_observed_returns_false() {
-    // Arrange
-    let stage = bootstrapped();
-
-    // Act
-    let accepted = stage.accept(&Command::ReadyObserved { peer_id: 1 });
-
-    // Assert
-    assert!(!accepted);
-}
-
-#[test]
-fn accept_collecting_local_participation_completed_returns_false() {
-    // Arrange
-    let stage = collecting();
-
-    // Act
-    let accepted = stage.accept(&Command::LocalParticipationCompleted);
-
-    // Assert
-    assert!(!accepted);
-}
-
-#[test]
-fn accept_initial_deadline_expired_returns_false() {
-    // Arrange
-    let stage = initial();
-
-    // Act
-    let accepted = stage.accept(&Command::DeadlineExpired);
-
-    // Assert
-    assert!(!accepted);
-}
-
-#[test]
-fn accept_pinging_deadline_expired_returns_true() {
-    // Arrange
-    let stage = pinging();
-
-    // Act
-    let accepted = stage.accept(&Command::DeadlineExpired);
-
-    // Assert
-    assert!(accepted);
-}
-
-#[test]
 fn admissible_commands_bootstrapped_returns_participation_joins_and_probe() {
     // Arrange
     let stage = bootstrapped();
 
     // Act
-    let admissible = stage.admissible_commands();
+    let admissible = stage.admissible_commands(&config());
 
     // Assert
     assert_eq!(
@@ -127,7 +83,7 @@ fn admissible_commands_collecting_returns_all_but_local_participation_completed(
     let stage = collecting();
 
     // Act
-    let admissible = stage.admissible_commands();
+    let admissible = stage.admissible_commands(&config());
 
     // Assert
     assert_eq!(
@@ -150,7 +106,7 @@ fn admissible_commands_initial_returns_all_but_deadline_expired() {
     let stage = initial();
 
     // Act
-    let admissible = stage.admissible_commands();
+    let admissible = stage.admissible_commands(&config());
 
     // Assert
     assert_eq!(
@@ -173,7 +129,7 @@ fn admissible_commands_pinging_returns_every_command() {
     let stage = pinging();
 
     // Act
-    let admissible = stage.admissible_commands();
+    let admissible = stage.admissible_commands(&config());
 
     // Assert
     assert_eq!(admissible, every_command());
@@ -243,10 +199,12 @@ fn cluster_view_pinging_reports_pinging() {
 fn step_bootstrapped_member_participation_stays_bootstrapped() {
     // Arrange
     let stage = bootstrapped();
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = config();
 
     // Act
-    let (outcomes, next) = stage.step(Command::ParticipationObserved { peer_id: 2 }, &config);
+    let (outcomes, next) = stage
+        .step(Command::ParticipationObserved { peer_id: 2 }, &config)
+        .expect("admitted");
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 2 }]);
@@ -254,13 +212,39 @@ fn step_bootstrapped_member_participation_stays_bootstrapped() {
 }
 
 #[test]
+fn step_bootstrapped_ready_observed_returns_none() {
+    // Arrange
+    let stage = bootstrapped();
+
+    // Act
+    let answered = stage.step(Command::ReadyObserved { peer_id: 1 }, &config());
+
+    // Assert
+    assert!(answered.is_none());
+}
+
+#[test]
+fn step_collecting_local_participation_completed_returns_none() {
+    // Arrange
+    let stage = collecting();
+
+    // Act
+    let answered = stage.step(Command::LocalParticipationCompleted, &config());
+
+    // Assert
+    assert!(answered.is_none());
+}
+
+#[test]
 fn step_collecting_ready_below_quorum_stays_collecting() {
     // Arrange
     let stage = collecting();
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = config();
 
     // Act
-    let (outcomes, next) = stage.step(Command::ReadyObserved { peer_id: 2 }, &config);
+    let (outcomes, next) = stage
+        .step(Command::ReadyObserved { peer_id: 2 }, &config)
+        .expect("admitted");
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
@@ -268,13 +252,27 @@ fn step_collecting_ready_below_quorum_stays_collecting() {
 }
 
 #[test]
+fn step_initial_deadline_expired_returns_none() {
+    // Arrange
+    let stage = initial();
+
+    // Act
+    let answered = stage.step(Command::DeadlineExpired, &config());
+
+    // Assert
+    assert!(answered.is_none());
+}
+
+#[test]
 fn step_initial_participation_observed_returns_pinging() {
     // Arrange
     let stage = initial();
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = config();
 
     // Act
-    let (outcomes, next) = stage.step(Command::ParticipationObserved { peer_id: 1 }, &config);
+    let (outcomes, next) = stage
+        .step(Command::ParticipationObserved { peer_id: 1 }, &config)
+        .expect("admitted");
 
     // Assert
     assert_eq!(
@@ -285,13 +283,27 @@ fn step_initial_participation_observed_returns_pinging() {
 }
 
 #[test]
+fn step_pinging_deadline_expired_returns_an_answer() {
+    // Arrange
+    let stage = pinging();
+
+    // Act
+    let answered = stage.step(Command::DeadlineExpired, &config());
+
+    // Assert
+    assert!(answered.is_some());
+}
+
+#[test]
 fn step_pinging_local_completion_below_quorum_returns_collecting() {
     // Arrange
     let stage = pinging();
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = config();
 
     // Act
-    let (outcomes, next) = stage.step(Command::LocalParticipationCompleted, &config);
+    let (outcomes, next) = stage
+        .step(Command::LocalParticipationCompleted, &config)
+        .expect("admitted");
 
     // Assert
     assert_eq!(

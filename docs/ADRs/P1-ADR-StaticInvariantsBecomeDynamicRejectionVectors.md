@@ -18,26 +18,21 @@ codebase.
 
 **Finding, not assumption:** a full read of `core/src` and
 `ladder/tests/property/` (all three files) found no invariant that is
-compile-time-only. Every transition that looks structurally prevented is in fact
-a two-tier runtime contract in `Faction::process()` (`core/src/faction.rs`):
-`Command::Probe` is intercepted first, then `self.stage.accept(&command)` is
-checked — only a command passing both reaches `step()`. Every `unreachable!()`
-inside a `step()` implementation is dead code given `process()`'s own calling
-order, not a case the type system makes impossible to construct. The
-specification states it as a checked, falsifiable claim (`spec/SPEC.md` §5):
-admission is decided when a command arrives, so every vector runs on every
-conforming implementation, and none is tagged as unconstructible anywhere.
+compile-time-only. Every transition that looks structurally prevented is decided
+at run time by the stage's `step`, which every command reaches: it answers nothing
+for a command its stage does not admit, and `Faction::process` answers that
+command `Rejected` — or `Probed`, for a probe. No `step` holds an arm that cannot
+be reached. The specification states it as a checked, falsifiable claim
+(`spec/SPEC.md` §5): admission is decided when a command arrives, so every vector
+runs on every conforming implementation, and none is tagged as unconstructible
+anywhere.
 
 ## Forcing constraints / Evidence
 
 Every state (`Initial`, `Pinging`, `Collecting`, `Bootstrapped`) implements
-`State`, and `Stage` delegates to it; nothing restricts which `Command` variant
-can be offered to which state's `step()`. The `unreachable!()` messages say so
-directly: `"accept() rejects this command for Collecting"`
-(`states/collecting.rs`), `"accept() rejects this command for Bootstrapped"`
-(`states/bootstrapped.rs`), `"Probe handled in Faction::process"`
-(`states/pinging.rs`) — each names a *calling-order* guarantee, not a type-level
-one. `ladder/tests/property/{invariant_tests,model_tests,safety_tests}.rs`
+`State`, and `Stage` delegates to it; every `Command` variant is offered to every
+state's `step()`, which ends in an arm for the commands its stage does not admit.
+`ladder/tests/property/{invariant_tests,model_tests,safety_tests}.rs`
 confirm it: every safety property there is checked by `proptest` over generated
 runtime input, never by a type constraint.
 
