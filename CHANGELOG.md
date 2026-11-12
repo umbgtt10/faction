@@ -29,6 +29,26 @@
 - `faction-core-validation`: `ClusterSimulation::new` takes one observer per node, so a simulated
   cluster's nodes can log.
 
+### No line the specification does not ask for
+
+#### Added
+- A second coverage gate in stage 2: `faction` at 100% of lines, regions and functions from the
+  conformance vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`).
+- `faction-protocol`: `ResultView::of`, the view any result carries, for the caller that needs it.
+
+#### Changed — breaking
+- Removed, as nothing the specification asks for and each a read of what it does show:
+  `ClusterView::conclusion` and `is_concluded` (a node is concluded when its peer state is
+  `Bootstrapped`), `Config::is_member` and `peer_count`, `Faction::config`, `Members::is_empty` and
+  `len`, `ProcessResult::into_cluster_view`, and `ClusterViewBuilder::new` (use `default()`).
+- `State` has no `accept`: a stage's `step` answers `None` for a command it does not admit, and the
+  admissible commands are derived from it. `JoinStep::new` takes a `JoinDecision`.
+- `Members::with_admitted` answers `None` for a peer that already is a member; the one check of
+  membership on admission is there.
+
+#### Changed
+- `ReadyStep` and `LocalCompletionStep` ask the `QuorumPolicy` whether quorum is reached.
+
 ### Clean-up and restructure to the house rules
 
 #### Changed — breaking

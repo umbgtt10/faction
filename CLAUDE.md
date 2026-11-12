@@ -44,6 +44,7 @@ code. It runs, in this order:
 | `cargo dry4rust` | is any code duplicated in the library crates' source (`dry4rust.toml`, floor 25 nodes, no baseline) |
 | `cargo crap4rust` | is any function of `faction` or `faction-protocol` complex and untested (threshold 15) |
 | `cargo llvm-cov` | is every line, region and function of the library crates covered, the ladder's tiers counted |
+| `cargo llvm-cov`, conformance alone | is every line, region and function of `faction` reached by the specification's vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`) |
 | `cargo twin4rust` | does every source file of the library crates have a mirrored test file |
 | `cargo iceberg4rust` | is any file's private implementation risk too high (threshold 5) |
 | `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source (`deny.toml`) |

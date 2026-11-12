@@ -72,7 +72,7 @@ fn non_member_observed_ready_from_non_member_returns_peer() {
 }
 
 #[test]
-fn with_admitted_member_returns_same_members() {
+fn with_admitted_member_returns_none() {
     // Arrange
     let members = members();
 
@@ -80,7 +80,7 @@ fn with_admitted_member_returns_same_members() {
     let admitted = members.with_admitted(1);
 
     // Assert
-    assert_eq!(admitted, Members::new(vec![0, 1, 2]));
+    assert_eq!(admitted, None);
 }
 
 #[test]
@@ -92,5 +92,5 @@ fn with_admitted_non_member_appends_peer() {
     let admitted = members.with_admitted(5);
 
     // Assert
-    assert_eq!(admitted, Members::new(vec![0, 1, 2, 5]));
+    assert_eq!(admitted, Some(Members::new(vec![0, 1, 2, 5])));
 }

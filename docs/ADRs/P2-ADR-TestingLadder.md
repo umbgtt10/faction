@@ -67,5 +67,6 @@ claim.
 check against a bare-metal target, and every tier — the system tier under `slotgate`,
 each test in a process of its own with ports of its own. `just stage2` runs the house
 gates, among them 100% line, region and function coverage of `faction` and
-`faction-protocol` measured with the ladder's tiers running. Both green is the
-definition of done.
+`faction-protocol` measured with the ladder's tiers running, and of `faction` again
+measured with the conformance tier alone
+(`P1-ADR-NoLineTheSpecificationDoesNotAskFor`). Both green is the definition of done.

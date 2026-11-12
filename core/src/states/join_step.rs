@@ -21,19 +21,16 @@ impl JoinStep {
                 outcomes: vec![Outcome::EmitJoinRequest { peer_id }],
                 members,
             },
-            JoinDecision::Approved(peer_id) => {
-                if members.is_member(peer_id) {
-                    Self {
-                        outcomes: vec![Outcome::DuplicateMemberIgnored { peer_id }],
-                        members,
-                    }
-                } else {
-                    Self {
-                        outcomes: vec![Outcome::MemberAdmitted { peer_id }],
-                        members: members.with_admitted(peer_id),
-                    }
-                }
-            }
+            JoinDecision::Approved(peer_id) => match members.with_admitted(peer_id) {
+                Some(admitted) => Self {
+                    outcomes: vec![Outcome::MemberAdmitted { peer_id }],
+                    members: admitted,
+                },
+                None => Self {
+                    outcomes: vec![Outcome::DuplicateMemberIgnored { peer_id }],
+                    members,
+                },
+            },
             JoinDecision::Rejected(peer_id) => Self {
                 outcomes: vec![Outcome::JoinDenied { peer_id }],
                 members,
