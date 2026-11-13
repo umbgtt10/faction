@@ -189,12 +189,16 @@ fn decide_pre_accumulated_ready_quorum_on_completion() {
     ));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
-    assert!(matches!(decisions[0], OutputMessage::BroadcastReady));
-    assert!(matches!(
-        decisions[1],
-        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
-    ));
+    assert_eq!(
+        decisions,
+        vec![
+            OutputMessage::BroadcastReady,
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+        ]
+    );
     assert_eq!(
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped

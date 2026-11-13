@@ -49,32 +49,31 @@ impl MessageTranslator {
         }
     }
 
+    // Every outcome of a result, in order, each turned into what the caller
+    // must do; a result asking nothing is a no-op.
     #[must_use]
     pub fn to_output_messages(&self, outcomes: Vec<Outcome>) -> Vec<OutputMessage> {
-        for outcome in outcomes {
-            match outcome {
-                Outcome::BroadcastLocalReady => {
-                    return vec![
-                        OutputMessage::BroadcastReady,
-                        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
-                    ];
-                }
-                Outcome::Concluded { .. } => {
-                    return vec![
-                        OutputMessage::Cancel(TimerEvent::Fire(
-                            TimerMessage::LocalParticipationCompleted,
-                        )),
-                        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
-                        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
-                    ];
-                }
-                Outcome::AcknowledgeRejoin { .. } => {
-                    return vec![OutputMessage::BroadcastReady];
-                }
-                _ => {}
-            }
+        let messages: Vec<OutputMessage> = outcomes.into_iter().flat_map(Self::messages).collect();
+        if messages.is_empty() {
+            vec![OutputMessage::Noop]
+        } else {
+            messages
         }
+    }
 
-        vec![OutputMessage::Noop]
+    fn messages(outcome: Outcome) -> Vec<OutputMessage> {
+        match outcome {
+            Outcome::BroadcastLocalReady => vec![
+                OutputMessage::BroadcastReady,
+                OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+            ],
+            Outcome::Concluded { .. } => vec![
+                OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
+                OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+                OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            ],
+            Outcome::AcknowledgeRejoin { .. } => vec![OutputMessage::BroadcastReady],
+            _ => Vec::new(),
+        }
     }
 }

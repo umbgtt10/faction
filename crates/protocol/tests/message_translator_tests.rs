@@ -167,7 +167,7 @@ fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
 }
 
 #[test]
-fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
+fn to_output_messages_broadcast_local_ready_then_concluded_returns_both_in_order() {
     // Arrange
     let translator = translator();
 
@@ -180,12 +180,42 @@ fn to_output_messages_broadcast_local_ready_wins_over_exited_when_first() {
     ]);
 
     // Assert
-    assert_eq!(result.len(), 2);
-    assert!(matches!(result[0], OutputMessage::BroadcastReady));
-    assert!(matches!(
-        result[1],
-        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
-    ));
+    assert_eq!(
+        result,
+        vec![
+            OutputMessage::BroadcastReady,
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+        ]
+    );
+}
+
+#[test]
+fn to_output_messages_concluded_then_broadcast_local_ready_returns_both_in_order() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let result = translator.to_output_messages(vec![
+        Outcome::Concluded {
+            mode: Conclusion::Bootstrapped,
+        },
+        Outcome::BroadcastLocalReady,
+    ]);
+
+    // Assert
+    assert_eq!(
+        result,
+        vec![
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::BroadcastReady,
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+        ]
+    );
 }
 
 #[test]
@@ -218,23 +248,30 @@ fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
 }
 
 #[test]
-fn to_output_messages_exited_wins_over_broadcast_local_ready_when_first() {
+fn to_output_messages_of_a_completion_that_concludes_announces_readiness_and_stops_retrying() {
     // Arrange
     let translator = translator();
 
     // Act
     let result = translator.to_output_messages(vec![
+        Outcome::LocalParticipationCompleted,
+        Outcome::BroadcastLocalReady,
         Outcome::Concluded {
             mode: Conclusion::Bootstrapped,
         },
-        Outcome::BroadcastLocalReady,
     ]);
 
     // Assert
-    assert_eq!(result.len(), 3);
-    assert!(matches!(result[0], OutputMessage::Cancel(_)));
-    assert!(matches!(result[1], OutputMessage::Cancel(_)));
-    assert!(matches!(result[2], OutputMessage::Cancel(_)));
+    assert_eq!(
+        result,
+        vec![
+            OutputMessage::BroadcastReady,
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+        ]
+    );
 }
 
 #[test]
