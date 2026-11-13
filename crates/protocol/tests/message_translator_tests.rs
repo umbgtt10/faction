@@ -448,6 +448,27 @@ fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready_and_t
 }
 
 #[test]
+fn to_output_messages_member_removed_cancels_the_member_s_timeouts() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs =
+        translator.to_output_messages(vec![Outcome::MemberRemoved { peer_id: 2 }], &view(), 0);
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 2 })),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+                peer_id: 2
+            })),
+        ]
+    );
+}
+
+#[test]
 fn to_output_messages_of_a_completion_that_concludes_announces_readiness_and_stops_retrying() {
     // Arrange
     let translator = translator();
@@ -519,6 +540,38 @@ fn to_output_messages_propose_addition_proposes_it_and_cancels_the_retry() {
             })),
         ]
     );
+}
+
+#[test]
+fn to_output_messages_propose_removal_proposes_it() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs =
+        translator.to_output_messages(vec![Outcome::ProposeRemoval { peer_id: 2 }], &view(), 0);
+
+    // Assert
+    assert_eq!(outputs, vec![OutputMessage::ProposeRemoval { peer_id: 2 }]);
+}
+
+#[test]
+fn to_output_messages_removal_refused_or_withdrawn_asks_nothing() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs = translator.to_output_messages(
+        vec![
+            Outcome::RemovalRefused { peer_id: 2 },
+            Outcome::RemovalWithdrawn { peer_id: 2 },
+        ],
+        &view(),
+        0,
+    );
+
+    // Assert
+    assert_eq!(outputs, vec![OutputMessage::Noop]);
 }
 
 #[test]

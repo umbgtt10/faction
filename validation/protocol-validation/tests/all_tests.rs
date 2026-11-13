@@ -11,4 +11,5 @@ pub mod in_memory_transport_tests;
 pub mod late_arrival_tests;
 pub mod liveness_tests;
 pub mod lost_ping_tests;
+pub mod removal_tests;
 pub mod vanilla_convergence_tests;

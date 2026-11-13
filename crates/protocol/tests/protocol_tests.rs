@@ -93,6 +93,24 @@ fn abort_addition_of_the_newcomer_withdraws_it_and_cancels_the_retry() {
 }
 
 #[test]
+fn abort_removal_of_the_peer_in_flight_withdraws_it() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+
+    // Act
+    let decisions = protocol.abort_removal(2);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::None
+    );
+    assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 2, 3]);
+}
+
+#[test]
 fn admit_new_peer_adds_it_to_members() {
     // Arrange
     let mut protocol = protocol();
@@ -130,6 +148,37 @@ fn commit_addition_of_the_newcomer_admits_it() {
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 5]);
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::None
+    );
+}
+
+#[test]
+fn commit_removal_of_the_node_itself_leaves_it_removed() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let _ = protocol.commit_removal(0);
+
+    // Assert
+    assert_eq!(protocol.cluster_view().peer_state(), PeerState::Removed);
+    assert_eq!(protocol.cluster_view().members().as_slice(), &[1, 2, 3]);
+}
+
+#[test]
+fn commit_removal_of_the_peer_in_flight_takes_it_out_and_cancels_its_timeouts() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+
+    // Act
+    let decisions = protocol.commit_removal(2);
+
+    // Assert
+    assert_eq!(decisions, timeouts_cancelled(2));
+    assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 3]);
     assert_eq!(
         protocol.cluster_view().reconfiguration(),
         Reconfiguration::None
@@ -436,6 +485,19 @@ fn decide_probe_due_before_the_conclusion_produces_noop() {
 
     // Assert
     assert_eq!(outputs, vec![OutputMessage::Noop]);
+}
+
+#[test]
+fn decide_probe_due_once_removed_produces_noop_and_no_next_period() {
+    // Arrange
+    let mut protocol = of_four();
+    let _ = protocol.commit_removal(0);
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::ProbeDue));
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
 }
 
 #[test]
@@ -788,6 +850,30 @@ fn initialize_with_two_peers_produces_decisions() {
 }
 
 #[test]
+fn request_addition_after_a_removal_sends_the_membership_without_the_removed_member() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+    let _ = protocol.commit_removal(2);
+
+    // Act
+    let decisions = protocol.request_addition(5);
+
+    // Assert
+    assert_eq!(
+        decisions[0],
+        OutputMessage::Send {
+            to: 5,
+            message: TransportMessage::Membership {
+                from: 0,
+                members: vec![0, 1, 3],
+                required_count: 1,
+            },
+        }
+    );
+}
+
+#[test]
 fn request_addition_of_a_newcomer_sends_it_the_membership_and_schedules_the_retry() {
     // Arrange
     let mut protocol = bootstrapped();
@@ -820,4 +906,39 @@ fn request_join_leaves_members_unchanged() {
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1]);
+}
+
+#[test]
+fn request_removal_of_a_member_the_quorum_can_spare_proposes_it() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let decisions = protocol.request_removal(2);
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![OutputMessage::ProposeRemoval { peer_id: 2 }]
+    );
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::RemovalRequested { peer_id: 2 }
+    );
+}
+
+#[test]
+fn request_removal_the_quorum_cannot_spare_is_refused_asking_nothing() {
+    // Arrange
+    let mut protocol = bootstrapped();
+
+    // Act
+    let decisions = protocol.request_removal(1);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::None
+    );
 }

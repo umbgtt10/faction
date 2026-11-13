@@ -50,6 +50,10 @@ impl Protocol {
         self.apply(Command::AdditionAborted { peer_id })
     }
 
+    pub fn abort_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::RemovalAborted { peer_id })
+    }
+
     pub fn admit(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::JoinApproved { peer_id })
     }
@@ -64,6 +68,10 @@ impl Protocol {
 
     pub fn commit_addition(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::AdditionCommitted { peer_id })
+    }
+
+    pub fn commit_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::RemovalCommitted { peer_id })
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
@@ -137,6 +145,10 @@ impl Protocol {
 
     pub fn request_join(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::JoinRequested { peer_id })
+    }
+
+    pub fn request_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::RemovalRequested { peer_id })
     }
 
     fn apply(&mut self, command: Command) -> Vec<OutputMessage> {
