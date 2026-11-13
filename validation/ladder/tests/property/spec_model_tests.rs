@@ -22,10 +22,11 @@ proptest! {
     #[test]
     fn process_of_random_commands_answers_as_the_specification_s_model(
         required_count in 0usize..=6,
+        threshold in 1usize..=3,
         commands in RandomCommands::sequence(40),
     ) {
         // Arrange
-        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count));
+        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold);
         let mut model = Model::new(
             SpecReader::table(&SpecFiles::matrix()),
             SpecReader::configuration(&SpecWriter::configuration(&config)),

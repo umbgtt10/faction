@@ -2,5 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 pub mod invariant_tests;
+pub mod liveness_tests;
 pub mod safety_tests;
 pub mod spec_model_tests;

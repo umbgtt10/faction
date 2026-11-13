@@ -48,6 +48,7 @@
 //!     0,                                 // our peer id
 //!     alloc::vec![0, 1, 2, 3, 4],        // all peers
 //!     QuorumPolicy::new(4),              // quorum threshold
+//!     1,                                 // missed probe periods before suspicion
 //! );
 //!
 //! let mut machine = Faction::new(config, Box::new(NoOpObserver));
@@ -142,10 +143,12 @@ pub mod conclusion;
 pub mod config;
 pub mod faction;
 pub mod members;
+pub mod miss_count;
 pub mod observer;
 pub mod outcome;
 pub mod peer_state;
 pub mod process_result;
+pub mod quorum;
 pub mod quorum_policy;
 pub mod stage;
 pub mod state;

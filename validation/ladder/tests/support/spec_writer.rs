@@ -9,6 +9,7 @@ use faction::config::Config;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction::quorum::Quorum;
 use faction::types::PeerId;
 use serde_json::json;
 use serde_json::Value;
@@ -29,15 +30,19 @@ impl SpecWriter {
             | Command::AdditionRequested { peer_id }
             | Command::MembershipAcknowledged { peer_id }
             | Command::AdditionCommitted { peer_id }
-            | Command::AdditionAborted { peer_id } => {
+            | Command::AdditionAborted { peer_id }
+            | Command::PeerHeard { peer_id }
+            | Command::ProbeMissed { peer_id }
+            | Command::IndirectProbesMissed { peer_id } => {
                 json!({ Self::name(command): { "peer_id": Self::number(*peer_id) } })
             }
             Command::RequiredCountChanged { required_count } => {
                 json!({ Self::name(command): { "required_count": Self::number(*required_count) } })
             }
-            Command::LocalParticipationCompleted | Command::DeadlineExpired | Command::Probe => {
-                json!({ Self::name(command): {} })
-            }
+            Command::LocalParticipationCompleted
+            | Command::DeadlineExpired
+            | Command::ProbeDue
+            | Command::Probe => json!({ Self::name(command): {} }),
         }
     }
 
@@ -46,6 +51,7 @@ impl SpecWriter {
             "peer_id": Self::number(config.peer_id()),
             "peers": Self::peers(config.peers()),
             "required_count": Self::number(config.required_count()),
+            "suspicion_threshold": Self::number(config.suspicion_threshold()),
         })
     }
 
@@ -104,6 +110,10 @@ impl SpecWriter {
             Command::AdditionCommitted { .. } => "AdditionCommitted",
             Command::AdditionAborted { .. } => "AdditionAborted",
             Command::RequiredCountChanged { .. } => "RequiredCountChanged",
+            Command::ProbeDue => "ProbeDue",
+            Command::PeerHeard { .. } => "PeerHeard",
+            Command::ProbeMissed { .. } => "ProbeMissed",
+            Command::IndirectProbesMissed { .. } => "IndirectProbesMissed",
             Command::Probe => "Probe",
         }
     }
@@ -152,6 +162,23 @@ impl SpecWriter {
             Outcome::RequiredCountSet { required_count } => {
                 json!({ "RequiredCountSet": { "required_count": Self::number(required_count) } })
             }
+            Outcome::SendProbe { peer_id } => Self::peer("SendProbe", *peer_id),
+            Outcome::NothingToProbe => json!({ "NothingToProbe": {} }),
+            Outcome::SendIndirectProbes { peer_id, via } => json!({ "SendIndirectProbes": {
+                "peer_id": Self::number(*peer_id),
+                "via": Self::peers(via),
+            } }),
+            Outcome::MissCounted { peer_id, misses } => json!({ "MissCounted": {
+                "peer_id": Self::number(*peer_id),
+                "misses": Self::number(misses),
+            } }),
+            Outcome::PeerSuspected { peer_id } => Self::peer("PeerSuspected", *peer_id),
+            Outcome::PeerRevived { peer_id } => Self::peer("PeerRevived", *peer_id),
+            Outcome::AliveNoted { peer_id } => Self::peer("AliveNoted", *peer_id),
+            Outcome::AlreadySuspected { peer_id } => Self::peer("AlreadySuspected", *peer_id),
+            Outcome::SelfIgnored { peer_id } => Self::peer("SelfIgnored", *peer_id),
+            Outcome::QuorumLost => json!({ "QuorumLost": {} }),
+            Outcome::QuorumRestored => json!({ "QuorumRestored": {} }),
         }
     }
 
@@ -182,6 +209,15 @@ impl SpecWriter {
         Value::Array(peers.iter().map(|peer| Self::number(*peer)).collect())
     }
 
+    fn quorum(quorum: Quorum) -> Value {
+        let name = match quorum {
+            Quorum::NotTracked => "NotTracked",
+            Quorum::Held => "Held",
+            Quorum::Lost => "Lost",
+        };
+        json!({ name: {} })
+    }
+
     fn view(view: &ClusterView) -> Value {
         json!({
             "peer_state": Self::peer_state(view.peer_state()),
@@ -192,6 +228,19 @@ impl SpecWriter {
             "deadline_missed": view.deadline_missed(),
             "members": Self::peers(view.members().as_slice()),
             "addition": Self::addition(view.addition()),
+            "suspected": Self::peers(view.suspected()),
+            "misses": view
+                .misses()
+                .iter()
+                .map(|miss| json!({
+                    "peer_id": Self::number(miss.peer_id),
+                    "misses": Self::number(miss.misses),
+                }))
+                .collect::<Vec<Value>>(),
+            "last_probed": view
+                .last_probed()
+                .map_or(json!({ "None": {} }), |peer_id| Self::peer("Probed", peer_id)),
+            "quorum": Self::quorum(view.quorum()),
         })
     }
 }

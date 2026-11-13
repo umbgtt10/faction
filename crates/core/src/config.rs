@@ -10,15 +10,22 @@ pub struct Config {
     peer_id: PeerId,
     peers: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
+    suspicion_threshold: usize,
 }
 
 impl Config {
     #[must_use]
-    pub fn new(peer_id: PeerId, peers: Vec<PeerId>, quorum_policy: QuorumPolicy) -> Self {
+    pub fn new(
+        peer_id: PeerId,
+        peers: Vec<PeerId>,
+        quorum_policy: QuorumPolicy,
+        suspicion_threshold: usize,
+    ) -> Self {
         Self {
             peer_id,
             peers,
             quorum_policy,
+            suspicion_threshold,
         }
     }
 
@@ -40,5 +47,10 @@ impl Config {
     #[must_use]
     pub fn required_count(&self) -> usize {
         self.quorum_policy.threshold()
+    }
+
+    #[must_use]
+    pub const fn suspicion_threshold(&self) -> usize {
+        self.suspicion_threshold
     }
 }

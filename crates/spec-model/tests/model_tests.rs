@@ -10,9 +10,12 @@ use serde_json::json;
 fn model() -> Model {
     Model::new(
         SpecReader::table(&SpecFiles::matrix()),
-        SpecReader::configuration(
-            &json!({"peer_id": "1", "peers": ["1", "2", "3"], "required_count": "2"}),
-        ),
+        SpecReader::configuration(&json!({
+            "peer_id": "1",
+            "peers": ["1", "2", "3"],
+            "required_count": "2",
+            "suspicion_threshold": "1",
+        })),
     )
 }
 
@@ -54,6 +57,10 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "deadline_missed": false,
                 "members": ["1", "2", "3"],
                 "addition": {"None": {}},
+                "suspected": [],
+                "misses": [],
+                "last_probed": {"None": {}},
+                "quorum": {"NotTracked": {}},
             },
             "admissible": [
                 "ParticipationObserved",
@@ -104,6 +111,10 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
             "AdditionCommitted",
             "AdditionAborted",
             "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
             "Probe",
         ])
     );
@@ -141,6 +152,10 @@ fn process_of_the_readiness_the_count_lacks_concludes() {
             "AdditionRequested",
             "AdditionCommitted",
             "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
             "Probe",
         ])
     );

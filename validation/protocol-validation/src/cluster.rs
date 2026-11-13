@@ -56,7 +56,7 @@ impl Cluster {
         let protocols = peer_ids
             .iter()
             .map(|&id| {
-                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(required));
+                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(required), 1);
                 Protocol::new(
                     Faction::new(config, Box::new(NoOpObserver)),
                     peer_ids.clone(),

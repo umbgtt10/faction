@@ -28,6 +28,7 @@ pub mod addition;
 pub mod answer;
 pub mod command;
 pub mod configuration;
+pub mod liveness;
 pub mod model;
 pub mod node_state;
 pub mod rules;

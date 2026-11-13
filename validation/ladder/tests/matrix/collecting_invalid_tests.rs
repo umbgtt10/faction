@@ -4,7 +4,8 @@
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 use super::helpers::{
-    addition_aborted, addition_requested, collecting_admissible, membership_acknowledged,
+    addition_aborted, addition_requested, collecting_admissible, indirect_probes_missed,
+    membership_acknowledged, peer_heard, probe_missed,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -41,6 +42,30 @@ use rstest::rstest;
 #[case::rejects_addition_aborted(
     Init::CollectingNoReadiness,
     addition_aborted(9),
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::rejects_probe_due(
+    Init::CollectingNoReadiness,
+    Command::ProbeDue,
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::rejects_peer_heard(
+    Init::CollectingNoReadiness,
+    peer_heard(1),
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::rejects_probe_missed(
+    Init::CollectingNoReadiness,
+    probe_missed(1),
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::rejects_indirect_probes_missed(
+    Init::CollectingNoReadiness,
+    indirect_probes_missed(1),
     &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
     collecting_admissible(),
 )]

@@ -14,7 +14,8 @@
       "4",
       "5"
     ],
-    "required_count": "3"
+    "required_count": "3",
+    "suspicion_threshold": "1"
   },
   "steps": [
     {
@@ -52,6 +53,14 @@
             ],
             "addition": {
               "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
             }
           },
           "admissible": [
@@ -102,6 +111,14 @@
             ],
             "addition": {
               "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
             }
           },
           "admissible": [
@@ -155,6 +172,14 @@
             ],
             "addition": {
               "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
             }
           },
           "admissible": [
@@ -195,6 +220,14 @@
       ],
       "addition": {
         "None": {}
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "NotTracked": {}
       }
     },
     "admissible": [

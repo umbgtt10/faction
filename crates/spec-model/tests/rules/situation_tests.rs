@@ -4,6 +4,8 @@
 use crate::support::node_states::NodeStates;
 use faction_spec_model::addition::Addition;
 use faction_spec_model::command::Command;
+use faction_spec_model::node_state::NodeState;
+use faction_spec_model::rules::change::Change;
 use faction_spec_model::rules::situation::Situation;
 use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::stage::Stage;
@@ -102,6 +104,44 @@ fn holds_always_in_any_situation_is_true() {
 }
 
 #[test]
+fn holds_completion_restores_quorum_for_another_peer_is_false() {
+    // Arrange
+    let state = NodeState {
+        required_count: 4,
+        ..NodeStates::reconfiguring(requested("4"))
+    };
+
+    // Act
+    let holds = Situation::CompletionRestoresQuorum.holds(
+        &naming(CommandName::AdditionCommitted, "5"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_completion_restores_quorum_for_the_pending_peer_on_a_lost_quorum_is_true() {
+    // Arrange
+    let state = NodeState {
+        required_count: 4,
+        ..NodeStates::reconfiguring(requested("4"))
+    };
+
+    // Act
+    let holds = Situation::CompletionRestoresQuorum.holds(
+        &naming(CommandName::AdditionCommitted, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
 fn holds_count_concludes_when_the_collecting_peers_fall_short_of_the_new_count_is_false() {
     // Arrange
     let state = NodeStates::of(Stage::Collecting, &[], &["1"]);
@@ -126,6 +166,30 @@ fn holds_count_concludes_when_the_collecting_peers_reach_the_new_count_is_true()
 }
 
 #[test]
+fn holds_loses_quorum_when_the_change_takes_the_members_not_suspected_below_the_count_is_true() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let holds = Situation::LosesQuorum(Change::CountSet).holds(&new_count(4), &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_loses_quorum_when_the_quorum_stays_held_is_false() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let holds = Situation::LosesQuorum(Change::CountSet).holds(&new_count(3), &state, &ADMITTED);
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
 fn holds_node_concludes_when_the_node_brings_the_count_to_the_required_is_true() {
     // Arrange
     let state = NodeStates::of(Stage::Pinging, &[], &["3"]);
@@ -147,6 +211,33 @@ fn holds_node_concludes_with_its_own_readiness_already_counted_is_false() {
 
     // Assert
     assert!(!holds);
+}
+
+#[test]
+fn holds_node_is_alone_for_a_node_with_members_is_false() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let holds = Situation::NodeIsAlone.holds(&new_count(1), &state, &ADMITTED);
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_node_is_alone_for_a_node_with_no_other_member_is_true() {
+    // Arrange
+    let state = NodeState {
+        members: NodeStates::peers(&["1"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::NodeIsAlone.holds(&new_count(1), &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
 }
 
 #[test]
@@ -387,4 +478,179 @@ fn holds_peer_is_pinging_for_a_pinging_peer_is_true() {
 
     // Assert
     assert!(holds);
+}
+
+#[test]
+fn holds_peer_is_self_for_another_member_is_false() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let holds =
+        Situation::PeerIsSelf.holds(&naming(CommandName::PeerHeard, "2"), &state, &ADMITTED);
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_peer_is_self_for_the_node_itself_is_true() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let holds =
+        Situation::PeerIsSelf.holds(&naming(CommandName::PeerHeard, "1"), &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_peer_is_suspected_for_a_member_not_suspected_is_false() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds =
+        Situation::PeerIsSuspected.holds(&naming(CommandName::PeerHeard, "3"), &state, &ADMITTED);
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_peer_is_suspected_for_a_suspect_is_true() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds =
+        Situation::PeerIsSuspected.holds(&naming(CommandName::PeerHeard, "2"), &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_restores_quorum_when_the_change_brings_the_members_not_suspected_to_the_count_is_true() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2", "3"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::RestoresQuorum(Change::PeerRevived).holds(
+        &naming(CommandName::PeerHeard, "2"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_restores_quorum_when_the_quorum_was_held_is_false() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::RestoresQuorum(Change::PeerRevived).holds(
+        &naming(CommandName::PeerHeard, "2"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_suspicion_loses_quorum_short_of_the_threshold_is_false() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2"]),
+        suspicion_threshold: 2,
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::SuspicionLosesQuorum.holds(
+        &naming(CommandName::IndirectProbesMissed, "3"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_suspicion_loses_quorum_when_the_threshold_suspects_a_member_the_count_needs_is_true() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::SuspicionLosesQuorum.holds(
+        &naming(CommandName::IndirectProbesMissed, "3"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_threshold_reached_by_the_period_the_threshold_counts_is_true() {
+    // Arrange
+    let state = NodeState {
+        suspicion_threshold: 2,
+        misses: NodeStates::misses(&[("3", 1)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::ThresholdReached.holds(
+        &naming(CommandName::IndirectProbesMissed, "3"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_threshold_reached_short_of_it_is_false() {
+    // Arrange
+    let state = NodeState {
+        suspicion_threshold: 3,
+        misses: NodeStates::misses(&[("3", 1)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = Situation::ThresholdReached.holds(
+        &naming(CommandName::IndirectProbesMissed, "3"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
 }

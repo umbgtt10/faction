@@ -25,7 +25,7 @@ extern crate alloc;
 
 fn faction_in_collecting() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });

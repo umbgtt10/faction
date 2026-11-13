@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 use crate::conclusion::Conclusion;
+use alloc::vec::Vec;
+
 use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,4 +28,15 @@ pub enum Outcome {
     AcknowledgementIgnored { peer_id: PeerId },
     AbortIgnored { peer_id: PeerId },
     RequiredCountSet { required_count: usize },
+    SendProbe { peer_id: PeerId },
+    NothingToProbe,
+    SendIndirectProbes { peer_id: PeerId, via: Vec<PeerId> },
+    MissCounted { peer_id: PeerId, misses: usize },
+    PeerSuspected { peer_id: PeerId },
+    PeerRevived { peer_id: PeerId },
+    AliveNoted { peer_id: PeerId },
+    AlreadySuspected { peer_id: PeerId },
+    SelfIgnored { peer_id: PeerId },
+    QuorumLost,
+    QuorumRestored,
 }

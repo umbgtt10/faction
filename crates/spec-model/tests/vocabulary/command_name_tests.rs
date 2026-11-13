@@ -24,6 +24,10 @@ fn name_of_each_command_is_the_vocabulary_s_in_the_commands_order() {
             "AdditionCommitted",
             "AdditionAborted",
             "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
             "Probe",
         ]
     );

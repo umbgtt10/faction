@@ -5,7 +5,9 @@ use alloc::vec;
 use faction::addition::Addition;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::members::Members;
+use faction::miss_count::MissCount;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
 
 fn base() -> ClusterViewBuilder {
     ClusterViewBuilder::default()
@@ -83,6 +85,16 @@ fn with_collecting_peers_updates_only_collecting_peers() {
 }
 
 #[test]
+fn with_last_probed_updates_only_the_member_probed_last() {
+    // Arrange & Act
+    let result = base().with_last_probed(Some(2)).build();
+
+    // Assert
+    assert_eq!(result.last_probed(), Some(2));
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
+}
+
+#[test]
 fn with_members_is_exposed_on_the_view() {
     // Arrange & Act
     let result = base().with_members(Members::new(vec![7, 8, 9])).build();
@@ -92,6 +104,27 @@ fn with_members_is_exposed_on_the_view() {
     assert_eq!(result.members().as_slice().len(), 3);
     assert!(result.members().is_member(8));
     assert!(!result.members().is_member(1));
+}
+
+#[test]
+fn with_misses_updates_only_the_missed_periods() {
+    // Arrange & Act
+    let result = base()
+        .with_misses(vec![MissCount {
+            peer_id: 1,
+            misses: 2,
+        }])
+        .build();
+
+    // Assert
+    assert_eq!(
+        result.misses(),
+        &[MissCount {
+            peer_id: 1,
+            misses: 2
+        }]
+    );
+    assert_eq!(result.required_count(), 3);
 }
 
 #[test]
@@ -106,5 +139,25 @@ fn with_peer_state_updates_only_peer_state() {
     assert_ne!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.pinging_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5, 6, 7]);
+    assert_eq!(result.required_count(), 3);
+}
+
+#[test]
+fn with_quorum_updates_only_the_quorum() {
+    // Arrange & Act
+    let result = base().with_quorum(Quorum::Lost).build();
+
+    // Assert
+    assert_eq!(result.quorum(), Quorum::Lost);
+    assert_eq!(result.peer_state(), PeerState::Bootstrapped);
+}
+
+#[test]
+fn with_suspected_updates_only_the_suspected_members() {
+    // Arrange & Act
+    let result = base().with_suspected(vec![2, 1]).build();
+
+    // Assert
+    assert_eq!(result.suspected(), &[2, 1]);
     assert_eq!(result.required_count(), 3);
 }

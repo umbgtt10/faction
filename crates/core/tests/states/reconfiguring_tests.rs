@@ -24,7 +24,7 @@ extern crate alloc;
 // peer 9.
 fn reach_reconfiguring() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::LocalParticipationCompleted);

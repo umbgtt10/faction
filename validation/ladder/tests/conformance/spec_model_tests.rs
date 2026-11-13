@@ -61,17 +61,32 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
         CommandName::MembershipAcknowledged,
         CommandName::AdditionAborted,
     ];
+    let liveness = [
+        CommandName::ProbeDue,
+        CommandName::PeerHeard,
+        CommandName::ProbeMissed,
+        CommandName::IndirectProbesMissed,
+    ];
     let prose = [
         (
             Stage::Initial,
-            but(&[[CommandName::DeadlineExpired].as_slice(), &addition].concat()),
+            but(&[
+                [CommandName::DeadlineExpired].as_slice(),
+                &addition,
+                &liveness,
+            ]
+            .concat()),
         ),
-        (Stage::Pinging, but(&addition)),
+        (
+            Stage::Pinging,
+            but(&[addition.as_slice(), &liveness].concat()),
+        ),
         (
             Stage::Collecting,
             but(&[
                 [CommandName::LocalParticipationCompleted].as_slice(),
                 &addition,
+                &liveness,
             ]
             .concat()),
         ),
@@ -85,6 +100,10 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::AdditionRequested,
                 CommandName::AdditionCommitted,
                 CommandName::RequiredCountChanged,
+                CommandName::ProbeDue,
+                CommandName::PeerHeard,
+                CommandName::ProbeMissed,
+                CommandName::IndirectProbesMissed,
                 CommandName::Probe,
             ],
         ),
@@ -98,6 +117,10 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::AdditionCommitted,
                 CommandName::AdditionAborted,
                 CommandName::RequiredCountChanged,
+                CommandName::ProbeDue,
+                CommandName::PeerHeard,
+                CommandName::ProbeMissed,
+                CommandName::IndirectProbesMissed,
                 CommandName::Probe,
             ],
         ),
@@ -141,7 +164,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
         .collect();
 
     // Assert
-    assert_eq!(vectors.len(), 62);
+    assert_eq!(vectors.len(), 78);
     assert!(departures.is_empty(), "{departures:#?}");
 }
 

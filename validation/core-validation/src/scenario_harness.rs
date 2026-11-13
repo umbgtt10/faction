@@ -26,7 +26,12 @@ impl ScenarioHarness {
 
         for peer_id in peer_set.iter().copied() {
             let faction = Faction::new(
-                Config::new(peer_id, peer_set.clone(), QuorumPolicy::new(required_count)),
+                Config::new(
+                    peer_id,
+                    peer_set.clone(),
+                    QuorumPolicy::new(required_count),
+                    1,
+                ),
                 Box::new(NoOpObserver),
             );
             factions.push(faction);

@@ -48,6 +48,7 @@ impl Newcomer {
                     self.peer_id,
                     peers.clone(),
                     QuorumPolicy::new(required_count),
+                    1,
                 );
                 let protocol =
                     Protocol::new(Faction::new(config, self.observer), peers, self.peer_id);

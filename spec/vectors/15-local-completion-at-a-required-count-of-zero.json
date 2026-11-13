@@ -10,7 +10,8 @@
       "2",
       "3"
     ],
-    "required_count": "0"
+    "required_count": "0",
+    "suspicion_threshold": "1"
   },
   "steps": [
     {
@@ -52,6 +53,14 @@
             ],
             "addition": {
               "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Held": {}
             }
           },
           "admissible": [
@@ -62,6 +71,10 @@
             "AdditionRequested",
             "AdditionCommitted",
             "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
             "Probe"
           ]
         }
@@ -87,6 +100,14 @@
       ],
       "addition": {
         "None": {}
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "Held": {}
       }
     },
     "admissible": [
@@ -97,6 +118,10 @@
       "AdditionRequested",
       "AdditionCommitted",
       "RequiredCountChanged",
+      "ProbeDue",
+      "PeerHeard",
+      "ProbeMissed",
+      "IndirectProbesMissed",
       "Probe"
     ]
   }

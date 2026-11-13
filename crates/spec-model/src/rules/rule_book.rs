@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 29] = [
+const RULES: [(&str, Rule); 46] = [
     (
         "probed",
         Rule {
@@ -121,6 +121,13 @@ const RULES: [(&str, Rule); 29] = [
         },
     ),
     (
+        "join-restores-quorum",
+        Rule {
+            situation: Situation::RestoresQuorum(Change::PeerJoins),
+            change: Change::PeerJoins,
+        },
+    ),
+    (
         "join-admitted",
         Rule {
             situation: Situation::Always,
@@ -184,10 +191,24 @@ const RULES: [(&str, Rule); 29] = [
         },
     ),
     (
+        "completion-restores-quorum",
+        Rule {
+            situation: Situation::CompletionRestoresQuorum,
+            change: Change::AdditionCompletes,
+        },
+    ),
+    (
         "addition-completed",
         Rule {
             situation: Situation::PeerIsPending,
             change: Change::AdditionCompletes,
+        },
+    ),
+    (
+        "commit-restores-quorum",
+        Rule {
+            situation: Situation::RestoresQuorum(Change::PeerJoins),
+            change: Change::PeerJoins,
         },
     ),
     (
@@ -205,10 +226,108 @@ const RULES: [(&str, Rule); 29] = [
         },
     ),
     (
+        "count-loses-quorum",
+        Rule {
+            situation: Situation::LosesQuorum(Change::CountSet),
+            change: Change::CountSet,
+        },
+    ),
+    (
+        "count-restores-quorum",
+        Rule {
+            situation: Situation::RestoresQuorum(Change::CountSet),
+            change: Change::CountSet,
+        },
+    ),
+    (
         "count-set",
         Rule {
             situation: Situation::Always,
             change: Change::CountSet,
+        },
+    ),
+    (
+        "probe-alone",
+        Rule {
+            situation: Situation::NodeIsAlone,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "probe-due",
+        Rule {
+            situation: Situation::Always,
+            change: Change::ProbeMoves,
+        },
+    ),
+    (
+        "liveness-self",
+        Rule {
+            situation: Situation::PeerIsSelf,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "liveness-non-member",
+        Rule {
+            situation: Situation::PeerIsNotMember,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "revival-restores-quorum",
+        Rule {
+            situation: Situation::RestoresQuorum(Change::PeerRevived),
+            change: Change::PeerRevived,
+        },
+    ),
+    (
+        "peer-revived",
+        Rule {
+            situation: Situation::PeerIsSuspected,
+            change: Change::PeerRevived,
+        },
+    ),
+    (
+        "alive-noted",
+        Rule {
+            situation: Situation::Always,
+            change: Change::MissesCleared,
+        },
+    ),
+    (
+        "miss-of-a-suspect",
+        Rule {
+            situation: Situation::PeerIsSuspected,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "probe-missed",
+        Rule {
+            situation: Situation::Always,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "suspicion-loses-quorum",
+        Rule {
+            situation: Situation::SuspicionLosesQuorum,
+            change: Change::PeerSuspected,
+        },
+    ),
+    (
+        "peer-suspected",
+        Rule {
+            situation: Situation::ThresholdReached,
+            change: Change::PeerSuspected,
+        },
+    ),
+    (
+        "miss-counted",
+        Rule {
+            situation: Situation::Always,
+            change: Change::MissCounted,
         },
     ),
 ];

@@ -63,7 +63,7 @@ impl NodeRecipe {
         transport: Box<dyn Transport>,
     ) -> FactionNode {
         let (faction_observer, node_observer) = self.observers(peer_id);
-        let config = Config::new(peer_id, peers.clone(), QuorumPolicy::new(self.required));
+        let config = Config::new(peer_id, peers.clone(), QuorumPolicy::new(self.required), 1);
         let protocol = Protocol::new(
             Faction::new(config, faction_observer),
             peers.clone(),

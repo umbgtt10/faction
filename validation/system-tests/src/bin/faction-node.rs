@@ -108,6 +108,7 @@ fn main() {
             config.peer_id,
             config.peers.clone(),
             QuorumPolicy::new(config.required),
+            1,
         );
         let protocol = Protocol::new(
             Faction::new(faction_config, observer),

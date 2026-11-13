@@ -7,6 +7,7 @@ use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::members::Members;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
 use faction::types::PeerId;
 use faction_core_validation::cluster_invariants::ClusterInvariants;
 
@@ -20,6 +21,10 @@ fn concluded(collecting_peers: Vec<PeerId>, required_count: usize) -> ClusterVie
         false,
         Members::new(vec![0, 1, 2]),
         Addition::None,
+        vec![],
+        vec![],
+        None,
+        Quorum::Held,
     )
 }
 
@@ -35,6 +40,10 @@ fn pinging(pinging_peers: Vec<PeerId>, collecting_peers: Vec<PeerId>) -> Cluster
         false,
         Members::new(vec![0, 1, 2]),
         Addition::None,
+        vec![],
+        vec![],
+        None,
+        Quorum::NotTracked,
     )
 }
 

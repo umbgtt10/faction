@@ -1,0 +1,384 @@
+{
+  "description": "The commit of the addition in flight on a coordinator short of its count ends the addition and restores the quorum.",
+  "rows": [
+    "local-concluded",
+    "count-loses-quorum",
+    "addition-requested",
+    "acknowledgement-accepted",
+    "completion-restores-quorum"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3"
+    ],
+    "required_count": "1",
+    "suspicion_threshold": "1"
+  },
+  "steps": [
+    {
+      "command": {
+        "LocalParticipationCompleted": {}
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "LocalParticipationCompleted": {}
+            },
+            {
+              "BroadcastLocalReady": {}
+            },
+            {
+              "Concluded": {
+                "mode": {
+                  "Bootstrapped": {}
+                }
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Bootstrapped": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "1",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Held": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "RequiredCountChanged": {
+          "required_count": "4"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "RequiredCountSet": {
+                "required_count": "4"
+              }
+            },
+            {
+              "QuorumLost": {}
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Bootstrapped": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "4",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Lost": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "AdditionRequested": {
+          "peer_id": "4"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "SendMembership": {
+                "peer_id": "4"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Bootstrapped": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "4",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "Requested": {
+                "peer_id": "4"
+              }
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Lost": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "JoinRequested",
+            "JoinRejected",
+            "MembershipAcknowledged",
+            "AdditionCommitted",
+            "AdditionAborted",
+            "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "MembershipAcknowledged": {
+          "peer_id": "4"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "ProposeAddition": {
+                "peer_id": "4"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Bootstrapped": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "4",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "Acknowledged": {
+                "peer_id": "4"
+              }
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Lost": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "JoinRequested",
+            "JoinRejected",
+            "MembershipAcknowledged",
+            "AdditionCommitted",
+            "AdditionAborted",
+            "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "AdditionCommitted": {
+          "peer_id": "4"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "MemberAdmitted": {
+                "peer_id": "4"
+              }
+            },
+            {
+              "QuorumRestored": {}
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Bootstrapped": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "4",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "addition": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Held": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Bootstrapped": {}
+      },
+      "is_pinging_completed": true,
+      "pinging_peers": [],
+      "collecting_peers": [
+        "1"
+      ],
+      "required_count": "4",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "addition": {
+        "None": {}
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "Held": {}
+      }
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "AdditionRequested",
+      "AdditionCommitted",
+      "RequiredCountChanged",
+      "ProbeDue",
+      "PeerHeard",
+      "ProbeMissed",
+      "IndirectProbesMissed",
+      "Probe"
+    ]
+  }
+}

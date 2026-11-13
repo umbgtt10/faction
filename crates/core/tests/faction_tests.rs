@@ -23,7 +23,7 @@ extern crate alloc;
 
 fn fresh() -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
         Box::new(NoOpObserver),
     )
 }
@@ -60,7 +60,7 @@ fn process(faction: &mut Faction, command: Command) -> Vec<Outcome> {
 fn recording_faction() -> (Faction, Observations) {
     let observations: Observations = Arc::new(Mutex::new(Vec::new()));
     let faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
         Box::new(RecordingObserver::new(Arc::clone(&observations))),
     );
     (faction, observations)
@@ -184,7 +184,7 @@ fn participation_from_an_admitted_peer_is_accepted() {
 #[test]
 fn process_accepted_admissible_equals_subsequent_probe() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5));
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1);
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
 
     // Act
@@ -204,7 +204,7 @@ fn process_accepted_admissible_equals_subsequent_probe() {
 #[test]
 fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5));
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1);
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
     let _ = faction.process(Command::ParticipationObserved { peer_id: 99 });
     let _ = faction.process(Command::LocalParticipationCompleted);
@@ -229,6 +229,10 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
+            Command::ProbeDue,
+            Command::PeerHeard { peer_id: 0 },
+            Command::ProbeMissed { peer_id: 0 },
+            Command::IndirectProbesMissed { peer_id: 0 },
             Command::Probe
         ]
     );
@@ -237,7 +241,7 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
 #[test]
 fn process_accepted_into_pinging_reports_pinging_s_admissible_set() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5));
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1);
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
 
     // Act
@@ -691,7 +695,7 @@ fn process_observes_timely_ready_from_collecting_no_quorum() {
 #[test]
 fn process_probe_does_not_mutate_state() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1);
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
 
@@ -713,7 +717,7 @@ fn process_probe_does_not_mutate_state() {
 #[test]
 fn process_probe_returns_cluster_view_with_initial_state() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1);
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
 
@@ -735,7 +739,7 @@ fn process_probe_returns_cluster_view_with_initial_state() {
 #[test]
 fn process_probe_works_after_valid_inputs() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4));
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1);
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
     let _ = faction.process(Command::ParticipationObserved { peer_id: 0 });

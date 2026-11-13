@@ -168,8 +168,8 @@ gaps.
   result; rejected commands live in per-state files (`initial_invalid_tests.rs`,
   `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`,
   `bootstrapped_invalid_tests.rs`, `reconfiguring_invalid_tests.rs`) under the row
-  `not-admitted` -- Pinging refuses an addition's coordination alone, and its file also
-  asserts it accepts the rest -- and `admissible_invariant_tests.rs` checks each stage's
+  `not-admitted` -- Pinging refuses an addition's coordination and liveness alone, and
+  its file also asserts it accepts the rest -- and `admissible_invariant_tests.rs` checks each stage's
   admissible set against the table's `admits` and against
   `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
 - Any new state or command variant MUST add its rows to the table first, then the
@@ -178,6 +178,10 @@ gaps.
   addition in flight, shown as `PeerState::Bootstrapped`. A missed deadline is
   non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view
   flag.
+- Liveness is no stage: the concluded stages alone admit its four commands, and the
+  suspected members, the missed periods, the member probed last and the quorum are what
+  the view reports of it. The property tier holds its three invariants
+  (`property/liveness_tests.rs`).
 
 ### State transition model
 

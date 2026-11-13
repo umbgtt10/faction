@@ -37,7 +37,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
 }
 
 fn protocol() -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2));
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1);
     Protocol::new(Faction::new(config, Box::new(NoOpObserver)), vec![0, 1], 0)
 }
 

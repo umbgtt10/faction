@@ -38,7 +38,7 @@ impl Reconfiguring {
 }
 
 impl State for Reconfiguring {
-    fn step(&self, command: Command, _config: &Config) -> Option<(Vec<Outcome>, Stage)> {
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         match command {
             Command::JoinApproved { .. } => None,
             Command::MembershipAcknowledged { peer_id } => {
@@ -66,17 +66,20 @@ impl State for Reconfiguring {
             )),
             Command::AdditionCommitted { peer_id } if peer_id == self.pending => self
                 .concluded
-                .answer(command)
+                .answer(command, config)
                 .map(|(outcomes, concluded)| (outcomes, Stage::Bootstrapped(concluded))),
-            _ => self.concluded.answer(command).map(|(outcomes, concluded)| {
-                (
-                    outcomes,
-                    Stage::Reconfiguring(Self {
-                        concluded,
-                        ..self.clone()
-                    }),
-                )
-            }),
+            _ => self
+                .concluded
+                .answer(command, config)
+                .map(|(outcomes, concluded)| {
+                    (
+                        outcomes,
+                        Stage::Reconfiguring(Self {
+                            concluded,
+                            ..self.clone()
+                        }),
+                    )
+                }),
         }
     }
 

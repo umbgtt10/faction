@@ -5,7 +5,9 @@ use alloc::vec::Vec;
 
 use crate::addition::Addition;
 use crate::members::Members;
+use crate::miss_count::MissCount;
 use crate::peer_state::PeerState;
+use crate::quorum::Quorum;
 use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,6 +20,10 @@ pub struct ClusterView {
     deadline_missed: bool,
     members: Members,
     addition: Addition,
+    suspected: Vec<PeerId>,
+    misses: Vec<MissCount>,
+    last_probed: Option<PeerId>,
+    quorum: Quorum,
 }
 
 impl ClusterView {
@@ -32,6 +38,10 @@ impl ClusterView {
         deadline_missed: bool,
         members: Members,
         addition: Addition,
+        suspected: Vec<PeerId>,
+        misses: Vec<MissCount>,
+        last_probed: Option<PeerId>,
+        quorum: Quorum,
     ) -> Self {
         let peer_state = if deadline_missed && peer_state != PeerState::Bootstrapped {
             PeerState::TimedOut
@@ -48,6 +58,10 @@ impl ClusterView {
             deadline_missed,
             members,
             addition,
+            suspected,
+            misses,
+            last_probed,
+            quorum,
         }
     }
 
@@ -72,8 +86,18 @@ impl ClusterView {
     }
 
     #[must_use]
+    pub fn last_probed(&self) -> Option<PeerId> {
+        self.last_probed
+    }
+
+    #[must_use]
     pub fn members(&self) -> &Members {
         &self.members
+    }
+
+    #[must_use]
+    pub fn misses(&self) -> &[MissCount] {
+        &self.misses
     }
 
     #[must_use]
@@ -87,7 +111,17 @@ impl ClusterView {
     }
 
     #[must_use]
+    pub fn quorum(&self) -> Quorum {
+        self.quorum
+    }
+
+    #[must_use]
     pub fn required_count(&self) -> usize {
         self.required_count
+    }
+
+    #[must_use]
+    pub fn suspected(&self) -> &[PeerId] {
+        &self.suspected
     }
 }

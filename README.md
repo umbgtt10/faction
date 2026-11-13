@@ -203,6 +203,7 @@ let config = Config::new(
     0,
     alloc::vec![0, 1, 2, 3, 4],
     QuorumPolicy::new(4),
+    1,
 );
 
 let mut machine = Faction::new(config, Box::new(NoOpObserver));
@@ -231,6 +232,10 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
+            Command::ProbeDue,
+            Command::PeerHeard { peer_id: 0 },
+            Command::ProbeMissed { peer_id: 0 },
+            Command::IndirectProbesMissed { peer_id: 0 },
             Command::Probe
         ]
     );

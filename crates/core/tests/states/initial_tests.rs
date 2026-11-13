@@ -22,7 +22,7 @@ extern crate alloc;
 
 fn test_faction() -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
         Box::new(NoOpObserver),
     )
 }
@@ -55,7 +55,7 @@ fn cluster_view_inherits_correctly() {
 fn new_returns_initial_state() {
     // Arrange & Act
     let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
-    let config = Config::new(0, vec![0], QuorumPolicy::new(1));
+    let config = Config::new(0, vec![0], QuorumPolicy::new(1), 1);
     let (outcomes, new_state) = initial
         .step(Command::ParticipationObserved { peer_id: 0 }, &config)
         .expect("an Initial node admits participation");
@@ -171,7 +171,7 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
 fn process_local_participation_completed_single_node_bootstraps() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0], QuorumPolicy::new(1)),
+        Config::new(0, vec![0], QuorumPolicy::new(1), 1),
         Box::new(NoOpObserver),
     );
 

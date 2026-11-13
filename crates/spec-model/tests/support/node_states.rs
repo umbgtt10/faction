@@ -4,6 +4,7 @@
 use faction_spec_model::addition::Addition;
 use faction_spec_model::node_state::NodeState;
 use faction_spec_model::vocabulary::stage::Stage;
+use std::collections::BTreeMap;
 
 // Node 1 of a cluster of members 1, 2 and 3 that requires two, in the given
 // stage, with the given pinging and collecting peers.
@@ -20,7 +21,23 @@ impl NodeStates {
             collecting_peers: Self::peers(collecting_peers),
             deadline_missed: false,
             addition: Addition::None,
+            suspicion_threshold: 1,
+            suspected: Vec::new(),
+            misses: BTreeMap::new(),
+            last_probed: None,
         }
+    }
+
+    // Concluded, the node itself its one collecting peer, every member alive.
+    pub fn concluded() -> NodeState {
+        Self::of(Stage::Bootstrapped, &[], &["1"])
+    }
+
+    pub fn misses(misses: &[(&str, u64)]) -> BTreeMap<String, u64> {
+        misses
+            .iter()
+            .map(|(peer, count)| (String::from(*peer), *count))
+            .collect()
     }
 
     // Concluded with an addition in flight, the node itself its one collecting
