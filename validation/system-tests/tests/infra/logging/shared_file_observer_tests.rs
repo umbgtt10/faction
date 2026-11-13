@@ -10,6 +10,7 @@ use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
+use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
@@ -20,6 +21,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
@@ -56,7 +58,7 @@ impl TempFile {
     fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
         let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let name = format!("test_sfo_{}_{}.jsonl", std::process::id(), n);
+        let name = format!("test_sfo_{}_{}.jsonl", process::id(), n);
         Self {
             path: temp_dir().join(name),
         }
@@ -143,9 +145,7 @@ fn node_observer_on_step_writes_step_event_with_decision_count() {
     let decisions = vec![
         OutputMessage::Noop,
         OutputMessage::BroadcastReady,
-        OutputMessage::Schedule(faction_protocol::timer_event::TimerEvent::Fire(
-            TimerMessage::RetryPing,
-        )),
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
     ];
 
     // Act
