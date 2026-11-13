@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::DEFAULT_PROBE_STRETCH;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
@@ -26,6 +27,7 @@ impl Args {
         let mut required: Option<usize> = None;
         let mut suspicion_threshold: Option<usize> = None;
         let mut freshness_margin: Option<u64> = None;
+        let mut probe_stretch: Option<u32> = None;
         let mut transport: Option<TransportKind> = None;
 
         let mut listen_addr: Option<SocketAddr> = None;
@@ -58,6 +60,10 @@ impl Args {
                     i += 1;
                     suspicion_threshold =
                         Some(self.args[i].parse().expect("invalid --suspicion-threshold"));
+                }
+                "--probe-stretch" => {
+                    i += 1;
+                    probe_stretch = Some(self.args[i].parse().expect("invalid --probe-stretch"));
                 }
                 "--freshness-margin" => {
                     i += 1;
@@ -114,6 +120,7 @@ impl Args {
             required: required.expect("missing --required"),
             suspicion_threshold: suspicion_threshold.expect("missing --suspicion-threshold"),
             freshness_margin: freshness_margin.unwrap_or(2),
+            probe_stretch: probe_stretch.unwrap_or(DEFAULT_PROBE_STRETCH),
             transport: transport.expect("missing --transport"),
 
             listen_addr: listen_addr.expect("missing --listen-addr"),

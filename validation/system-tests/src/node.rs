@@ -262,18 +262,9 @@ impl Node {
         }
     }
 
-    // A task node run until its timer and its transport are both idle, as a
-    // thread or a process runs between two pauses; the others run themselves.
     pub fn step(&self) {
         if let Self::Task { node } = self {
-            let mut idle = 0;
-            while idle < 2 {
-                idle = if node.borrow_mut().step() {
-                    0
-                } else {
-                    idle + 1
-                };
-            }
+            node.borrow_mut().step();
         }
     }
 

@@ -19,49 +19,56 @@ use std::path::PathBuf;
 
 const COORDINATOR: usize = 1;
 const NEWCOMER: PeerId = 3;
-const SETTLE_ROUNDS: usize = 50;
+// Rounds a cut is left for, per unit of stretch: longer than a member cut off
+// would take to be suspected, were it not saved.
+const SETTLE_ROUNDS_PER_STRETCH: usize = 60;
 const SUSPICION_THRESHOLD: usize = 2;
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
 fn a_member_cut_off_from_one_node_is_saved_by_indirect_probes(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
+    #[case] probe_stretch: u32,
 ) {
     // Arrange
-    let mut cluster = concluded("cut", 5, 3, spawn, transport);
+    let mut cluster = concluded("cut", 5, 3, spawn, transport, probe_stretch);
 
     // Act
     cluster.cut(0, 4);
-    cluster.settle(SETTLE_ROUNDS);
+    cluster.settle(SETTLE_ROUNDS_PER_STRETCH * probe_stretch as usize);
 
     // Assert
     assert!((0..5).all(|index| cluster.snapshot(index).suspected.is_empty()));
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc)]
-fn a_member_heard_again_is_revived(#[case] spawn: Spawn, #[case] transport: TransportKind) {
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
+fn a_member_heard_again_is_revived(
+    #[case] spawn: Spawn,
+    #[case] transport: TransportKind,
+    #[case] probe_stretch: u32,
+) {
     // Arrange
-    let mut cluster = concluded("revived", 5, 3, spawn, transport);
+    let mut cluster = concluded("revived", 5, 3, spawn, transport, probe_stretch);
     cluster.silence(4);
     cluster.poll_until(|cluster| suspected_by(cluster, &[0, 1, 2, 3], 4));
 
@@ -74,22 +81,23 @@ fn a_member_heard_again_is_revived(#[case] spawn: Spawn, #[case] transport: Tran
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
 fn a_silenced_member_is_suspected_by_every_other(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
+    #[case] probe_stretch: u32,
 ) {
     // Arrange
-    let mut cluster = concluded("silenced", 5, 3, spawn, transport);
+    let mut cluster = concluded("silenced", 5, 3, spawn, transport, probe_stretch);
 
     // Act
     cluster.silence(4);
@@ -101,22 +109,23 @@ fn a_silenced_member_is_suspected_by_every_other(
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
 fn an_added_member_is_probed_once_committed(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
+    #[case] probe_stretch: u32,
 ) {
     // Arrange
-    let mut cluster = concluded("added", 3, 2, spawn, transport);
+    let mut cluster = concluded("added", 3, 2, spawn, transport, probe_stretch);
     cluster.add(
         COORDINATOR,
         NEWCOMER,
@@ -134,17 +143,21 @@ fn an_added_member_is_probed_once_committed(
     assert!(suspected_by(&cluster, &[0, 1, 2], NEWCOMER));
 }
 
+// A cluster concluded, its probe period and timeouts stretched as the case's
+// nodes need them.
 fn concluded(
     scenario: &str,
     size: usize,
     required: usize,
     spawn: Spawn,
     transport: TransportKind,
+    probe_stretch: u32,
 ) -> Cluster {
     let mut cluster = ClusterBuilder::new(size, required, real_time())
         .spawn(spawn)
         .transport(transport)
         .suspicion_threshold(SUSPICION_THRESHOLD)
+        .probe_stretch(probe_stretch)
         .log_dir(scenario_log(scenario, spawn, transport))
         .build();
     cluster.poll_until_bootstrapped();
@@ -156,22 +169,23 @@ fn scenario_log(scenario: &str, spawn: Spawn, transport: TransportKind) -> PathB
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
 fn silencing_too_many_loses_quorum_and_their_return_restores_it(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
+    #[case] probe_stretch: u32,
 ) {
     // Arrange
-    let mut cluster = concluded("quorum", 5, 3, spawn, transport);
+    let mut cluster = concluded("quorum", 5, 3, spawn, transport, probe_stretch);
     for peer_id in 2..5 {
         cluster.silence(peer_id);
     }

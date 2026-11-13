@@ -46,6 +46,7 @@ fn spec() -> ProcessSpec {
         1,
         Duration::from_millis(10),
         100,
+        1,
         None,
         TcpReadiness::new(real_time(), Duration::from_secs(30)),
     )
@@ -313,7 +314,7 @@ fn spawn_thread_runs_the_node_on_a_thread_of_its_own() {
 }
 
 #[test]
-fn start_and_step_of_a_task_node_reach_collecting() {
+fn start_and_step_of_a_task_node_reach_pinging() {
     // Arrange
     let (node, clock) = task_node();
 
@@ -323,7 +324,7 @@ fn start_and_step_of_a_task_node_reach_collecting() {
     node.step();
 
     // Assert
-    assert_eq!(node.peer_state(), PeerState::Collecting);
+    assert_eq!(node.peer_state(), PeerState::Pinging);
 }
 
 #[test]

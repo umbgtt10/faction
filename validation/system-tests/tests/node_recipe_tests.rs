@@ -54,6 +54,7 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
         1,
         Duration::from_millis(10),
         Duration::from_secs(10),
+        1,
         Some(dir.clone()),
         time,
     );

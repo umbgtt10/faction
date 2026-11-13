@@ -61,6 +61,7 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
         1,
         Duration::from_millis(10),
         Duration::from_secs(10),
+        1,
         None,
         time.clone(),
     )

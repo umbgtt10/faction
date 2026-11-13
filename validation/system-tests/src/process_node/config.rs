@@ -14,6 +14,7 @@ pub struct ProcessNodeConfig {
     pub required: usize,
     pub suspicion_threshold: usize,
     pub freshness_margin: u64,
+    pub probe_stretch: u32,
     pub transport: TransportKind,
 
     pub listen_addr: SocketAddr,

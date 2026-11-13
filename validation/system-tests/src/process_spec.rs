@@ -20,6 +20,7 @@ pub struct ProcessSpec {
     suspicion_threshold: usize,
     timer_delay: Duration,
     freshness_margin: u32,
+    probe_stretch: u32,
     log_dir: Option<PathBuf>,
     readiness: TcpReadiness,
 }
@@ -34,6 +35,7 @@ impl ProcessSpec {
         suspicion_threshold: usize,
         timer_delay: Duration,
         freshness_margin: u32,
+        probe_stretch: u32,
         log_dir: Option<PathBuf>,
         readiness: TcpReadiness,
     ) -> Self {
@@ -44,6 +46,7 @@ impl ProcessSpec {
             suspicion_threshold,
             timer_delay,
             freshness_margin,
+            probe_stretch,
             log_dir,
             readiness,
         }
@@ -113,6 +116,8 @@ impl ProcessSpec {
             .arg(self.suspicion_threshold.to_string())
             .arg("--freshness-margin")
             .arg(self.freshness_margin.to_string())
+            .arg("--probe-stretch")
+            .arg(self.probe_stretch.to_string())
             .arg("--transport")
             .arg(transport_arg)
             .arg("--timer-delay")

@@ -100,6 +100,7 @@ fn main() {
         time.clock.clone(),
         delay,
         deadline_delay,
+        config.probe_stretch,
     ));
 
     let (peers, role) = if config.newcomer {

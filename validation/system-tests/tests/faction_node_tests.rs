@@ -54,6 +54,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        1,
     );
     let mut node = FactionNode::new(
         0,
@@ -87,6 +88,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        1,
     );
     let node = FactionNode::new(
         5,
@@ -119,6 +121,7 @@ fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        1,
     );
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
@@ -154,6 +157,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        1,
     );
     let node = FactionNode::new(
         0,

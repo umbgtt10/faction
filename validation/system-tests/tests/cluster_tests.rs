@@ -113,8 +113,8 @@ fn step_all_steps_every_node() {
     cluster.step_all();
 
     // Assert
-    assert_eq!(cluster.node_state(0), PeerState::Collecting);
-    assert_eq!(cluster.node_state(1), PeerState::Bootstrapped);
+    assert_eq!(cluster.node_state(0), PeerState::Pinging);
+    assert_eq!(cluster.node_state(1), PeerState::Pinging);
 }
 
 #[test]

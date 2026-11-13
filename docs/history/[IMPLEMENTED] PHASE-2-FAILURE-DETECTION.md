@@ -22,9 +22,11 @@ added at their word — and the plan as accepted, but for these departures, each
   mend travels as an admission does — a call, a thread's `NodeCommand`, a process's stdin line (§7).
 - **The probe period and its timeouts in delays of their own.** One delay for every timer suspected live members;
   the period is five timer delays, the probe's timeout four, the indirect probes' eight (§7).
-- **A task node steps until idle.** One input a round could not keep up with its probes; a task node now steps
-  until its timer and its transport are both idle, as a thread or a process does between two pauses. Two tests
-  pinned the old single step and take the new values, as specific (§7).
+- **Stretched for the task spawn, case by case.** A task node reads one input a step, and the cluster's poll round
+  is the timer delay, so a longer delay stretches the round with the timeouts and changes nothing. The timeouts
+  are stretched instead: `ClusterBuilder::probe_stretch`, a process's `--probe-stretch`, and each liveness case
+  states its stretch as the convergence cases state their `TimerDelay` — three for a task, one for a thread or a
+  process; the cut scenario settles sixty rounds a stretch, and fails within them with no helpers asked (§7).
 - **The quorum before the conclusion is `off` on the state line**, not `untracked`, which a test counting `ack`
   lines matched (§7).
 **Releases:** specification 0.3.0, then the crate 0.7.0.

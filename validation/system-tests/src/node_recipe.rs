@@ -38,6 +38,7 @@ pub struct NodeRecipe {
     suspicion_threshold: usize,
     delay: Duration,
     deadline_delay: Duration,
+    probe_stretch: u32,
     log_dir: Option<PathBuf>,
     time: TimePorts,
 }
@@ -49,6 +50,7 @@ impl NodeRecipe {
         suspicion_threshold: usize,
         delay: Duration,
         deadline_delay: Duration,
+        probe_stretch: u32,
         log_dir: Option<PathBuf>,
         time: TimePorts,
     ) -> Self {
@@ -57,6 +59,7 @@ impl NodeRecipe {
             suspicion_threshold,
             delay,
             deadline_delay,
+            probe_stretch,
             log_dir,
             time,
         }
@@ -198,6 +201,7 @@ impl NodeRecipe {
             self.time.clock.clone(),
             self.delay,
             self.deadline_delay,
+            self.probe_stretch,
         ))
     }
 
