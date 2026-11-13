@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.0] — unreleased
+## [0.7.0] — 2026-11-13
 
 ### Phase 2: a concluded node watches its members' liveness
 

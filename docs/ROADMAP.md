@@ -3,7 +3,7 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-13  
-**Current status:** Phase 2 — failure detection landed (specification 0.3.0, unreleased; the crate 0.7.0 at the owner's word)
+**Current status:** Phase 2 — failure detection landed (specification 0.3.0, released in 0.7.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -141,7 +141,7 @@ model, `crates/spec-model/`, checks each phase's vectors before the crate runs t
 
 ## Phase 2 — Failure detection
 
-**Status:** ✅ Complete — specification 0.3.0; the crate 0.7.0, unreleased
+**Status:** ✅ Complete — specification 0.3.0, released in 0.7.0
 **Depends on:** Phases 1 and 3 complete — built after Phase 3
 **Removes limitation:** L2 — no liveness tracking
 
@@ -355,7 +355,7 @@ release candidate.
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
 | cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.3.0 written |
-| 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0; the crate 0.7.0, unreleased) |
+| 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | Planned |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |
