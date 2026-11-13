@@ -10,8 +10,8 @@ use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 use std::thread::spawn;
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 
 use crate::node_snapshot::NodeSnapshot;
 
@@ -37,24 +37,13 @@ impl StateReader {
         })
     }
 
-    fn parse_addition(text: &str) -> Option<Addition> {
-        match text.split_once(':') {
-            Some(("requested", peer_id)) => Some(Addition::Requested {
-                peer_id: peer_id.parse().ok()?,
-            }),
-            Some(("acknowledged", peer_id)) => Some(Addition::Acknowledged {
-                peer_id: peer_id.parse().ok()?,
-            }),
-            _ => (text == "none").then_some(Addition::None),
-        }
-    }
-
     fn parse_peer_state(name: &str) -> PeerState {
         match name {
             "Pinging" => PeerState::Pinging,
             "Collecting" => PeerState::Collecting,
             "Bootstrapped" => PeerState::Bootstrapped,
             "TimedOut" => PeerState::TimedOut,
+            "Removed" => PeerState::Removed,
             _ => PeerState::Fresh,
         }
     }
@@ -68,6 +57,21 @@ impl StateReader {
         }
     }
 
+    fn parse_reconfiguration(text: &str) -> Option<Reconfiguration> {
+        match text.split_once(':') {
+            Some(("requested", peer_id)) => Some(Reconfiguration::AdditionRequested {
+                peer_id: peer_id.parse().ok()?,
+            }),
+            Some(("acknowledged", peer_id)) => Some(Reconfiguration::AdditionAcknowledged {
+                peer_id: peer_id.parse().ok()?,
+            }),
+            Some(("removing", peer_id)) => Some(Reconfiguration::RemovalRequested {
+                peer_id: peer_id.parse().ok()?,
+            }),
+            _ => (text == "none").then_some(Reconfiguration::None),
+        }
+    }
+
     fn parse_state(line: &str) -> Option<NodeSnapshot> {
         let mut parts = line.split_whitespace();
         if parts.next()? != "state" {
@@ -76,14 +80,14 @@ impl StateReader {
         let peer_state = Self::parse_peer_state(parts.next()?);
         let member_count = parts.next()?.parse().ok()?;
         let required_count = parts.next()?.parse().ok()?;
-        let addition = Self::parse_addition(parts.next()?)?;
+        let reconfiguration = Self::parse_reconfiguration(parts.next()?)?;
         let suspected = Self::parse_suspected(parts.next()?)?;
         let quorum = Self::parse_quorum(parts.next()?)?;
         Some(NodeSnapshot {
             peer_state,
             member_count,
             required_count,
-            addition,
+            reconfiguration,
             suspected,
             quorum,
         })

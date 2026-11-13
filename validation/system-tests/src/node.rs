@@ -15,8 +15,8 @@ use std::thread::JoinHandle;
 use std::thread::spawn;
 use std::time::Duration;
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use crate::faction_node::FactionNode;
@@ -31,7 +31,7 @@ const FRESH: NodeSnapshot = NodeSnapshot {
     peer_state: PeerState::Fresh,
     member_count: 0,
     required_count: 0,
-    addition: Addition::None,
+    reconfiguration: Reconfiguration::None,
     suspected: Vec::new(),
     quorum: Quorum::NotTracked,
 };
@@ -103,6 +103,16 @@ impl Node {
         }
     }
 
+    pub fn abort_removal(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().abort_removal(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::AbortRemoval(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("abort-removal {peer_id}")),
+        }
+    }
+
     pub fn add_peer_address(&self, peer_id: PeerId, addr: SocketAddr) {
         if let Self::Process { channel, .. } = self {
             channel.send(&format!("peer {peer_id} {addr}"));
@@ -140,6 +150,16 @@ impl Node {
                 Self::send_command(commands, |ack| NodeCommand::CommitAddition(peer_id, ack));
             }
             Self::Process { channel, .. } => channel.send(&format!("commit-addition {peer_id}")),
+        }
+    }
+
+    pub fn commit_removal(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().commit_removal(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::CommitRemoval(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("commit-removal {peer_id}")),
         }
     }
 
@@ -220,6 +240,16 @@ impl Node {
                 Self::send_command(commands, |ack| NodeCommand::RequestJoin(peer_id, ack));
             }
             Self::Process { channel, .. } => channel.send(&format!("request-join {peer_id}")),
+        }
+    }
+
+    pub fn request_removal(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().request_removal(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::RequestRemoval(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("request-removal {peer_id}")),
         }
     }
 

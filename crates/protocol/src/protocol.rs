@@ -4,13 +4,13 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
@@ -50,6 +50,10 @@ impl Protocol {
         self.apply(Command::AdditionAborted { peer_id })
     }
 
+    pub fn abort_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::RemovalAborted { peer_id })
+    }
+
     pub fn admit(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::JoinApproved { peer_id })
     }
@@ -64,6 +68,10 @@ impl Protocol {
 
     pub fn commit_addition(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::AdditionCommitted { peer_id })
+    }
+
+    pub fn commit_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::RemovalCommitted { peer_id })
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
@@ -139,6 +147,10 @@ impl Protocol {
         self.apply(Command::JoinRequested { peer_id })
     }
 
+    pub fn request_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+        self.apply(Command::RemovalRequested { peer_id })
+    }
+
     fn apply(&mut self, command: Command) -> Vec<OutputMessage> {
         match self.faction.process(command) {
             ProcessResult::Accepted {
@@ -174,7 +186,7 @@ impl Protocol {
     // acknowledgement, and its retry with it; nothing once it has come.
     fn resend_membership(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         let view = self.cluster_view();
-        if view.addition() == (Addition::Requested { peer_id }) {
+        if view.reconfiguration() == (Reconfiguration::AdditionRequested { peer_id }) {
             self.translator.to_output_messages(
                 vec![Outcome::SendMembership { peer_id }],
                 &view,

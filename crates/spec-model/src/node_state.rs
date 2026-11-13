@@ -5,7 +5,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::addition::Addition;
+use crate::reconfiguration::Reconfiguration;
 use crate::vocabulary::stage::Stage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,7 +17,8 @@ pub struct NodeState {
     pub pinging_peers: Vec<String>,
     pub collecting_peers: Vec<String>,
     pub deadline_missed: bool,
-    pub addition: Addition,
+    pub reconfiguration: Reconfiguration,
+    pub completed_before_removal: bool,
     pub suspicion_threshold: u64,
     pub suspected: Vec<String>,
     pub misses: BTreeMap<String, u64>,

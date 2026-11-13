@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use crate::approver::Approver;
@@ -61,6 +61,10 @@ impl Cluster {
 
     pub fn abort_addition(&self, coordinator: usize, newcomer_id: PeerId) {
         self.nodes[coordinator].abort_addition(newcomer_id);
+    }
+
+    pub fn abort_removal(&self, coordinator: usize, peer_id: PeerId) {
+        self.nodes[coordinator].abort_removal(peer_id);
     }
 
     // An addition carried through: the newcomer added, its addition requested
@@ -129,6 +133,18 @@ impl Cluster {
             if let Some(required_count) = required_count {
                 node.change_required_count(required_count);
             }
+        }
+    }
+
+    // The removal committed, reported to every node -- the one removed among
+    // them -- with the new required count first, if one is given, so that no
+    // node shows its quorum lost between the two.
+    pub fn commit_removal(&self, peer_id: PeerId, required_count: Option<usize>) {
+        for node in &self.nodes {
+            if let Some(required_count) = required_count {
+                node.change_required_count(required_count);
+            }
+            node.commit_removal(peer_id);
         }
     }
 
@@ -209,17 +225,28 @@ impl Cluster {
     // is proposed to the layer that commits.
     pub fn poll_until_proposed(&mut self, coordinator: usize, newcomer_id: PeerId) {
         self.start_all();
-        let proposed = Addition::Acknowledged {
+        let proposed = Reconfiguration::AdditionAcknowledged {
             peer_id: newcomer_id,
         };
-        while self.nodes[coordinator].snapshot().addition != proposed {
+        while self.nodes[coordinator].snapshot().reconfiguration != proposed {
             self.step_all();
             self.pause.pause(self.poll_delay);
         }
     }
 
+    // Until the coordinator's removal of `peer_id` is in flight: proposed to the
+    // layer that commits.
+    pub fn poll_until_removal_proposed(&mut self, coordinator: usize, peer_id: PeerId) {
+        let proposed = Reconfiguration::RemovalRequested { peer_id };
+        self.poll_until(|cluster| cluster.snapshot(coordinator).reconfiguration == proposed);
+    }
+
     pub fn request_addition(&self, coordinator: usize, newcomer_id: PeerId) {
         self.nodes[coordinator].request_addition(newcomer_id);
+    }
+
+    pub fn request_removal(&self, coordinator: usize, peer_id: PeerId) {
+        self.nodes[coordinator].request_removal(peer_id);
     }
 
     pub fn settle(&mut self, rounds: usize) {

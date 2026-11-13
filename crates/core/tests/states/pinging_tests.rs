@@ -390,6 +390,24 @@ fn process_ready_observed_non_member() {
 }
 
 #[test]
+fn process_removal_committed_takes_the_peer_out_of_the_members_and_the_peers_gathered() {
+    // Arrange
+    let mut faction = faction_in_pinging();
+    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 1 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 1 }]);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 2, 3, 4]);
+    assert!(cluster_view.pinging_peers().is_empty());
+    assert!(cluster_view.collecting_peers().is_empty());
+    assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
+}
+
+#[test]
 fn process_required_count_changed_is_the_count_the_node_s_completion_checks() {
     // Arrange
     let mut faction = faction_in_pinging();

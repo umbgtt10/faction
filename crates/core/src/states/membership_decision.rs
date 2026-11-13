@@ -6,13 +6,14 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::types::PeerId;
 
 // A decision on who may be counted, or how many are required: a join decision,
-// a committed addition, or a new required count.
+// a committed addition or removal, or a new required count.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MembershipDecision {
     Requested(PeerId),
     Approved(PeerId),
     Rejected(PeerId),
     Committed(PeerId),
+    Removed(PeerId),
     Counted(QuorumPolicy),
 }
 
@@ -24,6 +25,7 @@ impl MembershipDecision {
             Command::JoinApproved { peer_id } => Some(Self::Approved(*peer_id)),
             Command::JoinRejected { peer_id } => Some(Self::Rejected(*peer_id)),
             Command::AdditionCommitted { peer_id } => Some(Self::Committed(*peer_id)),
+            Command::RemovalCommitted { peer_id } => Some(Self::Removed(*peer_id)),
             Command::RequiredCountChanged { required_count } => {
                 Some(Self::Counted(QuorumPolicy::new(*required_count)))
             }

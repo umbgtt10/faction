@@ -14,6 +14,8 @@ use rstest::rstest;
 #[case(Init::CollectingNoReadiness, "Collecting")]
 #[case(Init::Bootstrapped, "Bootstrapped")]
 #[case(Init::Reconfiguring, "Reconfiguring")]
+#[case(Init::Removing, "Reconfiguring")]
+#[case(Init::Removed, "Removed")]
 fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case] stage: &str) {
     let candidates = [
         Command::ParticipationObserved { peer_id: 0 },
@@ -27,6 +29,9 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
         Command::MembershipAcknowledged { peer_id: 0 },
         Command::AdditionCommitted { peer_id: 0 },
         Command::AdditionAborted { peer_id: 0 },
+        Command::RemovalRequested { peer_id: 0 },
+        Command::RemovalCommitted { peer_id: 0 },
+        Command::RemovalAborted { peer_id: 0 },
         Command::RequiredCountChanged { required_count: 0 },
     ];
 

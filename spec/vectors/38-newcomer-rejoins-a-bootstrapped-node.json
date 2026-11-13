@@ -53,7 +53,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -72,6 +72,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -114,7 +116,7 @@
               "3",
               "9"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -133,6 +135,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -175,7 +179,7 @@
               "3",
               "9"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -194,6 +198,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -223,7 +229,7 @@
         "3",
         "9"
       ],
-      "addition": {
+      "reconfiguration": {
         "None": {}
       },
       "suspected": [],
@@ -242,6 +248,8 @@
       "JoinRejected",
       "AdditionRequested",
       "AdditionCommitted",
+      "RemovalRequested",
+      "RemovalCommitted",
       "RequiredCountChanged",
       "ProbeDue",
       "PeerHeard",

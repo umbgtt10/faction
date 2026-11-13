@@ -3,9 +3,9 @@
 
 use crate::support::fake_time;
 use crate::support::in_memory_node;
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::node_command::NodeCommand;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::thread_runner::ThreadRunner;
@@ -20,7 +20,7 @@ fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
         peer_state: PeerState::Fresh,
         member_count: 0,
         required_count: 0,
-        addition: Addition::None,
+        reconfiguration: Reconfiguration::None,
         suspected: Vec::new(),
         quorum: Quorum::NotTracked,
     }))
@@ -131,6 +131,37 @@ fn run_applies_the_commands_before_a_shutdown_and_acknowledges_them() {
     // Assert
     assert_eq!(acks.try_recv(), Ok(()));
     assert_eq!(published.lock().unwrap().member_count, 4);
+}
+
+#[test]
+fn run_applies_the_removal_commands_and_acknowledges_each() {
+    // Arrange
+    let (time, _) = fake_time();
+    let (commands, receiver) = channel();
+    let (ack, acks) = channel();
+    commands
+        .send(NodeCommand::RequestRemoval(2, ack.clone()))
+        .unwrap();
+    commands
+        .send(NodeCommand::CommitRemoval(2, ack.clone()))
+        .unwrap();
+    commands.send(NodeCommand::AbortRemoval(2, ack)).unwrap();
+    commands.send(NodeCommand::Shutdown).unwrap();
+    let published = snapshot();
+    let runner = ThreadRunner::new(
+        in_memory_node(&[0, 1, 2], 2, &time),
+        receiver,
+        published.clone(),
+        time,
+        Duration::from_millis(10),
+    );
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert_eq!(acks.try_iter().count(), 3);
+    assert_eq!(published.lock().unwrap().member_count, 2);
 }
 
 #[test]

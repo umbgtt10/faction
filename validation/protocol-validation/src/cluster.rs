@@ -4,13 +4,13 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::addition::Addition;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
@@ -101,6 +101,11 @@ impl Cluster {
         self.route_all(decisions, index);
     }
 
+    pub fn abort_removal(&mut self, index: usize, peer_id: PeerId) {
+        let decisions = self.protocols[index].abort_removal(peer_id);
+        self.route_all(decisions, index);
+    }
+
     // A newcomer connected to every member's transport, waiting for the
     // membership that makes it a node of the cluster.
     pub fn add_newcomer(&mut self, peer_id: PeerId) {
@@ -122,10 +127,6 @@ impl Cluster {
         });
     }
 
-    pub fn addition(&mut self, index: usize) -> Addition {
-        self.protocols[index].cluster_view().addition()
-    }
-
     pub fn change_required_count(&mut self, index: usize, required_count: usize) {
         let decisions = self.protocols[index].change_required_count(required_count);
         self.route_all(decisions, index);
@@ -133,6 +134,11 @@ impl Cluster {
 
     pub fn commit_addition(&mut self, index: usize, peer_id: PeerId) {
         let decisions = self.protocols[index].commit_addition(peer_id);
+        self.route_all(decisions, index);
+    }
+
+    pub fn commit_removal(&mut self, index: usize, peer_id: PeerId) {
+        let decisions = self.protocols[index].commit_removal(peer_id);
         self.route_all(decisions, index);
     }
 
@@ -217,13 +223,22 @@ impl Cluster {
         self.protocols[index].cluster_view().quorum()
     }
 
+    // Every node's timer and transport stepped in turn, then the newcomer's,
+    // the given number of rounds.
+    pub fn reconfiguration(&mut self, index: usize) -> Reconfiguration {
+        self.protocols[index].cluster_view().reconfiguration()
+    }
+
     pub fn request_addition(&mut self, index: usize, peer_id: PeerId) {
         let decisions = self.protocols[index].request_addition(peer_id);
         self.route_all(decisions, index);
     }
 
-    // Every node's timer and transport stepped in turn, then the newcomer's,
-    // the given number of rounds.
+    pub fn request_removal(&mut self, index: usize, peer_id: PeerId) {
+        let decisions = self.protocols[index].request_removal(peer_id);
+        self.route_all(decisions, index);
+    }
+
     pub fn run(&mut self, rounds: usize) {
         for _ in 0..rounds {
             for index in 0..self.peer_ids.len() {
@@ -328,7 +343,9 @@ impl Cluster {
                     self.transports[index].send(to, message);
                 }
             }
-            OutputMessage::ProposeAddition { .. } | OutputMessage::Noop => {}
+            OutputMessage::ProposeAddition { .. }
+            | OutputMessage::ProposeRemoval { .. }
+            | OutputMessage::Noop => {}
         }
     }
 

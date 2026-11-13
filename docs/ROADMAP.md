@@ -3,7 +3,7 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-13  
-**Current status:** Phase 2 — failure detection landed (specification 0.3.0, released in 0.7.0)
+**Current status:** Phase 4 — single-node removal landed (specification 0.4.0, unreleased; the crate 0.8.0 at the owner's word)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -122,7 +122,7 @@ control-plane decision, with policy owned by the caller. The scenario Phase 1 de
 
 ## Cross-cutting — Specification & conformance suite
 
-**Status:** specification 0.3.0 written, in [`spec/`](../spec/SPEC.md).
+**Status:** specification 0.4.0 written, in [`spec/`](../spec/SPEC.md).
 **Not a numbered phase:** this spans every phase rather than removing one
 limitation; it does not fit the L1-L7 framing above and does not shift any
 phase's numbering.
@@ -132,7 +132,7 @@ it, so a non-Rust port has a machine-checkable conformance target instead of
 only the Rust source to read (`P0-ADR-SpecificationIsNormativeCrateIsReference`).
 The specification's four parts — schema, decision table, prose and vectors — are
 written by hand and versioned together; its 0.1.0 is Phase 1's vocabulary,
-joining included; its 0.2.0 adds Phase 3's addition, and its 0.3.0 Phase 2's failure detection. Every phase changes the specification first, then
+joining included; its 0.2.0 adds Phase 3's addition, its 0.3.0 Phase 2's failure detection, and its 0.4.0 Phase 4's removal. Every phase changes the specification first, then
 the crate (`P2-ADR-SpecifiedBeforeAnyNewPhase`). The specification's independent
 model, `crates/spec-model/`, checks each phase's vectors before the crate runs them
 (`P1-ADR-IndependentModelOfTheSpecification`).
@@ -241,46 +241,59 @@ makes this structurally impossible.
 
 ## Phase 4 — Single-node removal
 
-**Status:** Planned  
-**Target:** 4–6 weeks  
-**Depends on:** Phases 2 and 3 complete  
-**Removes limitation:** L4 — no removal protocol  
+**Status:** ✅ Complete — specification 0.4.0; the crate 0.8.0, unreleased
+**Depends on:** Phases 2 and 3 complete
+**Removes limitation:** L4 — no removal protocol
 
 `faction` answers: *"Can we shrink by one, without breaking quorum?"*
 
-Symmetric to Phase 3, but with harder invariants. The machine refuses removals that
-would drop the live set below quorum threshold. This is not a runtime check — it is
-a state transition that is structurally unavailable when the live set would be
-insufficient.
+A concluded cluster shrinks by one through the layer that commits changes above it,
+coordinated as an addition is but with no handshake — the member most worth removing is
+the one that cannot answer (`P1-ADR-RemovalThroughTheLayerThatCommits`). The node asked
+for a removal refuses it when the quorum cannot spare the member: a member not
+suspected, without whom the members not suspected would number fewer than the required
+count. A suspect's removal it never refuses for the quorum. One change, an addition or a
+removal, is in flight at a time — the view's addition became its reconfiguration. Every
+node applies the commit, in every stage, the peer leaving every list it holds; a node
+whose own removal commits is `Removed`, a sixth stage admitting a probe alone.
 
-**Why this is distinct from Phase 2.** Phase 2 answers "is this peer alive?"
-— it observes and reports liveness. A dead peer stays in the member set;
-the machine tracks suspicion but takes no action. Phase 4 answers "should this
-peer be removed from the member set?" — it executes a coordinated state change
-with quorum safety guarantees. Detection is passive observation. Removal is an
-action with consequences.
+**Why this is distinct from Phase 2.** Phase 2 answers "is this peer alive?" — it
+observes and reports liveness, and a suspect stays a member. Phase 4 answers "should
+this peer leave the member set?" — a coordinated change with a quorum check. Detection
+is observation; removal is an action, and who is removed, and when, stays the caller's.
 
-**New inputs:**
-- `RequestRemove { node }`
-- `RemoveCommitted`
-- `RemoveAborted`
+**New commands:**
+- `RemovalRequested { peer_id }` — coordinate the removal of a member
+- `RemovalCommitted { peer_id }` — the layer above committed it, reported to every node
+- `RemovalAborted { peer_id }` — the layer above abandoned it
 
-**New outputs:**
-- `RejectRemove { reason }` — explicit reason: `WouldBreakQuorum`, `NodeAlreadySuspected`,
-  `ReconfigurationInFlight`
-- `EmitMemberRemoved { node }`
+**New outcomes:**
+- `ProposeRemoval { peer_id }`, `RemovalRefused { peer_id }`
+- `RemovalWithdrawn { peer_id }`, `MemberRemoved { peer_id }`
 
-*To settle in Phase 4's proposal:* `NodeAlreadySuspected` as a reason to refuse clashes
-with this phase's own table, which makes the removal of a suspect valid; and Phase 2 has
-left the suspected members and the quorum in the view for the removal rules to read.
+The drafts' three reasons to refuse were settled in the proposal: `WouldBreakQuorum` is
+`RemovalRefused`; a change in flight is the stage, answered `Rejected`; and
+`NodeAlreadySuspected` was dropped, since removing a suspect is what removal is mostly
+for.
 
 **Degenerate cases — each is a first-class state transition, not an error path:**
 
-| Input | State | Correct behaviour |
+| Input | State | Behaviour |
 |---|---|---|
-| Remove a suspected-dead node | `Degraded` | Valid — handled differently from removing a live node |
-| Remove the last node in a minority partition | `Degraded` | Rejected — `WouldBreakQuorum` |
-| Probe arrives after node is removed | Post-removal | Silently discarded via defined transition |
+| Remove a suspect | concluded, suspects in the view | Proposed — never refused for the quorum |
+| Remove a member the quorum cannot spare | concluded | `RemovalRefused` |
+| A removed member's answer arrives | any concluded node | `NonMemberIgnored`, as a non-member's |
+| The commit reaches a node that still hears the member | concluded | `MemberRemoved`, then `QuorumLost` |
+| The node's own removal commits | any stage but `Removed` | `MemberRemoved`, and the node is `Removed` |
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| Specification | 0.4.0 — 56 rows, 93 vectors, every row exercised |
+| Property invariant | A removal proposed exactly when the quorum can spare the member |
+| In-process scenarios | 7 |
+| System scenarios | 5, in all 10 spawn and transport cases |
 
 **Gate:** 100% `(state, input)` coverage. Phase 5 does not begin until this gate is green.
 
@@ -354,10 +367,10 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.3.0 written |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.4.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
-| 4 | Single-node removal | 4–6 weeks | Planned |
+| 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0; the crate 0.8.0, unreleased) |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 

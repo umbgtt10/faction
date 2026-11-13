@@ -54,7 +54,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -73,6 +73,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -115,7 +117,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -139,6 +141,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -181,7 +185,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -209,6 +213,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -251,7 +257,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -279,6 +285,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -320,7 +328,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -344,6 +352,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -386,7 +396,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -414,6 +424,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -456,7 +468,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -484,6 +496,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -525,7 +539,7 @@
               "2",
               "3"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [
@@ -551,6 +565,8 @@
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -579,7 +595,7 @@
         "2",
         "3"
       ],
-      "addition": {
+      "reconfiguration": {
         "None": {}
       },
       "suspected": [
@@ -605,6 +621,8 @@
       "JoinRejected",
       "AdditionRequested",
       "AdditionCommitted",
+      "RemovalRequested",
+      "RemovalCommitted",
       "RequiredCountChanged",
       "ProbeDue",
       "PeerHeard",

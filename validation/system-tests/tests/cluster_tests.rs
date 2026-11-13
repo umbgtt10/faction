@@ -5,8 +5,9 @@ use crate::support::fake_time;
 use crate::support::real_time;
 use crate::support::recipe;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -44,14 +45,48 @@ fn abort_addition_of_a_requested_addition_withdraws_it() {
     cluster.poll_until_bootstrapped();
     cluster.add_newcomer(3);
     cluster.request_addition(1, 3);
-    let requested = cluster.snapshot(1).addition;
+    let requested = cluster.snapshot(1).reconfiguration;
 
     // Act
     cluster.abort_addition(1, 3);
 
     // Assert
-    assert_eq!(requested, Addition::Requested { peer_id: 3 });
-    assert_eq!(cluster.snapshot(1).addition, Addition::None);
+    assert_eq!(requested, Reconfiguration::AdditionRequested { peer_id: 3 });
+    assert_eq!(cluster.snapshot(1).reconfiguration, Reconfiguration::None);
+}
+
+#[test]
+fn abort_removal_of_a_requested_removal_withdraws_it() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 2, real_time()).build();
+    cluster.poll_until_bootstrapped();
+    cluster.request_removal(1, 2);
+    cluster.poll_until_removal_proposed(1, 2);
+
+    // Act
+    cluster.abort_removal(1, 2);
+
+    // Assert
+    assert_eq!(cluster.snapshot(1).reconfiguration, Reconfiguration::None);
+    assert_eq!(cluster.snapshot(1).member_count, 3);
+}
+
+#[test]
+fn commit_removal_reports_the_count_and_the_removal_to_every_node() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 3, real_time()).build();
+    cluster.poll_until_bootstrapped();
+
+    // Act
+    cluster.commit_removal(2, Some(2));
+
+    // Assert
+    for index in 0..2 {
+        let snapshot = cluster.snapshot(index);
+        assert_eq!((snapshot.member_count, snapshot.required_count), (2, 2));
+        assert_eq!(snapshot.quorum, Quorum::Held);
+    }
+    assert_eq!(cluster.node_state(2), PeerState::Removed);
 }
 
 #[test]

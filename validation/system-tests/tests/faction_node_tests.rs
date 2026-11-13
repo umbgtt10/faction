@@ -3,7 +3,6 @@
 
 use crate::support::fake_time;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
-use faction::addition::Addition;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -13,6 +12,7 @@ use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
@@ -193,7 +193,7 @@ fn abort_addition_of_a_concluded_node_withdraws_its_addition() {
     node.abort_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::None);
+    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
 }
 
 #[test]
@@ -205,7 +205,21 @@ fn abort_addition_of_a_node_not_concluded_changes_nothing() {
     node.abort_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::None);
+    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
+    assert_eq!(node.member_count(), 3);
+}
+
+#[test]
+fn abort_removal_of_a_concluded_node_withdraws_its_removal() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+    node.request_removal(2);
+
+    // Act
+    node.abort_removal(2);
+
+    // Assert
+    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
     assert_eq!(node.member_count(), 3);
 }
 
@@ -263,6 +277,39 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
         received.contains(&TransportMessage::Ready { from: 0 }),
         "{received:?}"
     );
+}
+
+#[test]
+fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
+    // Arrange
+    let (mut node, mut peer_one, mut outsider, _) = concluded();
+    node.commit_addition(7);
+    node.commit_removal(7);
+    peer_one.send(0, TransportMessage::Ping { from: 1 });
+
+    // Act
+    for _ in 0..4 {
+        node.step();
+    }
+
+    // Assert
+    let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
+    assert!(
+        !received.contains(&TransportMessage::Ready { from: 0 }),
+        "{received:?}"
+    );
+}
+
+#[test]
+fn commit_removal_takes_the_member_out() {
+    // Arrange
+    let (mut node, _) = node();
+
+    // Act
+    node.commit_removal(2);
+
+    // Assert
+    assert_eq!(node.member_count(), 2);
 }
 
 #[test]
@@ -382,7 +429,7 @@ fn new_starts_fresh() {
             peer_state: PeerState::Fresh,
             member_count: 3,
             required_count: 2,
-            addition: Addition::None,
+            reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
         }
@@ -410,7 +457,10 @@ fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
     node.request_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::Requested { peer_id: 7 });
+    assert_eq!(
+        node.snapshot().reconfiguration,
+        Reconfiguration::AdditionRequested { peer_id: 7 }
+    );
     assert_eq!(
         outsider.recv(),
         Some(TransportMessage::Membership {
@@ -430,7 +480,7 @@ fn request_addition_of_a_node_not_concluded_changes_nothing() {
     node.request_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::None);
+    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
 }
 
 #[test]
@@ -463,6 +513,21 @@ fn request_join_reports_the_request_to_the_machine() {
 }
 
 #[test]
+fn request_removal_of_a_concluded_node_proposes_it() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+
+    // Act
+    node.request_removal(2);
+
+    // Assert
+    assert_eq!(
+        node.snapshot().reconfiguration,
+        Reconfiguration::RemovalRequested { peer_id: 2 }
+    );
+}
+
+#[test]
 fn snapshot_after_admitting_reports_the_new_member() {
     // Arrange
     let (mut node, _) = node();
@@ -491,7 +556,7 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
             peer_state: PeerState::Fresh,
             member_count: 0,
             required_count: 0,
-            addition: Addition::None,
+            reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
         }

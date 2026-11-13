@@ -141,6 +141,28 @@ fn misses_are_listed_in_the_members_order() {
 }
 
 #[test]
+fn of_members_forgets_the_suspects_and_the_misses_of_peers_no_longer_members() {
+    // Arrange
+    let (_, missed) = suspecting_one().missed_period(2, &members(), 3);
+
+    // Act
+    let kept = missed.of_members(&Members::new(vec![0, 2]));
+    let without_two = missed.of_members(&Members::new(vec![0, 1]));
+
+    // Assert
+    assert!(kept.suspected().is_empty());
+    assert_eq!(
+        kept.misses(),
+        &[MissCount {
+            peer_id: 2,
+            misses: 1
+        }]
+    );
+    assert_eq!(without_two.suspected(), &[1]);
+    assert!(without_two.misses().is_empty());
+}
+
+#[test]
 fn suspected_lists_the_suspects_in_the_order_suspected() {
     // Arrange
     let (_, suspicion) = Suspicion::default().missed_period(2, &members(), 1);

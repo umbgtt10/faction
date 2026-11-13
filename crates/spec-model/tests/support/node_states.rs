@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction_spec_model::addition::Addition;
 use faction_spec_model::node_state::NodeState;
+use faction_spec_model::reconfiguration::Reconfiguration;
 use faction_spec_model::vocabulary::stage::Stage;
 use std::collections::BTreeMap;
 
@@ -20,7 +20,8 @@ impl NodeStates {
             pinging_peers: Self::peers(pinging_peers),
             collecting_peers: Self::peers(collecting_peers),
             deadline_missed: false,
-            addition: Addition::None,
+            reconfiguration: Reconfiguration::None,
+            completed_before_removal: false,
             suspicion_threshold: 1,
             suspected: Vec::new(),
             misses: BTreeMap::new(),
@@ -40,11 +41,11 @@ impl NodeStates {
             .collect()
     }
 
-    // Concluded with an addition in flight, the node itself its one collecting
+    // Concluded with a change in flight, the node itself its one collecting
     // peer.
-    pub fn reconfiguring(addition: Addition) -> NodeState {
+    pub fn reconfiguring(reconfiguration: Reconfiguration) -> NodeState {
         NodeState {
-            addition,
+            reconfiguration,
             ..Self::of(Stage::Reconfiguring, &[], &["1"])
         }
     }

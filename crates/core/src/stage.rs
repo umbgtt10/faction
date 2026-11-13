@@ -13,8 +13,9 @@ use crate::states::collecting::Collecting;
 use crate::states::initial::Initial;
 use crate::states::pinging::Pinging;
 use crate::states::reconfiguring::Reconfiguring;
+use crate::states::removed::Removed;
 
-const COMMANDS: [Command; 17] = [
+const COMMANDS: [Command; 20] = [
     Command::ParticipationObserved { peer_id: 0 },
     Command::ReadyObserved { peer_id: 0 },
     Command::LocalParticipationCompleted,
@@ -26,6 +27,9 @@ const COMMANDS: [Command; 17] = [
     Command::MembershipAcknowledged { peer_id: 0 },
     Command::AdditionCommitted { peer_id: 0 },
     Command::AdditionAborted { peer_id: 0 },
+    Command::RemovalRequested { peer_id: 0 },
+    Command::RemovalCommitted { peer_id: 0 },
+    Command::RemovalAborted { peer_id: 0 },
     Command::RequiredCountChanged { required_count: 0 },
     Command::ProbeDue,
     Command::PeerHeard { peer_id: 0 },
@@ -40,6 +44,7 @@ pub enum Stage {
     Collecting(Collecting),
     Bootstrapped(Bootstrapped),
     Reconfiguring(Reconfiguring),
+    Removed(Removed),
 }
 
 impl Stage {
@@ -58,6 +63,7 @@ impl Stage {
             Self::Collecting(collecting) => collecting,
             Self::Bootstrapped(bootstrapped) => bootstrapped,
             Self::Reconfiguring(reconfiguring) => reconfiguring,
+            Self::Removed(removed) => removed,
         }
     }
 }

@@ -21,8 +21,8 @@ shared-state hazards in through a side door.
 count in effect are authoritative state carried in each `State` — a `Members`
 value object seeded from `Config.peers`, a `QuorumPolicy` seeded from the
 configuration's — and each changes only through a `Command`, never through a
-setter and never by mutating `Config`: the members by an admission or a committed
-addition, the count by `RequiredCountChanged`. The suspicion threshold — how many
+setter and never by mutating `Config`: the members by an admission, a committed
+addition or a committed removal, the count by `RequiredCountChanged`. The suspicion threshold — how many
 probe periods running a member must miss before it is suspected — is the
 configuration's alone and never changes: each node's own, given by its deployment
 (`P1-ADR-LivenessReportedNotStaged`).

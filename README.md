@@ -71,11 +71,13 @@ reproduce and expensive to diagnose.
 
 ### The state machine
 
-The machine progresses through four stages to a single conclusion, and a concluded
-node may then coordinate an addition in a fifth:
+The machine progresses through four stages to a single conclusion; a concluded node
+may then coordinate an addition or a removal in a fifth, and a node whose own removal
+commits leaves for a sixth:
 
 ```text
 Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
+   └────────┴───────────┴──────────────┴──────────────┴──▶ Removed
 ```
 
 | State | Meaning | Carries |
@@ -84,7 +86,8 @@ Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
 | `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
 | `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Final peer sets at time of exit, and its members' liveness |
-| `Reconfiguring` | Concluded, coordinating one addition — shown as `Bootstrapped` | The concluded node's sets and the addition in flight |
+| `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` | The concluded node's sets and the change in flight |
+| `Removed` | Removed from its own cluster — admits a probe alone | Nothing but its id: its view is what it held, but itself and its liveness |
 
 A missed deadline is **not** a state: it is recorded as a fact (reported as
 `PeerState::TimedOut` through a derived flag) while the node stays receptive and
@@ -94,7 +97,7 @@ concluded node's suspicions are what its view reports, never where it is.
 
 ### Commands and outcomes
 
-Seventeen commands drive the machine:
+Twenty commands drive the machine:
 
 | Command | Meaning |
 |---|---|
@@ -109,6 +112,9 @@ Seventeen commands drive the machine:
 | `MembershipAcknowledged { peer_id }` | The newcomer holds the membership it was sent |
 | `AdditionCommitted { peer_id }` | The layer above committed the addition |
 | `AdditionAborted { peer_id }` | The layer above abandoned it |
+| `RemovalRequested { peer_id }` | Coordinate the removal of a member |
+| `RemovalCommitted { peer_id }` | The layer above committed the removal |
+| `RemovalAborted { peer_id }` | The layer above abandoned it |
 | `RequiredCountChanged { required_count }` | The required count in effect changed |
 | `ProbeDue` | A probe period began |
 | `PeerHeard { peer_id }` | A sign of life from a member |
@@ -156,6 +162,19 @@ above reports, whatever its stage, and the required count changes by its own
 command, reported with it. `faction` decides neither who may be added nor how a
 change commits.
 
+### Removing a node
+
+A concluded cluster shrinks by one through the same layer, as it grows — with no
+handshake: the member most worth removing is the one that cannot answer, so the node
+asked to coordinate a removal tells the caller to propose it at once. It refuses the
+removal of a member not suspected when the members not suspected would number fewer
+than the required count without it; a suspect's removal it never refuses for the
+quorum. One change, an addition or a removal, is in flight at a time. Every node
+applies the commit, whatever its stage, and the peer leaves every list it holds; a
+node whose own removal commits is `Removed`, and answers nothing but a probe. Who is
+removed, and when — a suspect, say — is the caller's: `faction` never removes a member
+on its own.
+
 ### Failure detection
 
 A concluded node probes its members one period at a time, as SWIM's failure detector
@@ -174,18 +193,19 @@ helpers asked, and the threshold it is created with.
 
 | Harness | What it tests |
 |---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 46 rows and 78 conformance vectors |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 130 tests |
-| `crates/core/` unit tests | Each type and each step in isolation — 208 tests |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, and liveness's invariants; logs replayed — 155 tests |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 56 rows and 93 conformance vectors |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 157 tests |
+| `crates/core/` unit tests | Each type and each step in isolation — 249 tests |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed — 209 tests |
 | `validation/core-validation/` | Multi-node deterministic scenarios — 39 tests |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it — 87 tests |
-| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, and liveness with time passing at a test's word — 186 tests |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it — 97 tests |
+| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, and removal — 193 tests |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
 | `validation/system-tests/` addition | A node added to a running cluster across spawn/transport — 50 tests |
 | `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport — 50 tests |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself — 223 tests |
+| `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport — 50 tests |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself — 242 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -251,6 +271,8 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
+            Command::RemovalRequested { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },
@@ -270,9 +292,9 @@ The caller owns the network. `faction` owns the state.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~1,730 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.3.0 — its independent model and the crate answer all 78 vectors as written |
-| Total tests | 1,372 |
+| Core productive LOC | ~1,970 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.4.0 — its independent model and the crate answer all 93 vectors as written |
+| Total tests | 1,580 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -314,8 +336,8 @@ Each principle above is recorded as an Architecture Decision Record — see
 `faction` deliberately does not:
 
 - Perform network I/O — the caller sends and receives messages
-- Confirm a member dead, or remove one for its silence — a suspect stays a member; removal is Phase 4, through the layer that commits
-- Manage the full membership lifecycle — joining, addition and failure detection have landed; removal, epochs and concurrent changes are Phases 4–6
+- Confirm a member dead, or remove one for its silence — a suspect stays a member until the caller has its removal committed
+- Manage the full membership lifecycle — joining, addition, failure detection and removal have landed; epochs and concurrent changes are Phases 5–6
 - Know about consensus — protocols build on top of `faction`, not inside it
 - Provide a runtime — async, threading, and process management are the caller's concern
 
@@ -351,9 +373,10 @@ once from crates.io:
 **Phase 1 (dynamic joining)** has landed — a newcomer joins a running cluster and
 converges across the full spawn/transport matrix — **Phase 3 (single-node
 addition)** with it: a concluded cluster grows by one through the layer that commits
-changes above it — and **Phase 2 (failure detection)** after it: a concluded node
-probes its members and suspects those it cannot reach. Single-node removal, epochs and
-concurrent changes follow.
+changes above it — **Phase 2 (failure detection)** after it: a concluded node
+probes its members and suspects those it cannot reach — and **Phase 4 (single-node
+removal)**: a concluded cluster shrinks by one through the same layer, never below
+what its quorum can spare. Epochs and rejoin, and concurrent changes, follow.
 
 Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.

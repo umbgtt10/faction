@@ -14,8 +14,8 @@ fn row_ids_names_each_known_row_once_the_probe_s_first() {
 
     // Assert
     let distinct: BTreeSet<&str> = row_ids.iter().copied().collect();
-    assert_eq!(row_ids.len(), 46);
-    assert_eq!(distinct.len(), 46);
+    assert_eq!(row_ids.len(), 56);
+    assert_eq!(distinct.len(), 56);
     assert_eq!(row_ids[0], "probed");
 }
 
@@ -82,6 +82,36 @@ fn rule_of_the_row_completing_an_addition_admits_the_pending_peer() {
         Rule {
             situation: Situation::PeerIsPending,
             change: Change::AdditionCompletes,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_refusing_a_removal_asks_whether_the_quorum_can_spare_the_peer() {
+    // Arrange & Act
+    let rule = RuleBook::rule("removal-refused");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::QuorumCannotSpare,
+            change: Change::Nothing,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_removing_the_node_itself_asks_whether_the_peer_is_the_node() {
+    // Arrange & Act
+    let rule = RuleBook::rule("node-removed");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::PeerIsSelf,
+            change: Change::NodeRemoved,
         }
     );
 }

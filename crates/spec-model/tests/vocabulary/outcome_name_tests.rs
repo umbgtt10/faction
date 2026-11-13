@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::node_states::NodeStates;
-use faction_spec_model::addition::Addition;
 use faction_spec_model::command::Command;
 use faction_spec_model::node_state::NodeState;
+use faction_spec_model::reconfiguration::Reconfiguration;
 use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::outcome_name::OutcomeName;
 use faction_spec_model::vocabulary::stage::Stage;
@@ -49,6 +49,35 @@ fn encoded_of_a_liveness_outcome_names_the_command_s_peer() {
 }
 
 #[test]
+fn encoded_of_a_removal_s_outcome_names_the_command_s_peer() {
+    // Arrange
+    let commit = naming(CommandName::RemovalCommitted, "2");
+    let removal_outcomes = [
+        OutcomeName::ProposeRemoval,
+        OutcomeName::RemovalRefused,
+        OutcomeName::RemovalWithdrawn,
+        OutcomeName::MemberRemoved,
+    ];
+
+    // Act
+    let encoded: Vec<Value> = removal_outcomes
+        .iter()
+        .map(|outcome| outcome.encoded(&commit, &NodeStates::concluded()))
+        .collect();
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [
+            json!({"ProposeRemoval": {"peer_id": "2"}}),
+            json!({"RemovalRefused": {"peer_id": "2"}}),
+            json!({"RemovalWithdrawn": {"peer_id": "2"}}),
+            json!({"MemberRemoved": {"peer_id": "2"}}),
+        ]
+    );
+}
+
+#[test]
 fn encoded_of_an_addition_s_outcome_names_the_command_s_peer() {
     // Arrange
     let commit = Command {
@@ -67,7 +96,7 @@ fn encoded_of_an_addition_s_outcome_names_the_command_s_peer() {
     // Act
     let encoded: Vec<Value> = addition_outcomes
         .iter()
-        .map(|outcome| outcome.encoded(&commit, &NodeStates::reconfiguring(Addition::None)))
+        .map(|outcome| outcome.encoded(&commit, &NodeStates::reconfiguring(Reconfiguration::None)))
         .collect();
 
     // Assert
@@ -255,6 +284,10 @@ fn name_of_each_outcome_is_the_vocabulary_s() {
             "AdditionWithdrawn",
             "AcknowledgementIgnored",
             "AbortIgnored",
+            "ProposeRemoval",
+            "RemovalRefused",
+            "RemovalWithdrawn",
+            "MemberRemoved",
             "RequiredCountSet",
             "SendProbe",
             "NothingToProbe",

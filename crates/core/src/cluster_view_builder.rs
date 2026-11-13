@@ -3,12 +3,12 @@
 
 use alloc::vec::Vec;
 
-use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::members::Members;
 use crate::miss_count::MissCount;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
+use crate::reconfiguration::Reconfiguration;
 use crate::types::PeerId;
 
 pub struct ClusterViewBuilder {
@@ -19,7 +19,7 @@ pub struct ClusterViewBuilder {
     required_count: usize,
     deadline_missed: bool,
     members: Members,
-    addition: Addition,
+    reconfiguration: Reconfiguration,
     suspected: Vec<PeerId>,
     misses: Vec<MissCount>,
     last_probed: Option<PeerId>,
@@ -37,7 +37,7 @@ impl ClusterViewBuilder {
             required_count: view.required_count(),
             deadline_missed: view.deadline_missed(),
             members: view.members().clone(),
-            addition: view.addition(),
+            reconfiguration: view.reconfiguration(),
             suspected: view.suspected().to_vec(),
             misses: view.misses().to_vec(),
             last_probed: view.last_probed(),
@@ -55,18 +55,12 @@ impl ClusterViewBuilder {
             self.required_count,
             self.deadline_missed,
             self.members,
-            self.addition,
+            self.reconfiguration,
             self.suspected,
             self.misses,
             self.last_probed,
             self.quorum,
         )
-    }
-
-    #[must_use]
-    pub fn with_addition(mut self, addition: Addition) -> Self {
-        self.addition = addition;
-        self
     }
 
     #[must_use]
@@ -124,6 +118,12 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
+    pub fn with_reconfiguration(mut self, reconfiguration: Reconfiguration) -> Self {
+        self.reconfiguration = reconfiguration;
+        self
+    }
+
+    #[must_use]
     pub fn with_required_count(mut self, required_count: usize) -> Self {
         self.required_count = required_count;
         self
@@ -146,7 +146,7 @@ impl Default for ClusterViewBuilder {
             required_count: 0,
             deadline_missed: false,
             members: Members::new(Vec::new()),
-            addition: Addition::None,
+            reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             misses: Vec::new(),
             last_probed: None,

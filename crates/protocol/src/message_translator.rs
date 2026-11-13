@@ -139,7 +139,9 @@ impl MessageTranslator {
                     TimerMessage::IndirectProbesMissed { peer_id },
                 ))])
                 .collect(),
-            Outcome::AliveNoted { peer_id } | Outcome::PeerRevived { peer_id } => vec![
+            Outcome::AliveNoted { peer_id }
+            | Outcome::PeerRevived { peer_id }
+            | Outcome::MemberRemoved { peer_id } => vec![
                 OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id })),
                 OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
                     peer_id,
@@ -163,6 +165,7 @@ impl MessageTranslator {
                 OutputMessage::ProposeAddition { peer_id },
                 OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership { peer_id })),
             ],
+            Outcome::ProposeRemoval { peer_id } => vec![OutputMessage::ProposeRemoval { peer_id }],
             Outcome::AdditionWithdrawn { peer_id } => vec![OutputMessage::Cancel(
                 TimerEvent::Fire(TimerMessage::RetryMembership { peer_id }),
             )],

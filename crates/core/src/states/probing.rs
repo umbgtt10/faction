@@ -36,6 +36,15 @@ impl Probing {
         self.last_probed
     }
 
+    // Whom it probes among `members` alone: if the member probed last is not
+    // one, the node has probed no one.
+    #[must_use]
+    pub fn of_members(&self, members: &Members) -> Self {
+        Self {
+            last_probed: self.last_probed.filter(|last| members.is_member(*last)),
+        }
+    }
+
     #[must_use]
     pub fn probe(&self, members: &Members, local: PeerId) -> (Vec<Outcome>, Self) {
         match Self::after(members.as_slice(), self.last_probed).find(|member| *member != local) {

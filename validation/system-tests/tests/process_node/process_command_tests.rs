@@ -15,6 +15,15 @@ fn parse_abort_addition_reads_the_peer() {
 }
 
 #[test]
+fn parse_abort_removal_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("abort-removal 6");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::AbortRemoval(6)));
+}
+
+#[test]
 fn parse_admit_reads_the_peer() {
     // Arrange & Act
     let command = ProcessCommand::parse("admit 3");
@@ -39,6 +48,15 @@ fn parse_commit_addition_reads_the_peer() {
 
     // Assert
     assert_eq!(command, Some(ProcessCommand::CommitAddition(6)));
+}
+
+#[test]
+fn parse_commit_removal_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("commit-removal 6");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::CommitRemoval(6)));
 }
 
 #[test]
@@ -105,6 +123,15 @@ fn parse_request_join_reads_the_peer() {
 
     // Assert
     assert_eq!(command, Some(ProcessCommand::RequestJoin(6)));
+}
+
+#[test]
+fn parse_request_removal_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("request-removal 6");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::RequestRemoval(6)));
 }
 
 #[test]

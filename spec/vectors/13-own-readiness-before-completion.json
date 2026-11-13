@@ -50,7 +50,7 @@
               "4",
               "5"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -71,6 +71,7 @@
             "JoinApproved",
             "JoinRejected",
             "AdditionCommitted",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "Probe"
           ]
@@ -109,7 +110,7 @@
               "4",
               "5"
             ],
-            "addition": {
+            "reconfiguration": {
               "None": {}
             },
             "suspected": [],
@@ -129,6 +130,7 @@
             "JoinApproved",
             "JoinRejected",
             "AdditionCommitted",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "Probe"
           ]
@@ -155,7 +157,7 @@
         "4",
         "5"
       ],
-      "addition": {
+      "reconfiguration": {
         "None": {}
       },
       "suspected": [],
@@ -175,6 +177,7 @@
       "JoinApproved",
       "JoinRejected",
       "AdditionCommitted",
+      "RemovalCommitted",
       "RequiredCountChanged",
       "Probe"
     ]

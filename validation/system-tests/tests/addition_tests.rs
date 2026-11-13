@@ -3,8 +3,8 @@
 
 use crate::support::log_dir;
 use crate::support::real_time;
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::committer::Committer;
@@ -72,7 +72,7 @@ fn a_second_addition_is_refused_while_one_is_in_flight(
     // Act
     cluster.request_addition(COORDINATOR, 3);
     cluster.request_addition(COORDINATOR, 4);
-    let in_flight = cluster.snapshot(COORDINATOR).addition;
+    let in_flight = cluster.snapshot(COORDINATOR).reconfiguration;
     cluster.poll_until_proposed(COORDINATOR, 3);
     cluster.commit_addition(3, None);
     cluster.request_addition(COORDINATOR, 4);
@@ -83,7 +83,8 @@ fn a_second_addition_is_refused_while_one_is_in_flight(
     // Assert
     assert!(matches!(
         in_flight,
-        Addition::Requested { peer_id: 3 } | Addition::Acknowledged { peer_id: 3 }
+        Reconfiguration::AdditionRequested { peer_id: 3 }
+            | Reconfiguration::AdditionAcknowledged { peer_id: 3 }
     ));
     assert!(cluster.is_bootstrapped());
     assert!((0..5).all(|index| cluster.member_count(index) == 5));
@@ -154,7 +155,10 @@ fn an_aborted_addition_never_counts_the_newcomer(
 
     // Assert
     assert!((0..3).all(|index| cluster.member_count(index) == 3));
-    assert_eq!(cluster.snapshot(COORDINATOR).addition, Addition::None);
+    assert_eq!(
+        cluster.snapshot(COORDINATOR).reconfiguration,
+        Reconfiguration::None
+    );
     assert_ne!(cluster.node_state(3), PeerState::Bootstrapped);
 }
 

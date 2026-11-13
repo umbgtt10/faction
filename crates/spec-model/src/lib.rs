@@ -24,13 +24,13 @@
 
 extern crate alloc;
 
-pub mod addition;
 pub mod answer;
 pub mod command;
 pub mod configuration;
 pub mod liveness;
 pub mod model;
 pub mod node_state;
+pub mod reconfiguration;
 pub mod rules;
 pub mod spec_reader;
 pub mod table;

@@ -3,7 +3,9 @@
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
-use super::helpers::{addition_aborted, bootstrapped_admissible, membership_acknowledged, ready};
+use super::helpers::{
+    addition_aborted, bootstrapped_admissible, membership_acknowledged, ready, removal_aborted,
+};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
@@ -46,6 +48,12 @@ use rstest::rstest;
 #[case::rejects_addition_aborted(
     Init::Bootstrapped,
     addition_aborted(9),
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::rejects_removal_aborted(
+    Init::Bootstrapped,
+    removal_aborted(1),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     bootstrapped_admissible(),
 )]

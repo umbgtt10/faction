@@ -100,7 +100,8 @@
 //! | `Pinging` | Active pinging and collecting peer sets |
 //! | `Collecting` | Collecting and pinged peer sets |
 //! | `Bootstrapped` | Terminal — quorum reached |
-//! | `Reconfiguring` | Concluded, coordinating one addition — shown as `Bootstrapped` |
+//! | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` |
+//! | `Removed` | Removed from its own cluster — admits a probe alone |
 //!
 //! `Bootstrapped` is the only conclusion. A missed deadline is recorded as
 //! a fact — surfaced as `PeerState::TimedOut` — without leaving the current
@@ -108,10 +109,13 @@
 //! bootstrapped node answers a still-pinging peer with its readiness, so a
 //! concluded node is never a silent sink.
 //!
-//! A concluded node grows by one through the layer that commits changes above
-//! it: asked for an addition, it is `Reconfiguring` — one addition in flight —
-//! until the layer above reports the commit, which every node applies, or the
-//! abort.
+//! A concluded node grows or shrinks by one through the layer that commits
+//! changes above it: asked for an addition or a removal, it is `Reconfiguring`
+//! — one change in flight — until the layer above reports the commit, which
+//! every node applies, or the abort. It refuses to coordinate a removal its
+//! quorum cannot spare: a member not suspected, without whom the members not
+//! suspected would fall below the count. A node whose own removal commits is
+//! `Removed`, and admits nothing but a probe.
 //!
 //! A concluded node also tracks its members' liveness, the caller keeping the
 //! clock: at each probe period it names the member to probe, round-robin; a
@@ -119,7 +123,8 @@
 //! many periods running as the configuration's suspicion threshold is
 //! suspected, and one heard from again is revived. Its view says when the
 //! members not suspected fall below the required count, and when they reach it
-//! again. A suspect stays a member: liveness is reported, never a stage.
+//! again. A suspect stays a member until its removal commits: liveness is
+//! reported, never a stage.
 //!
 //! ## Observer
 //!
@@ -143,7 +148,6 @@ extern crate alloc;
 
 pub mod no_op_observer;
 
-pub mod addition;
 pub mod cluster_view;
 pub mod cluster_view_builder;
 pub mod command;
@@ -158,6 +162,7 @@ pub mod peer_state;
 pub mod process_result;
 pub mod quorum;
 pub mod quorum_policy;
+pub mod reconfiguration;
 pub mod stage;
 pub mod state;
 pub mod states;

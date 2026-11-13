@@ -39,6 +39,16 @@ impl Members {
         }
     }
 
+    // The peers given that are members, in the order given.
+    #[must_use]
+    pub fn retained(&self, peers: &[PeerId]) -> Vec<PeerId> {
+        peers
+            .iter()
+            .copied()
+            .filter(|peer| self.is_member(*peer))
+            .collect()
+    }
+
     #[must_use]
     pub fn with_admitted(&self, peer_id: PeerId) -> Option<Self> {
         if self.is_member(peer_id) {
@@ -48,5 +58,18 @@ impl Members {
             peers.push(peer_id);
             Some(Self { peers })
         }
+    }
+
+    // The members but `peer_id`; none if it is not one.
+    #[must_use]
+    pub fn without(&self, peer_id: PeerId) -> Option<Self> {
+        self.is_member(peer_id).then(|| Self {
+            peers: self
+                .peers
+                .iter()
+                .copied()
+                .filter(|member| *member != peer_id)
+                .collect(),
+        })
     }
 }

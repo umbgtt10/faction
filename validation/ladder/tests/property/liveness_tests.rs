@@ -7,7 +7,10 @@
 // other member within one round; it suspects a member only once it has missed
 // as many periods running as the threshold, no sign of life among them; and
 // its quorum is held exactly while its members not suspected reach the count,
-// every crossing said once.
+// every crossing said once; and, asked for removals too, it proposes a removal
+// exactly when the quorum can spare the member -- a suspect, or one without
+// whom the members not suspected still reach the count -- and refuses it
+// otherwise.
 
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
@@ -166,4 +169,56 @@ proptest! {
             held = holds;
         }
     }
+
+    #[test]
+    fn a_removal_is_proposed_exactly_when_the_quorum_can_spare_the_member(
+        threshold in 1usize..=3,
+        commands in prop::collection::vec(removal_command(), 0..160),
+    ) {
+        // Arrange
+        let mut faction = concluded(threshold);
+        let (_, mut previous) = answered(&mut faction, Command::Probe);
+
+        // Act
+        for command in commands {
+            let (outcomes, cluster_view) = answered(&mut faction, command);
+
+            // Assert
+            if let Command::RemovalRequested { peer_id } = command {
+                if outcomes.contains(&Outcome::ProposeRemoval { peer_id }) {
+                    prop_assert!(spares(&previous, peer_id));
+                }
+                if outcomes.contains(&Outcome::RemovalRefused { peer_id }) {
+                    prop_assert!(!spares(&previous, peer_id));
+                }
+            }
+            previous = cluster_view;
+        }
+    }
+}
+
+// The liveness commands, and removals requested, aborted and committed among
+// them, so that a node asked again has returned to `Bootstrapped`.
+fn removal_command() -> impl Strategy<Value = Command> {
+    let peer = 0u64..=6;
+    prop_oneof![
+        8 => liveness_command(),
+        3 => peer.clone().prop_map(|peer_id| Command::RemovalRequested { peer_id }),
+        2 => peer.clone().prop_map(|peer_id| Command::RemovalAborted { peer_id }),
+        1 => peer.prop_map(|peer_id| Command::RemovalCommitted { peer_id }),
+    ]
+}
+
+// Whether the quorum a view shows can spare the member: it is suspected, or
+// the members not suspected without it still reach the count.
+fn spares(cluster_view: &ClusterView, peer_id: PeerId) -> bool {
+    let suspected = cluster_view.suspected();
+    suspected.contains(&peer_id)
+        || cluster_view.members().without(peer_id).is_some_and(|rest| {
+            rest.as_slice()
+                .iter()
+                .filter(|member| !suspected.contains(member))
+                .count()
+                >= cluster_view.required_count()
+        })
 }

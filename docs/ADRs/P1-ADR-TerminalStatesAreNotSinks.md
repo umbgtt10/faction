@@ -1,6 +1,6 @@
 # P1-ADR-TerminalStatesAreNotSinks
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-13 — a removed node is waited on by no one
 - **Date:** 2026-07-19
 - **Priority:** P1 (derived)
 - **Phase:** 0-bugfix
@@ -17,6 +17,12 @@ A concluded node is terminal but never a silent sink. `Bootstrapped` — the onl
 terminal state — still accepts `ParticipationObserved` and re-advertises its
 readiness (`AcknowledgeRejoin`); a missed deadline is a non-terminal
 `DeadlineMissed` fact, not a `TimedOut` dead-end.
+
+**Amended in Phase 4.** The rule keeps a node a peer waits on from going
+silent. `Removed` (`P1-ADR-RemovalThroughTheLayerThatCommits`) answers a probe
+alone and no command takes it anywhere: no member waits on a removed node, since
+every member applies the same commit and counts it no more. It is the one stage
+a node never leaves until Phase 5 gives a way back.
 
 ## Forcing constraints / Evidence
 Liveness: a peer's only path to learn a concluded node's readiness is that node

@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::vec;
-use faction::addition::Addition;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::members::Members;
 use faction::miss_count::MissCount;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 
 fn base() -> ClusterViewBuilder {
     ClusterViewBuilder::default()
@@ -41,7 +41,7 @@ fn from_view_copies_every_field() {
         .with_peer_state(PeerState::Collecting)
         .with_deadline_missed(true)
         .with_members(Members::new(vec![1, 2]))
-        .with_addition(Addition::Requested { peer_id: 9 })
+        .with_reconfiguration(Reconfiguration::AdditionRequested { peer_id: 9 })
         .build();
 
     // Act
@@ -53,18 +53,24 @@ fn from_view_copies_every_field() {
     assert!(copy.deadline_missed());
     assert_eq!(copy.members().as_slice(), &[1, 2]);
     assert_eq!(copy.required_count(), 3);
-    assert_eq!(copy.addition(), Addition::Requested { peer_id: 9 });
+    assert_eq!(
+        copy.reconfiguration(),
+        Reconfiguration::AdditionRequested { peer_id: 9 }
+    );
 }
 
 #[test]
 fn with_addition_updates_only_the_addition() {
     // Arrange & Act
     let result = base()
-        .with_addition(Addition::Acknowledged { peer_id: 8 })
+        .with_reconfiguration(Reconfiguration::AdditionAcknowledged { peer_id: 8 })
         .build();
 
     // Assert
-    assert_eq!(result.addition(), Addition::Acknowledged { peer_id: 8 });
+    assert_eq!(
+        result.reconfiguration(),
+        Reconfiguration::AdditionAcknowledged { peer_id: 8 }
+    );
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.required_count(), 3);
 }

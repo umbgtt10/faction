@@ -7,9 +7,9 @@ use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use faction::quorum::Quorum;
 use std::mem::replace;
 
-use faction::addition::Addition;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
@@ -68,6 +68,10 @@ impl FactionNode {
         self.command(|protocol| protocol.abort_addition(peer_id));
     }
 
+    pub fn abort_removal(&mut self, peer_id: PeerId) {
+        self.command(|protocol| protocol.abort_removal(peer_id));
+    }
+
     pub fn admit(&mut self, peer_id: PeerId) {
         self.command(|protocol| protocol.admit(peer_id));
         self.read_members();
@@ -79,6 +83,11 @@ impl FactionNode {
 
     pub fn commit_addition(&mut self, peer_id: PeerId) {
         self.command(|protocol| protocol.commit_addition(peer_id));
+        self.read_members();
+    }
+
+    pub fn commit_removal(&mut self, peer_id: PeerId) {
+        self.command(|protocol| protocol.commit_removal(peer_id));
         self.read_members();
     }
 
@@ -117,6 +126,10 @@ impl FactionNode {
         self.command(|protocol| protocol.request_join(peer_id));
     }
 
+    pub fn request_removal(&mut self, peer_id: PeerId) {
+        self.command(|protocol| protocol.request_removal(peer_id));
+    }
+
     #[must_use]
     pub fn snapshot(&mut self) -> NodeSnapshot {
         match &mut self.role {
@@ -126,7 +139,7 @@ impl FactionNode {
                     peer_state: view.peer_state(),
                     member_count: view.members().as_slice().len(),
                     required_count: view.required_count(),
-                    addition: view.addition(),
+                    reconfiguration: view.reconfiguration(),
                     suspected: view.suspected().to_vec(),
                     quorum: view.quorum(),
                 }
@@ -135,7 +148,7 @@ impl FactionNode {
                 peer_state: PeerState::Fresh,
                 member_count: 0,
                 required_count: 0,
-                addition: Addition::None,
+                reconfiguration: Reconfiguration::None,
                 suspected: Vec::new(),
                 quorum: Quorum::NotTracked,
             },
@@ -229,7 +242,9 @@ impl FactionNode {
             OutputMessage::Send { to, message } => {
                 self.transport.send(to, message);
             }
-            OutputMessage::ProposeAddition { .. } | OutputMessage::Noop => {}
+            OutputMessage::ProposeAddition { .. }
+            | OutputMessage::ProposeRemoval { .. }
+            | OutputMessage::Noop => {}
         }
     }
 

@@ -9,9 +9,11 @@ pub mod membership_decision;
 pub mod membership_step;
 pub mod pinging_step;
 pub mod probing;
+pub mod ready_before_completion_step;
 pub mod ready_step;
 pub mod suspicion;
 
 pub mod initial;
 pub mod pinging;
 pub mod reconfiguring;
+pub mod removed;

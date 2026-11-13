@@ -138,6 +138,25 @@ fn misses_below_the_threshold_are_counted_in_the_members_order() {
 }
 
 #[test]
+fn of_members_forgets_whom_the_node_no_longer_counts() {
+    // Arrange
+    let (_, liveness) = stepped(
+        &[
+            Command::ProbeDue,
+            Command::IndirectProbesMissed { peer_id: 1 },
+        ],
+        1,
+    );
+
+    // Act
+    let kept = liveness.of_members(&Members::new(vec![0, 2]));
+
+    // Assert
+    assert!(kept.suspected().is_empty());
+    assert_eq!(kept.last_probed(), None);
+}
+
+#[test]
 fn step_of_a_command_not_of_liveness_is_none() {
     // Arrange
     let liveness = Liveness::default();

@@ -135,6 +135,27 @@ fn run_applies_the_join_commands_without_admitting() {
 }
 
 #[test]
+fn run_applies_the_removal_commands_and_acknowledges_each() {
+    // Arrange
+    let (time, _) = fake_time();
+    let (_sender, receiver) = sent(&[
+        ProcessCommand::RequestRemoval(2),
+        ProcessCommand::CommitRemoval(2),
+        ProcessCommand::AbortRemoval(2),
+        ProcessCommand::Shutdown,
+    ]);
+    let (runner, output, _) = runner(time, receiver, Duration::from_millis(10));
+
+    // Act
+    runner.run();
+
+    // Assert
+    let text = output.text();
+    assert_eq!(text.matches("ack").count(), 3);
+    assert!(text.ends_with("state Fresh 2 2 none - off\n"), "{text}");
+}
+
+#[test]
 fn run_records_a_peer_address() {
     // Arrange
     let (time, _) = fake_time();

@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol_validation::cluster::Cluster;
 
@@ -37,8 +37,8 @@ fn a_commit_for_another_peer_leaves_the_addition_in_flight() {
 
     // Assert
     assert_eq!(
-        cluster.addition(0),
-        Addition::Requested { peer_id: NEWCOMER }
+        cluster.reconfiguration(0),
+        Reconfiguration::AdditionRequested { peer_id: NEWCOMER }
     );
     assert_eq!(cluster.members(0), vec![0, 1, 2, 4]);
 }
@@ -80,8 +80,8 @@ fn a_lost_acknowledgement_is_recovered_from_the_membership_sent_again() {
 
     // Assert
     assert_eq!(
-        cluster.addition(0),
-        Addition::Acknowledged { peer_id: NEWCOMER }
+        cluster.reconfiguration(0),
+        Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER }
     );
 }
 
@@ -98,8 +98,8 @@ fn a_lost_membership_is_sent_again_until_acknowledged() {
     // Assert
     assert!(!cluster.is_newcomer_waiting());
     assert_eq!(
-        cluster.addition(0),
-        Addition::Acknowledged { peer_id: NEWCOMER }
+        cluster.reconfiguration(0),
+        Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER }
     );
 }
 
@@ -132,5 +132,5 @@ fn an_abort_before_the_acknowledgement_stops_the_sending() {
 
     // Assert
     assert!(cluster.is_newcomer_waiting());
-    assert_eq!(cluster.addition(0), Addition::None);
+    assert_eq!(cluster.reconfiguration(0), Reconfiguration::None);
 }

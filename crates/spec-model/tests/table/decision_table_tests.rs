@@ -17,7 +17,7 @@ fn command(name: CommandName, peer_id: Option<&str>) -> Command {
 }
 
 #[test]
-fn admits_of_collecting_is_every_command_but_its_own_completion_and_an_addition_s_coordination() {
+fn admits_of_collecting_is_every_command_but_its_own_completion_and_a_change_s_coordination() {
     // Arrange
     let table = SpecReader::table(&SpecFiles::matrix());
 
@@ -35,6 +35,7 @@ fn admits_of_collecting_is_every_command_but_its_own_completion_and_an_addition_
             CommandName::JoinApproved,
             CommandName::JoinRejected,
             CommandName::AdditionCommitted,
+            CommandName::RemovalCommitted,
             CommandName::RequiredCountChanged,
             CommandName::Probe,
         ]

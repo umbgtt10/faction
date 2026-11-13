@@ -14,6 +14,9 @@ pub enum CommandName {
     MembershipAcknowledged,
     AdditionCommitted,
     AdditionAborted,
+    RemovalRequested,
+    RemovalCommitted,
+    RemovalAborted,
     RequiredCountChanged,
     ProbeDue,
     PeerHeard,
@@ -23,7 +26,7 @@ pub enum CommandName {
 }
 
 impl CommandName {
-    pub const ALL: [CommandName; 17] = [
+    pub const ALL: [CommandName; 20] = [
         CommandName::ParticipationObserved,
         CommandName::ReadyObserved,
         CommandName::LocalParticipationCompleted,
@@ -35,6 +38,9 @@ impl CommandName {
         CommandName::MembershipAcknowledged,
         CommandName::AdditionCommitted,
         CommandName::AdditionAborted,
+        CommandName::RemovalRequested,
+        CommandName::RemovalCommitted,
+        CommandName::RemovalAborted,
         CommandName::RequiredCountChanged,
         CommandName::ProbeDue,
         CommandName::PeerHeard,
@@ -65,6 +71,9 @@ impl CommandName {
             CommandName::MembershipAcknowledged => "MembershipAcknowledged",
             CommandName::AdditionCommitted => "AdditionCommitted",
             CommandName::AdditionAborted => "AdditionAborted",
+            CommandName::RemovalRequested => "RemovalRequested",
+            CommandName::RemovalCommitted => "RemovalCommitted",
+            CommandName::RemovalAborted => "RemovalAborted",
             CommandName::RequiredCountChanged => "RequiredCountChanged",
             CommandName::ProbeDue => "ProbeDue",
             CommandName::PeerHeard => "PeerHeard",

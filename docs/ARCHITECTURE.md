@@ -132,16 +132,19 @@ members, its required count, and nothing confirmed.
 | `Pinging` | Collecting participation signals from peers | Members, the participation and readiness accepted so far, and whether the deadline was missed |
 | `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
 | `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Members, the peer sets at the conclusion, and its members' liveness |
-| `Reconfiguring` | Concluded, coordinating one addition — its peer state `Bootstrapped` | The concluded node, the peer whose addition is in flight, and whether it has acknowledged |
+| `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — its peer state `Bootstrapped` | The concluded node and the change in flight |
+| `Removed` | Removed from its own cluster — admits a probe alone | Its own id: its view is what it held when removed, but itself and its liveness |
 
 Every stage carries the node's members — the configuration's peers, then each peer
-admitted or added — and the required count in effect, starting at the
-configuration's. Membership decisions never change the stage; `JoinApproved` is
-admitted in every stage but `Reconfiguring`, where no admission goes around an
-addition in flight.
+admitted or added, less each removed — and the required count in effect, starting at
+the configuration's. Membership decisions never change the stage, but for a node's own
+removal, which leaves it `Removed`; `JoinApproved` is admitted in every stage but
+`Reconfiguring`, where no admission goes around a change in flight, and `Removed`.
 
-`Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with an
-addition in flight (`P1-ADR-AdditionThroughTheLayerThatCommits`). A missed deadline is **not** a state: it is
+`Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with a
+change in flight, an addition or a removal (`P1-ADR-AdditionThroughTheLayerThatCommits`,
+`P1-ADR-RemovalThroughTheLayerThatCommits`); `Removed` is a node whose own removal
+committed, and no longer a member of its own cluster. A missed deadline is **not** a state: it is
 recorded as a non-terminal fact — surfaced as `PeerState::TimedOut` through a derived
 view flag — while the node stays in `Pinging`/`Collecting`, keeps its retries, and can
 still converge if readiness arrives late.
@@ -154,7 +157,8 @@ is not penalized; its signal waits and is counted in `Collecting`.
 The terminal state is not a silent sink. A `Bootstrapped` node stops driving its own
 progress, but it still accepts `ParticipationObserved` and re-advertises its readiness
 (`AcknowledgeRejoin`) — so a peer that missed the original broadcast and is still
-pinging can always recover.
+pinging can always recover. A removed node answers a probe alone: no member waits on
+it, since every member applies the same commit.
 
 Liveness is not a state either (`P1-ADR-LivenessReportedNotStaged`). A concluded node
 probes its members and suspects those it cannot reach, but a suspicion changes what its
@@ -175,6 +179,9 @@ view shows, never what it admits.
 | `MembershipAcknowledged { peer_id }` | The newcomer holds the membership it was sent |
 | `AdditionCommitted { peer_id }` | The layer above committed the addition — reported to every node |
 | `AdditionAborted { peer_id }` | The layer above abandoned the addition |
+| `RemovalRequested { peer_id }` | The caller asks a concluded node to coordinate a member's removal |
+| `RemovalCommitted { peer_id }` | The layer above committed the removal — reported to every node |
+| `RemovalAborted { peer_id }` | The layer above abandoned the removal |
 | `RequiredCountChanged { required_count }` | The required count in effect — reported with the change it belongs to |
 | `ProbeDue` | A probe period began |
 | `PeerHeard { peer_id }` | A sign of life from the member — an answer to a probe, direct or relayed |
@@ -204,7 +211,11 @@ view shows, never what it admits.
 | `ProposeAddition { peer_id }` | Propose the addition to the layer that commits |
 | `AdditionWithdrawn { peer_id }` | The addition in flight was aborted |
 | `AcknowledgementIgnored { peer_id }` | An acknowledgement not awaited, or a repeat |
-| `AbortIgnored { peer_id }` | An abort naming no addition in flight |
+| `AbortIgnored { peer_id }` | An abort not naming the change in flight |
+| `ProposeRemoval { peer_id }` | Propose the removal to the layer that commits |
+| `RemovalRefused { peer_id }` | The quorum cannot spare the member: the members not suspected would fall below the count |
+| `RemovalWithdrawn { peer_id }` | The removal in flight was aborted |
+| `MemberRemoved { peer_id }` | The peer is no longer a member — the node itself among them, which is then `Removed` |
 | `RequiredCountSet { required_count }` | The required count in effect is now this |
 | `SendProbe { peer_id }` | Probe the member — the next in turn |
 | `NothingToProbe` | The node is its only member |
@@ -295,9 +306,10 @@ node's own completion: readiness accumulates while `Pinging` and counts at compl
 This ensures the two-phase invariant holds under all inputs.
 
 Once concluded, the node holds its quorum while its members not suspected number the
-count in effect or more. A suspicion or a raised count may lose it; a revival, a member
-admitted or added, or a lowered count may restore it; the command that crosses says so,
-last among its outcomes.
+count in effect or more. A suspicion, a raised count or the removal of a member not
+suspected may lose it; a revival, a member admitted or added, or a lowered count may
+restore it, and no removal ever does; the command that crosses says so, last among its
+outcomes.
 
 ### Liveness
 
@@ -313,8 +325,30 @@ does, without its gossip (`P1-ADR-LivenessReportedNotStaged`). The caller keeps 
 4. `PeerHeard` revives a suspect, and forgets an alive member's missed periods.
 
 A suspect stays a member: only a removal, committed by the layer above, takes a member
-away. How tolerant a node is, is its deployment's — the period and timeouts, the helpers
-asked, and the threshold it is created with.
+away, and its liveness goes with it. How tolerant a node is, is its deployment's — the
+period and timeouts, the helpers asked, and the threshold it is created with.
+
+### Removal
+
+A concluded cluster shrinks by one through the layer that commits changes above it
+(`P1-ADR-RemovalThroughTheLayerThatCommits`), coordinated as an addition is but with no
+handshake:
+
+1. `RemovalRequested` of a member not suspected the quorum cannot spare — the members
+   not suspected would number fewer than the required count without it — is refused,
+   `RemovalRefused`; of any other member, the node itself among them, it is proposed at
+   once, `ProposeRemoval`, and the node is `Reconfiguring`. A suspect's removal is never
+   refused for the quorum.
+2. `RemovalCommitted`, reported to every node in every stage, takes the peer out of every
+   list the node holds — its members, the peers it gathered, its suspects and missed
+   periods; the member probed last, if it was the one, is forgotten. It is never refused,
+   and may lose the quorum on a node that still heard the member.
+3. `RemovalAborted` withdraws the removal in flight.
+4. A node whose own removal commits is `Removed`.
+
+Who is removed, and when, is the caller's: `faction` never removes a member for its
+silence. The required count is the caller's too, reported with the commit — lowered
+first, if the removal needs it.
 
 ### Step structs
 
@@ -324,17 +358,19 @@ observation.
 | Struct | Handles | Checks quorum? |
 |---|---|---|
 | `PingingStep` | `ParticipationObserved` before the node's own completion | Never |
+| `ReadyBeforeCompletionStep` | `ReadyObserved` before the node's own completion | Never |
 | `ReadyStep` | `ReadyObserved` while `Collecting` | Yes, with threshold |
 | `LocalCompletionStep` | `LocalParticipationCompleted` | Yes, always |
-| `MembershipStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionCommitted`, `RequiredCountChanged`, in every stage that admits them | `Collecting` checks the new count |
+| `MembershipStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionCommitted`, `RemovalCommitted` of another peer, `RequiredCountChanged`, in every stage that admits them | `Collecting` checks the new count |
 
-What a concluded node answers whatever its addition — a peer still bootstrapping, a
-membership decision — is `Bootstrapped::answer`; `Reconfiguring` reuses it, refusing
-an admission and a second request, and carries the addition's acknowledgement, abort
-and commit itself.
+What a concluded node answers whatever its change in flight — a peer still
+bootstrapping, a membership decision — is `Bootstrapped::answer`; `Reconfiguring`
+reuses it, refusing an admission and a second request of either kind, and carries the
+change's acknowledgement, abort and commit itself. A node's own removal, answered alike
+in every stage that admits it, each of them takes through `Removed::own_removal`.
 
-Readiness before the node's own completion is accepted by `Pinging` itself, with no
-quorum check.
+Readiness before the node's own completion is accepted by `ReadyBeforeCompletionStep`,
+with no quorum check.
 
 This design means that adding a new command type cannot accidentally affect existing
 command handling. Each step struct is independently testable.
@@ -351,11 +387,11 @@ returns:
 - Whether pinging phase is complete
 - Whether the deadline has been missed (`deadline_missed`)
 - The required count in effect
-- Members — the configuration's peers, then every admitted or added peer, in arrival order
-- The addition in flight — none, requested of a peer, or acknowledged by it
+- Members — the configuration's peers, then every admitted or added peer, in arrival order, less each removed
+- The reconfiguration — the change in flight: none, an addition requested of a peer or acknowledged by it, or a peer's removal requested
 - The suspected members, in the order suspected, and each member's missed periods
 - The member probed last
-- The quorum — not tracked before the conclusion, then held or lost
+- The quorum — not tracked before the conclusion nor once removed, held or lost between
 
 The queryability model means external monitors can poll any node's view without
 perturbing the machine. Composition of multiple nodes' cluster views gives an
