@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::constants::DEFAULT_PROBE_STRETCH;
 use crate::constants::DEFAULT_SUSPICION_THRESHOLD;
+use crate::probe_stretch::ProbeStretch;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
 use std::env::var as env_var;
@@ -53,7 +53,7 @@ pub struct ClusterBuilder {
     timer_delay: TimerDelay,
     freshness_margin: u32,
     suspicion_threshold: usize,
-    probe_stretch: u32,
+    probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
 }
 
@@ -69,7 +69,7 @@ impl ClusterBuilder {
             timer_delay: TimerDelay::Minimal,
             freshness_margin: DEFAULT_DEADLINE_CYCLES,
             suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
-            probe_stretch: DEFAULT_PROBE_STRETCH,
+            probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
         }
     }
@@ -89,7 +89,7 @@ impl ClusterBuilder {
             self.suspicion_threshold,
             delay,
             delay * self.freshness_margin,
-            self.probe_stretch,
+            self.probe_stretch.factor(),
             self.log_dir.clone(),
             self.time.clone(),
         );
@@ -137,7 +137,7 @@ impl ClusterBuilder {
     // for nodes that cannot keep up with them at their own -- a task's, which
     // reads one input a step.
     #[must_use]
-    pub fn probe_stretch(mut self, stretch: u32) -> Self {
+    pub fn probe_stretch(mut self, stretch: ProbeStretch) -> Self {
         self.probe_stretch = stretch;
         self
     }
@@ -196,7 +196,7 @@ impl ClusterBuilder {
             self.suspicion_threshold,
             self.timer_delay.duration(),
             self.freshness_margin,
-            self.probe_stretch,
+            self.probe_stretch.factor(),
             self.log_dir.clone(),
             TcpReadiness::new(self.time.clone(), PROCESS_READINESS_TIMEOUT),
         );

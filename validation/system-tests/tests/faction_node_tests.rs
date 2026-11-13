@@ -27,6 +27,7 @@ use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
 use faction_system_tests::node_snapshot::NodeSnapshot;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::role::Role;
 use std::iter::from_fn;
 use std::sync::Arc;
@@ -54,7 +55,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     let mut node = FactionNode::new(
         0,
@@ -88,7 +89,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
         5,
@@ -121,7 +122,7 @@ fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
@@ -157,7 +158,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
         0,

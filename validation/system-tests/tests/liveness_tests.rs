@@ -12,6 +12,7 @@ use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::committer::Committer;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::spawn::Spawn;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
@@ -25,47 +26,47 @@ const SETTLE_ROUNDS_PER_STRETCH: usize = 60;
 const SUSPICION_THRESHOLD: usize = 2;
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, ProbeStretch::Generous)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, ProbeStretch::Generous)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, ProbeStretch::Generous)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, ProbeStretch::Generous)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, ProbeStretch::Minimal)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, ProbeStretch::Minimal)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, ProbeStretch::Minimal)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Minimal)]
 fn a_member_cut_off_from_one_node_is_saved_by_indirect_probes(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
-    #[case] probe_stretch: u32,
+    #[case] probe_stretch: ProbeStretch,
 ) {
     // Arrange
     let mut cluster = concluded("cut", 5, 3, spawn, transport, probe_stretch);
 
     // Act
     cluster.cut(0, 4);
-    cluster.settle(SETTLE_ROUNDS_PER_STRETCH * probe_stretch as usize);
+    cluster.settle(SETTLE_ROUNDS_PER_STRETCH * probe_stretch.factor() as usize);
 
     // Assert
     assert!((0..5).all(|index| cluster.snapshot(index).suspected.is_empty()));
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, ProbeStretch::Generous)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, ProbeStretch::Generous)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, ProbeStretch::Generous)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, ProbeStretch::Generous)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, ProbeStretch::Minimal)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, ProbeStretch::Minimal)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, ProbeStretch::Minimal)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Minimal)]
 fn a_member_heard_again_is_revived(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
-    #[case] probe_stretch: u32,
+    #[case] probe_stretch: ProbeStretch,
 ) {
     // Arrange
     let mut cluster = concluded("revived", 5, 3, spawn, transport, probe_stretch);
@@ -81,20 +82,20 @@ fn a_member_heard_again_is_revived(
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, ProbeStretch::Generous)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, ProbeStretch::Generous)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, ProbeStretch::Generous)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, ProbeStretch::Generous)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, ProbeStretch::Minimal)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, ProbeStretch::Minimal)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, ProbeStretch::Minimal)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Minimal)]
 fn a_silenced_member_is_suspected_by_every_other(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
-    #[case] probe_stretch: u32,
+    #[case] probe_stretch: ProbeStretch,
 ) {
     // Arrange
     let mut cluster = concluded("silenced", 5, 3, spawn, transport, probe_stretch);
@@ -109,20 +110,20 @@ fn a_silenced_member_is_suspected_by_every_other(
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, ProbeStretch::Generous)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, ProbeStretch::Generous)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, ProbeStretch::Generous)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, ProbeStretch::Generous)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, ProbeStretch::Minimal)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, ProbeStretch::Minimal)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, ProbeStretch::Minimal)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Minimal)]
 fn an_added_member_is_probed_once_committed(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
-    #[case] probe_stretch: u32,
+    #[case] probe_stretch: ProbeStretch,
 ) {
     // Arrange
     let mut cluster = concluded("added", 3, 2, spawn, transport, probe_stretch);
@@ -151,7 +152,7 @@ fn concluded(
     required: usize,
     spawn: Spawn,
     transport: TransportKind,
-    probe_stretch: u32,
+    probe_stretch: ProbeStretch,
 ) -> Cluster {
     let mut cluster = ClusterBuilder::new(size, required, real_time())
         .spawn(spawn)
@@ -169,20 +170,20 @@ fn scenario_log(scenario: &str, spawn: Spawn, transport: TransportKind) -> PathB
 }
 
 #[rstest]
-#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, 3)]
-#[case::task_real_channels(Spawn::Task, TransportKind::Channels, 3)]
-#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, 3)]
-#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, 3)]
-#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, 1)]
-#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, 1)]
-#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, 1)]
-#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, 1)]
-#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, 1)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, 1)]
+#[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, ProbeStretch::Generous)]
+#[case::task_real_channels(Spawn::Task, TransportKind::Channels, ProbeStretch::Generous)]
+#[case::task_real_tcp(Spawn::Task, TransportKind::Tcp, ProbeStretch::Generous)]
+#[case::task_real_grpc(Spawn::Task, TransportKind::Grpc, ProbeStretch::Generous)]
+#[case::thread_real_inmemory(Spawn::Thread, TransportKind::InMemory, ProbeStretch::Minimal)]
+#[case::thread_real_channels(Spawn::Thread, TransportKind::Channels, ProbeStretch::Minimal)]
+#[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, ProbeStretch::Minimal)]
+#[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, ProbeStretch::Minimal)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Minimal)]
 fn silencing_too_many_loses_quorum_and_their_return_restores_it(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,
-    #[case] probe_stretch: u32,
+    #[case] probe_stretch: ProbeStretch,
 ) {
     // Arrange
     let mut cluster = concluded("quorum", 5, 3, spawn, transport, probe_stretch);

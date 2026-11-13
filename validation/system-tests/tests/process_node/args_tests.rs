@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::process_node::args::Args;
 use faction_system_tests::transport_kind::TransportKind;
 use std::net::SocketAddr;
@@ -52,7 +53,7 @@ fn parse_reads_every_required_argument() {
     assert_eq!(config.peers, vec![0, 1]);
     assert_eq!(config.required, 2);
     assert_eq!(config.suspicion_threshold, 3);
-    assert_eq!(config.probe_stretch, 1);
+    assert_eq!(config.probe_stretch, ProbeStretch::Minimal.factor());
     assert_eq!(config.transport, TransportKind::Tcp);
     assert_eq!(config.timer_delay_ms, 20);
     assert_eq!(config.listen_addr, addr("127.0.0.1:4001"));

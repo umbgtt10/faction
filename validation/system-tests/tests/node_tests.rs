@@ -10,6 +10,7 @@ use faction::peer_state::PeerState;
 use faction_system_tests::infra::network::tcp_readiness::TcpReadiness;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::process_spec::ProcessSpec;
 use faction_system_tests::transport_kind::TransportKind;
 use std::cell::RefCell;
@@ -46,7 +47,7 @@ fn spec() -> ProcessSpec {
         1,
         Duration::from_millis(10),
         100,
-        1,
+        ProbeStretch::Minimal.factor(),
         None,
         TcpReadiness::new(real_time(), Duration::from_secs(30)),
     )

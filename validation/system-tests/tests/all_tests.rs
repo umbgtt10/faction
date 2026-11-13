@@ -12,6 +12,7 @@ pub mod joining_tests;
 pub mod liveness_tests;
 pub mod node_recipe_tests;
 pub mod node_tests;
+pub mod probe_stretch_tests;
 pub mod process_node;
 pub mod thread_runner_tests;
 pub mod timer_delay_tests;

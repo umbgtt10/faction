@@ -7,6 +7,7 @@ use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 use faction_system_tests::constants::DEFAULT_DEADLINE_CYCLES;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -187,7 +188,7 @@ fn with_delays_deadline_waits_its_own_delay() {
         clock.clone(),
         Duration::from_millis(10),
         Duration::from_millis(100),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     timer.schedule(TimerEvent::Fire(TimerMessage::DeadlineExpired));
     timer.schedule(some_event());
@@ -217,7 +218,7 @@ fn with_delays_indirect_probes_missed_waits_eight_delays() {
         clock.clone(),
         Duration::from_millis(10),
         Duration::from_millis(1000),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     timer.schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
         peer_id: 1,
@@ -246,7 +247,7 @@ fn with_delays_probe_due_waits_five_delays() {
         clock.clone(),
         Duration::from_millis(10),
         Duration::from_millis(1000),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     timer.schedule(TimerEvent::Fire(TimerMessage::ProbeDue));
     clock.advance(Duration::from_millis(49));
@@ -268,7 +269,7 @@ fn with_delays_probe_missed_waits_four_delays() {
         clock.clone(),
         Duration::from_millis(10),
         Duration::from_millis(1000),
-        1,
+        ProbeStretch::Minimal.factor(),
     );
     timer.schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }));
     clock.advance(Duration::from_millis(39));

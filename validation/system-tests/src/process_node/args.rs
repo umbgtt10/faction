@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::constants::DEFAULT_PROBE_STRETCH;
+use crate::probe_stretch::ProbeStretch;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
@@ -120,7 +120,7 @@ impl Args {
             required: required.expect("missing --required"),
             suspicion_threshold: suspicion_threshold.expect("missing --suspicion-threshold"),
             freshness_margin: freshness_margin.unwrap_or(2),
-            probe_stretch: probe_stretch.unwrap_or(DEFAULT_PROBE_STRETCH),
+            probe_stretch: probe_stretch.unwrap_or(ProbeStretch::Minimal.factor()),
             transport: transport.expect("missing --transport"),
 
             listen_addr: listen_addr.expect("missing --listen-addr"),

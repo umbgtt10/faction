@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::probe_stretch::ProbeStretch;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::sync::Arc;
@@ -11,7 +12,6 @@ use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 
 use crate::constants::DEFAULT_DEADLINE_CYCLES;
-use crate::constants::DEFAULT_PROBE_STRETCH;
 use crate::traits::monotonic_clock::MonotonicClock;
 
 const DEFAULT_DELAY: Duration = Duration::from_millis(50);
@@ -46,7 +46,7 @@ impl RealTimer {
             clock,
             delay,
             delay * DEFAULT_DEADLINE_CYCLES,
-            DEFAULT_PROBE_STRETCH,
+            ProbeStretch::Minimal.factor(),
         )
     }
 

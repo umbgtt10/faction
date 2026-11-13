@@ -7,6 +7,7 @@ use faction::peer_state::PeerState;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
 use faction_system_tests::node_recipe::NodeRecipe;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::spawn::Spawn;
 use std::env::temp_dir;
 use std::fs::create_dir_all;
@@ -54,7 +55,7 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
         1,
         Duration::from_millis(10),
         Duration::from_secs(10),
-        1,
+        ProbeStretch::Minimal.factor(),
         Some(dir.clone()),
         time,
     );

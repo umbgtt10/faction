@@ -16,6 +16,7 @@ pub mod node_command;
 pub mod node_observer;
 pub mod node_recipe;
 pub mod node_snapshot;
+pub mod probe_stretch;
 pub mod process_node;
 pub mod process_spec;
 pub mod role;

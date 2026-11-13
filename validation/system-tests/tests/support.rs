@@ -11,6 +11,7 @@ use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node_recipe::NodeRecipe;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::time_ports::TimePorts;
 use faction_system_tests::traits::wall_clock::WallClock;
 use std::env::var;
@@ -61,7 +62,7 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
         1,
         Duration::from_millis(10),
         Duration::from_secs(10),
-        1,
+        ProbeStretch::Minimal.factor(),
         None,
         time.clone(),
     )
