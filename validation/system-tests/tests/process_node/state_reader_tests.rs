@@ -18,7 +18,7 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
         peer_state: PeerState::Pinging,
         member_count: 9,
         required_count: 9,
-        addition: Reconfiguration::AdditionAcknowledged { peer_id: 9 },
+        reconfiguration: Reconfiguration::AdditionAcknowledged { peer_id: 9 },
         suspected: vec![9],
         quorum: Quorum::Lost,
     }));
@@ -53,7 +53,7 @@ fn spawn_reads_a_state_line_into_the_snapshot(
             peer_state,
             member_count: 2,
             required_count: 3,
-            addition: Reconfiguration::None,
+            reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
         }
@@ -67,13 +67,13 @@ fn spawn_reads_a_state_line_into_the_snapshot(
 #[case("state Bootstrapped 3 2 removing:7 - held", Reconfiguration::RemovalRequested { peer_id: 7 })]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
-    #[case] addition: Reconfiguration,
+    #[case] reconfiguration: Reconfiguration,
 ) {
     // Arrange & Act
     let (snapshot, _) = read(line);
 
     // Assert
-    assert_eq!(snapshot.addition, addition);
+    assert_eq!(snapshot.reconfiguration, reconfiguration);
 }
 
 #[rstest]

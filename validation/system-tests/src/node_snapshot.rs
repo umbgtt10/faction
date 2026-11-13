@@ -11,7 +11,7 @@ pub struct NodeSnapshot {
     pub peer_state: PeerState,
     pub member_count: usize,
     pub required_count: usize,
-    pub addition: Reconfiguration,
+    pub reconfiguration: Reconfiguration,
     pub suspected: Vec<PeerId>,
     pub quorum: Quorum,
 }

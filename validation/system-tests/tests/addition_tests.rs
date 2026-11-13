@@ -72,7 +72,7 @@ fn a_second_addition_is_refused_while_one_is_in_flight(
     // Act
     cluster.request_addition(COORDINATOR, 3);
     cluster.request_addition(COORDINATOR, 4);
-    let in_flight = cluster.snapshot(COORDINATOR).addition;
+    let in_flight = cluster.snapshot(COORDINATOR).reconfiguration;
     cluster.poll_until_proposed(COORDINATOR, 3);
     cluster.commit_addition(3, None);
     cluster.request_addition(COORDINATOR, 4);
@@ -156,7 +156,7 @@ fn an_aborted_addition_never_counts_the_newcomer(
     // Assert
     assert!((0..3).all(|index| cluster.member_count(index) == 3));
     assert_eq!(
-        cluster.snapshot(COORDINATOR).addition,
+        cluster.snapshot(COORDINATOR).reconfiguration,
         Reconfiguration::None
     );
     assert_ne!(cluster.node_state(3), PeerState::Bootstrapped);

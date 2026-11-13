@@ -87,6 +87,18 @@ impl ThreadRunner {
                     self.node.abort_addition(peer_id);
                     ack
                 }
+                Ok(NodeCommand::RequestRemoval(peer_id, ack)) => {
+                    self.node.request_removal(peer_id);
+                    ack
+                }
+                Ok(NodeCommand::CommitRemoval(peer_id, ack)) => {
+                    self.node.commit_removal(peer_id);
+                    ack
+                }
+                Ok(NodeCommand::AbortRemoval(peer_id, ack)) => {
+                    self.node.abort_removal(peer_id);
+                    ack
+                }
                 Ok(NodeCommand::Cut(peer_id, ack)) => {
                     self.node.cut(peer_id);
                     ack

@@ -62,17 +62,6 @@ impl ProcessRunner {
         self.emit_state();
     }
 
-    // The change in flight as the state line writes it: none, an addition
-    // requested of a peer or acknowledged by it, or a peer's removal.
-    fn addition(addition: Reconfiguration) -> String {
-        match addition {
-            Reconfiguration::None => String::from("none"),
-            Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
-            Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
-            Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
-        }
-    }
-
     fn apply(&mut self, command: ProcessCommand) {
         match command {
             ProcessCommand::RequestJoin(peer_id) => self.node.request_join(peer_id),
@@ -82,6 +71,9 @@ impl ProcessRunner {
             ProcessCommand::RequestAddition(peer_id) => self.node.request_addition(peer_id),
             ProcessCommand::CommitAddition(peer_id) => self.node.commit_addition(peer_id),
             ProcessCommand::AbortAddition(peer_id) => self.node.abort_addition(peer_id),
+            ProcessCommand::RequestRemoval(peer_id) => self.node.request_removal(peer_id),
+            ProcessCommand::CommitRemoval(peer_id) => self.node.commit_removal(peer_id),
+            ProcessCommand::AbortRemoval(peer_id) => self.node.abort_removal(peer_id),
             ProcessCommand::RequiredCount(required_count) => {
                 self.node.change_required_count(required_count);
             }
@@ -121,7 +113,7 @@ impl ProcessRunner {
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
-            Self::addition(snapshot.addition),
+            Self::reconfiguration(snapshot.reconfiguration),
             Self::suspected(&snapshot.suspected),
             Self::quorum(snapshot.quorum)
         );
@@ -134,6 +126,17 @@ impl ProcessRunner {
             Quorum::NotTracked => "off",
             Quorum::Held => "held",
             Quorum::Lost => "lost",
+        }
+    }
+
+    // The change in flight as the state line writes it: none, an addition
+    // requested of a peer or acknowledged by it, or a peer's removal.
+    fn reconfiguration(reconfiguration: Reconfiguration) -> String {
+        match reconfiguration {
+            Reconfiguration::None => String::from("none"),
+            Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
+            Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
+            Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
         }
     }
 
