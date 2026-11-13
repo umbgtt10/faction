@@ -4,8 +4,10 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::outcome::Outcome;
+use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
 use crate::output_message::OutputMessage;
@@ -36,6 +38,10 @@ impl MessageTranslator {
                 TransportMessage::Ping { from } => Command::ParticipationObserved { peer_id: from },
                 TransportMessage::Ready { from } => Command::ReadyObserved { peer_id: from },
                 TransportMessage::Bootstrapped { .. } => Command::Probe,
+                TransportMessage::MembershipAcknowledged { from } => {
+                    Command::MembershipAcknowledged { peer_id: from }
+                }
+                TransportMessage::Membership { .. } => unreachable!("handled in decide()"),
             },
             InputMessage::Timer(msg) => match msg {
                 TimerMessage::ParticipationObserved { peer_id } => {
@@ -45,15 +51,25 @@ impl MessageTranslator {
                 TimerMessage::RetryPing => unreachable!("handled in decide()"),
                 TimerMessage::RetryReady => unreachable!("handled in decide()"),
                 TimerMessage::DeadlineExpired => Command::DeadlineExpired,
+                TimerMessage::RetryMembership { .. } => unreachable!("handled in decide()"),
             },
         }
     }
 
     // Every outcome of a result, in order, each turned into what the caller
-    // must do; a result asking nothing is a no-op.
+    // must do -- the membership a newcomer is sent read from the result's view,
+    // as the node `local_peer_id` sends it; a result asking nothing is a no-op.
     #[must_use]
-    pub fn to_output_messages(&self, outcomes: Vec<Outcome>) -> Vec<OutputMessage> {
-        let messages: Vec<OutputMessage> = outcomes.into_iter().flat_map(Self::messages).collect();
+    pub fn to_output_messages(
+        &self,
+        outcomes: Vec<Outcome>,
+        view: &ClusterView,
+        local_peer_id: PeerId,
+    ) -> Vec<OutputMessage> {
+        let messages: Vec<OutputMessage> = outcomes
+            .into_iter()
+            .flat_map(|outcome| Self::messages(outcome, view, local_peer_id))
+            .collect();
         if messages.is_empty() {
             vec![OutputMessage::Noop]
         } else {
@@ -61,7 +77,7 @@ impl MessageTranslator {
         }
     }
 
-    fn messages(outcome: Outcome) -> Vec<OutputMessage> {
+    fn messages(outcome: Outcome, view: &ClusterView, local_peer_id: PeerId) -> Vec<OutputMessage> {
         match outcome {
             Outcome::BroadcastLocalReady => vec![
                 OutputMessage::BroadcastReady,
@@ -73,6 +89,26 @@ impl MessageTranslator {
                 OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
             ],
             Outcome::AcknowledgeRejoin { .. } => vec![OutputMessage::BroadcastReady],
+            Outcome::SendMembership { peer_id } => vec![
+                OutputMessage::Send {
+                    to: peer_id,
+                    message: TransportMessage::Membership {
+                        from: local_peer_id,
+                        members: view.members().as_slice().to_vec(),
+                        required_count: view.required_count(),
+                    },
+                },
+                OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryMembership {
+                    peer_id,
+                })),
+            ],
+            Outcome::ProposeAddition { peer_id } => vec![
+                OutputMessage::ProposeAddition { peer_id },
+                OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership { peer_id })),
+            ],
+            Outcome::AdditionWithdrawn { peer_id } => vec![OutputMessage::Cancel(
+                TimerEvent::Fire(TimerMessage::RetryMembership { peer_id }),
+            )],
             _ => Vec::new(),
         }
     }

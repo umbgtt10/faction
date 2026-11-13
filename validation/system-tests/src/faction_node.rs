@@ -149,7 +149,10 @@ impl FactionNode {
             OutputMessage::Cancel(event) => {
                 self.timer.cancel(event);
             }
-            OutputMessage::Noop => {}
+            OutputMessage::Send { to, message } => {
+                self.transport.send(to, message);
+            }
+            OutputMessage::ProposeAddition { .. } | OutputMessage::Noop => {}
         }
     }
 }

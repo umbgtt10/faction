@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::addition::Addition;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
@@ -13,9 +14,49 @@ use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
+// Node 0 of members 0 and 1, requiring two, concluded.
+fn bootstrapped() -> Protocol {
+    let mut protocol = protocol();
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    protocol
+}
+
+fn membership_for(peer_id: u64) -> OutputMessage {
+    OutputMessage::Send {
+        to: peer_id,
+        message: TransportMessage::Membership {
+            from: 0,
+            members: vec![0, 1],
+            required_count: 2,
+        },
+    }
+}
+
 fn protocol() -> Protocol {
     let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2));
     Protocol::new(Faction::new(config, Box::new(NoOpObserver)), vec![0, 1], 0)
+}
+
+fn retry_membership(peer_id: u64) -> TimerEvent {
+    TimerEvent::Fire(TimerMessage::RetryMembership { peer_id })
+}
+
+#[test]
+fn abort_addition_of_the_newcomer_withdraws_it_and_cancels_the_retry() {
+    // Arrange
+    let mut protocol = bootstrapped();
+    protocol.request_addition(5);
+
+    // Act
+    let decisions = protocol.abort_addition(5);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Cancel(retry_membership(5))]);
+    assert_eq!(protocol.cluster_view().addition(), Addition::None);
 }
 
 #[test]
@@ -29,6 +70,34 @@ fn admit_new_peer_adds_it_to_members() {
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 5]);
+}
+
+#[test]
+fn change_required_count_sets_the_count_in_effect() {
+    // Arrange
+    let mut protocol = bootstrapped();
+
+    // Act
+    let decisions = protocol.change_required_count(3);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(protocol.cluster_view().required_count(), 3);
+}
+
+#[test]
+fn commit_addition_of_the_newcomer_admits_it() {
+    // Arrange
+    let mut protocol = bootstrapped();
+    protocol.request_addition(5);
+
+    // Act
+    let decisions = protocol.commit_addition(5);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 5]);
+    assert_eq!(protocol.cluster_view().addition(), Addition::None);
 }
 
 #[test]
@@ -149,6 +218,49 @@ fn decide_local_completion_produces_broadcast_ready_and_retry() {
 }
 
 #[test]
+fn decide_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
+    // Arrange
+    let mut protocol = bootstrapped();
+    protocol.request_addition(5);
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(
+        TransportMessage::MembershipAcknowledged { from: 5 },
+    ));
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![
+            OutputMessage::ProposeAddition { peer_id: 5 },
+            OutputMessage::Cancel(retry_membership(5)),
+        ]
+    );
+}
+
+#[test]
+fn decide_membership_at_a_running_node_acknowledges_it() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
+        from: 7,
+        members: vec![7],
+        required_count: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![OutputMessage::Send {
+            to: 7,
+            message: TransportMessage::MembershipAcknowledged { from: 0 },
+        }]
+    );
+}
+
+#[test]
 fn decide_ping_from_member_produces_broadcast() {
     // Arrange
     let mut protocol = protocol();
@@ -259,6 +371,45 @@ fn decide_rejected_command_returns_noop() {
     // Assert
     assert_eq!(decisions.len(), 1);
     assert!(matches!(decisions[0], OutputMessage::Noop));
+}
+
+#[test]
+fn decide_retry_membership_once_acknowledged_produces_noop() {
+    // Arrange
+    let mut protocol = bootstrapped();
+    protocol.request_addition(5);
+    protocol.decide(InputMessage::Transport(
+        TransportMessage::MembershipAcknowledged { from: 5 },
+    ));
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryMembership {
+        peer_id: 5,
+    }));
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+}
+
+#[test]
+fn decide_retry_membership_while_requested_resends_and_reschedules() {
+    // Arrange
+    let mut protocol = bootstrapped();
+    protocol.request_addition(5);
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryMembership {
+        peer_id: 5,
+    }));
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![
+            membership_for(5),
+            OutputMessage::Schedule(retry_membership(5))
+        ]
+    );
 }
 
 #[test]
@@ -414,6 +565,28 @@ fn initialize_with_two_peers_produces_decisions() {
         decisions[3],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
     ));
+}
+
+#[test]
+fn request_addition_of_a_newcomer_sends_it_the_membership_and_schedules_the_retry() {
+    // Arrange
+    let mut protocol = bootstrapped();
+
+    // Act
+    let decisions = protocol.request_addition(5);
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![
+            membership_for(5),
+            OutputMessage::Schedule(retry_membership(5))
+        ]
+    );
+    assert_eq!(
+        protocol.cluster_view().addition(),
+        Addition::Requested { peer_id: 5 }
+    );
 }
 
 #[test]

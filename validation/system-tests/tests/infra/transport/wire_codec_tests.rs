@@ -9,6 +9,17 @@ fn every_message() -> Vec<TransportMessage> {
         TransportMessage::Ping { from: 1 },
         TransportMessage::Ready { from: u64::MAX },
         TransportMessage::Bootstrapped { from: 7 },
+        TransportMessage::Membership {
+            from: 0,
+            members: vec![0, 1, u64::MAX],
+            required_count: 2,
+        },
+        TransportMessage::Membership {
+            from: 4,
+            members: vec![],
+            required_count: 0,
+        },
+        TransportMessage::MembershipAcknowledged { from: 5 },
     ]
 }
 
@@ -29,6 +40,23 @@ fn decode_of_a_frame_with_an_unknown_tag_is_none() {
     // Arrange
     let mut frame = WireCodec::encode(&TransportMessage::Ping { from: 3 });
     frame[12] = 0xff;
+
+    // Act
+    let decoded = WireCodec::decode(&frame);
+
+    // Assert
+    assert_eq!(decoded, None);
+}
+
+#[test]
+fn decode_of_a_membership_whose_members_overrun_the_frame_is_none() {
+    // Arrange
+    let mut frame = WireCodec::encode(&TransportMessage::Membership {
+        from: 0,
+        members: vec![1],
+        required_count: 1,
+    });
+    frame[21] = 2;
 
     // Act
     let decoded = WireCodec::decode(&frame);

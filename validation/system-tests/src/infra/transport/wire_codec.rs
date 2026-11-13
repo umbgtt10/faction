@@ -6,36 +6,89 @@ use faction_protocol::transport_message::TransportMessage;
 
 const LENGTH: usize = 4;
 const SENDER: usize = 8;
+const REQUIRED_COUNT: usize = 8;
+const MEMBER_COUNT: usize = 4;
+const PEER: usize = 8;
 
 // The bytes a message travels as over TCP and gRPC: a frame, its length -- of
-// what follows it -- then the sender, a tag and the payload.
+// what follows it -- then the sender, a tag and the payload. A membership's
+// payload is the required count, the number of members, then each member.
 pub struct WireCodec;
 
 impl WireCodec {
     #[must_use]
     pub fn decode(frame: &[u8]) -> Option<TransportMessage> {
-        let length = u32::from_le_bytes(frame.get(..LENGTH)?.try_into().ok()?);
-        let body = frame.get(LENGTH..)?;
+        let length =
+            usize::try_from(u32::from_le_bytes(frame.get(..LENGTH)?.try_into().ok()?)).ok()?;
+        let body = frame.get(LENGTH..).filter(|body| body.len() == length)?;
         let from = PeerId::from_le_bytes(body.get(..SENDER)?.try_into().ok()?);
-        let tag = *body.get(SENDER)?;
-        let whole = usize::try_from(length).ok()? == body.len();
-        match (whole, tag) {
-            (true, 0) => Some(TransportMessage::Ping { from }),
-            (true, 1) => Some(TransportMessage::Ready { from }),
-            (true, 2) => Some(TransportMessage::Bootstrapped { from }),
+        let payload = body.get(SENDER + 1..)?;
+        match body.get(SENDER)? {
+            0 => Some(TransportMessage::Ping { from }),
+            1 => Some(TransportMessage::Ready { from }),
+            2 => Some(TransportMessage::Bootstrapped { from }),
+            3 => Self::membership(from, payload),
+            4 => Some(TransportMessage::MembershipAcknowledged { from }),
             _ => None,
         }
     }
 
     #[must_use]
     pub fn encode(message: &TransportMessage) -> Vec<u8> {
-        let (from, tag): (PeerId, u8) = match message {
-            TransportMessage::Ping { from } => (*from, 0),
-            TransportMessage::Ready { from } => (*from, 1),
-            TransportMessage::Bootstrapped { from } => (*from, 2),
+        let (from, tag, payload): (PeerId, u8, Vec<u8>) = match message {
+            TransportMessage::Ping { from } => (*from, 0, Vec::new()),
+            TransportMessage::Ready { from } => (*from, 1, Vec::new()),
+            TransportMessage::Bootstrapped { from } => (*from, 2, Vec::new()),
+            TransportMessage::Membership {
+                from,
+                members,
+                required_count,
+            } => (*from, 3, Self::membership_payload(members, *required_count)),
+            TransportMessage::MembershipAcknowledged { from } => (*from, 4, Vec::new()),
         };
-        let body: Vec<u8> = from.to_le_bytes().into_iter().chain([tag]).collect();
+        let body: Vec<u8> = from
+            .to_le_bytes()
+            .into_iter()
+            .chain([tag])
+            .chain(payload)
+            .collect();
         let length = u32::try_from(body.len()).expect("a frame shorter than 4 GiB");
         length.to_le_bytes().into_iter().chain(body).collect()
+    }
+
+    fn membership(from: PeerId, payload: &[u8]) -> Option<TransportMessage> {
+        let required_count = usize::try_from(u64::from_le_bytes(
+            payload.get(..REQUIRED_COUNT)?.try_into().ok()?,
+        ))
+        .ok()?;
+        let member_count = usize::try_from(u32::from_le_bytes(
+            payload
+                .get(REQUIRED_COUNT..REQUIRED_COUNT + MEMBER_COUNT)?
+                .try_into()
+                .ok()?,
+        ))
+        .ok()?;
+        let members = payload
+            .get(REQUIRED_COUNT + MEMBER_COUNT..)
+            .filter(|members| members.len() == member_count * PEER)?
+            .chunks_exact(PEER)
+            .map(|member| PeerId::from_le_bytes(member.try_into().expect("a member's eight bytes")))
+            .collect();
+        Some(TransportMessage::Membership {
+            from,
+            members,
+            required_count,
+        })
+    }
+
+    fn membership_payload(members: &[PeerId], required_count: usize) -> Vec<u8> {
+        let required_count = u64::try_from(required_count).expect("a count within a u64");
+        let member_count = u32::try_from(members.len()).expect("fewer members than 2^32");
+        required_count
+            .to_le_bytes()
+            .into_iter()
+            .chain(member_count.to_le_bytes())
+            .chain(members.iter().flat_map(|member| member.to_le_bytes()))
+            .collect()
     }
 }
