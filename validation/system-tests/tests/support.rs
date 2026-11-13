@@ -19,7 +19,10 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::OnceLock;
 use std::time::Duration;
+
+const LOG_RUN: &str = "FACTION_LOG_RUN";
 
 pub fn fake_time() -> (TimePorts, Arc<FakeMonotonicClock>) {
     let clock = Arc::new(FakeMonotonicClock::at(Duration::ZERO));
@@ -62,9 +65,21 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
     )
 }
 
+// The run a test's logs belong to: the system tests' run, whose folder under
+// logs/ the xtask names and prunes; run outside it, this process's own run,
+// named the same way so the same pruning keeps it in bounds.
 fn run_id() -> String {
-    var("FACTION_LOG_RUN")
-        .unwrap_or_else(|_| SystemWallClock.now().format("%Y%m%d_%H%M%S").to_string())
+    static PROCESS_RUN: OnceLock<String> = OnceLock::new();
+    var(LOG_RUN).unwrap_or_else(|_| {
+        PROCESS_RUN
+            .get_or_init(|| {
+                SystemWallClock
+                    .now()
+                    .format("%Y-%m-%d_%H-%M-%S")
+                    .to_string()
+            })
+            .clone()
+    })
 }
 
 #[derive(Clone, Default)]
