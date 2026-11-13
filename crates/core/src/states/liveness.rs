@@ -50,6 +50,16 @@ impl Liveness {
         self.suspicion.misses()
     }
 
+    // The liveness of `members` alone: a peer no longer a member is neither
+    // suspected nor counted, nor the member probed last.
+    #[must_use]
+    pub fn of_members(&self, members: &Members) -> Self {
+        Self {
+            probing: self.probing.of_members(members),
+            suspicion: self.suspicion.of_members(members),
+        }
+    }
+
     #[must_use]
     pub fn step(
         &self,

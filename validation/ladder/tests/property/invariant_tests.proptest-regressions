@@ -1,0 +1,13 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 0f006c0d9dfe89b42927cae649944621d128139be53a7dc8ce2d15596e83ba1b # shrinks to commands = [ParticipationObserved { peer_id: 2 }, RemovalCommitted { peer_id: 2 }]
+cc e86ef9d2c679ac86993a9395c994ee50cbf42bea160610fcdfbf3845cf58ca09 # shrinks to commands = [ParticipationObserved { peer_id: 0 }, RemovalCommitted { peer_id: 0 }]
+cc 69cc5f07e3ec32e0edc6c5d2cf2d6a76223dd992f9f7726b5064e425a1612f31 # shrinks to commands = [ParticipationObserved { peer_id: 0 }, AdditionCommitted { peer_id: 6 }, ReadyObserved { peer_id: 6 }, RemovalCommitted { peer_id: 6 }]
+cc 6b02cb5deb2a04ab32d49a9730df3477ddb302bc66ca089e37c6511fab4b2309 # shrinks to commands = [LocalParticipationCompleted, RequiredCountChanged { required_count: 0 }, RemovalCommitted { peer_id: 0 }]
+cc 2f6fcc1b9b8aa2d371538255ffef0410a8e7bf150923a78eed88d93afaa53bdb # shrinks to commands = [LocalParticipationCompleted, RequiredCountChanged { required_count: 0 }, RemovalCommitted { peer_id: 0 }]
+cc 98f9bd568cf89b1e7d46b5bf928d36779afa563b8eb7bafb0a39d295800e637c # shrinks to commands = [ParticipationObserved { peer_id: 3 }, RemovalCommitted { peer_id: 3 }]
+cc 3670bafc7c638b52ca722cb5d8ba9e224544f214f723d865e294a5b59cefd528 # shrinks to commands = [LocalParticipationCompleted, RequiredCountChanged { required_count: 0 }, RemovalCommitted { peer_id: 0 }]

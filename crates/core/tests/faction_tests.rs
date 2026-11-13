@@ -38,6 +38,7 @@ fn pinging_admissible() -> Vec<Command> {
         Command::JoinApproved { peer_id: 0 },
         Command::JoinRejected { peer_id: 0 },
         Command::AdditionCommitted { peer_id: 0 },
+        Command::RemovalCommitted { peer_id: 0 },
         Command::RequiredCountChanged { required_count: 0 },
         Command::Probe,
     ]
@@ -228,6 +229,8 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
+            Command::RemovalRequested { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },

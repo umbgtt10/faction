@@ -8,4 +8,5 @@ pub enum PeerState {
     Collecting,
     Bootstrapped,
     TimedOut,
+    Removed,
 }

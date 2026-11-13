@@ -10,8 +10,8 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::states::membership_decision::MembershipDecision;
 
 // A membership decision applied, alike in every stage that admits it: a
-// committed addition admits its peer as an approval does, and a new count
-// becomes the count in effect.
+// committed addition admits its peer as an approval does, a committed removal
+// takes its peer out, and a new count becomes the count in effect.
 pub struct MembershipStep {
     outcomes: Vec<Outcome>,
     members: Members,
@@ -49,6 +49,18 @@ impl MembershipStep {
                 outcomes: vec![Outcome::JoinDenied { peer_id }],
                 members,
                 quorum_policy,
+            },
+            MembershipDecision::Removed(peer_id) => match members.without(peer_id) {
+                Some(rest) => Self {
+                    outcomes: vec![Outcome::MemberRemoved { peer_id }],
+                    members: rest,
+                    quorum_policy,
+                },
+                None => Self {
+                    outcomes: vec![Outcome::NonMemberIgnored { peer_id }],
+                    members,
+                    quorum_policy,
+                },
             },
             MembershipDecision::Counted(counted) => Self {
                 outcomes: vec![Outcome::RequiredCountSet {

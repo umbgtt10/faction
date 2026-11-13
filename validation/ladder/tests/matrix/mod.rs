@@ -10,4 +10,5 @@ pub mod helpers;
 pub mod initial_invalid_tests;
 pub mod pinging_invalid_tests;
 pub mod reconfiguring_invalid_tests;
+pub mod removed_invalid_tests;
 pub mod state_transition_matrix_tests;

@@ -15,3 +15,4 @@ pub mod suspicion;
 pub mod initial;
 pub mod pinging;
 pub mod reconfiguring;
+pub mod removed;

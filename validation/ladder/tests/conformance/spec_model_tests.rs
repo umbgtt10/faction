@@ -56,10 +56,12 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
             .filter(|name| !refused.contains(name))
             .collect()
     };
-    let addition = [
+    let coordination = [
         CommandName::AdditionRequested,
         CommandName::MembershipAcknowledged,
         CommandName::AdditionAborted,
+        CommandName::RemovalRequested,
+        CommandName::RemovalAborted,
     ];
     let liveness = [
         CommandName::ProbeDue,
@@ -72,20 +74,20 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
             Stage::Initial,
             but(&[
                 [CommandName::DeadlineExpired].as_slice(),
-                &addition,
+                &coordination,
                 &liveness,
             ]
             .concat()),
         ),
         (
             Stage::Pinging,
-            but(&[addition.as_slice(), &liveness].concat()),
+            but(&[coordination.as_slice(), &liveness].concat()),
         ),
         (
             Stage::Collecting,
             but(&[
                 [CommandName::LocalParticipationCompleted].as_slice(),
-                &addition,
+                &coordination,
                 &liveness,
             ]
             .concat()),
@@ -99,6 +101,8 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::JoinRejected,
                 CommandName::AdditionRequested,
                 CommandName::AdditionCommitted,
+                CommandName::RemovalRequested,
+                CommandName::RemovalCommitted,
                 CommandName::RequiredCountChanged,
                 CommandName::ProbeDue,
                 CommandName::PeerHeard,
@@ -116,6 +120,8 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::MembershipAcknowledged,
                 CommandName::AdditionCommitted,
                 CommandName::AdditionAborted,
+                CommandName::RemovalCommitted,
+                CommandName::RemovalAborted,
                 CommandName::RequiredCountChanged,
                 CommandName::ProbeDue,
                 CommandName::PeerHeard,
@@ -124,6 +130,7 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::Probe,
             ],
         ),
+        (Stage::Removed, vec![CommandName::Probe]),
     ];
 
     // Act
@@ -164,7 +171,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
         .collect();
 
     // Assert
-    assert_eq!(vectors.len(), 78);
+    assert_eq!(vectors.len(), 91);
     assert!(departures.is_empty(), "{departures:#?}");
 }
 

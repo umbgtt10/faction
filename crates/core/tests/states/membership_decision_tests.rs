@@ -51,6 +51,24 @@ fn of_join_requested_returns_requested() {
 }
 
 #[test]
+fn of_removal_committed_returns_removed() {
+    // Arrange & Act
+    let decision = MembershipDecision::of(&Command::RemovalCommitted { peer_id: 2 });
+
+    // Assert
+    assert_eq!(decision, Some(MembershipDecision::Removed(2)));
+}
+
+#[test]
+fn of_removal_requested_returns_none() {
+    // Arrange & Act
+    let decision = MembershipDecision::of(&Command::RemovalRequested { peer_id: 2 });
+
+    // Assert
+    assert_eq!(decision, None);
+}
+
+#[test]
 fn of_required_count_changed_returns_counted() {
     // Arrange & Act
     let decision = MembershipDecision::of(&Command::RequiredCountChanged { required_count: 3 });

@@ -4,7 +4,6 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
@@ -14,6 +13,7 @@ use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
 use crate::quorum_policy::QuorumPolicy;
+use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::states::liveness::Liveness;
@@ -72,7 +72,9 @@ impl Bootstrapped {
                 Self {
                     members: membership.members().clone(),
                     quorum_policy: membership.quorum_policy(),
-                    ..self.clone()
+                    pinged_peers: membership.members().retained(&self.pinged_peers),
+                    collected_peers: membership.members().retained(&self.collected_peers),
+                    liveness: self.liveness.of_members(membership.members()),
                 },
             ))
         } else if let Some((outcomes, liveness)) =
@@ -102,6 +104,18 @@ impl Bootstrapped {
     }
 }
 
+impl Bootstrapped {
+    // Whether the quorum can spare the member: a suspect it always can; any
+    // other, if the members not suspected still number the count without it.
+    fn can_spare(&self, peer_id: PeerId) -> bool {
+        self.liveness.suspected().contains(&peer_id)
+            || self
+                .members
+                .without(peer_id)
+                .is_some_and(|rest| self.liveness.holds_quorum(&rest, self.quorum_policy))
+    }
+}
+
 impl State for Bootstrapped {
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         match command {
@@ -111,7 +125,25 @@ impl State for Bootstrapped {
             )),
             Command::AdditionRequested { peer_id } => Some((
                 vec![Outcome::SendMembership { peer_id }],
-                Stage::Reconfiguring(Reconfiguring::new(self.clone(), peer_id)),
+                Stage::Reconfiguring(Reconfiguring::new(
+                    self.clone(),
+                    Reconfiguration::AdditionRequested { peer_id },
+                )),
+            )),
+            Command::RemovalRequested { peer_id } if !self.members.is_member(peer_id) => Some((
+                vec![Outcome::NonMemberIgnored { peer_id }],
+                Stage::Bootstrapped(self.clone()),
+            )),
+            Command::RemovalRequested { peer_id } if !self.can_spare(peer_id) => Some((
+                vec![Outcome::RemovalRefused { peer_id }],
+                Stage::Bootstrapped(self.clone()),
+            )),
+            Command::RemovalRequested { peer_id } => Some((
+                vec![Outcome::ProposeRemoval { peer_id }],
+                Stage::Reconfiguring(Reconfiguring::new(
+                    self.clone(),
+                    Reconfiguration::RemovalRequested { peer_id },
+                )),
             )),
             _ => self
                 .answer(command, config)
@@ -127,7 +159,7 @@ impl State for Bootstrapped {
             .with_collecting_peers(self.collected_peers.clone())
             .with_required_count(self.quorum_policy.threshold())
             .with_members(self.members.clone())
-            .with_addition(Addition::None)
+            .with_reconfiguration(Reconfiguration::None)
             .with_suspected(self.liveness.suspected().to_vec())
             .with_misses(self.liveness.misses().to_vec())
             .with_last_probed(self.liveness.last_probed())

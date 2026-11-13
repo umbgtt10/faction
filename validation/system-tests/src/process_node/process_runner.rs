@@ -8,7 +8,7 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
-use faction::addition::Addition;
+use faction::reconfiguration::Reconfiguration;
 
 use crate::constants::NODE_LIFETIME;
 use crate::faction_node::FactionNode;
@@ -62,13 +62,14 @@ impl ProcessRunner {
         self.emit_state();
     }
 
-    // The addition as the state line writes it: none, or requested or
-    // acknowledged by a peer.
-    fn addition(addition: Addition) -> String {
+    // The change in flight as the state line writes it: none, an addition
+    // requested of a peer or acknowledged by it, or a peer's removal.
+    fn addition(addition: Reconfiguration) -> String {
         match addition {
-            Addition::None => String::from("none"),
-            Addition::Requested { peer_id } => format!("requested:{peer_id}"),
-            Addition::Acknowledged { peer_id } => format!("acknowledged:{peer_id}"),
+            Reconfiguration::None => String::from("none"),
+            Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
+            Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
+            Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
         }
     }
 

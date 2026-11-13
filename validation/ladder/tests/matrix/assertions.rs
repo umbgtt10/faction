@@ -20,6 +20,8 @@ pub enum Assert {
     NotLocalComplete,
     Quorum(Quorum),
     SuspectedCount(usize),
+    MemberCount(usize),
+    Removed,
 }
 
 pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
@@ -42,6 +44,8 @@ pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
             Assert::NotLocalComplete => assert!(!cluster_view.is_pinging_completed()),
             Assert::Quorum(quorum) => assert_eq!(cluster_view.quorum(), quorum),
             Assert::SuspectedCount(n) => assert_eq!(cluster_view.suspected().len(), n),
+            Assert::MemberCount(n) => assert_eq!(cluster_view.members().as_slice().len(), n),
+            Assert::Removed => assert_eq!(cluster_view.peer_state(), PeerState::Removed),
         }
     }
     cluster_view

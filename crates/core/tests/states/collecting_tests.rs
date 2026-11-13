@@ -406,6 +406,25 @@ fn process_rejects_local_participation_completed() {
 }
 
 #[test]
+fn process_removal_committed_takes_the_peer_out_of_the_peers_gathered_and_concludes_nothing() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+    let _ = faction.process(ready(2));
+    let _ = faction.process(ready(3));
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 2 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 2 }]);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 3, 4]);
+    assert_eq!(cluster_view.collecting_peers(), &[0, 3]);
+    assert_eq!(cluster_view.pinging_peers(), &[1]);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
+}
+
+#[test]
 fn process_required_count_changed_reached_concludes() {
     // Arrange
     let mut faction = faction_in_collecting();

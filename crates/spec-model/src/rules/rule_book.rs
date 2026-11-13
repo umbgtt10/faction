@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 46] = [
+const RULES: [(&str, Rule); 56] = [
     (
         "probed",
         Rule {
@@ -184,6 +184,13 @@ const RULES: [(&str, Rule); 46] = [
         },
     ),
     (
+        "removal-aborted",
+        Rule {
+            situation: Situation::Always,
+            change: Change::RemovalWithdrawn,
+        },
+    ),
+    (
         "commit-member",
         Rule {
             situation: Situation::PeerIsMember,
@@ -216,6 +223,69 @@ const RULES: [(&str, Rule); 46] = [
         Rule {
             situation: Situation::Always,
             change: Change::PeerJoins,
+        },
+    ),
+    (
+        "removal-non-member",
+        Rule {
+            situation: Situation::PeerIsNotMember,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "removal-refused",
+        Rule {
+            situation: Situation::QuorumCannotSpare,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "removal-requested",
+        Rule {
+            situation: Situation::Always,
+            change: Change::RemovalPends,
+        },
+    ),
+    (
+        "commit-non-member",
+        Rule {
+            situation: Situation::PeerIsNotMember,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "node-removed",
+        Rule {
+            situation: Situation::PeerIsSelf,
+            change: Change::NodeRemoved,
+        },
+    ),
+    (
+        "removal-completion-loses-quorum",
+        Rule {
+            situation: Situation::CompletionLosesQuorum,
+            change: Change::RemovalCompletes,
+        },
+    ),
+    (
+        "removal-completed",
+        Rule {
+            situation: Situation::PeerIsPending,
+            change: Change::RemovalCompletes,
+        },
+    ),
+    (
+        "removal-loses-quorum",
+        Rule {
+            situation: Situation::LosesQuorum(Change::PeerRemoved),
+            change: Change::PeerRemoved,
+        },
+    ),
+    (
+        "removal-committed",
+        Rule {
+            situation: Situation::Always,
+            change: Change::PeerRemoved,
         },
     ),
     (

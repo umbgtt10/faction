@@ -72,6 +72,18 @@ fn non_member_observed_ready_from_non_member_returns_peer() {
 }
 
 #[test]
+fn retained_keeps_the_members_among_the_peers_in_the_order_given() {
+    // Arrange
+    let members = members();
+
+    // Act
+    let retained = members.retained(&[2, 9, 0]);
+
+    // Assert
+    assert_eq!(retained, vec![2, 0]);
+}
+
+#[test]
 fn with_admitted_member_returns_none() {
     // Arrange
     let members = members();
@@ -93,4 +105,28 @@ fn with_admitted_non_member_appends_peer() {
 
     // Assert
     assert_eq!(admitted, Some(Members::new(vec![0, 1, 2, 5])));
+}
+
+#[test]
+fn without_a_member_takes_it_out_and_keeps_the_order() {
+    // Arrange
+    let members = members();
+
+    // Act
+    let rest = members.without(1);
+
+    // Assert
+    assert_eq!(rest, Some(Members::new(vec![0, 2])));
+}
+
+#[test]
+fn without_a_non_member_returns_none() {
+    // Arrange
+    let members = members();
+
+    // Act
+    let rest = members.without(9);
+
+    // Assert
+    assert_eq!(rest, None);
 }

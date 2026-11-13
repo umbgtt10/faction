@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use crate::approver::Approver;
@@ -209,7 +209,7 @@ impl Cluster {
     // is proposed to the layer that commits.
     pub fn poll_until_proposed(&mut self, coordinator: usize, newcomer_id: PeerId) {
         self.start_all();
-        let proposed = Addition::Acknowledged {
+        let proposed = Reconfiguration::AdditionAcknowledged {
             peer_id: newcomer_id,
         };
         while self.nodes[coordinator].snapshot().addition != proposed {

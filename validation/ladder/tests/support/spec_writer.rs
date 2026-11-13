@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
@@ -10,6 +9,7 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 use serde_json::json;
 use serde_json::Value;
@@ -31,6 +31,9 @@ impl SpecWriter {
             | Command::MembershipAcknowledged { peer_id }
             | Command::AdditionCommitted { peer_id }
             | Command::AdditionAborted { peer_id }
+            | Command::RemovalRequested { peer_id }
+            | Command::RemovalCommitted { peer_id }
+            | Command::RemovalAborted { peer_id }
             | Command::PeerHeard { peer_id }
             | Command::ProbeMissed { peer_id }
             | Command::IndirectProbesMissed { peer_id } => {
@@ -109,6 +112,9 @@ impl SpecWriter {
             Command::MembershipAcknowledged { .. } => "MembershipAcknowledged",
             Command::AdditionCommitted { .. } => "AdditionCommitted",
             Command::AdditionAborted { .. } => "AdditionAborted",
+            Command::RemovalRequested { .. } => "RemovalRequested",
+            Command::RemovalCommitted { .. } => "RemovalCommitted",
+            Command::RemovalAborted { .. } => "RemovalAborted",
             Command::RequiredCountChanged { .. } => "RequiredCountChanged",
             Command::ProbeDue => "ProbeDue",
             Command::PeerHeard { .. } => "PeerHeard",
@@ -159,6 +165,10 @@ impl SpecWriter {
                 Self::peer("AcknowledgementIgnored", *peer_id)
             }
             Outcome::AbortIgnored { peer_id } => Self::peer("AbortIgnored", *peer_id),
+            Outcome::ProposeRemoval { peer_id } => Self::peer("ProposeRemoval", *peer_id),
+            Outcome::RemovalRefused { peer_id } => Self::peer("RemovalRefused", *peer_id),
+            Outcome::RemovalWithdrawn { peer_id } => Self::peer("RemovalWithdrawn", *peer_id),
+            Outcome::MemberRemoved { peer_id } => Self::peer("MemberRemoved", *peer_id),
             Outcome::RequiredCountSet { required_count } => {
                 json!({ "RequiredCountSet": { "required_count": Self::number(required_count) } })
             }
@@ -182,11 +192,18 @@ impl SpecWriter {
         }
     }
 
-    fn addition(addition: Addition) -> Value {
-        match addition {
-            Addition::None => json!({ "None": {} }),
-            Addition::Requested { peer_id } => Self::peer("Requested", peer_id),
-            Addition::Acknowledged { peer_id } => Self::peer("Acknowledged", peer_id),
+    fn reconfiguration(reconfiguration: Reconfiguration) -> Value {
+        match reconfiguration {
+            Reconfiguration::None => json!({ "None": {} }),
+            Reconfiguration::AdditionRequested { peer_id } => {
+                Self::peer("AdditionRequested", peer_id)
+            }
+            Reconfiguration::AdditionAcknowledged { peer_id } => {
+                Self::peer("AdditionAcknowledged", peer_id)
+            }
+            Reconfiguration::RemovalRequested { peer_id } => {
+                Self::peer("RemovalRequested", peer_id)
+            }
         }
     }
 
@@ -201,6 +218,7 @@ impl SpecWriter {
             PeerState::Collecting => "Collecting",
             PeerState::Bootstrapped => "Bootstrapped",
             PeerState::TimedOut => "TimedOut",
+            PeerState::Removed => "Removed",
         };
         json!({ name: {} })
     }
@@ -227,7 +245,7 @@ impl SpecWriter {
             "required_count": Self::number(view.required_count()),
             "deadline_missed": view.deadline_missed(),
             "members": Self::peers(view.members().as_slice()),
-            "addition": Self::addition(view.addition()),
+            "reconfiguration": Self::reconfiguration(view.reconfiguration()),
             "suspected": Self::peers(view.suspected()),
             "misses": view
                 .misses()

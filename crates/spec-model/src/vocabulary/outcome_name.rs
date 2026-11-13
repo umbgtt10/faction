@@ -33,6 +33,10 @@ pub enum OutcomeName {
     AdditionWithdrawn,
     AcknowledgementIgnored,
     AbortIgnored,
+    ProposeRemoval,
+    RemovalRefused,
+    RemovalWithdrawn,
+    MemberRemoved,
     RequiredCountSet,
     SendProbe,
     NothingToProbe,
@@ -48,7 +52,7 @@ pub enum OutcomeName {
 }
 
 impl OutcomeName {
-    pub const ALL: [OutcomeName; 31] = [
+    pub const ALL: [OutcomeName; 35] = [
         OutcomeName::ParticipationAccepted,
         OutcomeName::ReadyAccepted,
         OutcomeName::DuplicateParticipationIgnored,
@@ -68,6 +72,10 @@ impl OutcomeName {
         OutcomeName::AdditionWithdrawn,
         OutcomeName::AcknowledgementIgnored,
         OutcomeName::AbortIgnored,
+        OutcomeName::ProposeRemoval,
+        OutcomeName::RemovalRefused,
+        OutcomeName::RemovalWithdrawn,
+        OutcomeName::MemberRemoved,
         OutcomeName::RequiredCountSet,
         OutcomeName::SendProbe,
         OutcomeName::NothingToProbe,
@@ -142,6 +150,10 @@ impl OutcomeName {
             | OutcomeName::AdditionWithdrawn
             | OutcomeName::AcknowledgementIgnored
             | OutcomeName::AbortIgnored
+            | OutcomeName::ProposeRemoval
+            | OutcomeName::RemovalRefused
+            | OutcomeName::RemovalWithdrawn
+            | OutcomeName::MemberRemoved
             | OutcomeName::PeerSuspected
             | OutcomeName::PeerRevived
             | OutcomeName::AliveNoted
@@ -174,6 +186,10 @@ impl OutcomeName {
             OutcomeName::AdditionWithdrawn => "AdditionWithdrawn",
             OutcomeName::AcknowledgementIgnored => "AcknowledgementIgnored",
             OutcomeName::AbortIgnored => "AbortIgnored",
+            OutcomeName::ProposeRemoval => "ProposeRemoval",
+            OutcomeName::RemovalRefused => "RemovalRefused",
+            OutcomeName::RemovalWithdrawn => "RemovalWithdrawn",
+            OutcomeName::MemberRemoved => "MemberRemoved",
             OutcomeName::RequiredCountSet => "RequiredCountSet",
             OutcomeName::SendProbe => "SendProbe",
             OutcomeName::NothingToProbe => "NothingToProbe",

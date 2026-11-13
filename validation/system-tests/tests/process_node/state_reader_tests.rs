@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::process_node::state_reader::StateReader;
 use rstest::rstest;
@@ -18,7 +18,7 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
         peer_state: PeerState::Pinging,
         member_count: 9,
         required_count: 9,
-        addition: Addition::Acknowledged { peer_id: 9 },
+        addition: Reconfiguration::AdditionAcknowledged { peer_id: 9 },
         suspected: vec![9],
         quorum: Quorum::Lost,
     }));
@@ -37,6 +37,7 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
 #[case("state Collecting 2 3 none - off", PeerState::Collecting)]
 #[case("state Bootstrapped 2 3 none - off", PeerState::Bootstrapped)]
 #[case("state TimedOut 2 3 none - off", PeerState::TimedOut)]
+#[case("state Removed 2 3 none - off", PeerState::Removed)]
 #[case("state Weird 2 3 none - off", PeerState::Fresh)]
 fn spawn_reads_a_state_line_into_the_snapshot(
     #[case] line: &'static str,
@@ -52,7 +53,7 @@ fn spawn_reads_a_state_line_into_the_snapshot(
             peer_state,
             member_count: 2,
             required_count: 3,
-            addition: Addition::None,
+            addition: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
         }
@@ -60,12 +61,13 @@ fn spawn_reads_a_state_line_into_the_snapshot(
 }
 
 #[rstest]
-#[case("state Bootstrapped 3 2 none - held", Addition::None)]
-#[case("state Bootstrapped 3 2 requested:7 - held", Addition::Requested { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 acknowledged:7 - held", Addition::Acknowledged { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 none - held", Reconfiguration::None)]
+#[case("state Bootstrapped 3 2 requested:7 - held", Reconfiguration::AdditionRequested { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 acknowledged:7 - held", Reconfiguration::AdditionAcknowledged { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 removing:7 - held", Reconfiguration::RemovalRequested { peer_id: 7 })]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
-    #[case] addition: Addition,
+    #[case] addition: Reconfiguration,
 ) {
     // Arrange & Act
     let (snapshot, _) = read(line);

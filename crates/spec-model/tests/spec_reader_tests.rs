@@ -23,6 +23,7 @@ fn matrix() -> Value {
             "Collecting": ["Probe"],
             "Bootstrapped": ["Probe"],
             "Reconfiguring": ["Probe"],
+            "Removed": ["Probe"],
         },
         "rows": [
             {

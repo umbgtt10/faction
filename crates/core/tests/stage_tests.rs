@@ -3,7 +3,6 @@
 
 use alloc::vec;
 use alloc::vec::Vec;
-use faction::addition::Addition;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::config::Config;
@@ -11,6 +10,7 @@ use faction::members::Members;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use faction::stage::Stage;
 use faction::state::State;
 use faction::states::bootstrapped::Bootstrapped;
@@ -18,6 +18,7 @@ use faction::states::collecting::Collecting;
 use faction::states::initial::Initial;
 use faction::states::pinging::Pinging;
 use faction::states::reconfiguring::Reconfiguring;
+use faction::states::removed::Removed;
 
 fn bootstrapped() -> Stage {
     Stage::Bootstrapped(Bootstrapped::new(
@@ -55,6 +56,9 @@ fn every_command() -> Vec<Command> {
         Command::MembershipAcknowledged { peer_id: 0 },
         Command::AdditionCommitted { peer_id: 0 },
         Command::AdditionAborted { peer_id: 0 },
+        Command::RemovalRequested { peer_id: 0 },
+        Command::RemovalCommitted { peer_id: 0 },
+        Command::RemovalAborted { peer_id: 0 },
         Command::RequiredCountChanged { required_count: 0 },
         Command::ProbeDue,
         Command::PeerHeard { peer_id: 0 },
@@ -64,7 +68,7 @@ fn every_command() -> Vec<Command> {
     ]
 }
 
-// Every command but those only a concluded node admits: an addition's
+// Every command but those only a concluded node admits: a change's
 // coordination, and its members' liveness.
 fn every_command_but_a_concluded_node_s_own() -> Vec<Command> {
     every_command()
@@ -75,6 +79,8 @@ fn every_command_but_a_concluded_node_s_own() -> Vec<Command> {
                 Command::AdditionRequested { .. }
                     | Command::MembershipAcknowledged { .. }
                     | Command::AdditionAborted { .. }
+                    | Command::RemovalRequested { .. }
+                    | Command::RemovalAborted { .. }
                     | Command::ProbeDue
                     | Command::PeerHeard { .. }
                     | Command::ProbeMissed { .. }
@@ -101,7 +107,7 @@ fn pinging() -> Stage {
 fn reconfiguring() -> Stage {
     Stage::Reconfiguring(Reconfiguring::new(
         Bootstrapped::new(members(), QuorumPolicy::new(4), vec![1], vec![0, 1, 2, 3]),
-        9,
+        Reconfiguration::AdditionRequested { peer_id: 9 },
     ))
 }
 
@@ -124,6 +130,8 @@ fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_co
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
+            Command::RemovalRequested { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },
@@ -153,6 +161,7 @@ fn admissible_commands_collecting_returns_all_but_its_completion_and_a_concluded
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::Probe,
         ]
@@ -178,6 +187,7 @@ fn admissible_commands_initial_returns_all_but_the_deadline_and_a_concluded_node
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::Probe,
         ]
@@ -215,6 +225,8 @@ fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an
             Command::MembershipAcknowledged { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
             Command::AdditionAborted { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
+            Command::RemovalAborted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },
@@ -223,6 +235,18 @@ fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an
             Command::Probe,
         ]
     );
+}
+
+#[test]
+fn admissible_commands_removed_returns_probe_alone() {
+    // Arrange
+    let stage = Stage::Removed(Removed::new(0));
+
+    // Act
+    let admissible = stage.admissible_commands(&config());
+
+    // Assert
+    assert_eq!(admissible, vec![Command::Probe]);
 }
 
 #[test]
@@ -296,8 +320,28 @@ fn cluster_view_reconfiguring_reports_bootstrapped_with_the_addition_requested()
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
-    assert_eq!(cluster_view.addition(), Addition::Requested { peer_id: 9 });
+    assert_eq!(
+        cluster_view.reconfiguration(),
+        Reconfiguration::AdditionRequested { peer_id: 9 }
+    );
     assert_eq!(cluster_view.collecting_peers(), &[0, 1, 2, 3]);
+}
+
+#[test]
+fn cluster_view_removed_reports_removed_without_the_node() {
+    // Arrange
+    let stage = Stage::Removed(Removed::new(0));
+    let previous = ClusterViewBuilder::default()
+        .with_peer_state(PeerState::Bootstrapped)
+        .with_members(members())
+        .build();
+
+    // Act
+    let cluster_view = stage.cluster_view(&previous);
+
+    // Assert
+    assert_eq!(cluster_view.peer_state(), PeerState::Removed);
+    assert_eq!(cluster_view.members().as_slice(), &[1, 2, 3, 4]);
 }
 
 #[test]
@@ -388,6 +432,34 @@ fn step_initial_participation_observed_returns_pinging() {
 }
 
 #[test]
+fn step_of_the_node_s_own_removal_leaves_every_other_stage_removed() {
+    // Arrange
+    let stages = [
+        initial(),
+        pinging(),
+        collecting(),
+        bootstrapped(),
+        reconfiguring(),
+    ];
+
+    // Act
+    let removed: Vec<bool> = stages
+        .iter()
+        .map(|stage| {
+            stage
+                .step(Command::RemovalCommitted { peer_id: 0 }, &config())
+                .is_some_and(|(outcomes, next)| {
+                    outcomes == vec![Outcome::MemberRemoved { peer_id: 0 }]
+                        && matches!(next, Stage::Removed(_))
+                })
+        })
+        .collect();
+
+    // Assert
+    assert_eq!(removed, vec![true; 5]);
+}
+
+#[test]
 fn step_pinging_deadline_expired_returns_an_answer() {
     // Arrange
     let stage = pinging();
@@ -446,4 +518,19 @@ fn step_reconfiguring_join_approved_returns_none() {
 
     // Assert
     assert!(answered.is_none());
+}
+
+#[test]
+fn step_removed_answers_nothing_but_leaves_a_probe_to_the_node() {
+    // Arrange
+    let stage = Stage::Removed(Removed::new(0));
+
+    // Act
+    let answered: Vec<bool> = every_command()
+        .into_iter()
+        .map(|command| stage.step(command, &config()).is_some())
+        .collect();
+
+    // Assert
+    assert_eq!(answered, vec![false; 20]);
 }

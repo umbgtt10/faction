@@ -4,35 +4,49 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
+use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
-use crate::types::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 
-// A concluded node with an addition in flight: it answers as a concluded node
-// does, but for an admission, which no addition is gone around by, and it
-// carries the addition to its commit or its abort.
+// A concluded node with a change in flight, an addition or a removal: it
+// answers as a concluded node does, but for an admission, which no change is
+// gone around by, and it carries the change to its commit or its abort.
 #[derive(Debug, Clone)]
 pub struct Reconfiguring {
     concluded: Bootstrapped,
-    pending: PeerId,
-    acknowledged: bool,
+    in_flight: Reconfiguration,
 }
 
 impl Reconfiguring {
     #[must_use]
-    pub fn new(concluded: Bootstrapped, pending: PeerId) -> Self {
+    pub fn new(concluded: Bootstrapped, in_flight: Reconfiguration) -> Self {
         Self {
             concluded,
-            pending,
-            acknowledged: false,
+            in_flight,
+        }
+    }
+
+    // Whether an abort or a commit names the change in flight: its peer's
+    // addition, requested or acknowledged, or its peer's removal.
+    fn names_in_flight(&self, command: Command) -> bool {
+        match (command, self.in_flight) {
+            (
+                Command::AdditionAborted { peer_id } | Command::AdditionCommitted { peer_id },
+                Reconfiguration::AdditionRequested { peer_id: pending }
+                | Reconfiguration::AdditionAcknowledged { peer_id: pending },
+            )
+            | (
+                Command::RemovalAborted { peer_id } | Command::RemovalCommitted { peer_id },
+                Reconfiguration::RemovalRequested { peer_id: pending },
+            ) => peer_id == pending,
+            _ => false,
         }
     }
 }
@@ -42,7 +56,7 @@ impl State for Reconfiguring {
         match command {
             Command::JoinApproved { .. } => None,
             Command::MembershipAcknowledged { peer_id } => {
-                let awaited = peer_id == self.pending && !self.acknowledged;
+                let awaited = self.in_flight == Reconfiguration::AdditionRequested { peer_id };
                 let outcome = if awaited {
                     Outcome::ProposeAddition { peer_id }
                 } else {
@@ -51,23 +65,38 @@ impl State for Reconfiguring {
                 Some((
                     vec![outcome],
                     Stage::Reconfiguring(Self {
-                        acknowledged: self.acknowledged || awaited,
+                        in_flight: if awaited {
+                            Reconfiguration::AdditionAcknowledged { peer_id }
+                        } else {
+                            self.in_flight
+                        },
                         ..self.clone()
                     }),
                 ))
             }
-            Command::AdditionAborted { peer_id } if peer_id == self.pending => Some((
+            Command::AdditionAborted { peer_id } | Command::RemovalAborted { peer_id }
+                if !self.names_in_flight(command) =>
+            {
+                Some((
+                    vec![Outcome::AbortIgnored { peer_id }],
+                    Stage::Reconfiguring(self.clone()),
+                ))
+            }
+            Command::AdditionAborted { peer_id } => Some((
                 vec![Outcome::AdditionWithdrawn { peer_id }],
                 Stage::Bootstrapped(self.concluded.clone()),
             )),
-            Command::AdditionAborted { peer_id } => Some((
-                vec![Outcome::AbortIgnored { peer_id }],
-                Stage::Reconfiguring(self.clone()),
+            Command::RemovalAborted { peer_id } => Some((
+                vec![Outcome::RemovalWithdrawn { peer_id }],
+                Stage::Bootstrapped(self.concluded.clone()),
             )),
-            Command::AdditionCommitted { peer_id } if peer_id == self.pending => self
-                .concluded
-                .answer(command, config)
-                .map(|(outcomes, concluded)| (outcomes, Stage::Bootstrapped(concluded))),
+            Command::AdditionCommitted { .. } | Command::RemovalCommitted { .. }
+                if self.names_in_flight(command) =>
+            {
+                self.concluded
+                    .answer(command, config)
+                    .map(|(outcomes, concluded)| (outcomes, Stage::Bootstrapped(concluded)))
+            }
             _ => self
                 .concluded
                 .answer(command, config)
@@ -84,17 +113,8 @@ impl State for Reconfiguring {
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
-        let addition = if self.acknowledged {
-            Addition::Acknowledged {
-                peer_id: self.pending,
-            }
-        } else {
-            Addition::Requested {
-                peer_id: self.pending,
-            }
-        };
         ClusterViewBuilder::from_view(&self.concluded.cluster_view(previous))
-            .with_addition(addition)
+            .with_reconfiguration(self.in_flight)
             .build()
     }
 }

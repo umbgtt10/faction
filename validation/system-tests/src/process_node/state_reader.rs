@@ -10,8 +10,8 @@ use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 use std::thread::spawn;
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 
 use crate::node_snapshot::NodeSnapshot;
 
@@ -37,15 +37,18 @@ impl StateReader {
         })
     }
 
-    fn parse_addition(text: &str) -> Option<Addition> {
+    fn parse_addition(text: &str) -> Option<Reconfiguration> {
         match text.split_once(':') {
-            Some(("requested", peer_id)) => Some(Addition::Requested {
+            Some(("requested", peer_id)) => Some(Reconfiguration::AdditionRequested {
                 peer_id: peer_id.parse().ok()?,
             }),
-            Some(("acknowledged", peer_id)) => Some(Addition::Acknowledged {
+            Some(("acknowledged", peer_id)) => Some(Reconfiguration::AdditionAcknowledged {
                 peer_id: peer_id.parse().ok()?,
             }),
-            _ => (text == "none").then_some(Addition::None),
+            Some(("removing", peer_id)) => Some(Reconfiguration::RemovalRequested {
+                peer_id: peer_id.parse().ok()?,
+            }),
+            _ => (text == "none").then_some(Reconfiguration::None),
         }
     }
 
@@ -55,6 +58,7 @@ impl StateReader {
             "Collecting" => PeerState::Collecting,
             "Bootstrapped" => PeerState::Bootstrapped,
             "TimedOut" => PeerState::TimedOut,
+            "Removed" => PeerState::Removed,
             _ => PeerState::Fresh,
         }
     }

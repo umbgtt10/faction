@@ -3,7 +3,6 @@
 
 use alloc::vec::Vec;
 
-use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
@@ -12,6 +11,7 @@ use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::quorum_policy::QuorumPolicy;
+use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::states::membership_decision::MembershipDecision;
@@ -42,7 +42,7 @@ impl State for Initial {
             .with_collecting_peers(Vec::new())
             .with_required_count(self.quorum_policy.threshold())
             .with_members(self.members.clone())
-            .with_addition(Addition::None)
+            .with_reconfiguration(Reconfiguration::None)
             .build()
     }
 

@@ -111,3 +111,30 @@ fn new_join_requested_returns_emit_join_request() {
     );
     assert_eq!(membership.members(), &members());
 }
+
+#[test]
+fn new_removed_member_returns_member_removed_and_the_members_without_it() {
+    // Arrange & Act
+    let membership = MembershipStep::new(members(), policy(), MembershipDecision::Removed(1));
+
+    // Assert
+    assert_eq!(
+        membership.outcomes(),
+        &[Outcome::MemberRemoved { peer_id: 1 }]
+    );
+    assert_eq!(membership.members(), &Members::new(vec![0, 2]));
+    assert_eq!(membership.quorum_policy(), policy());
+}
+
+#[test]
+fn new_removed_non_member_returns_non_member_ignored() {
+    // Arrange & Act
+    let membership = MembershipStep::new(members(), policy(), MembershipDecision::Removed(9));
+
+    // Assert
+    assert_eq!(
+        membership.outcomes(),
+        &[Outcome::NonMemberIgnored { peer_id: 9 }]
+    );
+    assert_eq!(membership.members(), &members());
+}

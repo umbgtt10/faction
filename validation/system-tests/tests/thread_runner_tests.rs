@@ -3,9 +3,9 @@
 
 use crate::support::fake_time;
 use crate::support::in_memory_node;
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::node_command::NodeCommand;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::thread_runner::ThreadRunner;
@@ -20,7 +20,7 @@ fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
         peer_state: PeerState::Fresh,
         member_count: 0,
         required_count: 0,
-        addition: Addition::None,
+        addition: Reconfiguration::None,
         suspected: Vec::new(),
         quorum: Quorum::NotTracked,
     }))

@@ -315,6 +315,21 @@ fn process_rejects_invalid_commands() {
 }
 
 #[test]
+fn process_removal_committed_of_a_member_takes_it_out_and_stays_fresh() {
+    // Arrange
+    let mut faction = test_faction();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 4 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3]);
+    assert_eq!(cluster_view.peer_state(), PeerState::Fresh);
+}
+
+#[test]
 fn process_required_count_changed_sets_the_count_and_stays_fresh() {
     // Arrange
     let mut faction = test_faction();

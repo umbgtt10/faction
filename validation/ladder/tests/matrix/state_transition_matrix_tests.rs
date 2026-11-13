@@ -7,7 +7,8 @@ use super::helpers::{
     addition_aborted, addition_committed, addition_requested, bootstrapped_admissible,
     collecting_admissible, indirect_probes_missed, initial_admissible, join_approved,
     join_rejected, join_requested, membership_acknowledged, participation, peer_heard,
-    pinging_admissible, probe_missed, ready, reconfiguring_admissible, required_count_changed,
+    pinging_admissible, probe_missed, ready, reconfiguring_admissible, removal_aborted,
+    removal_committed, removal_requested, removed_admissible, required_count_changed,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -634,6 +635,174 @@ extern crate alloc;
     &[PeerSuspected { peer_id: 3 }, QuorumLost],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::SuspectedCount(1), Assert::Quorum(Quorum::Lost)],
     reconfiguring_admissible(),
+)]
+#[case::bootstrapped_removal_requested_of_a_non_member(
+    "removal-non-member",
+    Init::Bootstrapped,
+    removal_requested(8),
+    &[NonMemberIgnored { peer_id: 8 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_removal_refused_for_the_quorum(
+    "removal-refused",
+    Init::Bootstrapped,
+    removal_requested(1),
+    &[RemovalRefused { peer_id: 1 }],
+    &[Assert::MemberCount(5), Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_own_removal_refused_for_the_quorum(
+    "removal-refused",
+    Init::Bootstrapped,
+    removal_requested(0),
+    &[RemovalRefused { peer_id: 0 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_removal_of_a_suspect_requested(
+    "removal-requested",
+    Init::Suspecting,
+    removal_requested(4),
+    &[ProposeRemoval { peer_id: 4 }],
+    &[Assert::MemberCount(5), Assert::Exited, Assert::SuspectedCount(1)],
+    reconfiguring_admissible(),
+)]
+#[case::removing_removal_aborted(
+    "removal-aborted",
+    Init::Removing,
+    removal_aborted(4),
+    &[RemovalWithdrawn { peer_id: 4 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    bootstrapped_admissible(),
+)]
+#[case::removing_abort_of_another_peer(
+    "abort-ignored",
+    Init::Removing,
+    removal_aborted(3),
+    &[AbortIgnored { peer_id: 3 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    reconfiguring_admissible(),
+)]
+#[case::removing_abort_of_an_addition(
+    "abort-ignored",
+    Init::Removing,
+    addition_aborted(4),
+    &[AbortIgnored { peer_id: 4 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_abort_of_a_removal(
+    "abort-ignored",
+    Init::Reconfiguring,
+    removal_aborted(9),
+    &[AbortIgnored { peer_id: 9 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    reconfiguring_admissible(),
+)]
+#[case::removing_acknowledgement_ignored(
+    "acknowledgement-ignored",
+    Init::Removing,
+    membership_acknowledged(4),
+    &[AcknowledgementIgnored { peer_id: 4 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    reconfiguring_admissible(),
+)]
+#[case::initial_removal_committed_of_a_non_member(
+    "commit-non-member",
+    Init::Initial,
+    removal_committed(8),
+    &[NonMemberIgnored { peer_id: 8 }],
+    &[Assert::MemberCount(5), Assert::NotExited],
+    initial_admissible(),
+)]
+#[case::collecting_removal_committed_of_a_non_member(
+    "commit-non-member",
+    Init::CollectingNoReadiness,
+    removal_committed(8),
+    &[NonMemberIgnored { peer_id: 8 }],
+    &[Assert::MemberCount(5), Assert::LocalComplete],
+    collecting_admissible(),
+)]
+#[case::initial_own_removal(
+    "node-removed",
+    Init::Initial,
+    removal_committed(0),
+    &[MemberRemoved { peer_id: 0 }],
+    &[Assert::Removed, Assert::MemberCount(4), Assert::NotLocalComplete],
+    removed_admissible(),
+)]
+#[case::bootstrapped_own_removal(
+    "node-removed",
+    Init::Bootstrapped,
+    removal_committed(0),
+    &[MemberRemoved { peer_id: 0 }],
+    &[Assert::Removed, Assert::MemberCount(4), Assert::LocalComplete, Assert::CollectingCount(4), Assert::Quorum(Quorum::NotTracked)],
+    removed_admissible(),
+)]
+#[case::removing_own_removal(
+    "node-removed",
+    Init::Removing,
+    removal_committed(0),
+    &[MemberRemoved { peer_id: 0 }],
+    &[Assert::Removed, Assert::SuspectedCount(0)],
+    removed_admissible(),
+)]
+#[case::removing_removal_completion_loses_the_quorum(
+    "removal-completion-loses-quorum",
+    Init::RemovingRevived,
+    removal_committed(4),
+    &[MemberRemoved { peer_id: 4 }, QuorumLost],
+    &[Assert::MemberCount(4), Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::removing_removal_completed(
+    "removal-completed",
+    Init::Removing,
+    removal_committed(4),
+    &[MemberRemoved { peer_id: 4 }],
+    &[Assert::MemberCount(4), Assert::SuspectedCount(0), Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_removal_loses_the_quorum(
+    "removal-loses-quorum",
+    Init::Bootstrapped,
+    removal_committed(1),
+    &[MemberRemoved { peer_id: 1 }, QuorumLost],
+    &[Assert::MemberCount(4), Assert::CollectingCount(4), Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::reconfiguring_removal_loses_the_quorum(
+    "removal-loses-quorum",
+    Init::Reconfiguring,
+    removal_committed(1),
+    &[MemberRemoved { peer_id: 1 }, QuorumLost],
+    &[Assert::MemberCount(4), Assert::Quorum(Quorum::Lost)],
+    reconfiguring_admissible(),
+)]
+#[case::pinging_removal_committed(
+    "removal-committed",
+    Init::PingingPeer1Confirmed,
+    removal_committed(1),
+    &[MemberRemoved { peer_id: 1 }],
+    &[Assert::MemberCount(4), Assert::PingingCount(0), Assert::NotExited],
+    pinging_admissible(),
+)]
+#[case::collecting_removal_committed(
+    "removal-committed",
+    Init::CollectingPeer1Confirmed,
+    removal_committed(1),
+    &[MemberRemoved { peer_id: 1 }],
+    &[Assert::MemberCount(4), Assert::CollectingCount(1), Assert::LocalComplete],
+    collecting_admissible(),
+)]
+#[case::suspecting_removal_of_the_suspect_committed(
+    "removal-committed",
+    Init::Suspecting,
+    removal_committed(4),
+    &[MemberRemoved { peer_id: 4 }],
+    &[Assert::MemberCount(4), Assert::SuspectedCount(0), Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
 )]
 fn valid_transition(
     #[case] row: &str,

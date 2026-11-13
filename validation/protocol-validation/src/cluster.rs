@@ -4,13 +4,13 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use faction::addition::Addition;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
@@ -122,8 +122,8 @@ impl Cluster {
         });
     }
 
-    pub fn addition(&mut self, index: usize) -> Addition {
-        self.protocols[index].cluster_view().addition()
+    pub fn addition(&mut self, index: usize) -> Reconfiguration {
+        self.protocols[index].cluster_view().reconfiguration()
     }
 
     pub fn change_required_count(&mut self, index: usize, required_count: usize) {

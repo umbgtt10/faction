@@ -5,8 +5,8 @@ use crate::support::fake_time;
 use crate::support::real_time;
 use crate::support::recipe;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -50,8 +50,8 @@ fn abort_addition_of_a_requested_addition_withdraws_it() {
     cluster.abort_addition(1, 3);
 
     // Assert
-    assert_eq!(requested, Addition::Requested { peer_id: 3 });
-    assert_eq!(cluster.snapshot(1).addition, Addition::None);
+    assert_eq!(requested, Reconfiguration::AdditionRequested { peer_id: 3 });
+    assert_eq!(cluster.snapshot(1).addition, Reconfiguration::None);
 }
 
 #[test]

@@ -4,13 +4,13 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
@@ -174,7 +174,7 @@ impl Protocol {
     // acknowledgement, and its retry with it; nothing once it has come.
     fn resend_membership(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         let view = self.cluster_view();
-        if view.addition() == (Addition::Requested { peer_id }) {
+        if view.reconfiguration() == (Reconfiguration::AdditionRequested { peer_id }) {
             self.translator.to_output_messages(
                 vec![Outcome::SendMembership { peer_id }],
                 &view,

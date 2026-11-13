@@ -6,10 +6,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use serde_json::Value;
 
-use crate::addition::Addition;
 use crate::answer::Answer;
 use crate::configuration::Configuration;
 use crate::node_state::NodeState;
+use crate::reconfiguration::Reconfiguration;
 use crate::rules::rule_book::RuleBook;
 use crate::spec_reader::SpecReader;
 use crate::table::decision_table::DecisionTable;
@@ -37,7 +37,8 @@ impl Model {
                 pinging_peers: Vec::new(),
                 collecting_peers: Vec::new(),
                 deadline_missed: false,
-                addition: Addition::None,
+                reconfiguration: Reconfiguration::None,
+                completed_before_removal: false,
                 suspicion_threshold: configuration.suspicion_threshold,
                 suspected: Vec::new(),
                 misses: BTreeMap::new(),

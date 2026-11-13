@@ -82,6 +82,22 @@ pub fn reconfiguring_admissible() -> Vec<Command> {
     MatrixTable::new(SpecFiles::matrix()).admits("Reconfiguring")
 }
 
+pub fn removal_aborted(peer_id: PeerId) -> Command {
+    Command::RemovalAborted { peer_id }
+}
+
+pub fn removal_committed(peer_id: PeerId) -> Command {
+    Command::RemovalCommitted { peer_id }
+}
+
+pub fn removal_requested(peer_id: PeerId) -> Command {
+    Command::RemovalRequested { peer_id }
+}
+
+pub fn removed_admissible() -> Vec<Command> {
+    MatrixTable::new(SpecFiles::matrix()).admits("Removed")
+}
+
 pub fn required_count_changed(required_count: usize) -> Command {
     Command::RequiredCountChanged { required_count }
 }

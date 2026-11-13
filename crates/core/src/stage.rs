@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
@@ -13,8 +14,9 @@ use crate::states::collecting::Collecting;
 use crate::states::initial::Initial;
 use crate::states::pinging::Pinging;
 use crate::states::reconfiguring::Reconfiguring;
+use crate::states::removed::Removed;
 
-const COMMANDS: [Command; 17] = [
+const COMMANDS: [Command; 20] = [
     Command::ParticipationObserved { peer_id: 0 },
     Command::ReadyObserved { peer_id: 0 },
     Command::LocalParticipationCompleted,
@@ -26,6 +28,9 @@ const COMMANDS: [Command; 17] = [
     Command::MembershipAcknowledged { peer_id: 0 },
     Command::AdditionCommitted { peer_id: 0 },
     Command::AdditionAborted { peer_id: 0 },
+    Command::RemovalRequested { peer_id: 0 },
+    Command::RemovalCommitted { peer_id: 0 },
+    Command::RemovalAborted { peer_id: 0 },
     Command::RequiredCountChanged { required_count: 0 },
     Command::ProbeDue,
     Command::PeerHeard { peer_id: 0 },
@@ -40,6 +45,7 @@ pub enum Stage {
     Collecting(Collecting),
     Bootstrapped(Bootstrapped),
     Reconfiguring(Reconfiguring),
+    Removed(Removed),
 }
 
 impl Stage {
@@ -58,13 +64,26 @@ impl Stage {
             Self::Collecting(collecting) => collecting,
             Self::Bootstrapped(bootstrapped) => bootstrapped,
             Self::Reconfiguring(reconfiguring) => reconfiguring,
+            Self::Removed(removed) => removed,
         }
     }
 }
 
 impl State for Stage {
+    // A node's own removal, committed, leaves any stage but `Removed` for it;
+    // every other command is the stage's.
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        self.current().step(command, config)
+        match command {
+            Command::RemovalCommitted { peer_id }
+                if peer_id == config.peer_id() && !matches!(self, Self::Removed(_)) =>
+            {
+                Some((
+                    vec![Outcome::MemberRemoved { peer_id }],
+                    Self::Removed(Removed::new(peer_id)),
+                ))
+            }
+            _ => self.current().step(command, config),
+        }
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {

@@ -11,6 +11,8 @@ use faction::quorum_policy::QuorumPolicy;
 
 // The peer whose addition a reconfiguring node has in flight.
 pub const NEWCOMER: u64 = 9;
+// The member a removing node suspects, and whose removal it has in flight.
+pub const SUSPECT: u64 = 4;
 pub const THRESHOLD: usize = 5;
 
 pub fn build(init: Init) -> Faction {
@@ -54,6 +56,20 @@ pub fn build(init: Init) -> Faction {
         Init::TimedOut => {
             let _ = faction.process(Command::DeadlineExpired);
         }
+        Init::Suspecting | Init::Removing | Init::RemovingRevived => {
+            let _ = faction.process(Command::LocalParticipationCompleted);
+            for peer in 1..5 {
+                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+            }
+            let _ = faction.process(Command::IndirectProbesMissed { peer_id: SUSPECT });
+        }
+        Init::Removed => {
+            let _ = faction.process(Command::LocalParticipationCompleted);
+            for peer in 1..5 {
+                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+            }
+            let _ = faction.process(Command::RemovalCommitted { peer_id: 0 });
+        }
         Init::Reconfiguring | Init::ReconfiguringAcknowledged => {
             let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
@@ -64,6 +80,12 @@ pub fn build(init: Init) -> Faction {
     }
     if matches!(init, Init::ReconfiguringAcknowledged) {
         let _ = faction.process(Command::MembershipAcknowledged { peer_id: NEWCOMER });
+    }
+    if matches!(init, Init::Removing | Init::RemovingRevived) {
+        let _ = faction.process(Command::RemovalRequested { peer_id: SUSPECT });
+    }
+    if matches!(init, Init::RemovingRevived) {
+        let _ = faction.process(Command::PeerHeard { peer_id: SUSPECT });
     }
     faction
 }
@@ -83,4 +105,8 @@ pub enum Init {
     TimedOut,
     Reconfiguring,
     ReconfiguringAcknowledged,
+    Suspecting,
+    Removing,
+    RemovingRevived,
+    Removed,
 }

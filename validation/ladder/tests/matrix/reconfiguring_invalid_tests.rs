@@ -3,7 +3,9 @@
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
-use super::helpers::{addition_requested, join_approved, ready, reconfiguring_admissible};
+use super::helpers::{
+    addition_requested, join_approved, ready, reconfiguring_admissible, removal_requested,
+};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
@@ -40,6 +42,24 @@ use rstest::rstest;
 #[case::rejects_a_second_addition_requested(
     Init::Reconfiguring,
     addition_requested(8),
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::rejects_a_removal_requested(
+    Init::Reconfiguring,
+    removal_requested(1),
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::rejects_an_addition_requested_while_a_removal_is_in_flight(
+    Init::Removing,
+    addition_requested(8),
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::rejects_a_second_removal_requested(
+    Init::Removing,
+    removal_requested(1),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
     reconfiguring_admissible(),
 )]

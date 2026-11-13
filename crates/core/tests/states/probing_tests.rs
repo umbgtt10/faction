@@ -43,6 +43,30 @@ fn last_probed_of_a_node_that_never_probed_is_no_one() {
 }
 
 #[test]
+fn of_members_keeps_the_member_probed_last_while_it_is_one() {
+    // Arrange
+    let (_, probing) = Probing::default().probe(&members(), 0);
+
+    // Act
+    let kept = probing.of_members(&Members::new(vec![0, 1, 3]));
+
+    // Assert
+    assert_eq!(kept.last_probed(), Some(1));
+}
+
+#[test]
+fn of_members_without_the_member_probed_last_has_probed_no_one() {
+    // Arrange
+    let (_, probing) = Probing::default().probe(&members(), 0);
+
+    // Act
+    let kept = probing.of_members(&Members::new(vec![0, 2, 3]));
+
+    // Assert
+    assert_eq!(kept.last_probed(), None);
+}
+
+#[test]
 fn probe_after_the_last_member_wraps_past_the_node_to_the_first_other() {
     // Arrange
     let (_, probing) = [0; 4]

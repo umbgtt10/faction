@@ -56,7 +56,7 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "required_count": "2",
                 "deadline_missed": false,
                 "members": ["1", "2", "3"],
-                "addition": {"None": {}},
+                "reconfiguration": {"None": {}},
                 "suspected": [],
                 "misses": [],
                 "last_probed": {"None": {}},
@@ -70,6 +70,7 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "JoinApproved",
                 "JoinRejected",
                 "AdditionCommitted",
+                "RemovalCommitted",
                 "RequiredCountChanged",
                 "Probe",
             ],
@@ -98,8 +99,8 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
         json!({"Bootstrapped": {}})
     );
     assert_eq!(
-        answer.result["Accepted"]["cluster_view"]["addition"],
-        json!({"Requested": {"peer_id": "4"}})
+        answer.result["Accepted"]["cluster_view"]["reconfiguration"],
+        json!({"AdditionRequested": {"peer_id": "4"}})
     );
     assert_eq!(
         answer.result["Accepted"]["admissible"],
@@ -110,6 +111,8 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
             "MembershipAcknowledged",
             "AdditionCommitted",
             "AdditionAborted",
+            "RemovalCommitted",
+            "RemovalAborted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",
@@ -151,6 +154,8 @@ fn process_of_the_readiness_the_count_lacks_concludes() {
             "JoinRejected",
             "AdditionRequested",
             "AdditionCommitted",
+            "RemovalRequested",
+            "RemovalCommitted",
             "RequiredCountChanged",
             "ProbeDue",
             "PeerHeard",

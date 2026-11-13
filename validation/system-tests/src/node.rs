@@ -15,8 +15,8 @@ use std::thread::JoinHandle;
 use std::thread::spawn;
 use std::time::Duration;
 
-use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use crate::faction_node::FactionNode;
@@ -31,7 +31,7 @@ const FRESH: NodeSnapshot = NodeSnapshot {
     peer_state: PeerState::Fresh,
     member_count: 0,
     required_count: 0,
-    addition: Addition::None,
+    addition: Reconfiguration::None,
     suspected: Vec::new(),
     quorum: Quorum::NotTracked,
 };

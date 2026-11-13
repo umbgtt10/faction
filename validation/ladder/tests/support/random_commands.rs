@@ -37,6 +37,12 @@ impl RandomCommands {
                 .prop_map(|peer_id| Command::AdditionCommitted { peer_id }),
             peer.clone()
                 .prop_map(|peer_id| Command::AdditionAborted { peer_id }),
+            peer.clone()
+                .prop_map(|peer_id| Command::RemovalRequested { peer_id }),
+            peer.clone()
+                .prop_map(|peer_id| Command::RemovalCommitted { peer_id }),
+            peer.clone()
+                .prop_map(|peer_id| Command::RemovalAborted { peer_id }),
             (0usize..=6)
                 .prop_map(|required_count| Command::RequiredCountChanged { required_count }),
             Just(Command::ProbeDue),

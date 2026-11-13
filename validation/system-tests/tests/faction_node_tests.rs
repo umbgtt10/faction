@@ -3,7 +3,6 @@
 
 use crate::support::fake_time;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
-use faction::addition::Addition;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -13,6 +12,7 @@ use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
@@ -193,7 +193,7 @@ fn abort_addition_of_a_concluded_node_withdraws_its_addition() {
     node.abort_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::None);
+    assert_eq!(node.snapshot().addition, Reconfiguration::None);
 }
 
 #[test]
@@ -205,7 +205,7 @@ fn abort_addition_of_a_node_not_concluded_changes_nothing() {
     node.abort_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::None);
+    assert_eq!(node.snapshot().addition, Reconfiguration::None);
     assert_eq!(node.member_count(), 3);
 }
 
@@ -382,7 +382,7 @@ fn new_starts_fresh() {
             peer_state: PeerState::Fresh,
             member_count: 3,
             required_count: 2,
-            addition: Addition::None,
+            addition: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
         }
@@ -410,7 +410,10 @@ fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
     node.request_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::Requested { peer_id: 7 });
+    assert_eq!(
+        node.snapshot().addition,
+        Reconfiguration::AdditionRequested { peer_id: 7 }
+    );
     assert_eq!(
         outsider.recv(),
         Some(TransportMessage::Membership {
@@ -430,7 +433,7 @@ fn request_addition_of_a_node_not_concluded_changes_nothing() {
     node.request_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().addition, Addition::None);
+    assert_eq!(node.snapshot().addition, Reconfiguration::None);
 }
 
 #[test]
@@ -491,7 +494,7 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
             peer_state: PeerState::Fresh,
             member_count: 0,
             required_count: 0,
-            addition: Addition::None,
+            addition: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
         }

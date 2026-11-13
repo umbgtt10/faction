@@ -89,6 +89,20 @@ impl Suspicion {
         &self.misses
     }
 
+    // Whom it suspects, and the periods missed, among `members` alone.
+    #[must_use]
+    pub fn of_members(&self, members: &Members) -> Self {
+        Self {
+            suspected: members.retained(&self.suspected),
+            misses: self
+                .misses
+                .iter()
+                .copied()
+                .filter(|miss| members.is_member(miss.peer_id))
+                .collect(),
+        }
+    }
+
     #[must_use]
     pub fn suspected(&self) -> &[PeerId] {
         &self.suspected

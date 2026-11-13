@@ -251,6 +251,8 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
+            Command::RemovalRequested { peer_id: 0 },
+            Command::RemovalCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },

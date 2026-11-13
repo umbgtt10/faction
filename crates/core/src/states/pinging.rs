@@ -4,7 +4,6 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
@@ -13,6 +12,7 @@ use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::quorum_policy::QuorumPolicy;
+use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::types::PeerId;
@@ -54,7 +54,7 @@ impl State for Pinging {
             .with_deadline_missed(self.deadline_missed)
             .with_required_count(self.quorum_policy.threshold())
             .with_members(self.members.clone())
-            .with_addition(Addition::None)
+            .with_reconfiguration(Reconfiguration::None)
             .build()
     }
 
@@ -72,6 +72,8 @@ impl State for Pinging {
                 Stage::Pinging(Self {
                     members: membership.members().clone(),
                     quorum_policy: membership.quorum_policy(),
+                    pinging_peers: membership.members().retained(&self.pinging_peers),
+                    collecting_peers: membership.members().retained(&self.collecting_peers),
                     ..self.clone()
                 }),
             ))

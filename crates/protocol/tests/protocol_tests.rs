@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::addition::Addition;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
@@ -86,7 +86,10 @@ fn abort_addition_of_the_newcomer_withdraws_it_and_cancels_the_retry() {
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Cancel(retry_membership(5))]);
-    assert_eq!(protocol.cluster_view().addition(), Addition::None);
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::None
+    );
 }
 
 #[test]
@@ -127,7 +130,10 @@ fn commit_addition_of_the_newcomer_admits_it() {
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 5]);
-    assert_eq!(protocol.cluster_view().addition(), Addition::None);
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::None
+    );
 }
 
 #[test]
@@ -798,8 +804,8 @@ fn request_addition_of_a_newcomer_sends_it_the_membership_and_schedules_the_retr
         ]
     );
     assert_eq!(
-        protocol.cluster_view().addition(),
-        Addition::Requested { peer_id: 5 }
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::AdditionRequested { peer_id: 5 }
     );
 }
 

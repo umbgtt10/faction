@@ -16,7 +16,8 @@ fn name_of_each_stage_is_the_vocabulary_s() {
             "Pinging",
             "Collecting",
             "Bootstrapped",
-            "Reconfiguring"
+            "Reconfiguring",
+            "Removed"
         ]
     );
 }

@@ -7,9 +7,9 @@ use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use faction::quorum::Quorum;
 use std::mem::replace;
 
-use faction::addition::Addition;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
@@ -126,7 +126,7 @@ impl FactionNode {
                     peer_state: view.peer_state(),
                     member_count: view.members().as_slice().len(),
                     required_count: view.required_count(),
-                    addition: view.addition(),
+                    addition: view.reconfiguration(),
                     suspected: view.suspected().to_vec(),
                     quorum: view.quorum(),
                 }
@@ -135,7 +135,7 @@ impl FactionNode {
                 peer_state: PeerState::Fresh,
                 member_count: 0,
                 required_count: 0,
-                addition: Addition::None,
+                addition: Reconfiguration::None,
                 suspected: Vec::new(),
                 quorum: Quorum::NotTracked,
             },

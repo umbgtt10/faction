@@ -3,10 +3,10 @@
 
 use alloc::string::String;
 
-use crate::addition::Addition;
 use crate::command::Command;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
+use crate::reconfiguration::Reconfiguration;
 use crate::rules::change::Change;
 use crate::vocabulary::command_name::CommandName;
 
@@ -32,6 +32,8 @@ pub enum Situation {
     LosesQuorum(Change),
     CompletionRestoresQuorum,
     SuspicionLosesQuorum,
+    QuorumCannotSpare,
+    CompletionLosesQuorum,
 }
 
 impl Situation {
@@ -52,10 +54,10 @@ impl Situation {
                 Self::reaches_required_count(&Change::NodeCollects.applied(command, state))
             }
             Situation::AcknowledgementNotAwaited => {
-                !matches!(&state.addition, Addition::Requested(pending) if Some(pending) == peer_id)
+                !matches!(&state.reconfiguration, Reconfiguration::AdditionRequested(pending) if Some(pending) == peer_id)
             }
-            Situation::PeerIsPending => Self::is_pending(&state.addition, peer_id),
-            Situation::PeerIsNotPending => !Self::is_pending(&state.addition, peer_id),
+            Situation::PeerIsPending => Self::is_pending(command, &state.reconfiguration),
+            Situation::PeerIsNotPending => !Self::is_pending(command, &state.reconfiguration),
             Situation::CountConcludes => {
                 Self::reaches_required_count(&Change::CountSet.applied(command, state))
             }
@@ -72,7 +74,7 @@ impl Situation {
                     && !Liveness::holds_quorum(&change.applied(command, state))
             }
             Situation::CompletionRestoresQuorum => {
-                Self::is_pending(&state.addition, peer_id)
+                Self::is_pending(command, &state.reconfiguration)
                     && Situation::RestoresQuorum(Change::AdditionCompletes)
                         .holds(command, state, admitted)
             }
@@ -80,14 +82,34 @@ impl Situation {
                 Self::reaches_threshold(command, state)
                     && Situation::LosesQuorum(Change::PeerSuspected).holds(command, state, admitted)
             }
+            Situation::QuorumCannotSpare => {
+                !Self::lists(&state.suspected, peer_id)
+                    && !Liveness::holds_quorum(&Change::PeerRemoved.applied(command, state))
+            }
+            Situation::CompletionLosesQuorum => {
+                Self::is_pending(command, &state.reconfiguration)
+                    && Situation::LosesQuorum(Change::RemovalCompletes)
+                        .holds(command, state, admitted)
+            }
         }
     }
 
-    fn is_pending(addition: &Addition, peer_id: Option<&String>) -> bool {
-        matches!(
-            addition,
-            Addition::Requested(pending) | Addition::Acknowledged(pending) if Some(pending) == peer_id
-        )
+    // Whether the change the command commits or aborts is the one in flight: a
+    // removal's of `peer_id` for a removal's command, an addition's otherwise.
+    fn is_pending(command: &Command, reconfiguration: &Reconfiguration) -> bool {
+        let peer_id = command.peer_id.as_ref();
+        if matches!(
+            command.name,
+            CommandName::RemovalCommitted | CommandName::RemovalAborted
+        ) {
+            matches!(reconfiguration, Reconfiguration::RemovalRequested(pending) if Some(pending) == peer_id)
+        } else {
+            matches!(
+                reconfiguration,
+                Reconfiguration::AdditionRequested(pending)
+                    | Reconfiguration::AdditionAcknowledged(pending) if Some(pending) == peer_id
+            )
+        }
     }
 
     fn lists(peers: &[String], peer_id: Option<&String>) -> bool {

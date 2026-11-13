@@ -30,6 +30,9 @@ impl SpecReader {
             "MembershipAcknowledged" => Command::MembershipAcknowledged { peer_id: peer_id() },
             "AdditionCommitted" => Command::AdditionCommitted { peer_id: peer_id() },
             "AdditionAborted" => Command::AdditionAborted { peer_id: peer_id() },
+            "RemovalRequested" => Command::RemovalRequested { peer_id: peer_id() },
+            "RemovalCommitted" => Command::RemovalCommitted { peer_id: peer_id() },
+            "RemovalAborted" => Command::RemovalAborted { peer_id: peer_id() },
             "RequiredCountChanged" => Command::RequiredCountChanged {
                 required_count: usize::try_from(Self::number(&body["required_count"]))
                     .expect("a required count this platform can hold"),
