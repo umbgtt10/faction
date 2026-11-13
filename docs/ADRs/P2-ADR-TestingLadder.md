@@ -18,25 +18,25 @@ the matrix, or a property regresses unnoticed.
 Correctness rests on a fixed ladder of test tiers, each with a distinct obligation,
 all run by one gate:
 
-1. **Unit** — each type and each `*Step` in isolation (`core/tests/**`: `states/`,
+1. **Unit** — each type and each `*Step` in isolation (`crates/core/tests/**`: `states/`,
    `config_tests`, `quorum_policy_tests`, `cluster_view_tests`, …).
 2. **Conformance** — every vector of the specification run against the specification's
    independent model, each deciding by exactly the rows it names, then against the crate:
    each step's result, the final answer, and every call reported to the observer as it was
-   answered (`ladder/tests/conformance/`, `P0-ADR-SpecificationIsNormativeCrateIsReference`,
+   answered (`validation/ladder/tests/conformance/`, `P0-ADR-SpecificationIsNormativeCrateIsReference`,
    `P1-ADR-IndependentModelOfTheSpecification`).
 3. **Exhaustive transition matrix** — every `(state, command)` cell is a defined
    transition (`P1-ADR-TotalityExhaustiveMatrix`) plus the admissible-command
    invariant, each case checked against the row of `spec/matrix.json` it names
-   (`ladder/tests/matrix/`).
+   (`validation/ladder/tests/matrix/`).
 4. **Property-based** — invariants, and the crate against the specification's
    independent model, replayed over random command sequences with `proptest`
-   (`ladder/tests/property/`).
+   (`validation/ladder/tests/property/`).
 5. **Replay** — a node's log, its configuration then every call it reported as the
    specification writes a step, replays whole into a node created from the
    configuration: for random command sequences, and for every node of a simulated
    cluster; a log altered, cut, reordered or misconfigured does not
-   (`ladder/tests/replay/`).
+   (`validation/ladder/tests/replay/`).
 6. **Cluster simulation** — deterministic multi-node convergence over in-memory
    transport/timer (`core-validation`, `protocol-validation`).
 7. **System** — end-to-end over the real transports (in-memory, channels, TCP, gRPC)

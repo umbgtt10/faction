@@ -47,7 +47,7 @@ report's is the fresh node's.
 
 ## Enforcement
 `Faction::process` decides the result, reports it, then returns it;
-`core/tests/faction_tests.rs` asserts that an accepted command, a probe and a
+`crates/core/tests/faction_tests.rs` asserts that an accepted command, a probe and a
 rejected command are each reported once with the result returned, and the
 conformance tests assert that every vector's calls are reported with the
 results answered, in order, and nothing else.

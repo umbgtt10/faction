@@ -27,7 +27,7 @@ impl ScoreSheet {
         let grip: f64 = self.crates.iter().map(|score| score.grip).sum();
         let braintax: f64 = self.crates.iter().map(|score| score.braintax).sum();
         let mut lines = vec![format!(
-            "Grip / braintax, core/, protocol/ and spec-model/ (cargo-grip4rust {}, cargo-braintax4rust {}):",
+            "Grip / braintax, crates/ (cargo-grip4rust {}, cargo-braintax4rust {}):",
             self.grip_version, self.braintax_version
         )];
         lines.extend(

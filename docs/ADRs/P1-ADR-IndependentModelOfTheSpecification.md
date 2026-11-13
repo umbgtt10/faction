@@ -17,7 +17,7 @@ rejects.
 
 ## Decision
 The specification has a second implementation in the repository: the package
-`faction-spec-model` in `spec-model/`, written from the prose and the decision
+`faction-spec-model` in `crates/spec-model/`, written from the prose and the decision
 table and independent of the crate, `no_std` and free of unsafe code, gated like
 the library. The vectors are checked against it before the crate runs them, and
 the crate is checked against it over command sequences no vector holds.
@@ -83,17 +83,13 @@ disagree with it about a row's result, outcomes or next stage — only about the
 situations, the changes, the peers and the view; the matrix itself is checked
 against the vectors and against the prose's admission.
 
-The property tier's own reference model, written with the crate before the
-specification, is retired: the crate against this model checks everything it
-did — each command's outcomes and the view after it — and more: every result
-whole, a rejection told apart from an acceptance with no outcomes, the peers
-listed rather than counted, and every required count. The system tests' logs can
-be replayed against the model (`docs/OPEN_POINTS.md`).
+The property tier has no reference model of its own: the crate is checked
+against this one, every result compared whole in the specification's encoding.
 
 ## Enforcement
 `cargo deny`'s bans in `deny.toml`. The model's conformance tier,
-`ladder/tests/conformance/spec_model_tests.rs`, and the crate against the
-model, `ladder/tests/property/spec_model_tests.rs`. Stage 2 holds the model to
+`validation/ladder/tests/conformance/spec_model_tests.rs`, and the crate against the
+model, `validation/ladder/tests/property/spec_model_tests.rs`. Stage 2 holds the model to
 every gate the library is held to — stern4rust, dry4rust, crap4rust, twin4rust,
 iceberg4rust, and coverage over every tier and over the conformance tier alone
 (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`); stage 1 builds it for a target

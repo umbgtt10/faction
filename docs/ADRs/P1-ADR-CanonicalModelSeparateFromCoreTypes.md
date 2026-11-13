@@ -32,7 +32,7 @@ tests' mapping.
 
 ## Forcing constraints / Evidence
 
-`core/src/process_result.rs` and `core/src/outcome.rs`, read directly:
+`crates/core/src/process_result.rs` and `crates/core/src/outcome.rs`, read directly:
 `ProcessResult` has three variants, only one of which (`Accepted`) carries an
 `Outcome` list; `Rejected` carries no reason beyond the admissible commands. A
 model that only translated `Outcome` could not represent a rejected command at

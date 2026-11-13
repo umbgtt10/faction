@@ -31,7 +31,7 @@ fn render_lists_each_crate_and_the_total_with_their_ratios() {
     let rendered = sheet.render();
 
     // Assert
-    assert_eq!(rendered, "Grip / braintax, core/, protocol/ and spec-model/ (cargo-grip4rust 0.10.0, cargo-braintax4rust 0.14.0):\n  core              107.38 /   844.21  0.1272\n  protocol            4.05 /    27.65  0.1465\n  total             111.43 /   871.86  0.1278");
+    assert_eq!(rendered, "Grip / braintax, crates/ (cargo-grip4rust 0.10.0, cargo-braintax4rust 0.14.0):\n  core              107.38 /   844.21  0.1272\n  protocol            4.05 /    27.65  0.1465\n  total             111.43 /   871.86  0.1278");
 }
 
 // A crate whose functions cost nothing has no ratio to show.
@@ -48,5 +48,5 @@ fn render_of_a_crate_with_no_braintax_shows_no_ratio() {
     let rendered = sheet.render();
 
     // Assert
-    assert_eq!(rendered, "Grip / braintax, core/, protocol/ and spec-model/ (cargo-grip4rust 0.10.0, cargo-braintax4rust 0.14.0):\n  protocol            3.80 /     0.00  -\n  total               3.80 /     0.00  -");
+    assert_eq!(rendered, "Grip / braintax, crates/ (cargo-grip4rust 0.10.0, cargo-braintax4rust 0.14.0):\n  protocol            3.80 /     0.00  -\n  total               3.80 /     0.00  -");
 }

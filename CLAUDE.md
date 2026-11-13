@@ -17,6 +17,22 @@ That means:
 - do not pull assumptions from sibling repositories or crates
 - do not propose cross-repository changes by default
 
+## Layout
+
+The workspace is laid out by role (`docs/ADRs/P2-ADR-WorkspaceLaidOutByRole.md`):
+
+| directory | holds |
+|---|---|
+| `spec/` | the normative specification: data and prose, read by the ladder and the model, never built |
+| `crates/` | the library -- `core/` (`faction`, published), `protocol/` (`faction-protocol`) and `spec-model/` (`faction-spec-model`) -- every gate at full strength, scored on every commit |
+| `validation/` | everything that checks the library -- `ladder/`, `core-validation/`, `protocol-validation/` and `system-tests/` |
+| `xtask/` | the gates |
+
+A crate the library gains goes under `crates/`, and joins the gates' and the
+scorer's lists of the library; a package that checks the library goes under
+`validation/`. A directory is named for its package without the `faction-`
+prefix, `core/` holding `faction` itself.
+
 ## Quality Gates
 
 ### Mandatory after every change to `src/` or `tests/` of any crate in the workspace
@@ -62,16 +78,15 @@ code. It runs, in this order:
 ### Every commit carries the library's scores
 
 Every commit message carries the grip and braintax of the library's crates,
-`core/`, `protocol/` and `spec-model/`, and their ratio, scored as the commit
-stages them. `.githooks/commit-msg` runs `cargo xtask grip-braintax` on the
+`core`, `protocol` and `spec-model` under `crates/`, and their ratio, scored as the
+commit stages them. `.githooks/commit-msg` runs `cargo xtask grip-braintax` on the
 message's file, which writes the scores in as a paragraph of their own above the
 trailers: each crate's `grip_absolute_total` over its `total_braintax` and their
 ratio, then the sums and theirs, under a title naming the releases of
 `cargo-grip4rust` and `cargo-braintax4rust` -- scores of different releases do
-not compare. The files under `core/`, `protocol/` and `spec-model/` that the
-index holds are exported into a scratch directory and scored there, so nothing
-unstaged counts. An amend scores again, in
-place of the earlier scores; a message with no words is left alone, so git still
+not compare. The files under them that the index holds are exported into a
+scratch directory and scored there, so nothing unstaged counts. An amend scores
+again, in place of the earlier scores; a message with no words is left alone, so git still
 aborts its commit; a scoring that fails stops the commit, and `--no-verify` skips
 it, deliberately -- never use it. Git runs a repository's own hooks only where a
 clone asks it to: `just hooks`, once a clone, on each machine.
@@ -124,10 +139,10 @@ repository root, read by the ladder and never by the crate. Vectors are written 
 and checked against a model independent of the crate before the crate runs them; never
 export them from the crate.
 
-The model is `spec-model/` (`faction-spec-model`,
+The model is `crates/spec-model/` (`faction-spec-model`,
 `docs/ADRs/P1-ADR-IndependentModelOfTheSpecification.md`): `no_std`, free of unsafe
 code, and held to every gate the library is held to. It is written from `spec/SPEC.md`
-and `spec/matrix.json`, never from `core/`, and depends on nothing of `faction` --
+and `spec/matrix.json`, never from `crates/core/`, and depends on nothing of `faction` --
 `deny.toml` refuses it -- so the two meet only in the specification's encoding, in the
 ladder. It reads the decision table and answers a command by the first row that
 applies; what it owns is what the table cannot say, in `rules/rule_book.rs`: each row's
@@ -138,9 +153,9 @@ conformance tier fails; a command, an outcome or a stage the vocabulary gains is
 ### State transition test coverage — invariant
 
 `spec/matrix.json` gives every (stage × command) pair its row: what each stage admits,
-and the rows in check order. The conformance tier (`ladder/tests/conformance/`) runs
+and the rows in check order. The conformance tier (`validation/ladder/tests/conformance/`) runs
 every vector, and every row is exercised by one. The transition matrix tests under
-`ladder/tests/matrix/` cover every (stage × command) pair, each case naming the row it
+`validation/ladder/tests/matrix/` cover every (stage × command) pair, each case naming the row it
 exercises and checked against it. This coverage MUST be maintained — no regression, no
 gaps.
 

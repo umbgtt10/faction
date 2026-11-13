@@ -1,29 +1,28 @@
 [package]
-name = "faction-protocol-validation"
+name = "faction-core-validation"
 version = "0.4.0"
 edition = "2021"
 rust-version = "1.85"
 license = "MIT"
-description = "Deterministic scenario harness for testing the faction protocol layer."
+description = "Deterministic scenario harness for testing the faction core state machine."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"
 documentation = "https://docs.rs/faction"
-readme = "../README.md"
-keywords = ["cluster", "readiness", "protocol", "validation", "testing"]
-categories = ["development-tools::testing"]
+readme = "../../README.md"
+keywords = ["cluster", "readiness", "validation", "no-std", "testing"]
+categories = ["no-std", "development-tools::testing"]
 autotests = false
 publish = false
 
 [dependencies]
 faction.workspace = true
-faction-protocol.workspace = true
-spin.workspace = true
 
 [dev-dependencies]
+proptest.workspace = true
 rstest.workspace = true
 
 [lib]
-name = "faction_protocol_validation"
+name = "faction_core_validation"
 path = "src/lib.rs"
 
 [[test]]

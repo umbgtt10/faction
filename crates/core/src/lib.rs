@@ -119,7 +119,7 @@
 //! * [README](https://crates.io/crates/faction) — project overview and design principles
 //! * [Specification](https://github.com/umbgtt10/faction/blob/main/spec/SPEC.md) — normative: this crate is one implementation of it
 //! * [Architecture](https://github.com/umbgtt10/faction/blob/main/docs/ARCHITECTURE.md)
-//! * [Transition matrix tests](https://github.com/umbgtt10/faction/blob/main/ladder/tests/matrix/) — exhaustive `(state × command)` coverage
+//! * [Transition matrix tests](https://github.com/umbgtt10/faction/blob/main/validation/ladder/tests/matrix/) — exhaustive `(state × command)` coverage
 
 #![no_std]
 #![forbid(unsafe_code)]

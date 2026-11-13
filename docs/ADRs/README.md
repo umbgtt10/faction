@@ -29,14 +29,15 @@ importance:
 | [P2-ADR-TestingLadder](P2-ADR-TestingLadder.md) | A fixed test-tier ladder — unit, matrix, property, simulation, system — run by one gate. |
 | [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) | The specification in `spec/` — schema, decision table, prose, vectors, written by hand — is normative; this crate is one implementation of it. |
 | [P1-ADR-NoLineTheSpecificationDoesNotAskFor](P1-ADR-NoLineTheSpecificationDoesNotAskFor.md) | 100% coverage over every tier and over the conformance vectors alone: no line the specification does not ask for. |
-| [P1-ADR-IndependentModelOfTheSpecification](P1-ADR-IndependentModelOfTheSpecification.md) | A second implementation of the specification, `spec-model/`, independent of the crate: it checks the vectors before the crate runs them, and the crate over sequences no vector holds. |
+| [P1-ADR-IndependentModelOfTheSpecification](P1-ADR-IndependentModelOfTheSpecification.md) | A second implementation of the specification, `crates/spec-model/`, independent of the crate: it checks the vectors before the crate runs them, and the crate over sequences no vector holds. |
 | [P1-ADR-CanonicalModelSeparateFromCoreTypes](P1-ADR-CanonicalModelSeparateFromCoreTypes.md) | The canonical model is `spec/schema.json`, mapped to `Command`/`Outcome`/`ProcessResult` by the conformance tests, never derived from them. |
 | [P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors](P1-ADR-TransitionMatrixSingleSourceForTestsAndVectors.md) | A `matrix.rs` exported to vectors. **Superseded** by `P0-ADR-SpecificationIsNormativeCrateIsReference`: the decision table is `spec/matrix.json`. |
-| [P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors](P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors.md) | No compile-time-only invariant exists in `core/src`; admission is decided at run time, so every vector runs everywhere. |
+| [P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors](P1-ADR-StaticInvariantsBecomeDynamicRejectionVectors.md) | No compile-time-only invariant exists in `crates/core/src`; admission is decided at run time, so every vector runs everywhere. |
 | [P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder](P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder.md) | Outcomes are an ordered sequence; peers are listed in arrival order. |
 | [P2-ADR-CanonicalModelBuiltAgainstJoiningBranch](P2-ADR-CanonicalModelBuiltAgainstJoiningBranch.md) | The specification's 0.1.0 includes joining — there is no smaller baseline left. |
 | [P2-ADR-SpecifiedBeforeAnyNewPhase](P2-ADR-SpecifiedBeforeAnyNewPhase.md) | Faction is specified now, at Phase 1's vocabulary; every later phase changes the specification first. |
 | [P2-ADR-SpecImplementationDeferredUntilHardwareValidation](P2-ADR-SpecImplementationDeferredUntilHardwareValidation.md) | The specification deferred until hardware validation. **Superseded** by `P2-ADR-SpecifiedBeforeAnyNewPhase`. |
+| [P2-ADR-WorkspaceLaidOutByRole](P2-ADR-WorkspaceLaidOutByRole.md) | The workspace by role: `spec/` the specification, `crates/` the library, `validation/` what checks it, `xtask/` the gates. |
 
 ## Template
 

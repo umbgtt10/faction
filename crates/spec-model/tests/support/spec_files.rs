@@ -11,7 +11,7 @@ pub struct SpecFiles;
 
 impl SpecFiles {
     pub fn matrix() -> Value {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../spec/matrix.json");
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../spec/matrix.json");
         let text =
             read_to_string(&path).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
         from_str(&text).unwrap_or_else(|error| panic!("{}: {error}", path.display()))

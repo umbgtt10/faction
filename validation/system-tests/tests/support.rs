@@ -41,8 +41,7 @@ pub fn log_dir(label: &str) -> PathBuf {
 }
 
 fn logs_root() -> PathBuf {
-    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest.parent().unwrap_or(&manifest).join("logs")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../logs")
 }
 
 pub fn real_time() -> TimePorts {

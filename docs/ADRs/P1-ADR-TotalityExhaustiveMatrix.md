@@ -38,7 +38,7 @@ not a superset break.
 
 ## Enforcement
 `spec/matrix.json` gives every `(stage, command)` its row, and the conformance
-vectors exercise every row. `ladder/tests/matrix/state_transition_matrix_tests.rs`
+vectors exercise every row. `validation/ladder/tests/matrix/state_transition_matrix_tests.rs`
 names the row each case exercises and checks the crate's answer against it — the
 result, the outcomes in order and the stage after — gated by the rule that no phase
 begins until its `(state, command)` coverage is 100%.

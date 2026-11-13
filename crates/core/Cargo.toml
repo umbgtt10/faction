@@ -8,7 +8,7 @@ description = "A no_std + alloc, protocol-independent cluster readiness state ma
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"
 documentation = "https://docs.rs/faction"
-readme = "../README.md"
+readme = "../../README.md"
 keywords = ["cluster", "readiness", "distributed", "consensus", "no-std"]
 categories = ["no-std", "algorithms", "network-programming"]
 

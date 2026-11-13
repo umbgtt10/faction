@@ -16,8 +16,8 @@ codebase.
 
 ## Decision
 
-**Finding, not assumption:** a full read of `core/src` and
-`ladder/tests/property/` (all three files) found no invariant that is
+**Finding, not assumption:** a full read of `crates/core/src` and
+`validation/ladder/tests/property/` (all three files) found no invariant that is
 compile-time-only. Every transition that looks structurally prevented is decided
 at run time by the stage's `step`, which every command reaches: it answers nothing
 for a command its stage does not admit, and `Faction::process` answers that
@@ -32,7 +32,7 @@ anywhere.
 Every state (`Initial`, `Pinging`, `Collecting`, `Bootstrapped`) implements
 `State`, and `Stage` delegates to it; every `Command` variant is offered to every
 state's `step()`, which ends in an arm for the commands its stage does not admit.
-`ladder/tests/property/{invariant_tests,safety_tests,spec_model_tests}.rs`
+`validation/ladder/tests/property/{invariant_tests,safety_tests,spec_model_tests}.rs`
 confirm it: every safety property there is checked by `proptest` over generated
 runtime input, never by a type constraint.
 

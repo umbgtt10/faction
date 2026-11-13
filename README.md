@@ -138,15 +138,15 @@ not a wire message, so no transport has to learn a new message type.
 | Harness | What it tests |
 |---|---|
 | [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 18 rows and 41 conformance vectors |
-| `spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 64 tests |
-| `core/` unit tests | Each type and each step in isolation — 128 tests |
-| `ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 84 tests |
-| `core-validation/` | Multi-node deterministic scenarios — 39 tests |
-| `protocol/` | Message translation and protocol runtime — 42 tests |
-| `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 169 tests |
-| `system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
-| `system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
-| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 155 tests |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 64 tests |
+| `crates/core/` unit tests | Each type and each step in isolation — 128 tests |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 84 tests |
+| `validation/core-validation/` | Multi-node deterministic scenarios — 39 tests |
+| `crates/protocol/` | Message translation and protocol runtime — 42 tests |
+| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 169 tests |
+| `validation/system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
+| `validation/system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 155 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -226,7 +226,7 @@ The caller owns the network. `faction` owns the state.
 | Specification | [`spec/`](./spec/SPEC.md) 0.1.0 — its independent model and the crate answer all 41 vectors as written |
 | Total tests | 925 |
 | Code coverage (productive) | 100% |
-| `(state, command)` matrix | [state_transition_matrix_tests.rs](./ladder/tests/matrix/state_transition_matrix_tests.rs) |
+| `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified |
@@ -314,17 +314,20 @@ for the complete technical specification.
 
 ## Workspace
 
+The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative specification,
+`crates/` the library, `validation/` everything that checks it, and `xtask/` the gates.
+
 | Crate | Role | Tests |
 |---|---|---|
-| `core/` | State machine | 128 |
-| `spec-model/` | The specification's independent model, `no_std` | 64 |
-| `ladder/` | Conformance, the decision-table matrix, property and replay tiers | 84 |
-| `core-validation/` | Deterministic multi-node scenario harness | 39 |
-| `protocol/` | Message translator and protocol runtime | 42 |
-| `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 169 |
-| `system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
-| `system-tests/` joining | Dynamic joining across spawn/transport | 61 |
-| `system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 155 |
+| `crates/core/` | State machine | 128 |
+| `crates/protocol/` | Message translator and protocol runtime | 42 |
+| `crates/spec-model/` | The specification's independent model, `no_std` | 64 |
+| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers | 84 |
+| `validation/core-validation/` | Deterministic multi-node scenario harness | 39 |
+| `validation/protocol-validation/` | Convergence sweeps + in-process protocol cluster | 169 |
+| `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
+| `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 155 |
 | `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores | 163 |
 
 ---

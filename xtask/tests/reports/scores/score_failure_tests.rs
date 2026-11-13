@@ -58,5 +58,5 @@ fn to_string_of_no_crates_says_no_library_crate_is_staged() {
     let text = ScoreFailure::NoCrates.to_string();
 
     // Assert
-    assert_eq!(text, "neither core/ nor protocol/ has a staged source file");
+    assert_eq!(text, "no crate under crates/ has a staged source file");
 }

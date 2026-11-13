@@ -321,8 +321,8 @@ can assert on every transition without modifying production code.
 
 ### Unit test coverage
 
-The core/ test suite covers every (state, command) pair explicitly. The complete matrix is documented and tested in
-[transition_matrix_tests.rs](../ladder/tests/matrix/state_transition_matrix_tests.rs) — every combination named, every outcome asserted.
+The crates/core/ test suite covers every (state, command) pair explicitly. The complete matrix is documented and tested in
+[transition_matrix_tests.rs](../validation/ladder/tests/matrix/state_transition_matrix_tests.rs) — every combination named, every outcome asserted.
 
 ### Property-based invariants
 
@@ -341,7 +341,7 @@ sequences:
 | The specification's independent model agrees with the machine for all sequences |
 
 The last invariant is the strongest: the specification's independent model
-(`spec-model/`), written from the prose and the decision table and depending on nothing
+(`crates/spec-model/`), written from the prose and the decision table and depending on nothing
 of the crate, answers every random input sequence beside the machine, and every result
 must be identical in the specification's encoding. Any divergence is a specification
 bug or an implementation bug — both are caught immediately.
@@ -390,7 +390,7 @@ configurable per spawn model to account for OS scheduling overhead.
 data model, a JSON decision table, prose for what JSON cannot say, and
 conformance vectors, versioned together and written by hand. This crate is one
 implementation of it; where the two disagree, the specification is right
-(`P0-ADR-SpecificationIsNormativeCrateIsReference`). A second, `spec-model/`, is
+(`P0-ADR-SpecificationIsNormativeCrateIsReference`). A second, `crates/spec-model/`, is
 independent of the crate: it reads the decision table and answers each command
 by the first row that applies, checks every vector before the crate runs it, and
 is the judge the crate is checked against over random command sequences

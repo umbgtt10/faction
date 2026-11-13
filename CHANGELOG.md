@@ -2,6 +2,15 @@
 
 ## [0.5.0] — unreleased
 
+### Laid out by role
+
+#### Changed
+- The workspace is laid out by role (`P2-ADR-WorkspaceLaidOutByRole`): `crates/` holds the library —
+  `core/` (`faction`), `protocol/` and `spec-model/` — `validation/` everything that checks it —
+  `ladder/`, `core-validation/`, `protocol-validation/` and `system-tests/` — beside `spec/` and
+  `xtask/`. No package is renamed; a path dependency on the crate names `crates/core`. The commit
+  scores' title names `crates/`.
+
 ### Specified: faction conforms to its specification 0.1.0
 
 #### Added
@@ -10,14 +19,14 @@
   103 steps, each naming the rows it exercises, every row exercised. Written by hand and versioned
   apart from the crate; the crate is one implementation of it
   (`P0-ADR-SpecificationIsNormativeCrateIsReference`). Peers are listed in arrival order.
-- The conformance tier in `ladder/`: every vector run against the crate, each result, the final
+- The conformance tier in `validation/ladder/`: every vector run against the crate, each result, the final
   answer and every report to the observer as written.
-- The replay tier in `ladder/`: a node's log — its configuration, then every call it reported, as
+- The replay tier in `validation/ladder/`: a node's log — its configuration, then every call it reported, as
   the specification writes a step — replays whole, for random command sequences and for every node of
   a simulated cluster; a log altered, cut, reordered or opened with another configuration does not.
 - `P2-ADR-SpecifiedBeforeAnyNewPhase`, superseding the deferral of the specification until hardware
   validation: every later phase changes the specification first.
-- `spec-model/`, the specification's independent model (`faction-spec-model`, unpublished): a second
+- `crates/spec-model/`, the specification's independent model (`faction-spec-model`, unpublished): a second
   implementation, written from the prose and the decision table, depending on nothing of the crate
   — `deny.toml` refuses it — `no_std`, free of unsafe code, and held to every gate the library is.
   It reads the decision table and answers each command, in the specification's encoding, by the first

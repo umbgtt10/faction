@@ -1,14 +1,23 @@
 [workspace]
-members = ["core", "core-validation", "ladder", "protocol", "protocol-validation", "spec-model", "system-tests", "xtask"]
+members = [
+    "crates/core",
+    "crates/protocol",
+    "crates/spec-model",
+    "validation/core-validation",
+    "validation/ladder",
+    "validation/protocol-validation",
+    "validation/system-tests",
+    "xtask",
+]
 resolver = "2"
 
 [workspace.dependencies]
 boon = "0.6"
 chrono = "0.4"
-faction = { path = "core" }
-faction-core-validation = { path = "core-validation" }
-faction-protocol = { path = "protocol" }
-faction-spec-model = { path = "spec-model" }
+faction = { path = "crates/core" }
+faction-core-validation = { path = "validation/core-validation" }
+faction-protocol = { path = "crates/protocol" }
+faction-spec-model = { path = "crates/spec-model" }
 proptest = "1"
 prost = "0.13"
 rstest = "0.18"

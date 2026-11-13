@@ -55,7 +55,7 @@ so they are lines the specification does not state
 (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`).
 
 ## Consequences
-`ClusterViewBuilder` (`core/src/cluster_view_builder.rs`) owns
+`ClusterViewBuilder` (`crates/core/src/cluster_view_builder.rs`) owns
 `new` / `from_view` / `with_*` / `build`, used by all four states and Faction's base
 seed; `build` hands its fields to `ClusterView::new`. Consumers read the view through
 its getters and gain membership visibility through `members` (a `Members` value
@@ -64,10 +64,10 @@ builds it through the builder or `new`, never by literal. The cost is a
 seven-argument constructor that only the builder needs to call by hand.
 
 ## Enforcement
-`core/tests/cluster_view_builder_tests.rs` drives the builder: each `with_*` updates
+`crates/core/tests/cluster_view_builder_tests.rs` drives the builder: each `with_*` updates
 only its field, `from_view` copies every field, `members` is exposed on the built
 view, and a deadline-miss resolves to `TimedOut` at `build()`.
-`core/tests/cluster_view_tests.rs` checks that `new` stores every field, resolves a
+`crates/core/tests/cluster_view_tests.rs` checks that `new` stores every field, resolves a
 missed deadline unless bootstrapped.
 `cargo stern4rust` holds `records-and-objects` and `public-or-private` over `faction`
 in stage 2.

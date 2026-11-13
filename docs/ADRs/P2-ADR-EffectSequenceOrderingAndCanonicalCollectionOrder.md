@@ -24,7 +24,7 @@ it is reproducible as it is (`spec/SPEC.md` §1).
 
 ## Forcing constraints / Evidence
 
-Every outcome-producing path in `core/src/states/` (e.g.
+Every outcome-producing path in `crates/core/src/states/` (e.g.
 `LocalCompletionStep::new` pushing `LocalParticipationCompleted` then
 `BroadcastLocalReady` then, conditionally, `Concluded`) already produces
 outcomes in a meaningful, causally ordered sequence — collapsing that to set

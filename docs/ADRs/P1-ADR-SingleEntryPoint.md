@@ -39,5 +39,5 @@ self-description cannot drift from what it steps on.
 Every transition's admissible set is asserted against its expected value in
 the exhaustive `(state × command)` matrix, every result variant is exercised
 there, and a dedicated invariant test
-(`ladder/tests/matrix/admissible_invariant_tests.rs`) checks
+(`validation/ladder/tests/matrix/admissible_invariant_tests.rs`) checks
 `admissible == { c ≠ Probe : c is not rejected } ∪ { Probe }` per state directly.

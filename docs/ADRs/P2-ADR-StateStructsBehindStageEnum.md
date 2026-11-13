@@ -14,8 +14,8 @@ internal business, never a dependency a consumer supplies.
 ## Decision
 Each state is its own struct implementing one `State` trait — `step` and
 `cluster_view`, neither with a default body — one struct per file under
-`core/src/states/`. `Faction` holds the current state as a `Stage`, an enum with
-one variant per state struct (`core/src/stage.rs`). Every command is offered to
+`crates/core/src/states/`. `Faction` holds the current state as a `Stage`, an enum with
+one variant per state struct (`crates/core/src/stage.rs`). Every command is offered to
 `step`, which answers the outcomes and the next `Stage`, or nothing for a command
 the stage does not admit — a probe among them — and `process` swaps the next
 stage in. `Stage` implements `State` by delegating through one private `match`
@@ -56,9 +56,9 @@ know `Stage`'s variants — the price of returning owned data instead of a trait
 object.
 
 ## Enforcement
-`core/src/states/` holds one file per state, each an `impl State`;
-`core/src/state.rs` defines the trait with no default bodies; `core/src/stage.rs`
-holds the only `match` over the states. `core/tests/stage_tests.rs` checks the
-delegation for every variant, `ladder/tests/matrix/` covers every
+`crates/core/src/states/` holds one file per state, each an `impl State`;
+`crates/core/src/state.rs` defines the trait with no default bodies; `crates/core/src/stage.rs`
+holds the only `match` over the states. `crates/core/tests/stage_tests.rs` checks the
+delegation for every variant, `validation/ladder/tests/matrix/` covers every
 `(state, command)` pair, and `cargo stern4rust` enforces `injected-dependencies`
 over `faction` in stage 2.

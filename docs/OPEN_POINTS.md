@@ -143,7 +143,7 @@ no departure.
 **What it proves.** Replayed against the crate, a log reconstructs by
 construction unless the path that writes it is broken: it checks that every call
 is reported once and in order, nothing lost by the writer, on every spawn and
-transport. Replayed against the independent model (`spec-model/`), it judges
+transport. Replayed against the independent model (`crates/spec-model/`), it judges
 the behaviour too — on interleavings the vectors and the simulation never
 produce. The model takes the specification's encoding as it is, so a log in the
 specification's form needs nothing more of it.

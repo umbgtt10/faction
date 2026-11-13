@@ -31,7 +31,7 @@ from its tests. The prose and the decision table were written from the crate's
 behaviour, every vector's expected answers by hand, and each vector was checked
 against an independent model built from the prose before the crate was run on
 it. The crate then answered all of them as written. That model is now in the
-repository, `spec-model/`, and checks every vector on every run
+repository, `crates/spec-model/`, and checks every vector on every run
 (`P1-ADR-IndependentModelOfTheSpecification`).
 
 ## Rejected alternatives

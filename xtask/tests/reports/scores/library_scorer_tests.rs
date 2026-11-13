@@ -8,7 +8,8 @@ use xtask::reports::scores::library_scorer::LibraryScorer;
 use xtask::reports::scores::score_failure::ScoreFailure;
 use xtask::reports::scores::score_sheet::ScoreSheet;
 
-const LISTING: &str = "core/src/lib.rs\0core/Cargo.toml\0protocol/src/protocol.rs\0";
+const LISTING: &str =
+    "crates/core/src/lib.rs\0crates/core/Cargo.toml\0crates/protocol/src/protocol.rs\0";
 
 fn answering_two_crates() -> FakeCommandRunner {
     FakeCommandRunner::new().with_replies(&[
@@ -38,18 +39,25 @@ fn score_exports_the_staged_library_files_then_scores_each_crate_there() {
     assert_eq!(
         runner.calls()[..4],
         [
-            arguments(&["ls-files", "-z", "--", "core", "protocol", "spec-model"]),
+            arguments(&[
+                "ls-files",
+                "-z",
+                "--",
+                "crates/core",
+                "crates/protocol",
+                "crates/spec-model",
+            ]),
             arguments(&[
                 "checkout-index",
                 "--force",
                 "--prefix=/scratch/",
                 "--",
-                "core/src/lib.rs",
-                "core/Cargo.toml",
-                "protocol/src/protocol.rs",
+                "crates/core/src/lib.rs",
+                "crates/core/Cargo.toml",
+                "crates/protocol/src/protocol.rs",
             ]),
-            arguments(&["grip4rust", "--json", "/scratch/core"]),
-            arguments(&["braintax4rust", "--json", "/scratch/core"]),
+            arguments(&["grip4rust", "--json", "/scratch/crates/core"]),
+            arguments(&["braintax4rust", "--json", "/scratch/crates/core"]),
         ]
     );
     assert_eq!(runner.programs()[..3], ["git", "git", "cargo"]);
@@ -68,7 +76,7 @@ fn score_of_a_failing_tool_names_its_command_with_what_it_said() {
     assert_eq!(
         scored.err(),
         Some(ScoreFailure::CommandFailed {
-            command: String::from("cargo grip4rust --json /scratch/core"),
+            command: String::from("cargo grip4rust --json /scratch/crates/core"),
             stderr: String::new(),
         })
     );
