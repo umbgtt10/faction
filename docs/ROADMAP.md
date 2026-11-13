@@ -3,7 +3,7 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-13  
-**Current status:** Phase 3 — single-node addition landed (specification 0.2.0, the crate's 0.6.0 unreleased)
+**Current status:** Phase 3 — single-node addition landed (specification 0.2.0, released in 0.6.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -179,7 +179,7 @@ return as inputs. The Mealy invariant is maintained.
 
 ## Phase 3 — Single-node addition
 
-**Status:** ✅ Complete — specification 0.2.0; the crate's 0.6.0, unreleased
+**Status:** ✅ Complete — specification 0.2.0, released in 0.6.0
 **Depends on:** Phase 1 complete — built ahead of Phase 2
 **Removes limitation:** L3 — no addition protocol
 
@@ -342,7 +342,7 @@ release candidate.
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
 | cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.2.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
-| 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0; crate 0.6.0 unreleased) |
+| 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | Planned |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
