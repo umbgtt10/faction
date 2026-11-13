@@ -3,7 +3,7 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-13  
-**Current status:** Phase 4 — single-node removal landed (specification 0.4.0, unreleased; the crate 0.8.0 at the owner's word)
+**Current status:** Phase 4 — single-node removal landed (specification 0.4.0, released in 0.8.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -241,7 +241,7 @@ makes this structurally impossible.
 
 ## Phase 4 — Single-node removal
 
-**Status:** ✅ Complete — specification 0.4.0; the crate 0.8.0, unreleased
+**Status:** ✅ Complete — specification 0.4.0, released in 0.8.0
 **Depends on:** Phases 2 and 3 complete
 **Removes limitation:** L4 — no removal protocol
 
@@ -370,7 +370,7 @@ release candidate.
 | cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.4.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
-| 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0; the crate 0.8.0, unreleased) |
+| 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0, released in 0.8.0) |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 

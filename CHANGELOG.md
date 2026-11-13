@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.8.0] — unreleased
+## [0.8.0] — 2026-11-13
 
 ### Phase 4: a concluded cluster shrinks by one
 
