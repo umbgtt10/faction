@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::HELPERS;
+use crate::constants::SUSPICION_THRESHOLD;
 use std::mem::replace;
 
 use faction::addition::Addition;
@@ -215,7 +217,12 @@ impl FactionNode {
     // A waiting newcomer given a message: its membership makes it a running
     // node, which opens as a started node does; anything else it lets pass.
     fn join(&mut self, message: TransportMessage) -> Vec<OutputMessage> {
-        let placeholder = Role::Waiting(Newcomer::new(self.peer_id, Box::new(NoOpObserver)));
+        let placeholder = Role::Waiting(Newcomer::new(
+            self.peer_id,
+            SUSPICION_THRESHOLD,
+            HELPERS,
+            Box::new(NoOpObserver),
+        ));
         match replace(&mut self.role, placeholder) {
             Role::Waiting(newcomer) => match newcomer.join(message) {
                 Ok((protocol, decisions)) => {

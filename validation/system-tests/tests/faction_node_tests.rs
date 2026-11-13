@@ -16,6 +16,8 @@ use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
+use faction_system_tests::constants::HELPERS;
+use faction_system_tests::constants::SUSPICION_THRESHOLD;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -40,6 +42,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
         0,
+        HELPERS,
     );
     let timer = RealTimer::with_delays(
         time.clock.clone(),
@@ -75,7 +78,12 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
     let node = FactionNode::new(
         5,
         Vec::new(),
-        Role::Waiting(Newcomer::new(5, Box::new(NoOpObserver))),
+        Role::Waiting(Newcomer::new(
+            5,
+            SUSPICION_THRESHOLD,
+            HELPERS,
+            Box::new(NoOpObserver),
+        )),
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
@@ -91,6 +99,7 @@ fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
         0,
+        HELPERS,
     );
     let timer = RealTimer::with_delays(
         time.clock.clone(),
@@ -124,6 +133,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         ),
         peers.clone(),
         0,
+        HELPERS,
     );
     let timer = RealTimer::with_delays(
         time.clock.clone(),

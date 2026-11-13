@@ -12,7 +12,9 @@ const PEER: usize = 8;
 
 // The bytes a message travels as over TCP and gRPC: a frame, its length -- of
 // what follows it -- then the sender, a tag and the payload. A membership's
-// payload is the required count, the number of members, then each member.
+// payload is the required count, the number of members, then each member; a
+// probe's and its answer's, a flag and, set, the node it is relayed for; an
+// indirect probe's and its answer's, the target.
 pub struct WireCodec;
 
 impl WireCodec {
@@ -29,6 +31,14 @@ impl WireCodec {
             2 => Some(TransportMessage::Bootstrapped { from }),
             3 => Self::membership(from, payload),
             4 => Some(TransportMessage::MembershipAcknowledged { from }),
+            5 => {
+                Self::relayed(payload).map(|relay_for| TransportMessage::Probe { from, relay_for })
+            }
+            6 => Self::relayed(payload)
+                .map(|relay_for| TransportMessage::ProbeAnswer { from, relay_for }),
+            7 => Self::peer(payload).map(|target| TransportMessage::IndirectProbe { from, target }),
+            8 => Self::peer(payload)
+                .map(|target| TransportMessage::IndirectProbeAnswer { from, target }),
             _ => None,
         }
     }
@@ -45,6 +55,18 @@ impl WireCodec {
                 required_count,
             } => (*from, 3, Self::membership_payload(members, *required_count)),
             TransportMessage::MembershipAcknowledged { from } => (*from, 4, Vec::new()),
+            TransportMessage::Probe { from, relay_for } => {
+                (*from, 5, Self::relay_payload(*relay_for))
+            }
+            TransportMessage::ProbeAnswer { from, relay_for } => {
+                (*from, 6, Self::relay_payload(*relay_for))
+            }
+            TransportMessage::IndirectProbe { from, target } => {
+                (*from, 7, target.to_le_bytes().to_vec())
+            }
+            TransportMessage::IndirectProbeAnswer { from, target } => {
+                (*from, 8, target.to_le_bytes().to_vec())
+            }
         };
         let body: Vec<u8> = from
             .to_le_bytes()
@@ -90,5 +112,24 @@ impl WireCodec {
             .chain(member_count.to_le_bytes())
             .chain(members.iter().flat_map(|member| member.to_le_bytes()))
             .collect()
+    }
+
+    fn peer(payload: &[u8]) -> Option<PeerId> {
+        payload.try_into().ok().map(PeerId::from_le_bytes)
+    }
+
+    fn relay_payload(relay_for: Option<PeerId>) -> Vec<u8> {
+        relay_for.map_or(vec![0], |peer| {
+            [1].into_iter().chain(peer.to_le_bytes()).collect()
+        })
+    }
+
+    // A flag, then the node a probe is relayed for if the flag is set.
+    fn relayed(payload: &[u8]) -> Option<Option<PeerId>> {
+        match payload.split_first()? {
+            (0, []) => Some(None),
+            (1, peer) => Self::peer(peer).map(Some),
+            _ => None,
+        }
     }
 }

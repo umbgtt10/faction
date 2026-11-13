@@ -19,7 +19,7 @@ fn defaulted<T: Default>() -> T {
 }
 
 fn translator() -> MessageTranslator {
-    MessageTranslator::new()
+    MessageTranslator::new(2)
 }
 
 // The view a result carries: members 0, 1 and 2, requiring two.
@@ -55,6 +55,20 @@ fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
 }
 
 #[test]
+fn to_command_timer_indirect_probes_missed_maps_to_indirect_probes_missed() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::IndirectProbesMissed {
+        peer_id: 2,
+    }));
+
+    // Assert
+    assert_eq!(command, Command::IndirectProbesMissed { peer_id: 2 });
+}
+
+#[test]
 fn to_command_timer_local_participation_completed_maps_to_local_participation_completed() {
     // Arrange
     let translator = translator();
@@ -80,6 +94,27 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
 
     // Assert
     assert_eq!(command, Command::ParticipationObserved { peer_id: 3 });
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
+fn to_command_timer_probe_due_panics() {
+    // Arrange & Act & Assert
+    let _ = translator().to_command(InputMessage::Timer(TimerMessage::ProbeDue));
+}
+
+#[test]
+fn to_command_timer_probe_missed_maps_to_probe_missed() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::ProbeMissed {
+        peer_id: 2,
+    }));
+
+    // Assert
+    assert_eq!(command, Command::ProbeMissed { peer_id: 2 });
 }
 
 #[test]
@@ -126,6 +161,30 @@ fn to_command_transport_bootstrapped_maps_to_probe() {
 }
 
 #[test]
+fn to_command_transport_indirect_probe_answer_maps_to_the_target_heard() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Transport(
+        TransportMessage::IndirectProbeAnswer { from: 1, target: 2 },
+    ));
+
+    // Assert
+    assert_eq!(command, Command::PeerHeard { peer_id: 2 });
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
+fn to_command_transport_indirect_probe_panics() {
+    // Arrange & Act & Assert
+    let _ = translator().to_command(InputMessage::Transport(TransportMessage::IndirectProbe {
+        from: 1,
+        target: 2,
+    }));
+}
+
+#[test]
 fn to_command_transport_membership_acknowledged_maps_to_membership_acknowledged() {
     // Arrange
     let translator = translator();
@@ -164,6 +223,31 @@ fn to_command_transport_ping_maps_to_participation_observed() {
 }
 
 #[test]
+fn to_command_transport_probe_answer_maps_to_the_member_heard() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let command = translator.to_command(InputMessage::Transport(TransportMessage::ProbeAnswer {
+        from: 2,
+        relay_for: None,
+    }));
+
+    // Assert
+    assert_eq!(command, Command::PeerHeard { peer_id: 2 });
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
+fn to_command_transport_probe_panics() {
+    // Arrange & Act & Assert
+    let _ = translator().to_command(InputMessage::Transport(TransportMessage::Probe {
+        from: 1,
+        relay_for: None,
+    }));
+}
+
+#[test]
 fn to_command_transport_ready_maps_to_ready_observed() {
     // Arrange
     let translator = translator();
@@ -174,6 +258,16 @@ fn to_command_transport_ready_maps_to_ready_observed() {
 
     // Assert
     assert_eq!(command, Command::ReadyObserved { peer_id: 7 });
+}
+
+#[test]
+#[should_panic(expected = "handled in decide()")]
+fn to_command_transport_relayed_probe_answer_panics() {
+    // Arrange & Act & Assert
+    let _ = translator().to_command(InputMessage::Transport(TransportMessage::ProbeAnswer {
+        from: 1,
+        relay_for: Some(2),
+    }));
 }
 
 #[test]
@@ -191,6 +285,27 @@ fn to_output_messages_addition_withdrawn_cancels_the_retry() {
         vec![OutputMessage::Cancel(TimerEvent::Fire(
             TimerMessage::RetryMembership { peer_id: 5 }
         ))]
+    );
+}
+
+#[test]
+fn to_output_messages_alive_noted_cancels_the_member_s_timeouts() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs =
+        translator.to_output_messages(vec![Outcome::AliveNoted { peer_id: 2 }], &view(), 0);
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 2 })),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+                peer_id: 2
+            })),
+        ]
     );
 }
 
@@ -259,6 +374,7 @@ fn to_output_messages_broadcast_local_ready_then_concluded_returns_both_in_order
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
         ]
     );
 }
@@ -287,6 +403,7 @@ fn to_output_messages_concluded_then_broadcast_local_ready_returns_both_in_order
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
             OutputMessage::BroadcastReady,
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
         ]
@@ -306,7 +423,7 @@ fn to_output_messages_empty_outcomes_returns_noop() {
 }
 
 #[test]
-fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
+fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready_and_the_probe_period() {
     // Arrange
     let translator = translator();
 
@@ -320,10 +437,14 @@ fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready() {
     );
 
     // Assert
-    assert_eq!(result.len(), 3);
+    assert_eq!(result.len(), 4);
     assert!(matches!(result[0], OutputMessage::Cancel(_)));
     assert!(matches!(result[1], OutputMessage::Cancel(_)));
     assert!(matches!(result[2], OutputMessage::Cancel(_)));
+    assert_eq!(
+        result[3],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue))
+    );
 }
 
 #[test]
@@ -353,6 +474,28 @@ fn to_output_messages_of_a_completion_that_concludes_announces_readiness_and_sto
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
+        ]
+    );
+}
+
+#[test]
+fn to_output_messages_peer_revived_cancels_the_member_s_timeouts() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs =
+        translator.to_output_messages(vec![Outcome::PeerRevived { peer_id: 2 }], &view(), 0);
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 2 })),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+                peer_id: 2
+            })),
         ]
     );
 }
@@ -373,6 +516,71 @@ fn to_output_messages_propose_addition_proposes_it_and_cancels_the_retry() {
             OutputMessage::ProposeAddition { peer_id: 5 },
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership {
                 peer_id: 5
+            })),
+        ]
+    );
+}
+
+#[test]
+fn to_output_messages_send_indirect_probes_asks_each_listed_member_and_schedules_the_period_s_end()
+{
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs = translator.to_output_messages(
+        vec![Outcome::SendIndirectProbes {
+            peer_id: 1,
+            via: vec![2, 3],
+        }],
+        &view(),
+        0,
+    );
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Send {
+                to: 2,
+                message: TransportMessage::IndirectProbe { from: 0, target: 1 },
+            },
+            OutputMessage::Send {
+                to: 3,
+                message: TransportMessage::IndirectProbe { from: 0, target: 1 },
+            },
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+                peer_id: 1
+            })),
+        ]
+    );
+}
+
+#[test]
+fn to_output_messages_send_indirect_probes_asks_no_more_of_the_listed_members_than_it_takes() {
+    // Arrange
+    let translator = MessageTranslator::new(1);
+
+    // Act
+    let outputs = translator.to_output_messages(
+        vec![Outcome::SendIndirectProbes {
+            peer_id: 1,
+            via: vec![2, 3],
+        }],
+        &view(),
+        0,
+    );
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Send {
+                to: 2,
+                message: TransportMessage::IndirectProbe { from: 0, target: 1 },
+            },
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+                peer_id: 1
             })),
         ]
     );
@@ -402,6 +610,31 @@ fn to_output_messages_send_membership_sends_the_view_s_membership_and_schedules_
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryMembership {
                 peer_id: 5
             })),
+        ]
+    );
+}
+
+#[test]
+fn to_output_messages_send_probe_sends_a_probe_and_schedules_its_timeout() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs =
+        translator.to_output_messages(vec![Outcome::SendProbe { peer_id: 2 }], &view(), 0);
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Send {
+                to: 2,
+                message: TransportMessage::Probe {
+                    from: 0,
+                    relay_for: None,
+                },
+            },
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 2 })),
         ]
     );
 }
@@ -445,6 +678,6 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
     );
 
     // Assert
-    assert_eq!(result.len(), 3);
+    assert_eq!(result.len(), 4);
     assert!(matches!(result[0], OutputMessage::Cancel(_)));
 }

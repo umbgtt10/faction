@@ -22,6 +22,8 @@ use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
 
+use faction_system_tests::constants::HELPERS;
+use faction_system_tests::constants::SUSPICION_THRESHOLD;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
@@ -101,19 +103,25 @@ fn main() {
     let (peers, role) = if config.newcomer {
         (
             Vec::new(),
-            Role::Waiting(Newcomer::new(config.peer_id, observer)),
+            Role::Waiting(Newcomer::new(
+                config.peer_id,
+                SUSPICION_THRESHOLD,
+                HELPERS,
+                observer,
+            )),
         )
     } else {
         let faction_config = Config::new(
             config.peer_id,
             config.peers.clone(),
             QuorumPolicy::new(config.required),
-            1,
+            SUSPICION_THRESHOLD,
         );
         let protocol = Protocol::new(
             Faction::new(faction_config, observer),
             config.peers.clone(),
             config.peer_id,
+            HELPERS,
         );
         (config.peers, Role::Running(Box::new(protocol)))
     };

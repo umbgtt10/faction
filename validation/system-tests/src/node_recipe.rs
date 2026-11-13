@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::HELPERS;
+use crate::constants::SUSPICION_THRESHOLD;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -63,11 +65,17 @@ impl NodeRecipe {
         transport: Box<dyn Transport>,
     ) -> FactionNode {
         let (faction_observer, node_observer) = self.observers(peer_id);
-        let config = Config::new(peer_id, peers.clone(), QuorumPolicy::new(self.required), 1);
+        let config = Config::new(
+            peer_id,
+            peers.clone(),
+            QuorumPolicy::new(self.required),
+            SUSPICION_THRESHOLD,
+        );
         let protocol = Protocol::new(
             Faction::new(config, faction_observer),
             peers.clone(),
             peer_id,
+            HELPERS,
         );
         FactionNode::new(
             peer_id,
@@ -86,7 +94,12 @@ impl NodeRecipe {
         FactionNode::new(
             peer_id,
             Vec::new(),
-            Role::Waiting(Newcomer::new(peer_id, faction_observer)),
+            Role::Waiting(Newcomer::new(
+                peer_id,
+                SUSPICION_THRESHOLD,
+                HELPERS,
+                faction_observer,
+            )),
             transport,
             self.timer(),
             node_observer,

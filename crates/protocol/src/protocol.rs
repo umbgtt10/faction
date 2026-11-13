@@ -16,6 +16,7 @@ use faction::types::PeerId;
 use crate::input_message::InputMessage;
 use crate::message_translator::MessageTranslator;
 use crate::output_message::OutputMessage;
+use crate::probe_relay::ProbeRelay;
 use crate::result_view::ResultView;
 use crate::timer_event::TimerEvent;
 use crate::timer_message::TimerMessage;
@@ -29,12 +30,19 @@ pub struct Protocol {
 }
 
 impl Protocol {
-    pub fn new(faction: Faction, peers: Vec<PeerId>, local_peer_id: PeerId) -> Self {
+    // `helpers`: how many of the members a missed probe lists the node asks to
+    // probe it.
+    pub fn new(
+        faction: Faction,
+        peers: Vec<PeerId>,
+        local_peer_id: PeerId,
+        helpers: usize,
+    ) -> Self {
         Self {
             faction,
             peers,
             local_peer_id,
-            translator: MessageTranslator::new(),
+            translator: MessageTranslator::new(helpers),
         }
     }
 
@@ -69,6 +77,14 @@ impl Protocol {
             InputMessage::Timer(TimerMessage::RetryMembership { peer_id }) => {
                 self.resend_membership(peer_id)
             }
+            InputMessage::Timer(TimerMessage::ProbeDue) => self.probe_period(),
+            InputMessage::Transport(
+                message @ (TransportMessage::Probe { .. }
+                | TransportMessage::IndirectProbe { .. }
+                | TransportMessage::ProbeAnswer {
+                    relay_for: Some(_), ..
+                }),
+            ) => ProbeRelay::reply(self.local_peer_id, &message),
             InputMessage::Transport(TransportMessage::Membership { from, .. }) => {
                 vec![OutputMessage::Send {
                     to: from,
@@ -135,6 +151,22 @@ impl Protocol {
             ProcessResult::Probed { .. } | ProcessResult::Rejected { .. } => {
                 vec![OutputMessage::Noop]
             }
+        }
+    }
+
+    // A probe period on a concluded node: the member to probe probed, and the
+    // next period scheduled; nothing before the node concludes.
+    fn probe_period(&mut self) -> Vec<OutputMessage> {
+        if self.cluster_view().peer_state() == PeerState::Bootstrapped {
+            self.apply(Command::ProbeDue)
+                .into_iter()
+                .filter(|output| *output != OutputMessage::Noop)
+                .chain([OutputMessage::Schedule(TimerEvent::Fire(
+                    TimerMessage::ProbeDue,
+                ))])
+                .collect()
+        } else {
+            vec![OutputMessage::Noop]
         }
     }
 

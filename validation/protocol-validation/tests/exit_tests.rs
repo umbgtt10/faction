@@ -30,7 +30,7 @@ use rstest::rstest;
 #[case(2, 2)]
 fn bootstrapped_node_stays_silent_to_further_signals(#[case] size: usize, #[case] quorum: usize) {
     // Arrange
-    let mut cluster = Cluster::new(size, quorum);
+    let mut cluster = Cluster::new(size, quorum, 1);
     converge(&mut cluster, size);
     assert!(
         cluster.is_bootstrapped(),

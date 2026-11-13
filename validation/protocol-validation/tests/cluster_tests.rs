@@ -7,7 +7,7 @@ use faction_protocol_validation::cluster::Cluster;
 #[test]
 fn drop_message_withholds_the_matching_message_count_times() {
     // Arrange
-    let mut cluster = Cluster::new(2, 2);
+    let mut cluster = Cluster::new(2, 2, 1);
     cluster.drop_message(0, 1, TransportMessage::Ready { from: 0 }, 1);
     cluster.start_node(0);
 
@@ -35,7 +35,7 @@ fn drop_message_withholds_the_matching_message_count_times() {
 #[test]
 fn inject_transport_ready_is_counted_by_the_node() {
     // Arrange
-    let mut cluster = Cluster::new(3, 2);
+    let mut cluster = Cluster::new(3, 2, 1);
 
     // Act
     cluster.inject_transport(1, TransportMessage::Ready { from: 0 });
@@ -48,7 +48,7 @@ fn inject_transport_ready_is_counted_by_the_node() {
 #[test]
 fn is_bootstrapped_before_start_returns_false() {
     // Arrange
-    let mut cluster = Cluster::new(3, 2);
+    let mut cluster = Cluster::new(3, 2, 1);
 
     // Act
     let is_bootstrapped = cluster.is_bootstrapped();
@@ -60,7 +60,7 @@ fn is_bootstrapped_before_start_returns_false() {
 #[test]
 fn is_timed_out_fresh_node_returns_false() {
     // Arrange
-    let mut cluster = Cluster::new(3, 2);
+    let mut cluster = Cluster::new(3, 2, 1);
 
     // Act
     let is_timed_out = cluster.is_timed_out(0);
@@ -72,7 +72,7 @@ fn is_timed_out_fresh_node_returns_false() {
 #[test]
 fn node_collecting_peers_len_fresh_node_returns_zero() {
     // Arrange
-    let mut cluster = Cluster::new(3, 2);
+    let mut cluster = Cluster::new(3, 2, 1);
 
     // Act
     let collecting = cluster.node_collecting_peers_len(2);

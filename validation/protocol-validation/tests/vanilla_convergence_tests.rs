@@ -32,7 +32,7 @@ use rstest::rstest;
 #[case(5, 1)]
 fn cluster_converges_to_bootstrapped(#[case] size: usize, #[case] quorum: usize) {
     // Arrange
-    let mut cluster = Cluster::new(size, quorum);
+    let mut cluster = Cluster::new(size, quorum, 1);
     cluster.start_all();
 
     // Act
@@ -54,7 +54,7 @@ fn cluster_converges_to_bootstrapped(#[case] size: usize, #[case] quorum: usize)
 #[test]
 fn node_state_after_convergence_returns_bootstrapped() {
     // Arrange
-    let mut cluster = Cluster::new(3, 2);
+    let mut cluster = Cluster::new(3, 2, 1);
     cluster.start_all();
     for _ in 0..80 {
         for i in 0..3 {

@@ -11,7 +11,7 @@ const ROUNDS: usize = 100;
 
 // Three nodes requiring two, concluded, with a newcomer waiting to be added.
 fn concluded_with_a_newcomer() -> Cluster {
-    let mut cluster = Cluster::new(3, 2);
+    let mut cluster = Cluster::new(3, 2, 1);
     cluster.start_all();
     cluster.run(ROUNDS);
     cluster.add_newcomer(NEWCOMER);
@@ -46,7 +46,7 @@ fn a_commit_for_another_peer_leaves_the_addition_in_flight() {
 #[test]
 fn a_commit_reaching_nodes_still_bootstrapping_admits_the_peer_and_counts_it() {
     // Arrange
-    let mut cluster = Cluster::new(3, 4);
+    let mut cluster = Cluster::new(3, 4, 1);
     for index in 0..3 {
         cluster.commit_addition(index, NEWCOMER);
     }
@@ -106,7 +106,7 @@ fn a_lost_membership_is_sent_again_until_acknowledged() {
 #[test]
 fn a_required_count_lowered_while_collecting_concludes() {
     // Arrange
-    let mut cluster = Cluster::new(3, 3);
+    let mut cluster = Cluster::new(3, 3, 1);
     cluster.start_node(0);
     while cluster.node_state(0) != PeerState::Collecting {
         cluster.step_timer_node(0);

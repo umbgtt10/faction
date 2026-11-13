@@ -9,6 +9,7 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::PeerId;
 
@@ -25,13 +26,21 @@ use crate::in_memory_transport::InMemoryTransport;
 use faction_protocol::timer::Timer;
 use faction_protocol::transport::Transport;
 
+// How many of the members a missed probe lists a node asks to probe it.
+const HELPERS: usize = 2;
+
+// A deterministic cluster in one process. It keeps no clock for liveness:
+// each node's probe period and timeouts are held as the protocol schedules
+// them, and fire only when a test says that much time has passed.
 pub struct Cluster {
     peer_ids: Vec<PeerId>,
     protocols: Vec<Protocol>,
     timers: Vec<InMemoryTimer>,
+    held: Vec<Vec<TimerMessage>>,
     transports: Vec<InMemoryTransport>,
     drops: Vec<DropRule>,
     waiting: Option<WaitingNewcomer>,
+    suspicion_threshold: usize,
 }
 
 // A newcomer connected to the cluster's transport, waiting for its membership.
@@ -50,31 +59,40 @@ struct DropRule {
 }
 
 impl Cluster {
-    pub fn new(count: usize, required: usize) -> Self {
+    pub fn new(count: usize, required: usize, suspicion_threshold: usize) -> Self {
         let peer_ids: Vec<PeerId> = (0..count as PeerId).collect();
 
         let protocols = peer_ids
             .iter()
             .map(|&id| {
-                let config = Config::new(id, peer_ids.clone(), QuorumPolicy::new(required), 1);
+                let config = Config::new(
+                    id,
+                    peer_ids.clone(),
+                    QuorumPolicy::new(required),
+                    suspicion_threshold,
+                );
                 Protocol::new(
                     Faction::new(config, Box::new(NoOpObserver)),
                     peer_ids.clone(),
                     id,
+                    HELPERS,
                 )
             })
             .collect();
 
         let timers = (0..count).map(|_| InMemoryTimer::new()).collect();
+        let held = (0..count).map(|_| Vec::new()).collect();
         let transports = InMemoryTransport::new_mesh(&peer_ids);
 
         Self {
             peer_ids,
             protocols,
             timers,
+            held,
             transports,
             drops: Vec::new(),
             waiting: None,
+            suspicion_threshold,
         }
     }
 
@@ -93,7 +111,12 @@ impl Cluster {
         }
         self.waiting = Some(WaitingNewcomer {
             peer_id,
-            newcomer: Newcomer::new(peer_id, Box::new(NoOpObserver)),
+            newcomer: Newcomer::new(
+                peer_id,
+                self.suspicion_threshold,
+                HELPERS,
+                Box::new(NoOpObserver),
+            ),
             transport,
             timer: InMemoryTimer::new(),
         });
@@ -128,6 +151,19 @@ impl Cluster {
         });
     }
 
+    // The held liveness timer `message` of node `index` fired, as the time it
+    // waits for has passed; false if it is not held -- never scheduled, fired
+    // or cancelled.
+    pub fn elapse(&mut self, index: usize, message: TimerMessage) -> bool {
+        let held = self.held[index].iter().position(|held| *held == message);
+        held.is_some_and(|position| {
+            self.held[index].remove(position);
+            let decisions = self.protocols[index].decide(InputMessage::Timer(message));
+            self.route_all(decisions, index);
+            true
+        })
+    }
+
     pub fn inject_timer(&mut self, index: usize, message: TimerMessage) {
         self.timers[index].schedule(TimerEvent::Fire(message));
     }
@@ -142,12 +178,20 @@ impl Cluster {
             .all(|p| p.cluster_view().peer_state() == PeerState::Bootstrapped)
     }
 
+    pub fn is_held(&self, index: usize, message: &TimerMessage) -> bool {
+        self.held[index].contains(message)
+    }
+
     pub fn is_newcomer_waiting(&self) -> bool {
         self.waiting.is_some()
     }
 
     pub fn is_timed_out(&mut self, index: usize) -> bool {
         self.protocols[index].cluster_view().peer_state() == PeerState::TimedOut
+    }
+
+    pub fn last_probed(&mut self, index: usize) -> Option<PeerId> {
+        self.protocols[index].cluster_view().last_probed()
     }
 
     pub fn members(&mut self, index: usize) -> Vec<PeerId> {
@@ -167,6 +211,10 @@ impl Cluster {
 
     pub fn node_state(&mut self, index: usize) -> PeerState {
         self.protocols[index].cluster_view().peer_state()
+    }
+
+    pub fn quorum(&mut self, index: usize) -> Quorum {
+        self.protocols[index].cluster_view().quorum()
     }
 
     pub fn request_addition(&mut self, index: usize, peer_id: PeerId) {
@@ -222,6 +270,19 @@ impl Cluster {
         }
     }
 
+    pub fn suspected(&mut self, index: usize) -> Vec<PeerId> {
+        self.protocols[index].cluster_view().suspected().to_vec()
+    }
+
+    fn is_liveness(message: &TimerMessage) -> bool {
+        matches!(
+            message,
+            TimerMessage::ProbeDue
+                | TimerMessage::ProbeMissed { .. }
+                | TimerMessage::IndirectProbesMissed { .. }
+        )
+    }
+
     fn route(&mut self, msg: OutputMessage, from: PeerId) {
         let index = self.peer_ids.iter().position(|&p| p == from).unwrap();
 
@@ -249,6 +310,12 @@ impl Cluster {
                         self.transports[index].send(to, transport_msg);
                     }
                 }
+            }
+            OutputMessage::Schedule(TimerEvent::Fire(message)) if Self::is_liveness(&message) => {
+                self.held[index].push(message);
+            }
+            OutputMessage::Cancel(TimerEvent::Fire(message)) if Self::is_liveness(&message) => {
+                self.held[index].retain(|held| *held != message);
             }
             OutputMessage::Schedule(event) => {
                 self.timers[index].schedule(event);
@@ -297,6 +364,7 @@ impl Cluster {
                 self.peer_ids.push(waiting.peer_id);
                 self.protocols.push(protocol);
                 self.timers.push(waiting.timer);
+                self.held.push(Vec::new());
                 self.transports.push(waiting.transport);
                 self.route_all(decisions, self.peer_ids.len() - 1);
             }

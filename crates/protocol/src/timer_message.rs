@@ -11,4 +11,7 @@ pub enum TimerMessage {
     RetryReady,
     DeadlineExpired,
     RetryMembership { peer_id: PeerId },
+    ProbeDue,
+    ProbeMissed { peer_id: PeerId },
+    IndirectProbesMissed { peer_id: PeerId },
 }

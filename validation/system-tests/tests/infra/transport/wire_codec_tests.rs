@@ -20,6 +20,27 @@ fn every_message() -> Vec<TransportMessage> {
             required_count: 0,
         },
         TransportMessage::MembershipAcknowledged { from: 5 },
+        TransportMessage::Probe {
+            from: 1,
+            relay_for: None,
+        },
+        TransportMessage::Probe {
+            from: 2,
+            relay_for: Some(u64::MAX),
+        },
+        TransportMessage::ProbeAnswer {
+            from: 3,
+            relay_for: None,
+        },
+        TransportMessage::ProbeAnswer {
+            from: 4,
+            relay_for: Some(0),
+        },
+        TransportMessage::IndirectProbe { from: 5, target: 6 },
+        TransportMessage::IndirectProbeAnswer {
+            from: 7,
+            target: u64::MAX,
+        },
     ]
 }
 
@@ -57,6 +78,36 @@ fn decode_of_a_membership_whose_members_overrun_the_frame_is_none() {
         required_count: 1,
     });
     frame[21] = 2;
+
+    // Act
+    let decoded = WireCodec::decode(&frame);
+
+    // Assert
+    assert_eq!(decoded, None);
+}
+
+#[test]
+fn decode_of_a_probe_whose_relay_flag_is_neither_set_nor_clear_is_none() {
+    // Arrange
+    let mut frame = WireCodec::encode(&TransportMessage::Probe {
+        from: 3,
+        relay_for: None,
+    });
+    frame[13] = 2;
+
+    // Act
+    let decoded = WireCodec::decode(&frame);
+
+    // Assert
+    assert_eq!(decoded, None);
+}
+
+#[test]
+fn decode_of_an_indirect_probe_whose_target_is_cut_short_is_none() {
+    // Arrange
+    let mut frame = WireCodec::encode(&TransportMessage::IndirectProbe { from: 3, target: 4 });
+    frame.pop();
+    frame[0] -= 1;
 
     // Act
     let decoded = WireCodec::decode(&frame);

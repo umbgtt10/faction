@@ -21,13 +21,27 @@ use crate::transport_message::TransportMessage;
 // membership as it starts.
 pub struct Newcomer {
     peer_id: PeerId,
+    suspicion_threshold: usize,
+    helpers: usize,
     observer: Box<dyn Observer>,
 }
 
 impl Newcomer {
+    // Its own id, and the tolerance its deployment gives it: the suspicion
+    // threshold its node is created with, and how many helpers it asks.
     #[must_use]
-    pub fn new(peer_id: PeerId, observer: Box<dyn Observer>) -> Self {
-        Self { peer_id, observer }
+    pub fn new(
+        peer_id: PeerId,
+        suspicion_threshold: usize,
+        helpers: usize,
+        observer: Box<dyn Observer>,
+    ) -> Self {
+        Self {
+            peer_id,
+            suspicion_threshold,
+            helpers,
+            observer,
+        }
     }
 
     // The node the membership makes of the newcomer, and what it does first;
@@ -48,10 +62,14 @@ impl Newcomer {
                     self.peer_id,
                     peers.clone(),
                     QuorumPolicy::new(required_count),
-                    1,
+                    self.suspicion_threshold,
                 );
-                let protocol =
-                    Protocol::new(Faction::new(config, self.observer), peers, self.peer_id);
+                let protocol = Protocol::new(
+                    Faction::new(config, self.observer),
+                    peers,
+                    self.peer_id,
+                    self.helpers,
+                );
                 let acknowledgement = OutputMessage::Send {
                     to: from,
                     message: TransportMessage::MembershipAcknowledged { from: self.peer_id },
