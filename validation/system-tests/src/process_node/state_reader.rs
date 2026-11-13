@@ -8,6 +8,7 @@ use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 use std::thread::spawn;
 
+use faction::addition::Addition;
 use faction::peer_state::PeerState;
 
 use crate::node_snapshot::NodeSnapshot;
@@ -34,6 +35,18 @@ impl StateReader {
         })
     }
 
+    fn parse_addition(text: &str) -> Option<Addition> {
+        match text.split_once(':') {
+            Some(("requested", peer_id)) => Some(Addition::Requested {
+                peer_id: peer_id.parse().ok()?,
+            }),
+            Some(("acknowledged", peer_id)) => Some(Addition::Acknowledged {
+                peer_id: peer_id.parse().ok()?,
+            }),
+            _ => (text == "none").then_some(Addition::None),
+        }
+    }
+
     fn parse_peer_state(name: &str) -> PeerState {
         match name {
             "Pinging" => PeerState::Pinging,
@@ -51,9 +64,13 @@ impl StateReader {
         }
         let peer_state = Self::parse_peer_state(parts.next()?);
         let member_count = parts.next()?.parse().ok()?;
+        let required_count = parts.next()?.parse().ok()?;
+        let addition = Self::parse_addition(parts.next()?)?;
         Some(NodeSnapshot {
             peer_state,
             member_count,
+            required_count,
+            addition,
         })
     }
 

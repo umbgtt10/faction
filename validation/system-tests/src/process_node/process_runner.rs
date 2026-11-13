@@ -6,6 +6,8 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
+use faction::addition::Addition;
+
 use crate::constants::NODE_LIFETIME;
 use crate::faction_node::FactionNode;
 use crate::infra::network::address_book::AddressBook;
@@ -58,12 +60,28 @@ impl ProcessRunner {
         self.emit_state();
     }
 
+    // The addition as the state line writes it: none, or requested or
+    // acknowledged by a peer.
+    fn addition(addition: Addition) -> String {
+        match addition {
+            Addition::None => String::from("none"),
+            Addition::Requested { peer_id } => format!("requested:{peer_id}"),
+            Addition::Acknowledged { peer_id } => format!("acknowledged:{peer_id}"),
+        }
+    }
+
     fn apply(&mut self, command: ProcessCommand) {
         match command {
             ProcessCommand::RequestJoin(peer_id) => self.node.request_join(peer_id),
             ProcessCommand::Admit(peer_id) => self.node.admit(peer_id),
             ProcessCommand::Deny(peer_id) => self.node.deny(peer_id),
             ProcessCommand::ExpireDeadline => self.node.expire_deadline(),
+            ProcessCommand::RequestAddition(peer_id) => self.node.request_addition(peer_id),
+            ProcessCommand::CommitAddition(peer_id) => self.node.commit_addition(peer_id),
+            ProcessCommand::AbortAddition(peer_id) => self.node.abort_addition(peer_id),
+            ProcessCommand::RequiredCount(required_count) => {
+                self.node.change_required_count(required_count);
+            }
             ProcessCommand::Peer(peer_id, addr) => {
                 self.address_book.lock().unwrap().push((peer_id, addr));
             }
@@ -94,8 +112,11 @@ impl ProcessRunner {
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
-            "state {:?} {}",
-            snapshot.peer_state, snapshot.member_count
+            "state {:?} {} {} {}",
+            snapshot.peer_state,
+            snapshot.member_count,
+            snapshot.required_count,
+            Self::addition(snapshot.addition)
         );
         let _ = self.out.flush();
     }

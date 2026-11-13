@@ -53,14 +53,24 @@ impl ProcessSpec {
         peer_addrs: &[(PeerId, SocketAddr)],
         listen_addr: SocketAddr,
     ) -> Node {
-        let child = self
-            .command(peer_id, peers, peer_addrs, listen_addr)
-            .spawn()
-            .expect("failed to spawn faction-node");
-        if self.transport == TransportKind::Tcp {
-            self.readiness.wait(listen_addr);
-        }
-        Node::process(child)
+        self.spawn(
+            self.command(peer_id, peers, peer_addrs, listen_addr),
+            listen_addr,
+        )
+    }
+
+    // A newcomer, waiting for its membership: it knows its peers' addresses,
+    // not who its members are.
+    #[must_use]
+    pub fn launch_newcomer(
+        &self,
+        peer_id: PeerId,
+        peer_addrs: &[(PeerId, SocketAddr)],
+        listen_addr: SocketAddr,
+    ) -> Node {
+        let mut command = self.command(peer_id, &[peer_id], peer_addrs, listen_addr);
+        command.arg("--newcomer");
+        self.spawn(command, listen_addr)
     }
 
     fn command(
@@ -112,5 +122,13 @@ impl ProcessSpec {
                 .arg(node_path.to_string_lossy().to_string());
         }
         command
+    }
+
+    fn spawn(&self, mut command: Command, listen_addr: SocketAddr) -> Node {
+        let child = command.spawn().expect("failed to spawn faction-node");
+        if self.transport == TransportKind::Tcp {
+            self.readiness.wait(listen_addr);
+        }
+        Node::process(child)
     }
 }

@@ -5,6 +5,7 @@
 pub mod approver;
 pub mod cluster;
 pub mod cluster_builder;
+pub mod committer;
 pub mod constants;
 pub mod faction_node;
 pub mod infra;
@@ -17,6 +18,7 @@ pub mod node_recipe;
 pub mod node_snapshot;
 pub mod process_node;
 pub mod process_spec;
+pub mod role;
 pub mod spawn;
 pub mod thread_runner;
 pub mod time_ports;

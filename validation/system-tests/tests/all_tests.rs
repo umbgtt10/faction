@@ -3,6 +3,7 @@
 
 pub mod support;
 
+pub mod addition_tests;
 pub mod cluster_tests;
 pub mod convergence_tests;
 pub mod faction_node_tests;

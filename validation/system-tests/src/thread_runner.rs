@@ -75,6 +75,22 @@ impl ThreadRunner {
                     self.node.expire_deadline();
                     ack
                 }
+                Ok(NodeCommand::RequestAddition(peer_id, ack)) => {
+                    self.node.request_addition(peer_id);
+                    ack
+                }
+                Ok(NodeCommand::CommitAddition(peer_id, ack)) => {
+                    self.node.commit_addition(peer_id);
+                    ack
+                }
+                Ok(NodeCommand::AbortAddition(peer_id, ack)) => {
+                    self.node.abort_addition(peer_id);
+                    ack
+                }
+                Ok(NodeCommand::ChangeRequiredCount(required_count, ack)) => {
+                    self.node.change_required_count(required_count);
+                    ack
+                }
                 Ok(NodeCommand::Shutdown) | Err(TryRecvError::Disconnected) => return false,
                 Err(TryRecvError::Empty) => return true,
             };

@@ -31,6 +31,7 @@ impl Args {
         let mut peer_addrs: Option<Vec<(PeerId, SocketAddr)>> = None;
         let mut log_path: Option<PathBuf> = None;
         let mut timer_delay_ms: Option<u64> = None;
+        let mut newcomer = false;
 
         let mut i = 1;
         while i < self.args.len() {
@@ -95,6 +96,7 @@ impl Args {
                     i += 1;
                     log_path = Some(PathBuf::from(&self.args[i]));
                 }
+                "--newcomer" => newcomer = true,
                 other => panic!("unknown argument: {other}"),
             }
             i += 1;
@@ -111,6 +113,7 @@ impl Args {
             peer_addrs: peer_addrs.expect("missing --peer-addrs"),
             log_path,
             timer_delay_ms: timer_delay_ms.expect("missing --timer-delay"),
+            newcomer,
         }
     }
 }

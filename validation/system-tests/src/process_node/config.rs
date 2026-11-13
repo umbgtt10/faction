@@ -19,4 +19,5 @@ pub struct ProcessNodeConfig {
     pub peer_addrs: Vec<(PeerId, SocketAddr)>,
     pub log_path: Option<PathBuf>,
     pub timer_delay_ms: u64,
+    pub newcomer: bool,
 }

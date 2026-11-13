@@ -30,6 +30,20 @@ fn build_makes_a_fresh_node_with_the_given_peers() {
 }
 
 #[test]
+fn build_newcomer_makes_a_node_waiting_with_no_members() {
+    // Arrange
+    let (time, _) = fake_time();
+    let transport = InMemoryTransport::new_mesh(&[5]).remove(0);
+
+    // Act
+    let mut node = recipe(2, &time).build_newcomer(5, Box::new(transport));
+
+    // Assert
+    assert_eq!(node.peer_state(), PeerState::Fresh);
+    assert_eq!(node.member_count(), 0);
+}
+
+#[test]
 fn new_with_a_log_directory_builds_nodes_that_log() {
     // Arrange
     let (time, _) = fake_time();
@@ -51,6 +65,20 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
     let log = read_to_string(dir.join("node-0.jsonl")).unwrap();
     assert!(log.contains("\"event\":\"start\""), "{log}");
     remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn newcomer_for_a_task_waits_in_place_with_no_members() {
+    // Arrange
+    let (time, _) = fake_time();
+    let transport = InMemoryTransport::new_mesh(&[5]).remove(0);
+
+    // Act
+    let node = recipe(2, &time).newcomer(Spawn::Task, 5, Box::new(transport));
+
+    // Assert
+    assert_eq!(node.snapshot().member_count, 0);
+    assert_eq!(node.peer_state(), PeerState::Fresh);
 }
 
 #[test]
