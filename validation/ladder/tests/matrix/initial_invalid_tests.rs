@@ -3,6 +3,9 @@
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
+use super::helpers::{
+    addition_aborted, addition_requested, initial_admissible, membership_acknowledged,
+};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
@@ -15,13 +18,31 @@ use rstest::rstest;
     Init::Initial,
     Command::DeadlineExpired,
     &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::LocalParticipationCompleted, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    initial_admissible(),
+)]
+#[case::rejects_addition_requested(
+    Init::Initial,
+    addition_requested(9),
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::rejects_membership_acknowledged(
+    Init::Initial,
+    membership_acknowledged(9),
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::rejects_addition_aborted(
+    Init::Initial,
+    addition_aborted(9),
+    &[Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
 )]
 fn invalid_transition(
     #[case] init: Init,
     #[case] command: Command,
     #[case] asserts: &[Assert],
-    #[case] expected_admissible: &[Command],
+    #[case] expected_admissible: Vec<Command>,
 ) {
     // Arrange
     let mut faction = build(init);

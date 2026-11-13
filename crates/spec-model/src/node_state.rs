@@ -4,6 +4,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::addition::Addition;
 use crate::vocabulary::stage::Stage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,4 +16,5 @@ pub struct NodeState {
     pub pinging_peers: Vec<String>,
     pub collecting_peers: Vec<String>,
     pub deadline_missed: bool,
+    pub addition: Addition,
 }

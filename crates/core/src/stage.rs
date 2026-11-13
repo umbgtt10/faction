@@ -12,8 +12,9 @@ use crate::states::bootstrapped::Bootstrapped;
 use crate::states::collecting::Collecting;
 use crate::states::initial::Initial;
 use crate::states::pinging::Pinging;
+use crate::states::reconfiguring::Reconfiguring;
 
-const COMMANDS: [Command; 8] = [
+const COMMANDS: [Command; 13] = [
     Command::ParticipationObserved { peer_id: 0 },
     Command::ReadyObserved { peer_id: 0 },
     Command::LocalParticipationCompleted,
@@ -21,6 +22,11 @@ const COMMANDS: [Command; 8] = [
     Command::JoinRequested { peer_id: 0 },
     Command::JoinApproved { peer_id: 0 },
     Command::JoinRejected { peer_id: 0 },
+    Command::AdditionRequested { peer_id: 0 },
+    Command::MembershipAcknowledged { peer_id: 0 },
+    Command::AdditionCommitted { peer_id: 0 },
+    Command::AdditionAborted { peer_id: 0 },
+    Command::RequiredCountChanged { required_count: 0 },
     Command::Probe,
 ];
 
@@ -29,6 +35,7 @@ pub enum Stage {
     Pinging(Pinging),
     Collecting(Collecting),
     Bootstrapped(Bootstrapped),
+    Reconfiguring(Reconfiguring),
 }
 
 impl Stage {
@@ -46,6 +53,7 @@ impl Stage {
             Self::Pinging(pinging) => pinging,
             Self::Collecting(collecting) => collecting,
             Self::Bootstrapped(bootstrapped) => bootstrapped,
+            Self::Reconfiguring(reconfiguring) => reconfiguring,
         }
     }
 }

@@ -1,13 +1,15 @@
 # faction — the specification
 
-**Version 0.1.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.2.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
 
-**What 0.1.0 covers:** faction whole as it stands after its first phase — a node created from its configuration,
-and the observer it reports every call to; bootstrapping, from the first signal to the conclusion, with the
-deadline; joining, a newcomer admitted or denied in every stage; and the probe. Each command with every row it has.
+**What 0.2.0 covers:** faction whole as it stands after its first phase and its addition — a node created from its
+configuration, and the observer it reports every call to; bootstrapping, from the first signal to the conclusion, with
+the deadline; joining, a newcomer admitted or denied in every stage; addition, a concluded node growing by one through
+the layer that commits changes above it; the required count in effect; and the probe. Each command with every row it
+has.
 
 ## 1. Conventions
 
@@ -20,14 +22,16 @@ any u64.
 nothing carries the empty object: `{"Probe": {}}`, `{"Fresh": {}}`.
 
 **Names are the vocabulary's.** A command says what the caller observed — a peer's signal, its own completion, the
-deadline, a join decision — or, `Probe`, asks. An outcome says what happened to the signal, or, in the imperative,
-what the caller must now do: `BroadcastLocalReady`, `AcknowledgeRejoin`, `EmitJoinRequest`.
+deadline, a join decision, an addition's progress, a new required count — or, `Probe`, asks. An outcome says what
+happened to the signal, or, in the imperative, what the caller must now do: `BroadcastLocalReady`, `AcknowledgeRejoin`,
+`EmitJoinRequest`, `SendMembership`, `ProposeAddition`.
 
 **A list of commands by name** is in the commands' order: `ParticipationObserved`, `ReadyObserved`,
-`LocalParticipationCompleted`, `DeadlineExpired`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `Probe`.
+`LocalParticipationCompleted`, `DeadlineExpired`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionRequested`,
+`MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RequiredCountChanged`, `Probe`.
 
 **A list of peers is in arrival order.** The members are the configuration's peers in its order, then each admitted
-peer as it is admitted; the pinging and the collecting peers are in the order their signals were accepted. The same
+or added peer as it is admitted or added; the pinging and the collecting peers are in the order their signals were accepted. The same
 configuration and the same commands give the same lists, so two implementations' answers to the same calls are
 identical, and a list never holds a peer twice
 ([`P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder`](../docs/ADRs/P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder.md)).
@@ -41,17 +45,21 @@ id, its genesis peers and a required count. The genesis peers include the node i
 configuration that breaks either is outside this specification. The required count is how many confirmations
 conclude bootstrapping, and any count is one: it is never derived from the number of peers
 ([`P0-ADR-ProtocolAgnostic`](../docs/ADRs/P0-ADR-ProtocolAgnostic.md)). The configuration never changes
-([`P1-ADR-ConfigIsImmutableGenesis`](../docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md)).
+([`P1-ADR-ConfigIsImmutableGenesis`](../docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md)); the count in effect starts
+as the configuration's, and changes by its own command alone (§12).
 
-**A node is in one of four stages:** `Initial`, created and given nothing yet; `Pinging`, gathering its peers'
-participation; `Collecting`, its own participation completed, gathering readiness; and `Bootstrapped`, concluded.
-A node is created `Initial`, leaves it on the first accepted command that is not a join decision, and never returns
-to it.
-`Bootstrapped` is the only conclusion, and no command leaves it.
+**A node is in one of five stages:** `Initial`, created and given nothing yet; `Pinging`, gathering its peers'
+participation; `Collecting`, its own participation completed, gathering readiness; `Bootstrapped`, concluded; and
+`Reconfiguring`, concluded with an addition in flight (§11).
+A node is created `Initial`, leaves it on the first accepted command that is not a membership decision — a join
+decision, a committed addition or a new required count — and never returns to it.
+`Bootstrapped` is the only conclusion: a node that has concluded is `Bootstrapped`, or `Reconfiguring` while an
+addition is in flight, and no command takes it back to an earlier stage.
 
-**Besides its stage a node holds** its members, its pinging peers, its collecting peers and whether it has missed
-its deadline. A fresh node's members are its genesis peers; it has no pinging or collecting peer, and has not missed
-its deadline. Members are only ever added (§10).
+**Besides its stage a node holds** its members, its pinging peers, its collecting peers, whether it has missed its
+deadline, the required count in effect and the addition in flight. A fresh node's members are its genesis peers; it
+has no pinging or collecting peer, has not missed its deadline, its required count is the configuration's, and it has
+no addition in flight. Members are only ever added (§10, §11).
 
 ## 3. One entry point, one result
 
@@ -70,8 +78,8 @@ same result ([`P1-ADR-TotalityExhaustiveMatrix`](../docs/ADRs/P1-ADR-TotalityExh
 **A command the stage does not admit is answered `Rejected`, and changes nothing.** What each stage admits is §5.
 The admissible commands a result lists are exactly those its stage admits, `Probe` among them.
 
-**An accepted command is answered `Accepted`**, with the outcomes and the change its row gives (§6–§10). An outcome
-that names a peer names the command's `peer_id`.
+**An accepted command is answered `Accepted`**, with the outcomes and the change its row gives (§6–§12). An outcome
+that names a peer names the command's `peer_id`; an outcome that carries a required count carries the command's.
 
 **Every call is reported to the node's observer**, given when the node is created: the command and its result,
 exactly once, by the time the result is returned — a rejected command and a probe like the rest. The observer is
@@ -86,17 +94,21 @@ a node that does not conform.
 ## 4. The view
 
 **The view is what a node shows of its state**: its peer state, whether its pinging is completed, its pinging
-peers, its collecting peers, its required count, whether it has missed its deadline, and its members.
+peers, its collecting peers, its required count, whether it has missed its deadline, its members, and its addition.
 
-**The peer state** is `Fresh` while the node is `Initial`, `Bootstrapped` once it is, and otherwise its stage,
-`Pinging` or `Collecting` — or `TimedOut` if it has missed its deadline. A missed deadline is a fact the view
+**The peer state** is `Fresh` while the node is `Initial`, `Bootstrapped` once it has concluded — `Bootstrapped` or
+`Reconfiguring` — and otherwise its stage, `Pinging` or `Collecting`, or `TimedOut` if it has missed its deadline. A missed deadline is a fact the view
 reports, not a stage: a `TimedOut` node goes on as its stage does, and may still conclude, after which its peer
 state is `Bootstrapped` and its view still says the deadline was missed
 ([`P1-ADR-TerminalStatesAreNotSinks`](../docs/ADRs/P1-ADR-TerminalStatesAreNotSinks.md)).
 
-**Pinging is completed** once the node's own participation is: in `Collecting` and `Bootstrapped`, not before.
+**Pinging is completed** once the node's own participation is: in `Collecting`, `Bootstrapped` and `Reconfiguring`,
+not before.
 
-**The required count** is the configuration's. A node is concluded when its peer state is `Bootstrapped`.
+**The required count** is the count in effect (§12). A node is concluded when its peer state is `Bootstrapped`.
+
+**The addition** is `None` with no addition in flight; `Requested`, naming the peer, once its addition is requested;
+and `Acknowledged`, naming it, once the peer has acknowledged the membership (§11).
 
 ## 5. Admission
 
@@ -104,13 +116,15 @@ Each stage admits these commands, and rejects the rest:
 
 | Stage | Admits |
 |---|---|
-| `Initial` | every command but `DeadlineExpired` |
-| `Pinging` | every command |
-| `Collecting` | every command but `LocalParticipationCompleted` |
-| `Bootstrapped` | `ParticipationObserved`, `JoinRequested`, `JoinApproved`, `JoinRejected` and `Probe` |
+| `Initial` | every command but `DeadlineExpired`, `AdditionRequested`, `MembershipAcknowledged` and `AdditionAborted` |
+| `Pinging` | every command but `AdditionRequested`, `MembershipAcknowledged` and `AdditionAborted` |
+| `Collecting` | every command but `LocalParticipationCompleted`, `AdditionRequested`, `MembershipAcknowledged` and `AdditionAborted` |
+| `Bootstrapped` | `ParticipationObserved`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionRequested`, `AdditionCommitted`, `RequiredCountChanged` and `Probe` |
+| `Reconfiguring` | `ParticipationObserved`, `JoinRequested`, `JoinRejected`, `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RequiredCountChanged` and `Probe` |
 
-A node completes its own participation once, and a concluded node answers only a peer still trying to bootstrap and
-a newcomer.
+A node completes its own participation once; a concluded node answers only a peer still trying to bootstrap, a
+newcomer, an addition and a new count; an addition is requested of a concluded node alone, one at a time; and a commit
+and a new count reach every node, whatever its stage.
 
 **Admission is decided when a command arrives, never by what a caller can construct.** Every command can be offered
 to a node in every stage, and every vector runs on every conforming implementation: none relies on a type system to
@@ -126,15 +140,15 @@ keep a command from a stage
 `ParticipationAccepted`, and the peer becomes the last pinging peer; a repeat is ignored,
 `DuplicateParticipationIgnored`. Either way the node is `Pinging`.
 
-**After it** — `Collecting` or `Bootstrapped` — a member's participation means that peer is still trying to
-bootstrap, and is answered `AcknowledgeRejoin`: the caller re-advertises the node's readiness to it. Nothing changes.
-Neither stage is a sink ([`P1-ADR-CollectingIsNotASink`](../docs/ADRs/P1-ADR-CollectingIsNotASink.md),
+**After it** — `Collecting`, `Bootstrapped` or `Reconfiguring` — a member's participation means that peer is still
+trying to bootstrap, and is answered `AcknowledgeRejoin`: the caller re-advertises the node's readiness to it. Nothing
+changes. None of them is a sink ([`P1-ADR-CollectingIsNotASink`](../docs/ADRs/P1-ADR-CollectingIsNotASink.md),
 [`P1-ADR-TerminalStatesAreNotSinks`](../docs/ADRs/P1-ADR-TerminalStatesAreNotSinks.md)).
 
 ## 7. `ReadyObserved`
 
-**From a peer that is not a member**, the signal is ignored, as participation is (§6). A `Bootstrapped` node does not
-admit readiness.
+**From a peer that is not a member**, the signal is ignored, as participation is (§6). A concluded node does not admit
+readiness.
 
 **A member's first readiness is accepted**, `ReadyAccepted`, and the peer becomes the last collecting peer; a repeat
 is ignored, `DuplicateReadyIgnored`, and changes nothing.
@@ -163,7 +177,8 @@ answered alike: a missed deadline is not terminal.
 
 ## 10. Joining
 
-**Join decisions are admitted in every stage, and never change the stage.**
+**Join decisions never change the stage.** `JoinRequested` and `JoinRejected` are admitted in every stage, and
+`JoinApproved` in every stage but `Reconfiguring`: no admission goes around an addition in flight.
 
 **`JoinRequested`** is answered `EmitJoinRequest`: the caller forwards the newcomer's request to whoever decides.
 Nothing changes; a repeated request is forwarded again.
@@ -173,10 +188,46 @@ member — the node itself among them — is answered `DuplicateMemberIgnored`, 
 
 **`JoinRejected`** is answered `JoinDenied`, and nothing changes: a peer that is a member stays one.
 
-**Admission changes who may be counted, never how many are required**: the required count stays the configuration's
-([`P1-ADR-ConfigIsImmutableGenesis`](../docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md)).
+**Admission changes who may be counted, never how many are required** (§12).
 
-## 11. Conformance
+## 11. Addition
+
+**A concluded node grows by one through the layer that commits changes above it**, one addition in flight at a time.
+The node that coordinates an addition is asked for it, hands the newcomer the membership, and tells the caller when to
+propose it; every node applies it once it has committed. Who may be added, and how a change commits, are the caller's.
+
+**`AdditionRequested`** starts an addition: `SendMembership` — the caller sends the newcomer the members and the
+required count the view shows — and the node is `Reconfiguring`, the addition `Requested`. A peer that is already a
+member, the node itself among them, is answered `DuplicateMemberIgnored`, and nothing changes. `Reconfiguring` does not
+admit a second request.
+
+**`MembershipAcknowledged`** from the peer whose addition is `Requested` is answered `ProposeAddition` — the caller
+proposes the addition to the layer above — and the addition is `Acknowledged`. From any other peer, or once
+acknowledged, it is answered `AcknowledgementIgnored`, and nothing changes.
+
+**`AdditionAborted`** naming the peer of the addition in flight withdraws it: `AdditionWithdrawn`, and the node is
+`Bootstrapped`, with no addition in flight and the peer no member. Naming any other peer, it is answered
+`AbortIgnored`, and nothing changes.
+
+**`AdditionCommitted`** makes its peer the last member: `MemberAdmitted`. The layer above reports a commit to every
+node, whatever its stage, and every node applies it alike. On the coordinator, a commit naming the peer of the
+addition in flight ends it, and the node is `Bootstrapped`; a commit naming another peer leaves the addition in
+flight. A peer that is already a member is answered `DuplicateMemberIgnored`, and nothing changes. The peer of the
+addition in flight is never a member: its request is refused if it is one, and no admission is admitted meanwhile.
+
+**An addition changes who may be counted, never how many are required** (§12).
+
+## 12. The required count
+
+**`RequiredCountChanged`** makes its `required_count` the count in effect: `RequiredCountSet`, carrying it. The caller
+computes the count, as it computed the configuration's, and reports it when the change it belongs to commits; any count
+is one (§2).
+
+**In `Collecting`, a count the collecting peers already reach concludes**: `RequiredCountSet`, then `Concluded` with the
+mode `Bootstrapped`, and the node is `Bootstrapped`. Elsewhere the count only takes effect: before the node's own
+completion it is the count its completion checks (§8), and once the node has concluded it changes the view alone.
+
+## 13. Conformance
 
 **A vector is a configuration, steps, and a final answer.** Each step is a command and the result it must be
 answered with. The final answer is what a `Probe` issued after the last step must be answered: the view and the

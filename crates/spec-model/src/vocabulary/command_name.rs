@@ -10,11 +10,16 @@ pub enum CommandName {
     JoinRequested,
     JoinApproved,
     JoinRejected,
+    AdditionRequested,
+    MembershipAcknowledged,
+    AdditionCommitted,
+    AdditionAborted,
+    RequiredCountChanged,
     Probe,
 }
 
 impl CommandName {
-    pub const ALL: [CommandName; 8] = [
+    pub const ALL: [CommandName; 13] = [
         CommandName::ParticipationObserved,
         CommandName::ReadyObserved,
         CommandName::LocalParticipationCompleted,
@@ -22,6 +27,11 @@ impl CommandName {
         CommandName::JoinRequested,
         CommandName::JoinApproved,
         CommandName::JoinRejected,
+        CommandName::AdditionRequested,
+        CommandName::MembershipAcknowledged,
+        CommandName::AdditionCommitted,
+        CommandName::AdditionAborted,
+        CommandName::RequiredCountChanged,
         CommandName::Probe,
     ];
 
@@ -43,6 +53,11 @@ impl CommandName {
             CommandName::JoinRequested => "JoinRequested",
             CommandName::JoinApproved => "JoinApproved",
             CommandName::JoinRejected => "JoinRejected",
+            CommandName::AdditionRequested => "AdditionRequested",
+            CommandName::MembershipAcknowledged => "MembershipAcknowledged",
+            CommandName::AdditionCommitted => "AdditionCommitted",
+            CommandName::AdditionAborted => "AdditionAborted",
+            CommandName::RequiredCountChanged => "RequiredCountChanged",
             CommandName::Probe => "Probe",
         }
     }

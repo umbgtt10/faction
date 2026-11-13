@@ -9,6 +9,8 @@ pub enum MessageKind {
     #[default]
     Ready,
     Bootstrapped,
+    Membership,
+    MembershipAcknowledged,
 }
 
 impl MessageKind {
@@ -18,6 +20,8 @@ impl MessageKind {
             TransportMessage::Ping { .. } => MessageKind::Ping,
             TransportMessage::Ready { .. } => MessageKind::Ready,
             TransportMessage::Bootstrapped { .. } => MessageKind::Bootstrapped,
+            TransportMessage::Membership { .. } => MessageKind::Membership,
+            TransportMessage::MembershipAcknowledged { .. } => MessageKind::MembershipAcknowledged,
         }
     }
 }

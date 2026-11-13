@@ -53,6 +53,7 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "required_count": "2",
                 "deadline_missed": false,
                 "members": ["1", "2", "3"],
+                "addition": {"None": {}},
             },
             "admissible": [
                 "ParticipationObserved",
@@ -61,9 +62,50 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "JoinRequested",
                 "JoinApproved",
                 "JoinRejected",
+                "AdditionCommitted",
+                "RequiredCountChanged",
                 "Probe",
             ],
         }})
+    );
+}
+
+#[test]
+fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bootstrapped() {
+    // Arrange
+    let mut model = model();
+    let _ = model.process(&json!({"LocalParticipationCompleted": {}}));
+    let _ = model.process(&json!({"ReadyObserved": {"peer_id": "2"}}));
+
+    // Act
+    let answer = model.process(&json!({"AdditionRequested": {"peer_id": "4"}}));
+
+    // Assert
+    assert_eq!(answer.row, "addition-requested");
+    assert_eq!(
+        answer.result["Accepted"]["outcomes"],
+        json!([{"SendMembership": {"peer_id": "4"}}])
+    );
+    assert_eq!(
+        answer.result["Accepted"]["cluster_view"]["peer_state"],
+        json!({"Bootstrapped": {}})
+    );
+    assert_eq!(
+        answer.result["Accepted"]["cluster_view"]["addition"],
+        json!({"Requested": {"peer_id": "4"}})
+    );
+    assert_eq!(
+        answer.result["Accepted"]["admissible"],
+        json!([
+            "ParticipationObserved",
+            "JoinRequested",
+            "JoinRejected",
+            "MembershipAcknowledged",
+            "AdditionCommitted",
+            "AdditionAborted",
+            "RequiredCountChanged",
+            "Probe",
+        ])
     );
 }
 
@@ -96,6 +138,9 @@ fn process_of_the_readiness_the_count_lacks_concludes() {
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe",
         ])
     );

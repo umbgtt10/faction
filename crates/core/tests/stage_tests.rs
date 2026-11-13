@@ -3,6 +3,7 @@
 
 use alloc::vec;
 use alloc::vec::Vec;
+use faction::addition::Addition;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::config::Config;
@@ -16,13 +17,25 @@ use faction::states::bootstrapped::Bootstrapped;
 use faction::states::collecting::Collecting;
 use faction::states::initial::Initial;
 use faction::states::pinging::Pinging;
+use faction::states::reconfiguring::Reconfiguring;
 
 fn bootstrapped() -> Stage {
-    Stage::Bootstrapped(Bootstrapped::new(members(), vec![1], vec![0, 1, 2, 3]))
+    Stage::Bootstrapped(Bootstrapped::new(
+        members(),
+        QuorumPolicy::new(4),
+        vec![1],
+        vec![0, 1, 2, 3],
+    ))
 }
 
 fn collecting() -> Stage {
-    Stage::Collecting(Collecting::new(members(), vec![0], vec![1], false))
+    Stage::Collecting(Collecting::new(
+        members(),
+        QuorumPolicy::new(4),
+        vec![0],
+        vec![1],
+        false,
+    ))
 }
 
 fn config() -> Config {
@@ -38,14 +51,35 @@ fn every_command() -> Vec<Command> {
         Command::JoinRequested { peer_id: 0 },
         Command::JoinApproved { peer_id: 0 },
         Command::JoinRejected { peer_id: 0 },
+        Command::AdditionRequested { peer_id: 0 },
+        Command::MembershipAcknowledged { peer_id: 0 },
+        Command::AdditionCommitted { peer_id: 0 },
+        Command::AdditionAborted { peer_id: 0 },
+        Command::RequiredCountChanged { required_count: 0 },
         Command::Probe,
     ]
+}
+
+// Every command but those coordinating an addition, which only a concluded
+// node admits.
+fn every_command_but_an_addition_s_coordination() -> Vec<Command> {
+    every_command()
+        .into_iter()
+        .filter(|command| {
+            !matches!(
+                command,
+                Command::AdditionRequested { .. }
+                    | Command::MembershipAcknowledged { .. }
+                    | Command::AdditionAborted { .. }
+            )
+        })
+        .collect()
 }
 
 extern crate alloc;
 
 fn initial() -> Stage {
-    Stage::Initial(Initial::new(members()))
+    Stage::Initial(Initial::new(members(), QuorumPolicy::new(4)))
 }
 
 fn members() -> Members {
@@ -53,11 +87,18 @@ fn members() -> Members {
 }
 
 fn pinging() -> Stage {
-    Stage::Pinging(Pinging::new(members()))
+    Stage::Pinging(Pinging::new(members(), QuorumPolicy::new(4)))
+}
+
+fn reconfiguring() -> Stage {
+    Stage::Reconfiguring(Reconfiguring::new(
+        Bootstrapped::new(members(), QuorumPolicy::new(4), vec![1], vec![0, 1, 2, 3]),
+        9,
+    ))
 }
 
 #[test]
-fn admissible_commands_bootstrapped_returns_participation_joins_and_probe() {
+fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_count_and_probe() {
     // Arrange
     let stage = bootstrapped();
 
@@ -72,13 +113,16 @@ fn admissible_commands_bootstrapped_returns_participation_joins_and_probe() {
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
+            Command::AdditionRequested { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
             Command::Probe,
         ]
     );
 }
 
 #[test]
-fn admissible_commands_collecting_returns_all_but_local_participation_completed() {
+fn admissible_commands_collecting_returns_all_but_its_completion_and_an_addition_s_coordination() {
     // Arrange
     let stage = collecting();
 
@@ -95,13 +139,15 @@ fn admissible_commands_collecting_returns_all_but_local_participation_completed(
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
             Command::Probe,
         ]
     );
 }
 
 #[test]
-fn admissible_commands_initial_returns_all_but_deadline_expired() {
+fn admissible_commands_initial_returns_all_but_the_deadline_and_an_addition_s_coordination() {
     // Arrange
     let stage = initial();
 
@@ -118,13 +164,15 @@ fn admissible_commands_initial_returns_all_but_deadline_expired() {
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
             Command::Probe,
         ]
     );
 }
 
 #[test]
-fn admissible_commands_pinging_returns_every_command() {
+fn admissible_commands_pinging_returns_all_but_an_addition_s_coordination() {
     // Arrange
     let stage = pinging();
 
@@ -132,7 +180,32 @@ fn admissible_commands_pinging_returns_every_command() {
     let admissible = stage.admissible_commands(&config());
 
     // Assert
-    assert_eq!(admissible, every_command());
+    assert_eq!(admissible, every_command_but_an_addition_s_coordination());
+}
+
+#[test]
+fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an_admission_or_a_second_request(
+) {
+    // Arrange
+    let stage = reconfiguring();
+
+    // Act
+    let admissible = stage.admissible_commands(&config());
+
+    // Assert
+    assert_eq!(
+        admissible,
+        vec![
+            Command::ParticipationObserved { peer_id: 0 },
+            Command::JoinRequested { peer_id: 0 },
+            Command::JoinRejected { peer_id: 0 },
+            Command::MembershipAcknowledged { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::AdditionAborted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
+            Command::Probe,
+        ]
+    );
 }
 
 #[test]
@@ -193,6 +266,21 @@ fn cluster_view_pinging_reports_pinging() {
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Pinging);
+}
+
+#[test]
+fn cluster_view_reconfiguring_reports_bootstrapped_with_the_addition_requested() {
+    // Arrange
+    let stage = reconfiguring();
+    let previous = ClusterViewBuilder::default().with_required_count(4).build();
+
+    // Act
+    let cluster_view = stage.cluster_view(&previous);
+
+    // Assert
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.addition(), Addition::Requested { peer_id: 9 });
+    assert_eq!(cluster_view.collecting_peers(), &[0, 1, 2, 3]);
 }
 
 #[test]
@@ -314,4 +402,31 @@ fn step_pinging_local_completion_below_quorum_returns_collecting() {
         ]
     );
     assert!(matches!(next, Stage::Collecting(_)));
+}
+
+#[test]
+fn step_reconfiguring_acknowledgement_of_the_newcomer_stays_reconfiguring() {
+    // Arrange
+    let stage = reconfiguring();
+
+    // Act
+    let (outcomes, next) = stage
+        .step(Command::MembershipAcknowledged { peer_id: 9 }, &config())
+        .expect("admitted");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ProposeAddition { peer_id: 9 }]);
+    assert!(matches!(next, Stage::Reconfiguring(_)));
+}
+
+#[test]
+fn step_reconfiguring_join_approved_returns_none() {
+    // Arrange
+    let stage = reconfiguring();
+
+    // Act
+    let answered = stage.step(Command::JoinApproved { peer_id: 8 }, &config());
+
+    // Assert
+    assert!(answered.is_none());
 }

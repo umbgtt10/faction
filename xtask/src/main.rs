@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::env::args;
+use std::env::set_var;
 use std::env::temp_dir;
 use std::fs::read_to_string;
 use std::fs::remove_dir_all;
@@ -38,6 +39,10 @@ const PROTOCOL_VALIDATION_PACKAGE: &str = "faction-protocol-validation";
 const SPEC_MODEL_PACKAGE: &str = "faction-spec-model";
 const SYSTEM_TESTS_PACKAGE: &str = "faction-system-tests";
 const XTASK_PACKAGE: &str = "xtask";
+
+// The variable naming the run whose folder the system tests' scenarios write
+// their nodes' logs into.
+const LOG_RUN: &str = "FACTION_LOG_RUN";
 const ALL_TESTS: &str = "all_tests";
 const CRAP_THRESHOLD: &str = "15";
 const ICEBERG_THRESHOLD: &str = "5";
@@ -191,15 +196,20 @@ fn stage2() -> Result<&'static str, String> {
 }
 
 // The system tests, each in a process of its own with ports of its own, run
-// in parallel by slotgate; every run's logs under logs/, the newest kept.
+// in parallel by slotgate; every run's logs -- slotgate's and the scenarios'
+// -- in one folder under logs/, the newest RUNS_TO_KEEP kept.
 fn system_tests() -> Result<&'static str, String> {
     let runner = SystemCommandRunner::new();
     let root = workspace_root();
     let log_directory = RunLogDirectory::new(root.join("logs"), RUNS_TO_KEEP);
+    let run_name = RunStamp::new(seconds_since_epoch()).to_directory_name();
+    // Every test process slotgate starts inherits the run's name, and its
+    // scenarios write into the run's folder: one folder a run, pruned whole.
+    set_var(LOG_RUN, &run_name);
     let slotgate = SlotgateGate::new(
         &runner,
         &log_directory,
-        RunStamp::new(seconds_since_epoch()).to_directory_name(),
+        run_name,
         format!("faction system tests (max-parallel {MAX_PARALLEL})"),
         String::from(SYSTEM_TESTS_PACKAGE),
         String::from(ALL_TESTS),

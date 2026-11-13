@@ -3,6 +3,8 @@
 
 pub mod channels;
 pub mod faulty;
+pub mod frame_buffer;
 pub mod grpc;
 pub mod in_memory;
 pub mod tcp;
+pub mod wire_codec;

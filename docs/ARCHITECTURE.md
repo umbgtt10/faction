@@ -130,13 +130,17 @@ members, its required count, and nothing confirmed.
 | `Initial` | Freshly created, no signal taken | Its members |
 | `Pinging` | Collecting participation signals from peers | Members, the participation and readiness accepted so far, and whether the deadline was missed |
 | `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
-| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Members, and the peer sets at the conclusion |
+| `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Members, and the peer sets at the conclusion |
+| `Reconfiguring` | Concluded, coordinating one addition — its peer state `Bootstrapped` | The concluded node, the peer whose addition is in flight, and whether it has acknowledged |
 
-Every stage carries the node's members: the configuration's peers, then each peer
-admitted by `JoinApproved`. Join decisions are admitted in every stage and never
-change it.
+Every stage carries the node's members — the configuration's peers, then each peer
+admitted or added — and the required count in effect, starting at the
+configuration's. Membership decisions never change the stage; `JoinApproved` is
+admitted in every stage but `Reconfiguring`, where no admission goes around an
+addition in flight.
 
-`Bootstrapped` is the only terminal state. A missed deadline is **not** a state: it is
+`Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with an
+addition in flight (`P1-ADR-AdditionThroughTheLayerThatCommits`). A missed deadline is **not** a state: it is
 recorded as a non-terminal fact — surfaced as `PeerState::TimedOut` through a derived
 view flag — while the node stays in `Pinging`/`Collecting`, keeps its retries, and can
 still converge if readiness arrives late.
@@ -162,6 +166,11 @@ pinging can always recover.
 | `JoinRequested { peer_id }` | A newcomer asked to join |
 | `JoinApproved { peer_id }` | The caller admitted the newcomer |
 | `JoinRejected { peer_id }` | The caller refused the newcomer |
+| `AdditionRequested { peer_id }` | The caller asks a concluded node to coordinate an addition |
+| `MembershipAcknowledged { peer_id }` | The newcomer holds the membership it was sent |
+| `AdditionCommitted { peer_id }` | The layer above committed the addition — reported to every node |
+| `AdditionAborted { peer_id }` | The layer above abandoned the addition |
+| `RequiredCountChanged { required_count }` | The required count in effect — reported with the change it belongs to |
 | `Probe` | Query current state without mutation |
 
 ### Outcomes
@@ -182,6 +191,12 @@ pinging can always recover.
 | `DuplicateMemberIgnored { peer_id }` | The peer approved was already a member |
 | `JoinDenied { peer_id }` | The newcomer was refused; nothing changed |
 | `Concluded { mode }` | The node concluded bootstrapping (`mode` is `Bootstrapped`) |
+| `SendMembership { peer_id }` | Send the newcomer the members and the required count |
+| `ProposeAddition { peer_id }` | Propose the addition to the layer that commits |
+| `AdditionWithdrawn { peer_id }` | The addition in flight was aborted |
+| `AcknowledgementIgnored { peer_id }` | An acknowledgement not awaited, or a repeat |
+| `AbortIgnored { peer_id }` | An abort naming no addition in flight |
+| `RequiredCountSet { required_count }` | The required count in effect is now this |
 
 The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
 The view says so from then on: its peer state is `Bootstrapped`.
@@ -245,14 +260,16 @@ and then signalled readiness produces two distinct `Accepted` outcomes.
 
 ### Quorum
 
-Quorum is a configurable threshold set at construction via `QuorumPolicy::new(count)`.
-The machine does not interpret quorum — it checks whether the confirmed count meets or
-exceeds the threshold.
+Quorum is a configurable threshold, set at construction via `QuorumPolicy::new(count)`
+and changed afterwards by `RequiredCountChanged` alone. The machine does not interpret
+quorum — it checks whether the confirmed count meets or exceeds the count in effect.
 
-Quorum is checked in exactly two places:
+Quorum is checked in exactly three places:
 
 1. `ReadyStep` — after a new (non-duplicate) readiness signal is confirmed
 2. `LocalCompletionStep` — when the local node signals completion
+3. `Collecting`, after a new required count — a count the collecting peers already
+   reach concludes
 
 Duplicate signals never re-trigger quorum checks. Quorum is never checked before the
 node's own completion: readiness accumulates while `Pinging` and counts at completion.
@@ -268,7 +285,12 @@ observation.
 | `PingingStep` | `ParticipationObserved` before the node's own completion | Never |
 | `ReadyStep` | `ReadyObserved` while `Collecting` | Yes, with threshold |
 | `LocalCompletionStep` | `LocalParticipationCompleted` | Yes, always |
-| `JoinStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, in every stage | Never |
+| `MembershipStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionCommitted`, `RequiredCountChanged`, in every stage that admits them | `Collecting` checks the new count |
+
+What a concluded node answers whatever its addition — a peer still bootstrapping, a
+membership decision — is `Bootstrapped::answer`; `Reconfiguring` reuses it, refusing
+an admission and a second request, and carries the addition's acknowledgement, abort
+and commit itself.
 
 Readiness before the node's own completion is accepted by `Pinging` itself, with no
 quorum check.
@@ -287,8 +309,9 @@ returns:
 - Collecting peers — peers observed in Phase 2
 - Whether pinging phase is complete
 - Whether the deadline has been missed (`deadline_missed`)
-- Required quorum count
-- Members — the configuration's peers, then every admitted peer, in arrival order
+- The required count in effect
+- Members — the configuration's peers, then every admitted or added peer, in arrival order
+- The addition in flight — none, requested of a peer, or acknowledged by it
 
 The queryability model means external monitors can poll any node's view without
 perturbing the machine. Composition of multiple nodes' cluster views gives an
@@ -337,7 +360,6 @@ sequences:
 | A missed deadline is recorded but never concludes the machine |
 | Exit mode never changes after exit |
 | A state's admissible set equals exactly its accepted commands plus `Probe` |
-| Required quorum count never changes |
 | The specification's independent model agrees with the machine for all sequences |
 
 The last invariant is the strongest: the specification's independent model

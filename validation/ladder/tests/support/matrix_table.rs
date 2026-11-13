@@ -20,7 +20,8 @@ impl MatrixTable {
     }
 
     // The commands a stage admits, as the crate lists them: in the commands'
-    // order, with the placeholder peer id it gives a command that carries one.
+    // order, with the placeholder the crate gives a command that carries a peer
+    // id or a required count -- zero, either way.
     pub fn admits(&self, stage: &str) -> Vec<Command> {
         self.table["admits"][stage]
             .as_array()
@@ -28,7 +29,7 @@ impl MatrixTable {
             .iter()
             .map(|name| {
                 let name = name.as_str().expect("a command's name");
-                SpecReader::command(&json!({ name: { "peer_id": "0" } }))
+                SpecReader::command(&json!({ name: { "peer_id": "0", "required_count": "0" } }))
             })
             .collect()
     }

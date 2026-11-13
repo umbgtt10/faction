@@ -7,14 +7,16 @@ pub enum Stage {
     Pinging,
     Collecting,
     Bootstrapped,
+    Reconfiguring,
 }
 
 impl Stage {
-    pub const ALL: [Stage; 4] = [
+    pub const ALL: [Stage; 5] = [
         Stage::Initial,
         Stage::Pinging,
         Stage::Collecting,
         Stage::Bootstrapped,
+        Stage::Reconfiguring,
     ];
 
     #[must_use]
@@ -32,6 +34,7 @@ impl Stage {
             Stage::Pinging => "Pinging",
             Stage::Collecting => "Collecting",
             Stage::Bootstrapped => "Bootstrapped",
+            Stage::Reconfiguring => "Reconfiguring",
         }
     }
 }

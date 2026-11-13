@@ -1,0 +1,199 @@
+{
+  "description": "A new required count takes effect in any stage, and never moves a node out of Initial.",
+  "rows": [
+    "count-set",
+    "participation-accepted"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3"
+    ],
+    "required_count": "2"
+  },
+  "steps": [
+    {
+      "command": {
+        "RequiredCountChanged": {
+          "required_count": "5"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "RequiredCountSet": {
+                "required_count": "5"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "5",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "ParticipationObserved": {
+          "peer_id": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "ParticipationAccepted": {
+                "peer_id": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Pinging": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [
+              "2"
+            ],
+            "collecting_peers": [],
+            "required_count": "5",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "RequiredCountChanged": {
+          "required_count": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "RequiredCountSet": {
+                "required_count": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Pinging": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [
+              "2"
+            ],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Pinging": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [
+        "2"
+      ],
+      "collecting_peers": [],
+      "required_count": "2",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2",
+        "3"
+      ],
+      "addition": {
+        "None": {}
+      }
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "LocalParticipationCompleted",
+      "DeadlineExpired",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "AdditionCommitted",
+      "RequiredCountChanged",
+      "Probe"
+    ]
+  }
+}

@@ -14,9 +14,24 @@ fn row_ids_names_each_known_row_once_the_probe_s_first() {
 
     // Assert
     let distinct: BTreeSet<&str> = row_ids.iter().copied().collect();
-    assert_eq!(row_ids.len(), 18);
-    assert_eq!(distinct.len(), 18);
+    assert_eq!(row_ids.len(), 29);
+    assert_eq!(distinct.len(), 29);
     assert_eq!(row_ids[0], "probed");
+}
+
+#[test]
+fn rule_of_a_row_that_concludes_on_a_new_count_sets_the_count_first() {
+    // Arrange & Act
+    let rule = RuleBook::rule("count-concluded");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::CountConcludes,
+            change: Change::CountSet,
+        }
+    );
 }
 
 #[test]
@@ -52,6 +67,21 @@ fn rule_of_the_row_answering_what_a_stage_does_not_admit_changes_nothing() {
         Rule {
             situation: Situation::NotAdmitted,
             change: Change::Nothing,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_completing_an_addition_admits_the_pending_peer() {
+    // Arrange & Act
+    let rule = RuleBook::rule("addition-completed");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::PeerIsPending,
+            change: Change::AdditionCompletes,
         }
     );
 }

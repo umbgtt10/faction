@@ -26,6 +26,14 @@ impl SpecReader {
             "JoinRequested" => Command::JoinRequested { peer_id: peer_id() },
             "JoinApproved" => Command::JoinApproved { peer_id: peer_id() },
             "JoinRejected" => Command::JoinRejected { peer_id: peer_id() },
+            "AdditionRequested" => Command::AdditionRequested { peer_id: peer_id() },
+            "MembershipAcknowledged" => Command::MembershipAcknowledged { peer_id: peer_id() },
+            "AdditionCommitted" => Command::AdditionCommitted { peer_id: peer_id() },
+            "AdditionAborted" => Command::AdditionAborted { peer_id: peer_id() },
+            "RequiredCountChanged" => Command::RequiredCountChanged {
+                required_count: usize::try_from(Self::number(&body["required_count"]))
+                    .expect("a required count this platform can hold"),
+            },
             "Probe" => Command::Probe,
             other => panic!("not a command of the specification: {other}"),
         }

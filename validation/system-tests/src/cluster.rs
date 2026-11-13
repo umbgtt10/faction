@@ -10,12 +10,15 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use faction::addition::Addition;
 use faction::peer_state::PeerState;
 use faction::types::PeerId;
 
 use crate::approver::Approver;
+use crate::committer::Committer;
 use crate::join::joining::Joining;
 use crate::node::Node;
+use crate::node_snapshot::NodeSnapshot;
 use crate::spawn::Spawn;
 use crate::timer_delay::TimerDelay;
 use crate::traits::pause::Pause;
@@ -28,6 +31,7 @@ pub struct Cluster {
     joining: Option<Joining>,
     log_dir: Option<PathBuf>,
     pause: Arc<dyn Pause>,
+    added_addrs: Vec<(PeerId, SocketAddr)>,
 }
 
 impl Cluster {
@@ -48,12 +52,79 @@ impl Cluster {
             joining,
             log_dir,
             pause,
+            added_addrs: Vec::new(),
         }
+    }
+
+    pub fn abort_addition(&self, coordinator: usize, newcomer_id: PeerId) {
+        self.nodes[coordinator].abort_addition(newcomer_id);
+    }
+
+    // An addition carried through: the newcomer added, its addition requested
+    // of the coordinator and acknowledged, then committed or aborted as the
+    // committing layer -- the harness -- decides.
+    pub fn add(&mut self, coordinator: usize, newcomer_id: PeerId, committer: Committer) {
+        self.add_newcomer(newcomer_id);
+        self.request_addition(coordinator, newcomer_id);
+        self.poll_until_proposed(coordinator, newcomer_id);
+        match committer {
+            Committer::Commit { required_count } => {
+                self.commit_addition(newcomer_id, required_count);
+            }
+            Committer::Abort => self.abort_addition(coordinator, newcomer_id),
+        }
+    }
+
+    // A newcomer started and waiting for its membership, reachable by every
+    // node and reaching every node it can know the address of.
+    pub fn add_newcomer(&mut self, newcomer_id: PeerId) {
+        let (newcomer, newcomer_addr) = match &self.joining {
+            Some(Joining::Process(context)) => {
+                let addr = context.ports.addr(self.nodes.len());
+                let known: Vec<(PeerId, SocketAddr)> = context
+                    .genesis_addrs
+                    .iter()
+                    .chain(&self.added_addrs)
+                    .copied()
+                    .collect();
+                (
+                    context.spec.launch_newcomer(newcomer_id, &known, addr),
+                    Some(addr),
+                )
+            }
+            Some(Joining::InProcess(context)) => (
+                context
+                    .recipe
+                    .newcomer(self.spawn, newcomer_id, context.mesh.connect(newcomer_id)),
+                None,
+            ),
+            None => panic!("an addition needs a cluster that can be joined"),
+        };
+        newcomer.start();
+        if let Some(addr) = newcomer_addr {
+            for node in &self.nodes {
+                node.add_peer_address(newcomer_id, addr);
+            }
+            self.added_addrs.push((newcomer_id, addr));
+        }
+        self.nodes.push(newcomer);
     }
 
     pub fn admit(&self, peer_id: PeerId) {
         for node in &self.nodes {
             node.admit(peer_id);
+        }
+    }
+
+    // The commit reported to every node, the newcomer first -- the members
+    // ignore it until they hold the commit, so it never concludes on the old
+    // count -- with the new required count, if one is given.
+    pub fn commit_addition(&self, newcomer_id: PeerId, required_count: Option<usize>) {
+        for node in self.nodes.iter().rev() {
+            node.commit_addition(newcomer_id);
+            if let Some(required_count) = required_count {
+                node.change_required_count(required_count);
+            }
         }
     }
 
@@ -114,12 +185,34 @@ impl Cluster {
         }
     }
 
+    // Until the coordinator holds the newcomer's acknowledgement: its addition
+    // is proposed to the layer that commits.
+    pub fn poll_until_proposed(&mut self, coordinator: usize, newcomer_id: PeerId) {
+        self.start_all();
+        let proposed = Addition::Acknowledged {
+            peer_id: newcomer_id,
+        };
+        while self.nodes[coordinator].snapshot().addition != proposed {
+            self.step_all();
+            self.pause.pause(self.poll_delay);
+        }
+    }
+
+    pub fn request_addition(&self, coordinator: usize, newcomer_id: PeerId) {
+        self.nodes[coordinator].request_addition(newcomer_id);
+    }
+
     pub fn settle(&mut self, rounds: usize) {
         self.start_all();
         for _ in 0..rounds {
             self.step_all();
             self.pause.pause(self.poll_delay);
         }
+    }
+
+    #[must_use]
+    pub fn snapshot(&self, index: usize) -> NodeSnapshot {
+        self.nodes[index].snapshot()
     }
 
     pub fn start_all(&mut self) {

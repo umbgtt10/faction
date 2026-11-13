@@ -49,7 +49,12 @@ Stage 1 is formatting, clippy over every target, the `no_std` check of the five
 `no_std` crates against `thumbv7em-none-eabihf`, the tests, and then the system
 tests: `cargo xtask system-tests` lists every test the `all_tests` binary holds
 (the cases `rstest` expands among them) and runs each in a process of its own,
-in parallel, through `slotgate`, every run's logs under `logs/`.
+in parallel, through `slotgate`. A run's logs -- slotgate's for each test and the
+scenarios' for each node -- share one folder under `logs/`, named for the moment
+the run began (`2026-11-13_06-19-57`), and only the newest 50 runs are kept: the
+run's name reaches the scenarios as `FACTION_LOG_RUN`. A test run outside the
+xtask writes one folder named the same way, which the next run prunes with the
+rest.
 
 Stage 2 is `cargo xtask stage2` -- a crate under `xtask/`, gated like any other
 code. It runs, in this order:
@@ -161,14 +166,18 @@ gaps.
 
 - Valid transitions live in `state_transition_matrix_tests.rs` and expect the row's
   result; rejected commands live in per-state files (`initial_invalid_tests.rs`,
-  `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`) under the row
-  `not-admitted`; `pinging_invalid_tests.rs` asserts Pinging rejects nothing, and
-  `admissible_invariant_tests.rs` checks each stage's admissible set against the table's
-  `admits` and against `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
+  `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`,
+  `bootstrapped_invalid_tests.rs`, `reconfiguring_invalid_tests.rs`) under the row
+  `not-admitted` -- Pinging refuses an addition's coordination alone, and its file also
+  asserts it accepts the rest -- and `admissible_invariant_tests.rs` checks each stage's
+  admissible set against the table's `admits` and against
+  `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
 - Any new state or command variant MUST add its rows to the table first, then the
   matching cases here.
-- `Bootstrapped` is the only terminal state; a missed deadline is non-terminal
-  (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view flag.
+- `Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with an
+  addition in flight, shown as `PeerState::Bootstrapped`. A missed deadline is
+  non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view
+  flag.
 
 ### State transition model
 

@@ -17,10 +17,12 @@ with) with "forever-fixed" (the exact limitation Phase 1 removes), and making
 shared-state hazards in through a side door.
 
 ## Decision
-`Config` is the immutable **genesis** seed; the live member set is authoritative
-state carried in each `State` — a `Members` value object seeded from
-`Config.peers` — and it changes only through an admission `Command`, never through
-a setter and never by mutating `Config`.
+`Config` is the immutable **genesis** seed. The live member set and the required
+count in effect are authoritative state carried in each `State` — a `Members`
+value object seeded from `Config.peers`, a `QuorumPolicy` seeded from the
+configuration's — and each changes only through a `Command`, never through a
+setter and never by mutating `Config`: the members by an admission or a committed
+addition, the count by `RequiredCountChanged`.
 
 ## Forcing constraints / Evidence
 Determinism (`P0-ADR-DeterministicReplayable`): `output = F(state, input)`. A
@@ -51,19 +53,19 @@ projection.
 it into `Pinging`. Every state gains a `Members` field and its constructor a
 parameter — a mechanical ripple into the tests, the same shape of change
 `Collecting::new` already absorbed in Phase 0. The live `is_member` checks
-(`Pinging`, `Collecting`, `Bootstrapped`, and the shared `JoinStep`) read the
-carried set; `Config.peers()` is used only to seed the initial `Members` and to
-replay/reset, and `Config` stays immutable. **Scope carve-out:** this ADR fixes
-*membership*, not the quorum *threshold*. Phase 1 admits members while the
-threshold stays fixed; whether the threshold may later change is the separate,
-still-open quorum question (a coordinated Phase 3 concern) and remains deferred.
-That carve-out is what unblocks writing this ADR.
+(every stage, through the shared `MembershipStep`) read the carried set;
+`Config.peers()` is used only to seed the initial `Members` and to replay/reset,
+and `Config` stays immutable. The count is carried alike: every stage holds the
+count in effect, and its completion and readiness check it. An admission never
+changes it; a new count is a command of its own, which the caller reports when the
+change it belongs to commits (`P1-ADR-AdditionThroughTheLayerThatCommits`).
 
 ## Enforcement
 `faction_tests::participation_from_an_admitted_peer_is_accepted` proves a signal that
 was `NonMemberIgnored` before admission becomes `ParticipationAccepted` after — so
 growth is real and carried in state; `admission_does_not_change_the_quorum_threshold`
-pins the scope carve-out. The exhaustive `(state, command)` matrix covers all three
+pins that an admission leaves the count alone, and the specification's `count-set`
+and `count-concluded` rows, with their vectors, pin the count's own command. The exhaustive `(state, command)` matrix covers all three
 join edges in every state, the admissible-invariant keeps them in every state's
 admissible set, and a property-model replays random join-interleaved sequences. All
 run in the stage-1 gate.

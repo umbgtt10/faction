@@ -3,6 +3,7 @@
 
 use alloc::vec::Vec;
 
+use crate::addition::Addition;
 use crate::members::Members;
 use crate::peer_state::PeerState;
 use crate::types::PeerId;
@@ -16,10 +17,12 @@ pub struct ClusterView {
     required_count: usize,
     deadline_missed: bool,
     members: Members,
+    addition: Addition,
 }
 
 impl ClusterView {
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         peer_state: PeerState,
         is_pinging_completed: bool,
@@ -28,6 +31,7 @@ impl ClusterView {
         required_count: usize,
         deadline_missed: bool,
         members: Members,
+        addition: Addition,
     ) -> Self {
         let peer_state = if deadline_missed && peer_state != PeerState::Bootstrapped {
             PeerState::TimedOut
@@ -43,7 +47,13 @@ impl ClusterView {
             required_count,
             deadline_missed,
             members,
+            addition,
         }
+    }
+
+    #[must_use]
+    pub fn addition(&self) -> Addition {
+        self.addition
     }
 
     #[must_use]

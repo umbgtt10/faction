@@ -15,6 +15,10 @@ pub enum ProcessCommand {
     Admit(PeerId),
     Deny(PeerId),
     ExpireDeadline,
+    RequestAddition(PeerId),
+    CommitAddition(PeerId),
+    AbortAddition(PeerId),
+    RequiredCount(usize),
     Peer(PeerId, SocketAddr),
     Shutdown,
 }
@@ -28,6 +32,10 @@ impl ProcessCommand {
             "admit" => Some(Self::Admit(parts.next()?.parse().ok()?)),
             "deny" => Some(Self::Deny(parts.next()?.parse().ok()?)),
             "expire" => Some(Self::ExpireDeadline),
+            "request-addition" => Some(Self::RequestAddition(parts.next()?.parse().ok()?)),
+            "commit-addition" => Some(Self::CommitAddition(parts.next()?.parse().ok()?)),
+            "abort-addition" => Some(Self::AbortAddition(parts.next()?.parse().ok()?)),
+            "required-count" => Some(Self::RequiredCount(parts.next()?.parse().ok()?)),
             "peer" => {
                 let id = parts.next()?.parse().ok()?;
                 let addr = parts.next()?.parse().ok()?;

@@ -46,7 +46,10 @@
               "4",
               "5",
               "9"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
@@ -55,6 +58,8 @@
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -78,7 +83,10 @@
         "4",
         "5",
         "9"
-      ]
+      ],
+      "addition": {
+        "None": {}
+      }
     },
     "admissible": [
       "ParticipationObserved",
@@ -87,6 +95,8 @@
       "JoinRequested",
       "JoinApproved",
       "JoinRejected",
+      "AdditionCommitted",
+      "RequiredCountChanged",
       "Probe"
     ]
   }

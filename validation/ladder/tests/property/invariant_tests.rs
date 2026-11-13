@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::random_commands::RandomCommands;
 use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view::ClusterView;
@@ -84,22 +85,11 @@ fn assert_non_member_outputs_do_not_mutate_state(
     Ok(())
 }
 
+// Every command but the probe the properties make between two calls.
 fn command_strategy() -> impl Strategy<Value = Command> {
-    let participation = (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id });
-    let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id });
-    let join_requested = (0u64..=6).prop_map(|peer_id| Command::JoinRequested { peer_id });
-    let join_approved = (0u64..=6).prop_map(|peer_id| Command::JoinApproved { peer_id });
-    let join_rejected = (0u64..=6).prop_map(|peer_id| Command::JoinRejected { peer_id });
-
-    prop_oneof![
-        participation,
-        ready,
-        Just(Command::LocalParticipationCompleted),
-        Just(Command::DeadlineExpired),
-        join_requested,
-        join_approved,
-        join_rejected,
-    ]
+    RandomCommands::command().prop_filter("a command, not a probe", |command| {
+        *command != Command::Probe
+    })
 }
 
 extern crate alloc;

@@ -18,6 +18,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::quorum_policy::QuorumPolicy;
 
+use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
 
@@ -36,6 +37,7 @@ use faction_system_tests::node_observer::NodeObserver;
 use faction_system_tests::process_node::args::Args;
 use faction_system_tests::process_node::process_command::ProcessCommand;
 use faction_system_tests::process_node::process_runner::ProcessRunner;
+use faction_system_tests::role::Role;
 use faction_system_tests::time_ports::TimePorts;
 use faction_system_tests::transport_kind::TransportKind;
 
@@ -69,18 +71,6 @@ fn main() {
             None => (Box::new(NoOpObserver), Box::new(NoOpNodeObserver)),
         };
 
-    let faction_config = Config::new(
-        config.peer_id,
-        config.peers.clone(),
-        QuorumPolicy::new(config.required),
-    );
-
-    let protocol = Protocol::new(
-        Faction::new(faction_config, observer),
-        config.peers.clone(),
-        config.peer_id,
-    );
-
     let (transport, address_book): (Box<dyn Transport>, AddressBook) = match config.transport {
         TransportKind::Grpc => {
             let transport = GrpcTransport::new(config.listen_addr, &config.peer_addrs);
@@ -108,14 +98,25 @@ fn main() {
         deadline_delay,
     ));
 
-    let node = FactionNode::new(
-        config.peer_id,
-        config.peers,
-        protocol,
-        transport,
-        timer,
-        node_observer,
-    );
+    let (peers, role) = if config.newcomer {
+        (
+            Vec::new(),
+            Role::Waiting(Newcomer::new(config.peer_id, observer)),
+        )
+    } else {
+        let faction_config = Config::new(
+            config.peer_id,
+            config.peers.clone(),
+            QuorumPolicy::new(config.required),
+        );
+        let protocol = Protocol::new(
+            Faction::new(faction_config, observer),
+            config.peers.clone(),
+            config.peer_id,
+        );
+        (config.peers, Role::Running(Box::new(protocol)))
+    };
+    let node = FactionNode::new(config.peer_id, peers, role, transport, timer, node_observer);
 
     let commands = ProcessCommand::read_lines(BufReader::new(stdin()));
     ProcessRunner::new(

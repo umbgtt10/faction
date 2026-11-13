@@ -44,6 +44,12 @@ impl InMemoryTransport {
             .collect()
     }
 
+    // A peer this transport can send to from now on, by the inbox of that
+    // peer's transport.
+    pub fn connect(&mut self, peer_id: PeerId, other: &InMemoryTransport) {
+        self.outboxes.push((peer_id, other.inbox.clone()));
+    }
+
     pub fn push_inbox(&mut self, message: TransportMessage) {
         self.inbox.lock().push_back(message);
     }

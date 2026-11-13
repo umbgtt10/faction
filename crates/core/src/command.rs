@@ -12,5 +12,10 @@ pub enum Command {
     JoinRequested { peer_id: PeerId },
     JoinApproved { peer_id: PeerId },
     JoinRejected { peer_id: PeerId },
+    AdditionRequested { peer_id: PeerId },
+    MembershipAcknowledged { peer_id: PeerId },
+    AdditionCommitted { peer_id: PeerId },
+    AdditionAborted { peer_id: PeerId },
+    RequiredCountChanged { required_count: usize },
     Probe,
 }

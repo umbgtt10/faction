@@ -12,11 +12,12 @@ fn command(name: CommandName, peer_id: Option<&str>) -> Command {
     Command {
         name,
         peer_id: peer_id.map(String::from),
+        required_count: None,
     }
 }
 
 #[test]
-fn admits_of_collecting_is_every_command_but_the_node_s_own_completion() {
+fn admits_of_collecting_is_every_command_but_its_own_completion_and_an_addition_s_coordination() {
     // Arrange
     let table = SpecReader::table(&SpecFiles::matrix());
 
@@ -33,6 +34,8 @@ fn admits_of_collecting_is_every_command_but_the_node_s_own_completion() {
             CommandName::JoinRequested,
             CommandName::JoinApproved,
             CommandName::JoinRejected,
+            CommandName::AdditionCommitted,
+            CommandName::RequiredCountChanged,
             CommandName::Probe,
         ]
     );

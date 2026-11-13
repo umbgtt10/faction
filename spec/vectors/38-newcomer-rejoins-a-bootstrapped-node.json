@@ -51,13 +51,19 @@
               "1",
               "2",
               "3"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -94,13 +100,19 @@
               "2",
               "3",
               "9"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -137,13 +149,19 @@
               "2",
               "3",
               "9"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionRequested",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -167,13 +185,19 @@
         "2",
         "3",
         "9"
-      ]
+      ],
+      "addition": {
+        "None": {}
+      }
     },
     "admissible": [
       "ParticipationObserved",
       "JoinRequested",
       "JoinApproved",
       "JoinRejected",
+      "AdditionRequested",
+      "AdditionCommitted",
+      "RequiredCountChanged",
       "Probe"
     ]
   }

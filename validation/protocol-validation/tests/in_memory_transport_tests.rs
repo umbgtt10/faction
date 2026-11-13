@@ -6,6 +6,23 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_protocol_validation::in_memory_transport::InMemoryTransport;
 
 #[test]
+fn connect_lets_a_late_peer_reach_a_member_and_be_reached() {
+    // Arrange
+    let mut member = InMemoryTransport::new_mesh(&[0]).remove(0);
+    let mut late = InMemoryTransport::new_mesh(&[9]).remove(0);
+
+    // Act
+    late.connect(0, &member);
+    member.connect(9, &late);
+    late.send(0, TransportMessage::Ping { from: 9 });
+    member.send(9, TransportMessage::Ready { from: 0 });
+
+    // Assert
+    assert_eq!(member.recv(), Some(TransportMessage::Ping { from: 9 }));
+    assert_eq!(late.recv(), Some(TransportMessage::Ready { from: 0 }));
+}
+
+#[test]
 fn new_mesh_builds_one_transport_per_peer() {
     // Arrange & Act
     let mesh = InMemoryTransport::new_mesh(&[4, 5, 6]);

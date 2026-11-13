@@ -14,6 +14,7 @@ use std::thread::JoinHandle;
 use std::thread::spawn;
 use std::time::Duration;
 
+use faction::addition::Addition;
 use faction::peer_state::PeerState;
 use faction::types::PeerId;
 
@@ -28,6 +29,8 @@ use crate::time_ports::TimePorts;
 const FRESH: NodeSnapshot = NodeSnapshot {
     peer_state: PeerState::Fresh,
     member_count: 0,
+    required_count: 0,
+    addition: Addition::None,
 };
 
 pub enum Node {
@@ -87,6 +90,16 @@ impl Node {
         }
     }
 
+    pub fn abort_addition(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().abort_addition(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::AbortAddition(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("abort-addition {peer_id}")),
+        }
+    }
+
     pub fn add_peer_address(&self, peer_id: PeerId, addr: SocketAddr) {
         if let Self::Process { channel, .. } = self {
             channel.send(&format!("peer {peer_id} {addr}"));
@@ -100,6 +113,30 @@ impl Node {
                 Self::send_command(commands, |ack| NodeCommand::Admit(peer_id, ack));
             }
             Self::Process { channel, .. } => channel.send(&format!("admit {peer_id}")),
+        }
+    }
+
+    pub fn change_required_count(&self, required_count: usize) {
+        match self {
+            Self::Task { node } => node.borrow_mut().change_required_count(required_count),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| {
+                    NodeCommand::ChangeRequiredCount(required_count, ack)
+                });
+            }
+            Self::Process { channel, .. } => {
+                channel.send(&format!("required-count {required_count}"))
+            }
+        }
+    }
+
+    pub fn commit_addition(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().commit_addition(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::CommitAddition(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("commit-addition {peer_id}")),
         }
     }
 
@@ -143,6 +180,16 @@ impl Node {
         }
     }
 
+    pub fn request_addition(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().request_addition(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::RequestAddition(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("request-addition {peer_id}")),
+        }
+    }
+
     pub fn request_join(&self, peer_id: PeerId) {
         match self {
             Self::Task { node } => node.borrow_mut().request_join(peer_id),
@@ -173,6 +220,16 @@ impl Node {
                 }
             }
             Self::Task { .. } => {}
+        }
+    }
+
+    #[must_use]
+    pub fn snapshot(&self) -> NodeSnapshot {
+        match self {
+            Self::Task { node } => node.borrow_mut().snapshot(),
+            Self::Thread { snapshot, .. } | Self::Process { snapshot, .. } => {
+                *snapshot.lock().unwrap()
+            }
         }
     }
 

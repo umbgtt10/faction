@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:faction:spec:0.1.0:schema",
-  "title": "faction 0.1.0 -- the data model",
+  "$id": "urn:faction:spec:0.2.0:schema",
+  "title": "faction 0.2.0 -- the data model",
   "description": "Every command, result, outcome and view, and the forms of a conformance vector and of the decision table. Normative with SPEC.md.",
   "$ref": "#/$defs/vector",
   "$defs": {
@@ -54,6 +54,11 @@
         "JoinRequested",
         "JoinApproved",
         "JoinRejected",
+        "AdditionRequested",
+        "MembershipAcknowledged",
+        "AdditionCommitted",
+        "AdditionAborted",
+        "RequiredCountChanged",
         "Probe"
       ]
     },
@@ -182,6 +187,111 @@
               ],
               "properties": {
                 "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AdditionRequested"
+          ],
+          "properties": {
+            "AdditionRequested": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "MembershipAcknowledged"
+          ],
+          "properties": {
+            "MembershipAcknowledged": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AdditionCommitted"
+          ],
+          "properties": {
+            "AdditionCommitted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AdditionAborted"
+          ],
+          "properties": {
+            "AdditionAborted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "RequiredCountChanged"
+          ],
+          "properties": {
+            "RequiredCountChanged": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "required_count"
+              ],
+              "properties": {
+                "required_count": {
                   "$ref": "#/$defs/u64"
                 }
               }
@@ -495,6 +605,132 @@
               }
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SendMembership"
+          ],
+          "properties": {
+            "SendMembership": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ProposeAddition"
+          ],
+          "properties": {
+            "ProposeAddition": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AdditionWithdrawn"
+          ],
+          "properties": {
+            "AdditionWithdrawn": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AcknowledgementIgnored"
+          ],
+          "properties": {
+            "AcknowledgementIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AbortIgnored"
+          ],
+          "properties": {
+            "AbortIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "RequiredCountSet"
+          ],
+          "properties": {
+            "RequiredCountSet": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "required_count"
+              ],
+              "properties": {
+                "required_count": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -562,6 +798,65 @@
         }
       ]
     },
+    "addition": {
+      "description": "The addition in flight: none, requested of a peer, or acknowledged by it.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "None"
+          ],
+          "properties": {
+            "None": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Requested"
+          ],
+          "properties": {
+            "Requested": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Acknowledged"
+          ],
+          "properties": {
+            "Acknowledged": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "cluster_view": {
       "description": "What a node shows of its state.",
       "type": "object",
@@ -573,7 +868,8 @@
         "collecting_peers",
         "required_count",
         "deadline_missed",
-        "members"
+        "members",
+        "addition"
       ],
       "properties": {
         "peer_state": {
@@ -596,6 +892,9 @@
         },
         "members": {
           "$ref": "#/$defs/peers"
+        },
+        "addition": {
+          "$ref": "#/$defs/addition"
         }
       }
     },
@@ -769,7 +1068,8 @@
         "Initial",
         "Pinging",
         "Collecting",
-        "Bootstrapped"
+        "Bootstrapped",
+        "Reconfiguring"
       ]
     },
     "matrix": {
@@ -793,7 +1093,8 @@
             "Initial",
             "Pinging",
             "Collecting",
-            "Bootstrapped"
+            "Bootstrapped",
+            "Reconfiguring"
           ],
           "properties": {
             "Initial": {
@@ -821,6 +1122,14 @@
               }
             },
             "Bootstrapped": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/command_name"
+              }
+            },
+            "Reconfiguring": {
               "type": "array",
               "minItems": 1,
               "uniqueItems": true,
@@ -894,7 +1203,13 @@
                     "MemberAdmitted",
                     "DuplicateMemberIgnored",
                     "JoinDenied",
-                    "Concluded"
+                    "Concluded",
+                    "SendMembership",
+                    "ProposeAddition",
+                    "AdditionWithdrawn",
+                    "AcknowledgementIgnored",
+                    "AbortIgnored",
+                    "RequiredCountSet"
                   ]
                 }
               },
@@ -905,6 +1220,7 @@
                   "Pinging",
                   "Collecting",
                   "Bootstrapped",
+                  "Reconfiguring",
                   "unchanged"
                 ]
               }

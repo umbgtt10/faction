@@ -9,6 +9,8 @@ use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 
+// The peer whose addition a reconfiguring node has in flight.
+pub const NEWCOMER: u64 = 9;
 pub const THRESHOLD: usize = 5;
 
 pub fn build(init: Init) -> Faction {
@@ -52,6 +54,16 @@ pub fn build(init: Init) -> Faction {
         Init::TimedOut => {
             let _ = faction.process(Command::DeadlineExpired);
         }
+        Init::Reconfiguring | Init::ReconfiguringAcknowledged => {
+            let _ = faction.process(Command::LocalParticipationCompleted);
+            for peer in 1..5 {
+                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+            }
+            let _ = faction.process(Command::AdditionRequested { peer_id: NEWCOMER });
+        }
+    }
+    if matches!(init, Init::ReconfiguringAcknowledged) {
+        let _ = faction.process(Command::MembershipAcknowledged { peer_id: NEWCOMER });
     }
     faction
 }
@@ -69,4 +81,6 @@ pub enum Init {
     CollectingAlmostQuorum,
     Bootstrapped,
     TimedOut,
+    Reconfiguring,
+    ReconfiguringAcknowledged,
 }

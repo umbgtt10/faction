@@ -12,49 +12,6 @@ changes live in `CHANGELOG.md`.
 
 ---
 
-## Should Faction allow the quorum size to change?
-
-Not a bare setter — that would reintroduce, through a side door, the exact
-hazard Phase 3 already exists to prevent. If threshold can be swapped on one
-node without coordination, two disjoint subsets of the cluster can each end up
-running a different threshold, each independently convinced it holds quorum — a
-safety violation, not a liveness hiccup. Phase 3's own stated invariant ("at no
-point do two disjoint subsets of nodes each believe they form a valid quorum,"
-enforced by making single-change-at-a-time structurally impossible) is precisely
-the machinery this needs, not something to bypass by adding mutability to
-`Config` in Phase 0.
-
-**Refinement:** the change should be exposed through the same mechanism as
-everything else — a genuine new `Command` variant (something like
-`Command::QuorumPolicyChanged { new_policy: QuorumPolicy }`), evaluated and
-scoped per state through each stage's `step`, like every other command, inheriting
-exhaustive `(state, command)` coverage and `Observer` routing like every other
-command, rather than an out-of-band setter that bypasses the state machine's own
-input gating entirely. That's a necessary foundation and a real improvement over
-a bare setter — but it doesn't by itself solve the cross-node coordination
-problem. Being a well-formed, per-state-gated command makes the *local* decision
-explicit and testable; it's still Phase 3/4's commit/abort sequencing that has
-to guarantee the *cross-node* agreement about when the new value takes effect.
-The two are complementary, not substitutes for each other.
-
-Faction still never computes what the new threshold *should* be, under either
-version — that stays the protocol's fault-model-driven formula, recomputed and
-injected by the consumer, same as at construction.
-
-Whenever this command is added, it extends the canonical model alongside
-`Command`/`Outcome` in the same change — see `docs/ADRs/` for the
-cross-cutting specification decisions requiring every command/outcome to
-carry a canonical counterpart, not just a Rust variant.
-
-The postponed **`join-raises-quorum`** system test (Phase 1 scenario 5) awaits this
-command: it presupposes the caller can inject a larger threshold on admission — exactly
-the uncoordinated threshold swap deferred here — so it returns only once the
-quorum-change command lands. That admission alone never moves the threshold as the set
-grows is already covered at the core level by
-`faction_tests.rs::admission_does_not_change_the_quorum_threshold`.
-
----
-
 ## Future consumers (no assumptions)
 
 The general win is a protocol-agnostic, exhaustively-covered **admission gate**:

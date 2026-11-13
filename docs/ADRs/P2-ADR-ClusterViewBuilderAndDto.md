@@ -56,7 +56,7 @@ so they are lines the specification does not state
 
 ## Consequences
 `ClusterViewBuilder` (`crates/core/src/cluster_view_builder.rs`) owns
-`new` / `from_view` / `with_*` / `build`, used by all four states and Faction's base
+`new` / `from_view` / `with_*` / `build`, used by every state and Faction's base
 seed; `build` hands its fields to `ClusterView::new`. Consumers read the view through
 its getters and gain membership visibility through `members` (a `Members` value
 object). A consumer that needs a view of its own — a test fixture, a simulation —

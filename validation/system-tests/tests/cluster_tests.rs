@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::fake_time;
+use crate::support::real_time;
 use crate::support::recipe;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
+use faction::addition::Addition;
 use faction::peer_state::PeerState;
 use faction_system_tests::cluster::Cluster;
+use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
 use faction_system_tests::spawn::Spawn;
@@ -31,6 +34,23 @@ fn cluster() -> (Cluster, Arc<FakeMonotonicClock>) {
         time.pause.clone(),
     );
     (cluster, clock)
+}
+
+#[test]
+fn abort_addition_of_a_requested_addition_withdraws_it() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 2, real_time()).build();
+    cluster.poll_until_bootstrapped();
+    cluster.add_newcomer(3);
+    cluster.request_addition(1, 3);
+    let requested = cluster.snapshot(1).addition;
+
+    // Act
+    cluster.abort_addition(1, 3);
+
+    // Assert
+    assert_eq!(requested, Addition::Requested { peer_id: 3 });
+    assert_eq!(cluster.snapshot(1).addition, Addition::None);
 }
 
 #[test]

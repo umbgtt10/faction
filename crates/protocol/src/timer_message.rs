@@ -10,4 +10,5 @@ pub enum TimerMessage {
     RetryPing,
     RetryReady,
     DeadlineExpired,
+    RetryMembership { peer_id: PeerId },
 }

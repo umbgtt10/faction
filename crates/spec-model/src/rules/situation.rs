@@ -3,6 +3,7 @@
 
 use alloc::string::String;
 
+use crate::addition::Addition;
 use crate::command::Command;
 use crate::node_state::NodeState;
 use crate::rules::change::Change;
@@ -18,6 +19,10 @@ pub enum Situation {
     PeerIsCollecting,
     PeerConcludes,
     NodeConcludes,
+    AcknowledgementNotAwaited,
+    PeerIsPending,
+    PeerIsNotPending,
+    CountConcludes,
 }
 
 impl Situation {
@@ -37,7 +42,22 @@ impl Situation {
             Situation::NodeConcludes => {
                 Self::reaches_required_count(&Change::NodeCollects.applied(command, state))
             }
+            Situation::AcknowledgementNotAwaited => {
+                !matches!(&state.addition, Addition::Requested(pending) if Some(pending) == peer_id)
+            }
+            Situation::PeerIsPending => Self::is_pending(&state.addition, peer_id),
+            Situation::PeerIsNotPending => !Self::is_pending(&state.addition, peer_id),
+            Situation::CountConcludes => {
+                Self::reaches_required_count(&Change::CountSet.applied(command, state))
+            }
         }
+    }
+
+    fn is_pending(addition: &Addition, peer_id: Option<&String>) -> bool {
+        matches!(
+            addition,
+            Addition::Requested(pending) | Addition::Acknowledged(pending) if Some(pending) == peer_id
+        )
     }
 
     fn lists(peers: &[String], peer_id: Option<&String>) -> bool {

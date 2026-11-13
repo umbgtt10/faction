@@ -32,6 +32,7 @@ impl SpecReader {
         Command {
             name: CommandName::of(name),
             peer_id: payload.get("peer_id").map(Self::string),
+            required_count: payload.get("required_count").map(Self::count),
         }
     }
 
@@ -40,9 +41,7 @@ impl SpecReader {
         Configuration {
             peer_id: Self::string(&value["peer_id"]),
             peers: Self::list(&value["peers"]).map(Self::string).collect(),
-            required_count: Self::string(&value["required_count"])
-                .parse()
-                .expect("a count within a u64"),
+            required_count: Self::count(&value["required_count"]),
         }
     }
 
@@ -59,6 +58,10 @@ impl SpecReader {
             .collect();
         let rows = Self::list(&value["rows"]).map(Self::row).collect();
         DecisionTable::new(admits, rows)
+    }
+
+    fn count(value: &Value) -> u64 {
+        Self::name(value).parse().expect("a count within a u64")
     }
 
     fn list(value: &Value) -> impl Iterator<Item = &Value> {

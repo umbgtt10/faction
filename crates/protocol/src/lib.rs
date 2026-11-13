@@ -8,6 +8,7 @@ extern crate alloc;
 
 pub mod input_message;
 pub mod message_translator;
+pub mod newcomer;
 pub mod output_message;
 pub mod protocol;
 pub mod result_view;

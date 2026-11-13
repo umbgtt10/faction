@@ -6,6 +6,15 @@ use std::io::Cursor;
 use std::net::SocketAddr;
 
 #[test]
+fn parse_abort_addition_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("abort-addition 6");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::AbortAddition(6)));
+}
+
+#[test]
 fn parse_admit_reads_the_peer() {
     // Arrange & Act
     let command = ProcessCommand::parse("admit 3");
@@ -21,6 +30,15 @@ fn parse_admit_without_a_peer_returns_none() {
 
     // Assert
     assert_eq!(command, None);
+}
+
+#[test]
+fn parse_commit_addition_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("commit-addition 6");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::CommitAddition(6)));
 }
 
 #[test]
@@ -54,12 +72,30 @@ fn parse_peer_reads_the_peer_and_its_address() {
 }
 
 #[test]
+fn parse_request_addition_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("request-addition 6");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::RequestAddition(6)));
+}
+
+#[test]
 fn parse_request_join_reads_the_peer() {
     // Arrange & Act
     let command = ProcessCommand::parse("request-join 6");
 
     // Assert
     assert_eq!(command, Some(ProcessCommand::RequestJoin(6)));
+}
+
+#[test]
+fn parse_required_count_reads_the_count() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("required-count 3");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::RequiredCount(3)));
 }
 
 #[test]

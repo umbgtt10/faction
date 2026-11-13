@@ -35,7 +35,11 @@ fn free_addr() -> SocketAddr {
 
 fn process_node() -> Node {
     let addr = free_addr();
-    let spec = ProcessSpec::new(
+    spec().launch(0, &[0], &[(0, addr)], addr)
+}
+
+fn spec() -> ProcessSpec {
+    ProcessSpec::new(
         String::from(env!("CARGO_BIN_EXE_faction-node")),
         TransportKind::Tcp,
         1,
@@ -43,8 +47,7 @@ fn process_node() -> Node {
         100,
         None,
         TcpReadiness::new(real_time(), Duration::from_secs(30)),
-    );
-    spec.launch(0, &[0], &[(0, addr)], addr)
+    )
 }
 
 fn task_node() -> (Node, Arc<FakeMonotonicClock>) {
@@ -157,6 +160,21 @@ fn expire_deadline_of_a_task_node_while_pinging_reports_timed_out() {
 
     // Assert
     assert_eq!(node.peer_state(), PeerState::TimedOut);
+}
+
+#[test]
+fn launch_newcomer_starts_a_process_waiting_with_no_members() {
+    // Arrange
+    let addr = free_addr();
+
+    // Act
+    let mut node = spec().launch_newcomer(5, &[(5, addr)], addr);
+    node.add_peer_address(0, free_addr());
+
+    // Assert
+    assert_eq!(node.snapshot().member_count, 0);
+    assert_eq!(node.peer_state(), PeerState::Fresh);
+    node.shutdown();
 }
 
 #[test]

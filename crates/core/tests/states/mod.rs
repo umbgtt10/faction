@@ -3,11 +3,12 @@
 
 pub mod bootstrapped_tests;
 pub mod collecting_tests;
-pub mod join_decision_tests;
-pub mod join_step_tests;
 pub mod local_completion_step_tests;
+pub mod membership_decision_tests;
+pub mod membership_step_tests;
 pub mod pinging_step_tests;
 pub mod ready_step_tests;
 
 pub mod initial_tests;
 pub mod pinging_tests;
+pub mod reconfiguring_tests;

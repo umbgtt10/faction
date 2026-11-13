@@ -23,6 +23,28 @@ fn of_a_bootstrapped_message_is_bootstrapped() {
 }
 
 #[test]
+fn of_a_membership_acknowledgement_is_membership_acknowledged() {
+    // Arrange & Act
+    let kind = MessageKind::of(&TransportMessage::MembershipAcknowledged { from: 1 });
+
+    // Assert
+    assert_eq!(kind, MessageKind::MembershipAcknowledged);
+}
+
+#[test]
+fn of_a_membership_is_membership() {
+    // Arrange & Act
+    let kind = MessageKind::of(&TransportMessage::Membership {
+        from: 1,
+        members: vec![1],
+        required_count: 1,
+    });
+
+    // Assert
+    assert_eq!(kind, MessageKind::Membership);
+}
+
+#[test]
 fn of_a_ping_is_ping() {
     // Arrange & Act
     let kind = MessageKind::of(&TransportMessage::Ping { from: 1 });

@@ -4,12 +4,12 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 use tonic::{Request, Response, Status};
 
 use crate::infra::transport::grpc::grpc_proto::wire::Envelope;
 use crate::infra::transport::grpc::grpc_proto::wire::transport_server::Transport as TransportService;
+use crate::infra::transport::wire_codec::WireCodec;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 
@@ -27,16 +27,8 @@ impl GrpcService {
 #[tonic::async_trait]
 impl TransportService for GrpcService {
     async fn deliver(&self, r: Request<Envelope>) -> Result<Response<Envelope>, Status> {
-        let d = r.into_inner().data;
-        if d.len() == 9 {
-            let from = PeerId::from_le_bytes(d[0..8].try_into().unwrap());
-            let msg = match d[8] {
-                0 => TransportMessage::Ping { from },
-                1 => TransportMessage::Ready { from },
-                2 => TransportMessage::Bootstrapped { from },
-                _ => return Ok(Response::new(Envelope { data: vec![] })),
-            };
-            self.inbox.lock().unwrap().push_back(msg);
+        if let Some(message) = WireCodec::decode(&r.into_inner().data) {
+            self.inbox.lock().unwrap().push_back(message);
         }
         Ok(Response::new(Envelope { data: vec![] }))
     }

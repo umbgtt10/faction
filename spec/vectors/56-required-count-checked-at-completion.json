@@ -1,0 +1,146 @@
+{
+  "description": "Before the node's own completion, the count in effect is the one its completion checks.",
+  "rows": [
+    "count-set",
+    "local-completed"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3"
+    ],
+    "required_count": "1"
+  },
+  "steps": [
+    {
+      "command": {
+        "RequiredCountChanged": {
+          "required_count": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "RequiredCountSet": {
+                "required_count": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "LocalParticipationCompleted": {}
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "LocalParticipationCompleted": {}
+            },
+            {
+              "BroadcastLocalReady": {}
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Collecting": {}
+            },
+            "is_pinging_completed": true,
+            "pinging_peers": [],
+            "collecting_peers": [
+              "1"
+            ],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Collecting": {}
+      },
+      "is_pinging_completed": true,
+      "pinging_peers": [],
+      "collecting_peers": [
+        "1"
+      ],
+      "required_count": "2",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2",
+        "3"
+      ],
+      "addition": {
+        "None": {}
+      }
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "DeadlineExpired",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "AdditionCommitted",
+      "RequiredCountChanged",
+      "Probe"
+    ]
+  }
+}

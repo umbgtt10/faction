@@ -19,7 +19,16 @@ use faction::quorum_policy::QuorumPolicy;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-fn all_commands() -> Vec<Command> {
+extern crate alloc;
+
+fn fresh() -> Faction {
+    Faction::new(
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Box::new(NoOpObserver),
+    )
+}
+
+fn pinging_admissible() -> Vec<Command> {
     vec![
         Command::ParticipationObserved { peer_id: 0 },
         Command::ReadyObserved { peer_id: 0 },
@@ -28,17 +37,10 @@ fn all_commands() -> Vec<Command> {
         Command::JoinRequested { peer_id: 0 },
         Command::JoinApproved { peer_id: 0 },
         Command::JoinRejected { peer_id: 0 },
+        Command::AdditionCommitted { peer_id: 0 },
+        Command::RequiredCountChanged { required_count: 0 },
         Command::Probe,
     ]
-}
-
-extern crate alloc;
-
-fn fresh() -> Faction {
-    Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
-        Box::new(NoOpObserver),
-    )
 }
 
 fn probe(faction: &mut Faction) -> ClusterView {
@@ -200,7 +202,7 @@ fn process_accepted_admissible_equals_subsequent_probe() {
 }
 
 #[test]
-fn process_accepted_into_bootstrapped_reports_rejoin_and_probe() {
+fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
     // Arrange
     let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5));
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
@@ -224,13 +226,16 @@ fn process_accepted_into_bootstrapped_reports_rejoin_and_probe() {
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
+            Command::AdditionRequested { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
             Command::Probe
         ]
     );
 }
 
 #[test]
-fn process_accepted_into_non_terminal_reports_full_admissible_set() {
+fn process_accepted_into_pinging_reports_pinging_s_admissible_set() {
     // Arrange
     let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5));
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
@@ -242,7 +247,7 @@ fn process_accepted_into_non_terminal_reports_full_admissible_set() {
     };
 
     // Assert
-    assert_eq!(admissible, all_commands());
+    assert_eq!(admissible, pinging_admissible());
 }
 
 #[test]

@@ -69,10 +69,11 @@ reproduce and expensive to diagnose.
 
 ### The state machine
 
-The machine progresses through four states, with a single terminal:
+The machine progresses through four stages to a single conclusion, and a concluded
+node may then coordinate an addition in a fifth:
 
 ```text
-Initial → Pinging → Collecting → Bootstrapped
+Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
 ```
 
 | State | Meaning | Carries |
@@ -80,7 +81,8 @@ Initial → Pinging → Collecting → Bootstrapped
 | `Initial` | Freshly created, no action taken | Nothing — unit struct |
 | `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
-| `Bootstrapped` | Quorum reached — cluster is ready (terminal) | Final peer sets at time of exit |
+| `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Final peer sets at time of exit |
+| `Reconfiguring` | Concluded, coordinating one addition — shown as `Bootstrapped` | The concluded node's sets and the addition in flight |
 
 A missed deadline is **not** a state: it is recorded as a fact (reported as
 `PeerState::TimedOut` through a derived flag) while the node stays receptive and
@@ -89,7 +91,7 @@ readiness to a peer that is still trying to join.
 
 ### Commands and outcomes
 
-Eight commands drive the machine:
+Thirteen commands drive the machine:
 
 | Command | Meaning |
 |---|---|
@@ -100,6 +102,11 @@ Eight commands drive the machine:
 | `JoinRequested { peer_id }` | A newcomer asked to join |
 | `JoinApproved { peer_id }` | A newcomer was admitted to membership |
 | `JoinRejected { peer_id }` | A newcomer was denied |
+| `AdditionRequested { peer_id }` | Coordinate the addition of a peer |
+| `MembershipAcknowledged { peer_id }` | The newcomer holds the membership it was sent |
+| `AdditionCommitted { peer_id }` | The layer above committed the addition |
+| `AdditionAborted { peer_id }` | The layer above abandoned it |
+| `RequiredCountChanged { required_count }` | The required count in effect changed |
 | `Probe` | Query current state without mutation |
 
 Every command produces a structured result — `Accepted`, `Rejected`, or `Probed` —
@@ -131,22 +138,34 @@ converging. A sub-quorum cluster that timed out on its own recovers the moment a
 newcomer supplies the missing member. Admission is a local control-plane decision,
 not a wire message, so no transport has to learn a new message type.
 
+### Adding a node
+
+A concluded cluster grows by one through the layer that commits changes above it — a
+consensus log, an operator, whatever the caller has. The node asked to coordinate
+an addition hands the newcomer the membership, waits for its acknowledgement, and
+tells the caller to propose the addition; one addition is in flight at a time, and a
+second request is refused until it ends. Every node applies the commit the layer
+above reports, whatever its stage, and the required count changes by its own
+command, reported with it. `faction` decides neither who may be added nor how a
+change commits.
+
 ### Validation harness
 
 `faction` ships with a multi-layered validation harness:
 
 | Harness | What it tests |
 |---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 18 rows and 41 conformance vectors |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 64 tests |
-| `crates/core/` unit tests | Each type and each step in isolation — 128 tests |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 84 tests |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 29 rows and 62 conformance vectors |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 89 tests |
+| `crates/core/` unit tests | Each type and each step in isolation — 169 tests |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 129 tests |
 | `validation/core-validation/` | Multi-node deterministic scenarios — 39 tests |
-| `crates/protocol/` | Message translation and protocol runtime — 42 tests |
-| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 169 tests |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer among it — 60 tests |
+| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, and an addition under loss — 176 tests |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 155 tests |
+| `validation/system-tests/` addition | A node added to a running cluster across spawn/transport — 50 tests |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 196 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -200,7 +219,8 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining
-    // peer) plus the Phase 1 join commands.
+    // peer), the join commands, an addition to coordinate, a committed
+    // addition and a new required count.
     assert_eq!(
         admissible,
         alloc::vec![
@@ -208,6 +228,9 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
+            Command::AdditionRequested { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
             Command::Probe
         ]
     );
@@ -223,8 +246,8 @@ The caller owns the network. `faction` owns the state.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~1,130 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.1.0 — its independent model and the crate answer all 41 vectors as written |
-| Total tests | 925 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.2.0 — its independent model and the crate answer all 62 vectors as written |
+| Total tests | 1,152 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -241,7 +264,7 @@ The caller owns the network. `faction` owns the state.
   The machine computes. The caller acts.
 - **Explicit state ownership** — states carry only what they mutate. Nothing is
   inherited silently.
-- **No silent sinks** — the sole terminal state (`Bootstrapped`) still answers a
+- **No silent sinks** — the sole conclusion (`Bootstrapped`) still answers a
   still-pinging peer by re-advertising its readiness, and a missed deadline is a
   non-terminal fact — so a concluded node never strands the peers it coordinated.
 - **Observer, not logger** — the `Observer` trait receives every call with its result:
@@ -301,8 +324,10 @@ once from crates.io:
 
 `faction` is building toward full dynamic membership across six incremental phases.
 **Phase 1 (dynamic joining)** has landed — a newcomer joins a running cluster and
-converges across the full spawn/transport matrix. Failure detection, single-node
-addition and removal, and Byzantine-tolerant reconfiguration follow in Phases 2–6.
+converges across the full spawn/transport matrix — and **Phase 3 (single-node
+addition)** with it: a concluded cluster grows by one through the layer that commits
+changes above it. Failure detection, single-node removal, and Byzantine-tolerant
+reconfiguration follow.
 
 Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.
@@ -319,15 +344,16 @@ The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative
 
 | Crate | Role | Tests |
 |---|---|---|
-| `crates/core/` | State machine | 128 |
-| `crates/protocol/` | Message translator and protocol runtime | 42 |
-| `crates/spec-model/` | The specification's independent model, `no_std` | 64 |
-| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers | 84 |
+| `crates/core/` | State machine | 169 |
+| `crates/protocol/` | Message translator and protocol runtime | 60 |
+| `crates/spec-model/` | The specification's independent model, `no_std` | 89 |
+| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers | 129 |
 | `validation/core-validation/` | Deterministic multi-node scenario harness | 39 |
-| `validation/protocol-validation/` | Convergence sweeps + in-process protocol cluster | 169 |
+| `validation/protocol-validation/` | Convergence sweeps + in-process protocol cluster | 176 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 155 |
+| `validation/system-tests/` addition | A node added to a running cluster across spawn/transport | 50 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 196 |
 | `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores | 163 |
 
 ---

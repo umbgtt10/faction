@@ -4,6 +4,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use faction::addition::Addition;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
@@ -12,6 +13,7 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
+use faction_protocol::newcomer::Newcomer;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::timer_event::TimerEvent;
@@ -29,6 +31,15 @@ pub struct Cluster {
     timers: Vec<InMemoryTimer>,
     transports: Vec<InMemoryTransport>,
     drops: Vec<DropRule>,
+    waiting: Option<WaitingNewcomer>,
+}
+
+// A newcomer connected to the cluster's transport, waiting for its membership.
+struct WaitingNewcomer {
+    pub peer_id: PeerId,
+    pub newcomer: Newcomer,
+    pub transport: InMemoryTransport,
+    pub timer: InMemoryTimer,
 }
 
 struct DropRule {
@@ -63,7 +74,43 @@ impl Cluster {
             timers,
             transports,
             drops: Vec::new(),
+            waiting: None,
         }
+    }
+
+    pub fn abort_addition(&mut self, index: usize, peer_id: PeerId) {
+        let decisions = self.protocols[index].abort_addition(peer_id);
+        self.route_all(decisions, index);
+    }
+
+    // A newcomer connected to every member's transport, waiting for the
+    // membership that makes it a node of the cluster.
+    pub fn add_newcomer(&mut self, peer_id: PeerId) {
+        let mut transport = InMemoryTransport::new_mesh(&[peer_id]).remove(0);
+        for (index, member) in self.peer_ids.iter().enumerate() {
+            transport.connect(*member, &self.transports[index]);
+            self.transports[index].connect(peer_id, &transport);
+        }
+        self.waiting = Some(WaitingNewcomer {
+            peer_id,
+            newcomer: Newcomer::new(peer_id, Box::new(NoOpObserver)),
+            transport,
+            timer: InMemoryTimer::new(),
+        });
+    }
+
+    pub fn addition(&mut self, index: usize) -> Addition {
+        self.protocols[index].cluster_view().addition()
+    }
+
+    pub fn change_required_count(&mut self, index: usize, required_count: usize) {
+        let decisions = self.protocols[index].change_required_count(required_count);
+        self.route_all(decisions, index);
+    }
+
+    pub fn commit_addition(&mut self, index: usize, peer_id: PeerId) {
+        let decisions = self.protocols[index].commit_addition(peer_id);
+        self.route_all(decisions, index);
     }
 
     pub fn drop_message(
@@ -95,8 +142,20 @@ impl Cluster {
             .all(|p| p.cluster_view().peer_state() == PeerState::Bootstrapped)
     }
 
+    pub fn is_newcomer_waiting(&self) -> bool {
+        self.waiting.is_some()
+    }
+
     pub fn is_timed_out(&mut self, index: usize) -> bool {
         self.protocols[index].cluster_view().peer_state() == PeerState::TimedOut
+    }
+
+    pub fn members(&mut self, index: usize) -> Vec<PeerId> {
+        self.protocols[index]
+            .cluster_view()
+            .members()
+            .as_slice()
+            .to_vec()
     }
 
     pub fn node_collecting_peers_len(&mut self, index: usize) -> usize {
@@ -108,6 +167,23 @@ impl Cluster {
 
     pub fn node_state(&mut self, index: usize) -> PeerState {
         self.protocols[index].cluster_view().peer_state()
+    }
+
+    pub fn request_addition(&mut self, index: usize, peer_id: PeerId) {
+        let decisions = self.protocols[index].request_addition(peer_id);
+        self.route_all(decisions, index);
+    }
+
+    // Every node's timer and transport stepped in turn, then the newcomer's,
+    // the given number of rounds.
+    pub fn run(&mut self, rounds: usize) {
+        for _ in 0..rounds {
+            for index in 0..self.peer_ids.len() {
+                self.step_timer_node(index);
+                self.step_transport_node(index);
+            }
+            self.step_newcomer();
+        }
     }
 
     pub fn start_all(&mut self) {
@@ -180,7 +256,19 @@ impl Cluster {
             OutputMessage::Cancel(event) => {
                 self.timers[index].cancel(event);
             }
-            OutputMessage::Noop => {}
+            OutputMessage::Send { to, message } => {
+                if !self.should_drop(from, to, &message) {
+                    self.transports[index].send(to, message);
+                }
+            }
+            OutputMessage::ProposeAddition { .. } | OutputMessage::Noop => {}
+        }
+    }
+
+    fn route_all(&mut self, decisions: Vec<OutputMessage>, index: usize) {
+        let from = self.peer_ids[index];
+        for decision in decisions {
+            self.route(decision, from);
         }
     }
 
@@ -192,5 +280,33 @@ impl Cluster {
             }
         }
         false
+    }
+
+    // The waiting newcomer given what has reached it: its membership makes it
+    // a node of the cluster; anything else it lets pass.
+    fn step_newcomer(&mut self) -> bool {
+        let Some(mut waiting) = self.waiting.take() else {
+            return false;
+        };
+        let Some(message) = waiting.transport.recv() else {
+            self.waiting = Some(waiting);
+            return false;
+        };
+        match waiting.newcomer.join(message) {
+            Ok((protocol, decisions)) => {
+                self.peer_ids.push(waiting.peer_id);
+                self.protocols.push(protocol);
+                self.timers.push(waiting.timer);
+                self.transports.push(waiting.transport);
+                self.route_all(decisions, self.peer_ids.len() - 1);
+            }
+            Err(newcomer) => {
+                self.waiting = Some(WaitingNewcomer {
+                    newcomer,
+                    ..waiting
+                });
+            }
+        }
+        true
     }
 }

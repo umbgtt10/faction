@@ -6,8 +6,11 @@ use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
 use faction_system_tests::infra::transport::tcp::tcp_transport::TcpTransport;
+use faction_system_tests::infra::transport::wire_codec::WireCodec;
+use std::io::Write;
 use std::net::SocketAddr;
 use std::net::TcpListener;
+use std::net::TcpStream;
 use std::sync::Arc;
 use std::thread::yield_now;
 
@@ -105,6 +108,33 @@ fn recv_empty_returns_none() {
 
     // Act & Assert
     assert_eq!(transports[0].recv(), None);
+}
+
+#[test]
+fn recv_of_frames_split_across_reads_on_two_connections_returns_each_whole() {
+    // Arrange
+    let listen_addr = free_addr();
+    let mut transport =
+        TcpTransport::new(listen_addr, 0, &[(0, listen_addr)], Arc::new(ThreadPause));
+    let first = WireCodec::encode(&msg_ping(1));
+    let second = WireCodec::encode(&msg_ready(2));
+    let mut connection_one = TcpStream::connect(listen_addr).unwrap();
+    let mut connection_two = TcpStream::connect(listen_addr).unwrap();
+    connection_one.write_all(&first[..6]).unwrap();
+    connection_two.write_all(&second[..6]).unwrap();
+    for _ in 0..50 {
+        assert_eq!(transport.recv(), None, "a frame read before it was whole");
+        yield_now();
+    }
+
+    // Act
+    connection_one.write_all(&first[6..]).unwrap();
+    connection_two.write_all(&second[6..]).unwrap();
+    let mut messages = vec![received(&mut transport), received(&mut transport)];
+
+    // Assert
+    messages.sort_by_key(|message| format!("{message:?}"));
+    assert_eq!(messages, vec![Some(msg_ping(1)), Some(msg_ready(2))]);
 }
 
 #[test]

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::node_states::NodeStates;
+use faction_spec_model::addition::Addition;
 use faction_spec_model::command::Command;
 use faction_spec_model::rules::situation::Situation;
 use faction_spec_model::vocabulary::command_name::CommandName;
@@ -9,10 +10,31 @@ use faction_spec_model::vocabulary::stage::Stage;
 
 const ADMITTED: [CommandName; 2] = [CommandName::ReadyObserved, CommandName::Probe];
 
+fn acknowledged(peer_id: &str) -> Addition {
+    Addition::Acknowledged(String::from(peer_id))
+}
+
 fn completion() -> Command {
     Command {
         name: CommandName::LocalParticipationCompleted,
         peer_id: None,
+        required_count: None,
+    }
+}
+
+fn naming(name: CommandName, peer_id: &str) -> Command {
+    Command {
+        name,
+        peer_id: Some(String::from(peer_id)),
+        required_count: None,
+    }
+}
+
+fn new_count(required_count: u64) -> Command {
+    Command {
+        name: CommandName::RequiredCountChanged,
+        peer_id: None,
+        required_count: Some(required_count),
     }
 }
 
@@ -20,7 +42,51 @@ fn readiness_from(peer_id: &str) -> Command {
     Command {
         name: CommandName::ReadyObserved,
         peer_id: Some(String::from(peer_id)),
+        required_count: None,
     }
+}
+
+fn requested(peer_id: &str) -> Addition {
+    Addition::Requested(String::from(peer_id))
+}
+
+#[test]
+fn holds_acknowledgement_not_awaited_from_another_peer_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(requested("4"));
+    let acknowledgement = naming(CommandName::MembershipAcknowledged, "5");
+
+    // Act
+    let holds = Situation::AcknowledgementNotAwaited.holds(&acknowledgement, &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_acknowledgement_not_awaited_from_the_requested_peer_is_false() {
+    // Arrange
+    let state = NodeStates::reconfiguring(requested("4"));
+    let acknowledgement = naming(CommandName::MembershipAcknowledged, "4");
+
+    // Act
+    let holds = Situation::AcknowledgementNotAwaited.holds(&acknowledgement, &state, &ADMITTED);
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_acknowledgement_not_awaited_once_acknowledged_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(acknowledged("4"));
+    let acknowledgement = naming(CommandName::MembershipAcknowledged, "4");
+
+    // Act
+    let holds = Situation::AcknowledgementNotAwaited.holds(&acknowledgement, &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
 }
 
 #[test]
@@ -30,6 +96,30 @@ fn holds_always_in_any_situation_is_true() {
 
     // Act
     let holds = Situation::Always.holds(&completion(), &state, &ADMITTED);
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_count_concludes_when_the_collecting_peers_fall_short_of_the_new_count_is_false() {
+    // Arrange
+    let state = NodeStates::of(Stage::Collecting, &[], &["1"]);
+
+    // Act
+    let holds = Situation::CountConcludes.holds(&new_count(3), &state, &ADMITTED);
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_count_concludes_when_the_collecting_peers_reach_the_new_count_is_true() {
+    // Arrange
+    let state = NodeStates::of(Stage::Collecting, &[], &["1"]);
+
+    // Act
+    let holds = Situation::CountConcludes.holds(&new_count(1), &state, &ADMITTED);
 
     // Assert
     assert!(holds);
@@ -177,6 +267,102 @@ fn holds_peer_is_not_member_for_a_stranger_is_true() {
 
     // Assert
     assert!(holds);
+}
+
+#[test]
+fn holds_peer_is_not_pending_for_another_peer_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(requested("4"));
+
+    // Act
+    let holds = Situation::PeerIsNotPending.holds(
+        &naming(CommandName::AdditionAborted, "5"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_peer_is_not_pending_for_the_pending_peer_is_false() {
+    // Arrange
+    let state = NodeStates::reconfiguring(acknowledged("4"));
+
+    // Act
+    let holds = Situation::PeerIsNotPending.holds(
+        &naming(CommandName::AdditionAborted, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_peer_is_pending_for_another_peer_is_false() {
+    // Arrange
+    let state = NodeStates::reconfiguring(requested("4"));
+
+    // Act
+    let holds = Situation::PeerIsPending.holds(
+        &naming(CommandName::AdditionCommitted, "5"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_peer_is_pending_for_the_acknowledged_peer_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(acknowledged("4"));
+
+    // Act
+    let holds = Situation::PeerIsPending.holds(
+        &naming(CommandName::AdditionCommitted, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_peer_is_pending_for_the_requested_peer_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(requested("4"));
+
+    // Act
+    let holds = Situation::PeerIsPending.holds(
+        &naming(CommandName::AdditionCommitted, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_peer_is_pending_with_no_addition_in_flight_is_false() {
+    // Arrange
+    let state = NodeStates::of(Stage::Bootstrapped, &[], &["1"]);
+
+    // Act
+    let holds = Situation::PeerIsPending.holds(
+        &naming(CommandName::AdditionCommitted, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
 }
 
 #[test]

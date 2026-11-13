@@ -1,0 +1,142 @@
+{
+  "description": "A commit naming a member, the node itself among them, is ignored, and nothing changes.",
+  "rows": [
+    "commit-member"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3"
+    ],
+    "required_count": "2"
+  },
+  "steps": [
+    {
+      "command": {
+        "AdditionCommitted": {
+          "peer_id": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "DuplicateMemberIgnored": {
+                "peer_id": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "AdditionCommitted": {
+          "peer_id": "1"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "DuplicateMemberIgnored": {
+                "peer_id": "1"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "addition": {
+              "None": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Fresh": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [],
+      "collecting_peers": [],
+      "required_count": "2",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2",
+        "3"
+      ],
+      "addition": {
+        "None": {}
+      }
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "LocalParticipationCompleted",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "AdditionCommitted",
+      "RequiredCountChanged",
+      "Probe"
+    ]
+  }
+}

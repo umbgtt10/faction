@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod addition_tests;
 pub mod cluster_tests;
 pub mod deadline_expired_tests;
 pub mod dropped_ready_tests;

@@ -99,12 +99,18 @@
 //! | `Pinging` | Active pinging and collecting peer sets |
 //! | `Collecting` | Collecting and pinged peer sets |
 //! | `Bootstrapped` | Terminal — quorum reached |
+//! | `Reconfiguring` | Concluded, coordinating one addition — shown as `Bootstrapped` |
 //!
-//! `Bootstrapped` is the only terminal state. A missed deadline is recorded as
+//! `Bootstrapped` is the only conclusion. A missed deadline is recorded as
 //! a fact — surfaced as `PeerState::TimedOut` — without leaving the current
 //! state, so the node stays receptive and can still converge. And a
 //! bootstrapped node answers a still-pinging peer with its readiness, so a
 //! concluded node is never a silent sink.
+//!
+//! A concluded node grows by one through the layer that commits changes above
+//! it: asked for an addition, it is `Reconfiguring` — one addition in flight —
+//! until the layer above reports the commit, which every node applies, or the
+//! abort.
 //!
 //! ## Observer
 //!
@@ -128,6 +134,7 @@ extern crate alloc;
 
 pub mod no_op_observer;
 
+pub mod addition;
 pub mod cluster_view;
 pub mod cluster_view_builder;
 pub mod command;

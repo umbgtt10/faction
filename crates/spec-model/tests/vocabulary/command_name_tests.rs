@@ -19,6 +19,11 @@ fn name_of_each_command_is_the_vocabulary_s_in_the_commands_order() {
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionRequested",
+            "MembershipAcknowledged",
+            "AdditionCommitted",
+            "AdditionAborted",
+            "RequiredCountChanged",
             "Probe",
         ]
     );

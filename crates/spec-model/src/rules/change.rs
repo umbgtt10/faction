@@ -4,6 +4,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::addition::Addition;
 use crate::command::Command;
 use crate::node_state::NodeState;
 
@@ -15,6 +16,11 @@ pub enum Change {
     NodeCollects,
     MissesDeadline,
     PeerJoins,
+    AdditionPends,
+    AdditionAcknowledged,
+    AdditionWithdrawn,
+    AdditionCompletes,
+    CountSet,
 }
 
 impl Change {
@@ -47,10 +53,35 @@ impl Change {
                 members: Self::appended(&state.members, peer_id),
                 ..state.clone()
             },
+            Change::AdditionPends => NodeState {
+                addition: Addition::Requested(Self::named(peer_id)),
+                ..state.clone()
+            },
+            Change::AdditionAcknowledged => NodeState {
+                addition: Addition::Acknowledged(Self::named(peer_id)),
+                ..state.clone()
+            },
+            Change::AdditionWithdrawn => NodeState {
+                addition: Addition::None,
+                ..state.clone()
+            },
+            Change::AdditionCompletes => NodeState {
+                members: Self::appended(&state.members, peer_id),
+                addition: Addition::None,
+                ..state.clone()
+            },
+            Change::CountSet => NodeState {
+                required_count: command.required_count.expect("a required count"),
+                ..state.clone()
+            },
         }
     }
 
     fn appended(peers: &[String], peer_id: Option<String>) -> Vec<String> {
         peers.iter().cloned().chain(peer_id).collect()
+    }
+
+    fn named(peer_id: Option<String>) -> String {
+        peer_id.expect("a peer")
     }
 }

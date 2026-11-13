@@ -9,4 +9,5 @@ use crate::vocabulary::command_name::CommandName;
 pub struct Command {
     pub name: CommandName,
     pub peer_id: Option<String>,
+    pub required_count: Option<u64>,
 }

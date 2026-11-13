@@ -1,8 +1,10 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::answers::Answers;
 use alloc::boxed::Box;
 use alloc::vec;
+use faction::addition::Addition;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::config::Config;
@@ -15,6 +17,16 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::state::State;
 use faction::states::bootstrapped::Bootstrapped;
+
+// A concluded node of members 0, 1 and 2, requiring two.
+fn concluded() -> Bootstrapped {
+    Bootstrapped::new(
+        Members::new(vec![0, 1, 2]),
+        QuorumPolicy::new(2),
+        vec![1],
+        vec![0, 1],
+    )
+}
 
 extern crate alloc;
 
@@ -32,10 +44,58 @@ fn reach_bootstrapped() -> Faction {
 }
 
 #[test]
+fn answer_of_a_committed_addition_admits_the_peer() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let (outcomes, answered) = bootstrapped
+        .answer(Command::AdditionCommitted { peer_id: 9 })
+        .expect("a concluded node applies a commit");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
+    let cluster_view = answered.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 9]);
+}
+
+#[test]
+fn answer_of_a_member_s_participation_acknowledges_its_rejoin() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let (outcomes, answered) = bootstrapped
+        .answer(Command::ParticipationObserved { peer_id: 2 })
+        .expect("a concluded node answers a member still bootstrapping");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 2 }]);
+    let previous = ClusterViewBuilder::default().build();
+    assert_eq!(
+        answered.cluster_view(&previous),
+        bootstrapped.cluster_view(&previous)
+    );
+}
+
+#[test]
+fn answer_of_an_addition_request_is_none() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let answered = bootstrapped.answer(Command::AdditionRequested { peer_id: 9 });
+
+    // Assert
+    assert!(answered.is_none());
+}
+
+#[test]
 fn cluster_view_overrides_all_fields() {
     // Arrange
     let bootstrapped = Bootstrapped::new(
         Members::new(vec![1, 2, 3, 4, 5]),
+        QuorumPolicy::new(4),
         vec![1, 2],
         vec![1, 2, 3, 4, 5],
     );
@@ -57,6 +117,54 @@ fn cluster_view_overrides_all_fields() {
     assert_eq!(result.pinging_peers(), &[1, 2]);
     assert_eq!(result.collecting_peers(), &[1, 2, 3, 4, 5]);
     assert_eq!(result.required_count(), 4);
+}
+
+#[test]
+fn process_addition_committed_admits_the_peer() {
+    // Arrange
+    let mut faction = reach_bootstrapped();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4, 9]);
+    assert_eq!(cluster_view.addition(), Addition::None);
+}
+
+#[test]
+fn process_addition_requested_of_a_member_is_ignored() {
+    // Arrange
+    let mut faction = reach_bootstrapped();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::AdditionRequested { peer_id: 2 }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::DuplicateMemberIgnored { peer_id: 2 }]
+    );
+    assert_eq!(cluster_view.addition(), Addition::None);
+}
+
+#[test]
+fn process_addition_requested_of_a_newcomer_reconfigures_still_bootstrapped() {
+    // Arrange
+    let mut faction = reach_bootstrapped();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::AdditionRequested { peer_id: 9 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::SendMembership { peer_id: 9 }]);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.addition(), Addition::Requested { peer_id: 9 });
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4]);
 }
 
 #[test]
@@ -133,5 +241,23 @@ fn process_rejects_participation_observed() {
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+}
+
+#[test]
+fn process_required_count_changed_sets_the_count_in_effect() {
+    // Arrange
+    let mut faction = reach_bootstrapped();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 2 }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::RequiredCountSet { required_count: 2 }]
+    );
+    assert_eq!(cluster_view.required_count(), 2);
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }

@@ -58,6 +58,19 @@ fn parse_reads_every_required_argument() {
     );
     assert_eq!(config.freshness_margin, 2);
     assert_eq!(config.log_path, None);
+    assert!(!config.newcomer);
+}
+
+#[test]
+fn parse_reads_the_newcomer_flag() {
+    // Arrange
+    let args = args(&["--newcomer"]);
+
+    // Act
+    let config = args.parse();
+
+    // Assert
+    assert!(config.newcomer);
 }
 
 #[test]

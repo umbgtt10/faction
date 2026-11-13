@@ -10,5 +10,9 @@ pub enum NodeCommand {
     Admit(PeerId, Sender<()>),
     Deny(PeerId, Sender<()>),
     ExpireDeadline(Sender<()>),
+    RequestAddition(PeerId, Sender<()>),
+    CommitAddition(PeerId, Sender<()>),
+    AbortAddition(PeerId, Sender<()>),
+    ChangeRequiredCount(usize, Sender<()>),
     Shutdown,
 }

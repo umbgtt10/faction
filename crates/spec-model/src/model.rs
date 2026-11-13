@@ -5,6 +5,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use serde_json::Value;
 
+use crate::addition::Addition;
 use crate::answer::Answer;
 use crate::configuration::Configuration;
 use crate::node_state::NodeState;
@@ -35,6 +36,7 @@ impl Model {
                 pinging_peers: Vec::new(),
                 collecting_peers: Vec::new(),
                 deadline_missed: false,
+                addition: Addition::None,
             },
         }
     }
