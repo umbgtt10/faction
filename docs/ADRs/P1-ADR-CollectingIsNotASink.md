@@ -61,6 +61,7 @@ two `Collecting × ParticipationObserved` cells (member, non-member); the previo
 `process_ignores_non_member_participation` pin the two outcomes and that the snapshot
 is unchanged; the transition matrix carries the two new valid cells and the
 admissible-invariant includes `ParticipationObserved` in `Collecting`'s set; the
-property model replays random sequences reaching `Collecting` and asserts the same.
+crate is checked against the specification's model over random sequences reaching
+`Collecting`, and answers the same.
 `system-tests`' `a_newcomer_admitted_before_bootstrap_still_converges` drives it
 end-to-end. All run in the stage-1 gate.

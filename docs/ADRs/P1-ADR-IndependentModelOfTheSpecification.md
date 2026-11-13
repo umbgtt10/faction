@@ -83,9 +83,12 @@ disagree with it about a row's result, outcomes or next stage — only about the
 situations, the changes, the peers and the view; the matrix itself is checked
 against the vectors and against the prose's admission.
 
-The property tier's own reference model predates the specification and is now
-redundant beside this one; retiring it is a decision of its own. The system
-tests' logs can be replayed against the model (`docs/OPEN_POINTS.md`).
+The property tier's own reference model, written with the crate before the
+specification, is retired: the crate against this model checks everything it
+did — each command's outcomes and the view after it — and more: every result
+whole, a rejection told apart from an acceptance with no outcomes, the peers
+listed rather than counted, and every required count. The system tests' logs can
+be replayed against the model (`docs/OPEN_POINTS.md`).
 
 ## Enforcement
 `cargo deny`'s bans in `deny.toml`. The model's conformance tier,

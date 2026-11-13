@@ -140,7 +140,7 @@ not a wire message, so no transport has to learn a new message type.
 | [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 18 rows and 41 conformance vectors |
 | `spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 64 tests |
 | `core/` unit tests | Each type and each step in isolation — 128 tests |
-| `ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 85 tests |
+| `ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 84 tests |
 | `core-validation/` | Multi-node deterministic scenarios — 39 tests |
 | `protocol/` | Message translation and protocol runtime — 42 tests |
 | `protocol-validation/` | Convergence sweeps across cluster/quorum sizes — 169 tests |
@@ -224,7 +224,7 @@ The caller owns the network. `faction` owns the state.
 |---|---|
 | Core productive LOC | ~1,130 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.1.0 — its independent model and the crate answer all 41 vectors as written |
-| Total tests | 926 |
+| Total tests | 925 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -318,7 +318,7 @@ for the complete technical specification.
 |---|---|---|
 | `core/` | State machine | 128 |
 | `spec-model/` | The specification's independent model, `no_std` | 64 |
-| `ladder/` | Conformance, the decision-table matrix, property and replay tiers | 85 |
+| `ladder/` | Conformance, the decision-table matrix, property and replay tiers | 84 |
 | `core-validation/` | Deterministic multi-node scenario harness | 39 |
 | `protocol/` | Message translator and protocol runtime | 42 |
 | `protocol-validation/` | Convergence sweeps + in-process protocol cluster | 169 |

@@ -121,17 +121,6 @@ node's writer) — so faults land inline in the per-node files and the merged
 
 ---
 
-## The property tier's reference model, beside the specification's
-
-`ladder/tests/property/model_tests.rs` replays random command sequences against
-a `ModelCoordinator` of its own, written with the crate before the specification
-existed. The specification's independent model (`spec-model/`,
-`P1-ADR-IndependentModelOfTheSpecification`) now answers random sequences beside
-the crate, every result compared whole, so the older model checks a subset of
-what the newer does. Retiring it removes tests, so it waits for the owner's word.
-
----
-
 ## The system tests' logs, replayed
 
 The replay tier replays logs written in-process — random command sequences and
