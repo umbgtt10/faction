@@ -9,7 +9,7 @@ fn gate(runner: &FakeCommandRunner) -> IcebergGate<'_> {
     IcebergGate::new(
         runner,
         String::from("Cargo.toml"),
-        vec![String::from("beggar")],
+        vec![String::from("faction")],
         String::from("5"),
     )
 }

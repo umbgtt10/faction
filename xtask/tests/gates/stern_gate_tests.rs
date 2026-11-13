@@ -9,7 +9,7 @@ fn gate(runner: &FakeCommandRunner) -> SternGate<'_> {
     SternGate::new(
         runner,
         String::from("Cargo.toml"),
-        vec![String::from("beggar")],
+        vec![String::from("faction")],
     )
 }
 
@@ -43,7 +43,7 @@ fn run_passes_the_manifest_path_and_package_to_the_tool() {
             String::from("--manifest-path"),
             String::from("Cargo.toml"),
             String::from("--package"),
-            String::from("beggar"),
+            String::from("faction"),
         ]
     );
     assert_eq!(runner.programs(), vec![String::from("cargo")]);

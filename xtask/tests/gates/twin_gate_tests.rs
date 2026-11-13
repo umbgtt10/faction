@@ -9,7 +9,7 @@ fn gate(runner: &FakeCommandRunner) -> TwinGate<'_> {
     TwinGate::new(
         runner,
         String::from("Cargo.toml"),
-        vec![String::from("beggar")],
+        vec![String::from("faction")],
     )
 }
 
@@ -39,13 +39,13 @@ fn run_passes_the_manifest_path_and_package_to_the_tool() {
         vec![
             // The subcommand cargo runs, then the package it is told to read.
             // Both are bare names and they are not the same name, which is how
-            // a careless rename turns `cargo twin4rust --package beggar` into
-            // `cargo beggar --package beggar` without any test noticing.
+            // a careless rename turns `cargo twin4rust --package faction` into
+            // `cargo faction --package faction` without any test noticing.
             String::from("twin4rust"),
             String::from("--manifest-path"),
             String::from("Cargo.toml"),
             String::from("--package"),
-            String::from("beggar"),
+            String::from("faction"),
         ]
     );
     assert_eq!(runner.programs(), vec![String::from("cargo")]);

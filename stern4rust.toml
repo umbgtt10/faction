@@ -12,8 +12,7 @@ exclude = ["**/generated/**"]
 skip = ["paired-test-file"]
 
 # The scenario tiers and the cluster simulations: their tests are named for
-# the scenarios they run, not for a source file, as beggar's ladder and
-# core-validation are.
+# the scenarios they run, not for a source file.
 [package.faction-ladder]
 skip = ["paired-test-file"]
 

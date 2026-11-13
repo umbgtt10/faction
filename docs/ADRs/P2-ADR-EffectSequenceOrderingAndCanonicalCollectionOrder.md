@@ -38,10 +38,9 @@ the commands: already reproducible, already comparable by deep equality.
 **Outcomes as an unordered set.** Rejected: every harness would compare without
 order, for a property that is deterministic and carries meaning.
 
-**Peers sorted by id, as `beggar` lists its records.** Rejected: the crate would
-sort what it already holds in a reproducible order, and its consumers would see
-members and peers reordered, for no correctness benefit. `beggar` sorts because
-its records live keyed by name; faction's peers arrive in an order of their own.
+**Peers sorted by id.** Rejected: the crate would sort what it already holds in
+a reproducible order, and its consumers would see members and peers reordered,
+for no correctness benefit: faction's peers arrive in an order of their own.
 
 ## Consequences
 

@@ -26,7 +26,7 @@ fn gate<'a>(runner: &'a FakeCommandRunner, parser: &'a CrapReportParser) -> Crap
         runner,
         parser,
         String::from("Cargo.toml"),
-        vec![String::from("beggar")],
+        vec![String::from("faction")],
         String::from("15"),
     )
 }

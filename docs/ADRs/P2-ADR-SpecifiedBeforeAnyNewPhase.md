@@ -20,8 +20,7 @@ the crate.
 A specification retrofitted after Phases 2 to 4 would have to recover three
 phases' behaviour from code — the cost the deferral meant to avoid, multiplied.
 Specified now, each phase extends a specification instead. The vocabulary the
-deferral protected has not moved since Phase 1, and `beggar`'s specification
-showed the method on the sibling crate.
+deferral protected has not moved since Phase 1.
 
 ## Rejected alternatives
 **Wait for Phase 1's hardware validation**, as decided in July. Rejected: the

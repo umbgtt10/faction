@@ -20,11 +20,10 @@ conformance vectors — and this crate is one implementation of it: where the tw
 disagree, the specification is right and the crate has a bug.
 
 ## Forcing constraints / Evidence
-It is practical here for the reasons it was for `beggar`: a pure machine with no
-I/O and no clock (`P0-ADR-PureMealyNoIO`, `P0-ADR-DeterministicReplayable`) has no
-encoding and no temporal logic to specify, and its one injected dependency, an
-observer, is told and answers nothing, so an implementation runs the vectors with
-nothing to stub.
+It is practical here: a pure machine with no I/O and no clock
+(`P0-ADR-PureMealyNoIO`, `P0-ADR-DeterministicReplayable`) has no encoding and no
+temporal logic to specify, and its one injected dependency, an observer, is told
+and answers nothing, so an implementation runs the vectors with nothing to stub.
 
 The crate came first, so the specification is drawn from what it does — but not
 from its tests. The prose and the decision table were written from the crate's

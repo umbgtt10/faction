@@ -10,7 +10,7 @@ fn every_tier(runner: &FakeCommandRunner) -> CoverageGate<'_> {
     CoverageGate::new(
         runner,
         String::from("Cargo.toml"),
-        vec![String::from("beggar"), String::from("beggar-ladder")],
+        vec![String::from("faction"), String::from("faction-ladder")],
         None,
     )
 }
@@ -19,7 +19,7 @@ fn one_tier(runner: &FakeCommandRunner) -> CoverageGate<'_> {
     CoverageGate::new(
         runner,
         String::from("Cargo.toml"),
-        vec![String::from("beggar"), String::from("beggar-ladder")],
+        vec![String::from("faction"), String::from("faction-ladder")],
         Some(String::from("conformance")),
     )
 }
@@ -65,9 +65,9 @@ fn run_asks_llvm_cov_to_fail_on_any_line_region_or_function_left_uncovered() {
             "--manifest-path",
             "Cargo.toml",
             "--package",
-            "beggar",
+            "faction",
             "--package",
-            "beggar-ladder",
+            "faction-ladder",
             "--summary-only",
             "--fail-uncovered-lines",
             "0",
