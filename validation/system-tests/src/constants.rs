@@ -10,5 +10,6 @@ pub const NODE_LIFETIME: Duration = Duration::from_secs(30);
 // How many of the members a missed probe lists a node asks to probe it.
 pub const HELPERS: usize = 2;
 
-// How many probe periods running a member must miss before it is suspected.
-pub const SUSPICION_THRESHOLD: usize = 1;
+// How many probe periods running a member must miss before it is suspected,
+// unless a test gives its cluster another threshold.
+pub const DEFAULT_SUSPICION_THRESHOLD: usize = 1;

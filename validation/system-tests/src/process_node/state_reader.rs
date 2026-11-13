@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::quorum::Quorum;
+use faction::types::PeerId;
 use std::io::BufRead;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -57,6 +59,15 @@ impl StateReader {
         }
     }
 
+    fn parse_quorum(text: &str) -> Option<Quorum> {
+        match text {
+            "off" => Some(Quorum::NotTracked),
+            "held" => Some(Quorum::Held),
+            "lost" => Some(Quorum::Lost),
+            _ => None,
+        }
+    }
+
     fn parse_state(line: &str) -> Option<NodeSnapshot> {
         let mut parts = line.split_whitespace();
         if parts.next()? != "state" {
@@ -66,12 +77,24 @@ impl StateReader {
         let member_count = parts.next()?.parse().ok()?;
         let required_count = parts.next()?.parse().ok()?;
         let addition = Self::parse_addition(parts.next()?)?;
+        let suspected = Self::parse_suspected(parts.next()?)?;
+        let quorum = Self::parse_quorum(parts.next()?)?;
         Some(NodeSnapshot {
             peer_state,
             member_count,
             required_count,
             addition,
+            suspected,
+            quorum,
         })
+    }
+
+    fn parse_suspected(text: &str) -> Option<Vec<PeerId>> {
+        if text == "-" {
+            Some(Vec::new())
+        } else {
+            text.split(',').map(|peer| peer.parse().ok()).collect()
+        }
     }
 
     fn read(&self, line: &str) {

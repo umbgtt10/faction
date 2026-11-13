@@ -23,7 +23,6 @@ use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
 
 use faction_system_tests::constants::HELPERS;
-use faction_system_tests::constants::SUSPICION_THRESHOLD;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
@@ -32,6 +31,9 @@ use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
+use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
+use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
+use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::grpc::grpc_transport::GrpcTransport;
 use faction_system_tests::infra::transport::tcp::tcp_transport::TcpTransport;
 use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
@@ -105,7 +107,7 @@ fn main() {
             Vec::new(),
             Role::Waiting(Newcomer::new(
                 config.peer_id,
-                SUSPICION_THRESHOLD,
+                config.suspicion_threshold,
                 HELPERS,
                 observer,
             )),
@@ -115,7 +117,7 @@ fn main() {
             config.peer_id,
             config.peers.clone(),
             QuorumPolicy::new(config.required),
-            SUSPICION_THRESHOLD,
+            config.suspicion_threshold,
         );
         let protocol = Protocol::new(
             Faction::new(faction_config, observer),
@@ -125,7 +127,23 @@ fn main() {
         );
         (config.peers, Role::Running(Box::new(protocol)))
     };
-    let node = FactionNode::new(config.peer_id, peers, role, transport, timer, node_observer);
+    let cuts = LinkCuts::default();
+    let faulty = Box::new(FaultyTransport::new(
+        config.peer_id,
+        FaultPolicy::default(),
+        cuts.clone(),
+        config.log_path.as_deref().map(SharedWriter::open),
+        transport,
+    ));
+    let node = FactionNode::new(
+        config.peer_id,
+        peers,
+        role,
+        faulty,
+        timer,
+        node_observer,
+        cuts,
+    );
 
     let commands = ProcessCommand::read_lines(BufReader::new(stdin()));
     ProcessRunner::new(

@@ -14,6 +14,12 @@ use crate::constants::DEFAULT_DEADLINE_CYCLES;
 use crate::traits::monotonic_clock::MonotonicClock;
 
 const DEFAULT_DELAY: Duration = Duration::from_millis(50);
+// The probe period and its timeouts, in delays: a period long enough for a
+// node to keep up with the probes it sends and answers; a probe answered
+// within two hops' time and a relayed one within four, with room to spare.
+const INDIRECT_PROBES_DELAYS: u32 = 8;
+const PROBE_DUE_DELAYS: u32 = 5;
+const PROBE_MISSED_DELAYS: u32 = 4;
 
 type Entry = (Reverse<Duration>, Reverse<u64>, TimerEvent);
 
@@ -63,10 +69,14 @@ impl Timer for RealTimer {
     }
 
     fn schedule(&mut self, event: TimerEvent) {
-        let delay = if matches!(event, TimerEvent::Fire(TimerMessage::DeadlineExpired)) {
-            self.deadline_delay
-        } else {
-            self.delay
+        let delay = match event {
+            TimerEvent::Fire(TimerMessage::DeadlineExpired) => self.deadline_delay,
+            TimerEvent::Fire(TimerMessage::ProbeDue) => self.delay * PROBE_DUE_DELAYS,
+            TimerEvent::Fire(TimerMessage::ProbeMissed { .. }) => self.delay * PROBE_MISSED_DELAYS,
+            TimerEvent::Fire(TimerMessage::IndirectProbesMissed { .. }) => {
+                self.delay * INDIRECT_PROBES_DELAYS
+            }
+            _ => self.delay,
         };
         self.scheduled += 1;
         self.events.push((

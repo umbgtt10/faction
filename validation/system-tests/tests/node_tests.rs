@@ -43,6 +43,7 @@ fn spec() -> ProcessSpec {
         String::from(env!("CARGO_BIN_EXE_faction-node")),
         TransportKind::Tcp,
         1,
+        1,
         Duration::from_millis(10),
         100,
         None,
@@ -312,7 +313,7 @@ fn spawn_thread_runs_the_node_on_a_thread_of_its_own() {
 }
 
 #[test]
-fn start_and_step_of_a_task_node_reach_pinging() {
+fn start_and_step_of_a_task_node_reach_collecting() {
     // Arrange
     let (node, clock) = task_node();
 
@@ -322,7 +323,7 @@ fn start_and_step_of_a_task_node_reach_pinging() {
     node.step();
 
     // Assert
-    assert_eq!(node.peer_state(), PeerState::Pinging);
+    assert_eq!(node.peer_state(), PeerState::Collecting);
 }
 
 #[test]

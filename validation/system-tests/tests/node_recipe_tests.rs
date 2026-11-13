@@ -51,6 +51,7 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
     create_dir_all(&dir).unwrap();
     let recipe = NodeRecipe::new(
         1,
+        1,
         Duration::from_millis(10),
         Duration::from_secs(10),
         Some(dir.clone()),

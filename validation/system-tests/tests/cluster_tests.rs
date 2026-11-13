@@ -27,6 +27,7 @@ fn cluster() -> (Cluster, Arc<FakeMonotonicClock>) {
         .collect();
     let cluster = Cluster::new(
         nodes,
+        vec![0, 1],
         Spawn::Task,
         TimerDelay::Minimal,
         None,
@@ -54,6 +55,19 @@ fn abort_addition_of_a_requested_addition_withdraws_it() {
 }
 
 #[test]
+fn cut_of_the_only_link_keeps_the_two_from_concluding() {
+    // Arrange
+    let (mut cluster, _) = cluster();
+    cluster.cut(0, 1);
+
+    // Act
+    cluster.settle(50);
+
+    // Assert
+    assert!(!cluster.is_bootstrapped());
+}
+
+#[test]
 fn new_holds_the_nodes_it_is_given() {
     // Arrange & Act
     let (cluster, _) = cluster();
@@ -76,6 +90,19 @@ fn settle_pauses_once_a_round() {
 }
 
 #[test]
+fn silence_of_a_node_keeps_the_cluster_from_concluding() {
+    // Arrange
+    let (mut cluster, _) = cluster();
+    cluster.silence(0);
+
+    // Act
+    cluster.settle(50);
+
+    // Assert
+    assert!(!cluster.is_bootstrapped());
+}
+
+#[test]
 fn step_all_steps_every_node() {
     // Arrange
     let (mut cluster, clock) = cluster();
@@ -86,6 +113,21 @@ fn step_all_steps_every_node() {
     cluster.step_all();
 
     // Assert
-    assert_eq!(cluster.node_state(0), PeerState::Pinging);
-    assert_eq!(cluster.node_state(1), PeerState::Pinging);
+    assert_eq!(cluster.node_state(0), PeerState::Collecting);
+    assert_eq!(cluster.node_state(1), PeerState::Bootstrapped);
+}
+
+#[test]
+fn unsilence_lets_a_silenced_cluster_conclude() {
+    // Arrange
+    let (mut cluster, _) = cluster();
+    cluster.silence(0);
+    cluster.settle(50);
+
+    // Act
+    cluster.unsilence(0);
+    cluster.poll_until(Cluster::is_bootstrapped);
+
+    // Assert
+    assert!(cluster.is_bootstrapped());
 }

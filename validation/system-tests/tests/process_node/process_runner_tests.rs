@@ -69,8 +69,26 @@ fn run_applies_a_command_then_acknowledges_it() {
     // Assert
     assert_eq!(
         output.text(),
-        "state Fresh 3 2 none\nstate Fresh 4 2 none\nack\nstate Fresh 4 2 none\n"
+        "state Fresh 3 2 none - off\nstate Fresh 4 2 none - off\nack\nstate Fresh 4 2 none - off\n"
     );
+}
+
+#[test]
+fn run_applies_a_cut_and_a_mend_and_acknowledges_each() {
+    // Arrange
+    let (time, _) = fake_time();
+    let (_sender, receiver) = sent(&[
+        ProcessCommand::Cut(1),
+        ProcessCommand::Mend(1),
+        ProcessCommand::Shutdown,
+    ]);
+    let (runner, output, _) = runner(time, receiver, Duration::from_millis(10));
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert_eq!(output.text().matches("ack").count(), 2);
 }
 
 #[test]
@@ -92,7 +110,7 @@ fn run_applies_the_addition_commands_and_acknowledges_each() {
     // Assert
     let text = output.text();
     assert_eq!(text.matches("ack").count(), 4);
-    assert!(text.ends_with("state Fresh 4 3 none\n"), "{text}");
+    assert!(text.ends_with("state Fresh 4 3 none - off\n"), "{text}");
 }
 
 #[test]
@@ -113,7 +131,7 @@ fn run_applies_the_join_commands_without_admitting() {
     // Assert
     let text = output.text();
     assert_eq!(text.matches("ack").count(), 3);
-    assert!(text.ends_with("state Fresh 3 2 none\n"), "{text}");
+    assert!(text.ends_with("state Fresh 3 2 none - off\n"), "{text}");
 }
 
 #[test]
@@ -143,5 +161,5 @@ fn run_without_commands_ends_once_its_lifetime_is_over() {
 
     // Assert
     assert!(clock.now() >= Duration::from_secs(30), "{:?}", clock.now());
-    assert!(output.text().starts_with("state Fresh 3 2 none\n"));
+    assert!(output.text().starts_with("state Fresh 3 2 none - off\n"));
 }

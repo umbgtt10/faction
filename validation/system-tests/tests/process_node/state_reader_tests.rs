@@ -3,6 +3,7 @@
 
 use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::process_node::state_reader::StateReader;
 use rstest::rstest;
@@ -18,23 +19,25 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
         member_count: 9,
         required_count: 9,
         addition: Addition::Acknowledged { peer_id: 9 },
+        suspected: vec![9],
+        quorum: Quorum::Lost,
     }));
     let (acks, ack_receiver) = channel();
     StateReader::new(snapshot.clone(), acks)
         .spawn(Cursor::new(output))
         .join()
         .unwrap();
-    let read = *snapshot.lock().unwrap();
+    let read = snapshot.lock().unwrap().clone();
     (read, ack_receiver)
 }
 
 #[rstest]
-#[case("state Fresh 2 3 none", PeerState::Fresh)]
-#[case("state Pinging 2 3 none", PeerState::Pinging)]
-#[case("state Collecting 2 3 none", PeerState::Collecting)]
-#[case("state Bootstrapped 2 3 none", PeerState::Bootstrapped)]
-#[case("state TimedOut 2 3 none", PeerState::TimedOut)]
-#[case("state Weird 2 3 none", PeerState::Fresh)]
+#[case("state Fresh 2 3 none - off", PeerState::Fresh)]
+#[case("state Pinging 2 3 none - off", PeerState::Pinging)]
+#[case("state Collecting 2 3 none - off", PeerState::Collecting)]
+#[case("state Bootstrapped 2 3 none - off", PeerState::Bootstrapped)]
+#[case("state TimedOut 2 3 none - off", PeerState::TimedOut)]
+#[case("state Weird 2 3 none - off", PeerState::Fresh)]
 fn spawn_reads_a_state_line_into_the_snapshot(
     #[case] line: &'static str,
     #[case] peer_state: PeerState,
@@ -50,14 +53,16 @@ fn spawn_reads_a_state_line_into_the_snapshot(
             member_count: 2,
             required_count: 3,
             addition: Addition::None,
+            suspected: Vec::new(),
+            quorum: Quorum::NotTracked,
         }
     );
 }
 
 #[rstest]
-#[case("state Bootstrapped 3 2 none", Addition::None)]
-#[case("state Bootstrapped 3 2 requested:7", Addition::Requested { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 acknowledged:7", Addition::Acknowledged { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 none - held", Addition::None)]
+#[case("state Bootstrapped 3 2 requested:7 - held", Addition::Requested { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 acknowledged:7 - held", Addition::Acknowledged { peer_id: 7 })]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
     #[case] addition: Addition,
@@ -67,6 +72,22 @@ fn spawn_reads_the_addition_of_a_state_line(
 
     // Assert
     assert_eq!(snapshot.addition, addition);
+}
+
+#[rstest]
+#[case("state Bootstrapped 5 3 none - held", Vec::new(), Quorum::Held)]
+#[case("state Bootstrapped 5 3 none 4,2 lost", vec![4, 2], Quorum::Lost)]
+#[case("state Pinging 5 3 none - off", Vec::new(), Quorum::NotTracked)]
+fn spawn_reads_the_suspected_members_and_the_quorum_of_a_state_line(
+    #[case] line: &'static str,
+    #[case] suspected: Vec<u64>,
+    #[case] quorum: Quorum,
+) {
+    // Arrange & Act
+    let (snapshot, _) = read(line);
+
+    // Assert
+    assert_eq!((snapshot.suspected, snapshot.quorum), (suspected, quorum));
 }
 
 #[test]

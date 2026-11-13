@@ -9,6 +9,7 @@ pub mod convergence_tests;
 pub mod faction_node_tests;
 pub mod infra;
 pub mod joining_tests;
+pub mod liveness_tests;
 pub mod node_recipe_tests;
 pub mod node_tests;
 pub mod process_node;

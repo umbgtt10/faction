@@ -17,6 +17,7 @@ pub struct ProcessSpec {
     bin: String,
     transport: TransportKind,
     node_required: usize,
+    suspicion_threshold: usize,
     timer_delay: Duration,
     freshness_margin: u32,
     log_dir: Option<PathBuf>,
@@ -25,10 +26,12 @@ pub struct ProcessSpec {
 
 impl ProcessSpec {
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         bin: String,
         transport: TransportKind,
         node_required: usize,
+        suspicion_threshold: usize,
         timer_delay: Duration,
         freshness_margin: u32,
         log_dir: Option<PathBuf>,
@@ -38,6 +41,7 @@ impl ProcessSpec {
             bin,
             transport,
             node_required,
+            suspicion_threshold,
             timer_delay,
             freshness_margin,
             log_dir,
@@ -105,6 +109,8 @@ impl ProcessSpec {
             .arg(&peers_arg)
             .arg("--required")
             .arg(self.node_required.to_string())
+            .arg("--suspicion-threshold")
+            .arg(self.suspicion_threshold.to_string())
             .arg("--freshness-margin")
             .arg(self.freshness_margin.to_string())
             .arg("--transport")

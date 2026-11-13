@@ -12,6 +12,7 @@ pub struct ProcessNodeConfig {
     pub peer_id: PeerId,
     pub peers: Vec<PeerId>,
     pub required: usize,
+    pub suspicion_threshold: usize,
     pub freshness_margin: u64,
     pub transport: TransportKind,
 

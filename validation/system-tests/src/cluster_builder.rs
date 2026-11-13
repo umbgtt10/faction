@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::DEFAULT_SUSPICION_THRESHOLD;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
 use std::env::var as env_var;
@@ -50,6 +51,7 @@ pub struct ClusterBuilder {
     transport: TransportKind,
     timer_delay: TimerDelay,
     freshness_margin: u32,
+    suspicion_threshold: usize,
     log_dir: Option<PathBuf>,
 }
 
@@ -64,6 +66,7 @@ impl ClusterBuilder {
             transport: TransportKind::InMemory,
             timer_delay: TimerDelay::Minimal,
             freshness_margin: DEFAULT_DEADLINE_CYCLES,
+            suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
             log_dir: None,
         }
     }
@@ -80,6 +83,7 @@ impl ClusterBuilder {
         let delay = self.timer_delay.duration();
         let recipe = NodeRecipe::new(
             self.node_required,
+            self.suspicion_threshold,
             delay,
             delay * self.freshness_margin,
             self.log_dir.clone(),
@@ -102,6 +106,7 @@ impl ClusterBuilder {
 
         Cluster::new(
             nodes,
+            peer_ids.clone(),
             self.spawn,
             self.timer_delay,
             joining,
@@ -132,6 +137,14 @@ impl ClusterBuilder {
             Spawn::Process => TimerDelay::Generous,
         };
         self.spawn = spawn;
+        self
+    }
+
+    // How many probe periods running a member must miss before its nodes
+    // suspect it.
+    #[must_use]
+    pub fn suspicion_threshold(mut self, threshold: usize) -> Self {
+        self.suspicion_threshold = threshold;
         self
     }
 
@@ -167,6 +180,7 @@ impl ClusterBuilder {
             Self::node_binary(),
             self.transport,
             self.node_required,
+            self.suspicion_threshold,
             self.timer_delay.duration(),
             self.freshness_margin,
             self.log_dir.clone(),
@@ -186,6 +200,7 @@ impl ClusterBuilder {
         });
         Cluster::new(
             nodes,
+            peer_ids.to_vec(),
             self.spawn,
             self.timer_delay,
             Some(joining),

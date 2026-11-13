@@ -24,6 +24,7 @@ impl Args {
         let mut peer_id: Option<PeerId> = None;
         let mut peers: Option<Vec<PeerId>> = None;
         let mut required: Option<usize> = None;
+        let mut suspicion_threshold: Option<usize> = None;
         let mut freshness_margin: Option<u64> = None;
         let mut transport: Option<TransportKind> = None;
 
@@ -52,6 +53,11 @@ impl Args {
                 "--required" => {
                     i += 1;
                     required = Some(self.args[i].parse().expect("invalid --required"));
+                }
+                "--suspicion-threshold" => {
+                    i += 1;
+                    suspicion_threshold =
+                        Some(self.args[i].parse().expect("invalid --suspicion-threshold"));
                 }
                 "--freshness-margin" => {
                     i += 1;
@@ -106,6 +112,7 @@ impl Args {
             peer_id: peer_id.expect("missing --peer-id"),
             peers: peers.expect("missing --peers"),
             required: required.expect("missing --required"),
+            suspicion_threshold: suspicion_threshold.expect("missing --suspicion-threshold"),
             freshness_margin: freshness_margin.unwrap_or(2),
             transport: transport.expect("missing --transport"),
 

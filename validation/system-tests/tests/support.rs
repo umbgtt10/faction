@@ -58,6 +58,7 @@ pub fn real_time() -> TimePorts {
 pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
     NodeRecipe::new(
         required,
+        1,
         Duration::from_millis(10),
         Duration::from_secs(10),
         None,

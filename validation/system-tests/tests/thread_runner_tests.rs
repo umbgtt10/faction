@@ -5,6 +5,7 @@ use crate::support::fake_time;
 use crate::support::in_memory_node;
 use faction::addition::Addition;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
 use faction_system_tests::node_command::NodeCommand;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::thread_runner::ThreadRunner;
@@ -20,6 +21,8 @@ fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
         member_count: 0,
         required_count: 0,
         addition: Addition::None,
+        suspected: Vec::new(),
+        quorum: Quorum::NotTracked,
     }))
 }
 
@@ -41,6 +44,30 @@ fn new_publishes_nothing_until_run() {
 
     // Assert
     assert_eq!(published.lock().unwrap().member_count, 0);
+}
+
+#[test]
+fn run_applies_a_cut_and_a_mend_and_acknowledges_each() {
+    // Arrange
+    let (time, _) = fake_time();
+    let (commands, receiver) = channel();
+    let (ack, acks) = channel();
+    commands.send(NodeCommand::Cut(1, ack.clone())).unwrap();
+    commands.send(NodeCommand::Mend(1, ack)).unwrap();
+    commands.send(NodeCommand::Shutdown).unwrap();
+    let runner = ThreadRunner::new(
+        in_memory_node(&[0, 1, 2], 2, &time),
+        receiver,
+        snapshot(),
+        time,
+        Duration::from_millis(10),
+    );
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert_eq!(acks.try_iter().count(), 2);
 }
 
 #[test]
@@ -76,7 +103,7 @@ fn run_applies_the_addition_commands_and_acknowledges_each() {
 
     // Assert
     assert_eq!(acks.try_iter().count(), 4);
-    let published = *published.lock().unwrap();
+    let published = published.lock().unwrap().clone();
     assert_eq!(published.member_count, 4);
     assert_eq!(published.required_count, 3);
 }

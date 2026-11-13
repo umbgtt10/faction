@@ -14,5 +14,7 @@ pub enum NodeCommand {
     CommitAddition(PeerId, Sender<()>),
     AbortAddition(PeerId, Sender<()>),
     ChangeRequiredCount(usize, Sender<()>),
+    Cut(PeerId, Sender<()>),
+    Mend(PeerId, Sender<()>),
     Shutdown,
 }

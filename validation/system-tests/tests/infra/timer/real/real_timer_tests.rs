@@ -184,3 +184,76 @@ fn with_delays_deadline_waits_its_own_delay() {
         Some(TimerEvent::Fire(TimerMessage::DeadlineExpired))
     );
 }
+
+#[test]
+fn with_delays_indirect_probes_missed_waits_eight_delays() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+        peer_id: 1,
+    }));
+    clock.advance(Duration::from_millis(79));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+            peer_id: 1
+        }))
+    );
+}
+
+#[test]
+fn with_delays_probe_due_waits_five_delays() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::ProbeDue));
+    clock.advance(Duration::from_millis(49));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(timer.poll(), Some(TimerEvent::Fire(TimerMessage::ProbeDue)));
+}
+
+#[test]
+fn with_delays_probe_missed_waits_four_delays() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }));
+    clock.advance(Duration::from_millis(39));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }))
+    );
+}

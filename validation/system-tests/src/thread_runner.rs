@@ -87,6 +87,14 @@ impl ThreadRunner {
                     self.node.abort_addition(peer_id);
                     ack
                 }
+                Ok(NodeCommand::Cut(peer_id, ack)) => {
+                    self.node.cut(peer_id);
+                    ack
+                }
+                Ok(NodeCommand::Mend(peer_id, ack)) => {
+                    self.node.mend(peer_id);
+                    ack
+                }
                 Ok(NodeCommand::ChangeRequiredCount(required_count, ack)) => {
                     self.node.change_required_count(required_count);
                     ack

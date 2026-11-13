@@ -19,6 +19,8 @@ pub enum ProcessCommand {
     CommitAddition(PeerId),
     AbortAddition(PeerId),
     RequiredCount(usize),
+    Cut(PeerId),
+    Mend(PeerId),
     Peer(PeerId, SocketAddr),
     Shutdown,
 }
@@ -36,6 +38,8 @@ impl ProcessCommand {
             "commit-addition" => Some(Self::CommitAddition(parts.next()?.parse().ok()?)),
             "abort-addition" => Some(Self::AbortAddition(parts.next()?.parse().ok()?)),
             "required-count" => Some(Self::RequiredCount(parts.next()?.parse().ok()?)),
+            "cut" => Some(Self::Cut(parts.next()?.parse().ok()?)),
+            "mend" => Some(Self::Mend(parts.next()?.parse().ok()?)),
             "peer" => {
                 let id = parts.next()?.parse().ok()?;
                 let addr = parts.next()?.parse().ok()?;

@@ -19,6 +19,8 @@ fn args(extra: &[&str]) -> Args {
         "0,1",
         "--required",
         "2",
+        "--suspicion-threshold",
+        "3",
         "--transport",
         "tcp",
         "--timer-delay",
@@ -49,6 +51,7 @@ fn parse_reads_every_required_argument() {
     assert_eq!(config.peer_id, 1);
     assert_eq!(config.peers, vec![0, 1]);
     assert_eq!(config.required, 2);
+    assert_eq!(config.suspicion_threshold, 3);
     assert_eq!(config.transport, TransportKind::Tcp);
     assert_eq!(config.timer_delay_ms, 20);
     assert_eq!(config.listen_addr, addr("127.0.0.1:4001"));
