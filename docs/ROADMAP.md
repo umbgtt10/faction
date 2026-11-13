@@ -3,7 +3,7 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-13  
-**Current status:** Phase 1 — dynamic joining landed, specified (specification 0.1.0, released in 0.5.0)
+**Current status:** Phase 3 — single-node addition landed (specification 0.2.0, the crate's 0.6.0 unreleased)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -115,14 +115,14 @@ and acts on the caller's decision. Admission policy belongs to the protocol abov
 | Transport protocols validated | 4 — Memory, Channels, TCP, gRPC |
 
 `Members` are carried in each `State` (genesis ∪ admitted); admission stays a local
-control-plane decision, with policy owned by the caller. The single deferred scenario —
-`join-raises-quorum` — awaits the Phase-3/4 quorum-change command (see `OPEN_POINTS.md`).
+control-plane decision, with policy owned by the caller. The scenario Phase 1 deferred —
+`join-raises-quorum` — runs in Phase 3, as a committed addition raising the required count.
 
 ---
 
 ## Cross-cutting — Specification & conformance suite
 
-**Status:** specification 0.1.0 written, in [`spec/`](../spec/SPEC.md).
+**Status:** specification 0.2.0 written, in [`spec/`](../spec/SPEC.md).
 **Not a numbered phase:** this spans every phase rather than removing one
 limitation; it does not fit the L1-L7 framing above and does not shift any
 phase's numbering.
@@ -132,7 +132,7 @@ it, so a non-Rust port has a machine-checkable conformance target instead of
 only the Rust source to read (`P0-ADR-SpecificationIsNormativeCrateIsReference`).
 The specification's four parts — schema, decision table, prose and vectors — are
 written by hand and versioned together; its 0.1.0 is Phase 1's vocabulary,
-joining included. From here every phase changes the specification first, then
+joining included, and its 0.2.0 adds Phase 3's addition. From here every phase changes the specification first, then
 the crate (`P2-ADR-SpecifiedBeforeAnyNewPhase`). The specification's independent
 model, `crates/spec-model/`, checks each phase's vectors before the crate runs them
 (`P1-ADR-IndependentModelOfTheSpecification`).
@@ -173,22 +173,21 @@ re-evaluated as liveness changes.
 The machine never probes. It emits probe commands. The caller executes them. Results
 return as inputs. The Mealy invariant is maintained.
 
-**Gate:** 100% `(state, input)` coverage. Phase 3 does not begin until this gate is green.
+**Gate:** 100% `(state, input)` coverage. Phase 4 does not begin until this gate is green.
 
 ---
 
 ## Phase 3 — Single-node addition
 
-**Status:** Planned  
-**Target:** 4–6 weeks  
-**Depends on:** Phase 2 complete  
-**Removes limitation:** L3 — no addition protocol  
+**Status:** ✅ Complete — specification 0.2.0; the crate's 0.6.0, unreleased
+**Depends on:** Phase 1 complete — built ahead of Phase 2
+**Removes limitation:** L3 — no addition protocol
 
-`faction` answers: *"Can we grow by one, safely?"*
+`faction` answers: *"Can a running cluster grow by one, safely?"*
 
-Membership changes are now controlled via a commit/abort reconfiguration protocol.
-The machine enforces a strict single-change-at-a-time invariant structurally — it is
-impossible to request a second addition while one is in flight.
+A concluded node grows by one through the layer that commits changes above it
+(`P1-ADR-AdditionThroughTheLayerThatCommits`). One addition is in flight at a time,
+refused structurally while it is: the stage admits no second request.
 
 **Why this is distinct from Phase 1.** Phase 1 answers "is this peer allowed
 to participate?" — it is a gatekeeper with no safety guarantees. Multiple
@@ -197,22 +196,34 @@ Phase 3 answers "does changing the member set preserve quorum safety?" — it
 wraps the change in a commit/abort protocol with a mutual exclusion guard.
 Where Phase 1 is permissive and stateless, Phase 3 is coordinated and atomic.
 
-**New states:**
-- `Reconfiguring(PendingAddition)` — one addition committed, further changes blocked
+**New stage:**
+- `Reconfiguring` — concluded, one addition in flight; its peer state is `Bootstrapped`,
+  its view names the addition
 
-**New inputs:**
-- `RequestAdd { node }` — caller requests addition
-- `JoinAck { from }` — joining node confirmed membership snapshot
-- `AddCommitted` — consensus layer committed the addition
-- `AddAborted` — addition failed, rollback
+**New commands:**
+- `AdditionRequested { peer_id }` — the caller asks the node to coordinate an addition
+- `MembershipAcknowledged { peer_id }` — the newcomer holds the membership it was sent
+- `AdditionCommitted { peer_id }` — the layer above committed the addition, on every node
+- `AdditionAborted { peer_id }` — the layer above abandoned it
+- `RequiredCountChanged { required_count }` — the count in effect, reported with the commit
 
-**New outputs:**
-- `SendMembershipSnapshot { to }` — send current membership to joining node
-- `RejectAdd { reason }` — second change requested while one is in flight
-- `EmitMemberAdded { node }` — committed, stable
+**New outcomes:**
+- `SendMembership { peer_id }` — send the newcomer the members and the required count
+- `ProposeAddition { peer_id }` — propose the addition to the layer above
+- `AdditionWithdrawn`, `AcknowledgementIgnored`, `AbortIgnored`, `RequiredCountSet`
 
 **Core invariant:** at no point do two disjoint subsets of nodes each believe they form
-a valid quorum. Single-at-a-time additions make this structurally impossible.
+a valid quorum. One addition at a time, counted on every node only once committed,
+makes this structurally impossible.
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| Specification | 0.2.0 — 29 rows, 62 vectors, every row exercised |
+| `(stage, command)` coverage | All 65 pairs — explicitly |
+| In-process scenarios | 6 — a lost membership, a lost acknowledgement, a commit reaching nodes still bootstrapping, a commit for another peer, a count lowered while collecting, an abort |
+| System scenarios | 5, in all 10 spawn and transport cases |
 
 **Gate:** 100% `(state, input)` coverage. Phase 4 does not begin until this gate is green.
 
@@ -222,7 +233,7 @@ a valid quorum. Single-at-a-time additions make this structurally impossible.
 
 **Status:** Planned  
 **Target:** 4–6 weeks  
-**Depends on:** Phase 3 complete  
+**Depends on:** Phases 2 and 3 complete  
 **Removes limitation:** L4 — no removal protocol  
 
 `faction` answers: *"Can we shrink by one, without breaking quorum?"*
@@ -329,9 +340,9 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.1.0 written |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.2.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
-| 3 | Single-node addition | 4–6 weeks | Planned |
+| 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0; crate 0.6.0 unreleased) |
 | 4 | Single-node removal | 4–6 weeks | Planned |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |

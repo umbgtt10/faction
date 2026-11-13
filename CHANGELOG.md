@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.6.0] — unreleased
+
+### Phase 3: a concluded cluster grows by one
+
+#### Added
+- [`spec/`](./spec/SPEC.md) 0.2.0: addition, a concluded node growing by one through the layer that
+  commits changes above it (`P1-ADR-AdditionThroughTheLayerThatCommits`). A fifth stage,
+  `Reconfiguring` — concluded, its peer state `Bootstrapped`, its view naming the addition in
+  flight; five commands, `AdditionRequested`, `MembershipAcknowledged`, `AdditionCommitted`,
+  `AdditionAborted` and `RequiredCountChanged`; six outcomes, `SendMembership`, `ProposeAddition`,
+  `AdditionWithdrawn`, `AcknowledgementIgnored`, `AbortIgnored` and `RequiredCountSet`; eleven
+  rows (29 in all); 21 vectors (62 in all). The 0.1.0 vectors change only in their views, which
+  gain the addition, and their admissible lists, which gain the new commands.
+- The specification's independent model answers 0.2.0 before the crate does.
+- The crate: the commands, the outcomes, `faction::addition::Addition`, `ClusterView::addition`,
+  `ClusterViewBuilder::with_addition` and `faction::states::reconfiguring::Reconfiguring`. The
+  required count in effect is state, starting at the configuration's; a count the collecting peers
+  already reach concludes.
+- `faction-protocol`: the messages `Membership` and `MembershipAcknowledged`; the outputs `Send`
+  and `ProposeAddition`; the timer `RetryMembership`, re-sending the membership until it is
+  acknowledged; `request_addition`, `commit_addition`, `abort_addition` and
+  `change_required_count`; a running node acknowledging every membership; and `Newcomer`,
+  which waits for its membership and becomes a node of it.
+- The matrix tier covers all 65 `(stage × command)` pairs; the property tier and the invariants
+  draw the new commands; the in-process cluster runs six addition scenarios under loss; the
+  system tests add a node to a running cluster in every spawn and transport (50 tests).
+
+#### Changed — breaking
+- `faction::states::join_decision::JoinDecision` and `join_step::JoinStep` are
+  `membership_decision::MembershipDecision` and `membership_step::MembershipStep`: a join
+  decision, a committed addition or a new count.
+- The state structs' constructors take the count in effect, a `QuorumPolicy`;
+  `ClusterView::new` takes the addition.
+- `MessageTranslator::to_output_messages` takes the result's view and the local peer id.
+
+#### Fixed
+- `faction-protocol`: the translator turns every outcome of a result into messages, in order;
+  it stopped at the first it recognised.
+- System tests: TCP and gRPC share one length-prefixed codec, and TCP keeps a receive buffer per
+  connection, queuing every connection's whole messages in arrival order — one shared buffer
+  worked only while every frame was the same nine bytes.
+
 ## [0.5.0] — 2026-11-13
 
 ### Laid out by role

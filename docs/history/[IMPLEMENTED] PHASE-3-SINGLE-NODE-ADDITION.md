@@ -1,7 +1,19 @@
-# [PROPOSAL] Phase 3 — single-node addition
+# [IMPLEMENTED] Phase 3 — single-node addition
 
-**Status:** decisions D1–D9 accepted by the owner, 2026-11-13. The plan for the protocol and the
-system tests (§6, §7) awaits the owner's word; nothing is built.
+**Status:** implemented on the branch `phase-3`, 2026-11-13, every decision and the plan as
+accepted, but for these departures, each found while building:
+
+- **No cancel on a commit.** `MemberAdmitted` follows an admission as well as a commit, so the
+  translator cannot tell when it ends an addition; the membership's retry stops itself instead,
+  finding the addition no longer requested (§6).
+- **"Proposed" read from the coordinator's view.** The harness waits for the coordinator's view to
+  show the addition acknowledged — the moment `ProposeAddition` is emitted — rather than recording
+  the output (§7).
+- **Broadcast lists read on change.** A node reads its members from its view after an admission or
+  a commit, not before every broadcast, which would add a probe to every log line (§7).
+- **TCP's receive queue.** A first per-connection buffer answered from the first connection with a
+  whole frame, and starved the others: eight TCP scenarios timed out. Every connection's whole
+  messages are now queued in the order they arrived (§7).
 **Releases:** specification 0.2.0, then the crate 0.6.0.
 **Order:** Phase 3 goes ahead of Phase 2 (the owner's order); it depends on Phase 1 alone.
 

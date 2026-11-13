@@ -42,8 +42,8 @@ interpreted. Records hold the data — the command, the configuration, the node'
 state, a row, a rule — and objects the behaviour: the reader of the encoding,
 the table, the rule book, the view.
 
-**What it found.** All 41 vectors, 103 steps and their final answers, answered
-as written; each vector decided by exactly the rows it names; every row of the
+**What it found.** Every vector — 62 of them, 190 steps — and its final answer,
+answered as written; each vector decided by exactly the rows it names; every row of the
 matrix decided by some vector; the model's rule book holding exactly the
 matrix's rows; and the matrix admitting in each stage what the prose's §5
 states. Then, over random sequences of up to 40 commands — every command, its

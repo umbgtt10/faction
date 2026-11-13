@@ -25,6 +25,7 @@ importance:
 | [P2-ADR-TotalObservability](P2-ADR-TotalObservability.md) | Every call reaches the `Observer` once, with the command and its result, on every path. |
 | [P2-ADR-StateStructsBehindStageEnum](P2-ADR-StateStructsBehindStageEnum.md) | One struct per state behind a `State` trait, held in a `Stage` enum that only delegates; growth is additive. |
 | [P2-ADR-StateAsTraitObject](P2-ADR-StateAsTraitObject.md) | The states held as `Box<dyn State>`. **Superseded** by `P2-ADR-StateStructsBehindStageEnum`. |
+| [P1-ADR-AdditionThroughTheLayerThatCommits](P1-ADR-AdditionThroughTheLayerThatCommits.md) | A concluded node grows by one through the layer that commits changes above it: one addition in flight, the commit applied on every node, the count changed by its own command. |
 | [P2-ADR-ClusterViewBuilderAndDto](P2-ADR-ClusterViewBuilderAndDto.md) | The view consumers receive is an immutable read-model; construction lives in a separate builder. |
 | [P2-ADR-TestingLadder](P2-ADR-TestingLadder.md) | A fixed test-tier ladder — unit, matrix, property, simulation, system — run by one gate. |
 | [P0-ADR-SpecificationIsNormativeCrateIsReference](P0-ADR-SpecificationIsNormativeCrateIsReference.md) | The specification in `spec/` — schema, decision table, prose, vectors, written by hand — is normative; this crate is one implementation of it. |

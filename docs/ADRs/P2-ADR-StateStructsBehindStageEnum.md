@@ -6,8 +6,7 @@
 - **Phase:** cross-cutting
 
 ## Context
-The machine must grow from today's four lifecycle states to many more across
-Phases 2–6, without each addition destabilising the states that already exist.
+The machine must grow from its lifecycle stages to many more across Phases 2–6, without each addition destabilising the states that already exist.
 It must also own its current state outright: the lifecycle is the machine's
 internal business, never a dependency a consumer supplies.
 
