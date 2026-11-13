@@ -249,7 +249,8 @@ held against, which it may lose or restore (§14).
 
 ## 13. Liveness
 
-**A concluded node tracks its members' liveness**, one probe period at a time. The caller keeps the clock:
+**A concluded node tracks its members' liveness**, one probe period at a time
+([`P1-ADR-LivenessReportedNotStaged`](../docs/ADRs/P1-ADR-LivenessReportedNotStaged.md)). The caller keeps the clock:
 it reports when a period starts, when a member is heard from, and when a member has missed its probe, directly or through
 others. The node decides whom to probe, whom to ask, and when to suspect. Every member is alive when the node
 concludes, and a member admitted or added later is alive when it becomes one. Liveness never changes the stage, and

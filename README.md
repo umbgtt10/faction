@@ -28,6 +28,8 @@ that answers the question deterministically, observably, and provably.
 `faction` tracks participation and readiness signals across a known set of peers and
 emits a deterministic exit decision — **Bootstrapped** — when quorum forms. A missed
 deadline is reported as **TimedOut**, but is not terminal: the node stays receptive.
+Once concluded, a node watches its members' liveness and says when too few of them
+answer to hold its quorum.
 
 It does exactly this. Nothing more.
 
@@ -81,17 +83,18 @@ Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
 | `Initial` | Freshly created, no action taken | Nothing — unit struct |
 | `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
-| `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Final peer sets at time of exit |
+| `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Final peer sets at time of exit, and its members' liveness |
 | `Reconfiguring` | Concluded, coordinating one addition — shown as `Bootstrapped` | The concluded node's sets and the addition in flight |
 
 A missed deadline is **not** a state: it is recorded as a fact (reported as
 `PeerState::TimedOut` through a derived flag) while the node stays receptive and
 can still converge. And `Bootstrapped` is not a silent sink — it re-advertises its
-readiness to a peer that is still trying to join.
+readiness to a peer that is still trying to join. Liveness is not a state either: a
+concluded node's suspicions are what its view reports, never where it is.
 
 ### Commands and outcomes
 
-Thirteen commands drive the machine:
+Seventeen commands drive the machine:
 
 | Command | Meaning |
 |---|---|
@@ -107,6 +110,10 @@ Thirteen commands drive the machine:
 | `AdditionCommitted { peer_id }` | The layer above committed the addition |
 | `AdditionAborted { peer_id }` | The layer above abandoned it |
 | `RequiredCountChanged { required_count }` | The required count in effect changed |
+| `ProbeDue` | A probe period began |
+| `PeerHeard { peer_id }` | A sign of life from a member |
+| `ProbeMissed { peer_id }` | A member missed its probe |
+| `IndirectProbesMissed { peer_id }` | A member missed the period, through every member asked too |
 | `Probe` | Query current state without mutation |
 
 Every command produces a structured result — `Accepted`, `Rejected`, or `Probed` —
@@ -149,23 +156,36 @@ above reports, whatever its stage, and the required count changes by its own
 command, reported with it. `faction` decides neither who may be added nor how a
 change commits.
 
+### Failure detection
+
+A concluded node probes its members one period at a time, as SWIM's failure detector
+does: it names the member to probe, round-robin; a member that misses its probe is
+probed through others; one that misses as many periods running as the node's
+suspicion threshold is suspected, and one heard from again is revived. The node says
+when its members not suspected fall below the required count, and when they reach it
+again. The caller keeps the clock and carries the probes; each node judges for itself,
+and a suspect stays a member — only a removal, which the layer above commits, takes
+one away. How tolerant a node is, is its deployment's: the period and timeouts, the
+helpers asked, and the threshold it is created with.
+
 ### Validation harness
 
 `faction` ships with a multi-layered validation harness:
 
 | Harness | What it tests |
 |---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 29 rows and 62 conformance vectors |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 89 tests |
-| `crates/core/` unit tests | Each type and each step in isolation — 169 tests |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them; logs replayed — 129 tests |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 46 rows and 78 conformance vectors |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 130 tests |
+| `crates/core/` unit tests | Each type and each step in isolation — 208 tests |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, and liveness's invariants; logs replayed — 155 tests |
 | `validation/core-validation/` | Multi-node deterministic scenarios — 39 tests |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer among it — 60 tests |
-| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, and an addition under loss — 176 tests |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it — 87 tests |
+| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, and liveness with time passing at a test's word — 186 tests |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
 | `validation/system-tests/` addition | A node added to a running cluster across spawn/transport — 50 tests |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself — 196 tests |
+| `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport — 50 tests |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself — 223 tests |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -250,9 +270,9 @@ The caller owns the network. `faction` owns the state.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~1,130 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.2.0 — its independent model and the crate answer all 62 vectors as written |
-| Total tests | 1,152 |
+| Core productive LOC | ~1,730 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.3.0 — its independent model and the crate answer all 78 vectors as written |
+| Total tests | 1,372 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -294,8 +314,8 @@ Each principle above is recorded as an Architecture Decision Record — see
 `faction` deliberately does not:
 
 - Perform network I/O — the caller sends and receives messages
-- Implement failure detection — that is Phase 2
-- Manage the full membership lifecycle — Phase 1 joining has landed; add/remove and reconfiguration are Phases 2–6
+- Confirm a member dead, or remove one for its silence — a suspect stays a member; removal is Phase 4, through the layer that commits
+- Manage the full membership lifecycle — joining, addition and failure detection have landed; removal, epochs and concurrent changes are Phases 4–6
 - Know about consensus — protocols build on top of `faction`, not inside it
 - Provide a runtime — async, threading, and process management are the caller's concern
 
@@ -329,10 +349,11 @@ once from crates.io:
 
 `faction` is building toward full dynamic membership across six incremental phases.
 **Phase 1 (dynamic joining)** has landed — a newcomer joins a running cluster and
-converges across the full spawn/transport matrix — and **Phase 3 (single-node
+converges across the full spawn/transport matrix — **Phase 3 (single-node
 addition)** with it: a concluded cluster grows by one through the layer that commits
-changes above it. Failure detection, single-node removal, and Byzantine-tolerant
-reconfiguration follow.
+changes above it — and **Phase 2 (failure detection)** after it: a concluded node
+probes its members and suspects those it cannot reach. Single-node removal, epochs and
+concurrent changes follow.
 
 Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.
@@ -349,16 +370,17 @@ The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative
 
 | Crate | Role | Tests |
 |---|---|---|
-| `crates/core/` | State machine | 169 |
-| `crates/protocol/` | Message translator and protocol runtime | 60 |
-| `crates/spec-model/` | The specification's independent model, `no_std` | 89 |
-| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers | 129 |
+| `crates/core/` | State machine | 208 |
+| `crates/protocol/` | Message translator and protocol runtime | 87 |
+| `crates/spec-model/` | The specification's independent model, `no_std` | 130 |
+| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers | 155 |
 | `validation/core-validation/` | Deterministic multi-node scenario harness | 39 |
-| `validation/protocol-validation/` | Convergence sweeps + in-process protocol cluster | 176 |
+| `validation/protocol-validation/` | Convergence sweeps + in-process protocol cluster | 186 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
 | `validation/system-tests/` addition | A node added to a running cluster across spawn/transport | 50 |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, the process node and the harness itself | 196 |
+| `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport | 50 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself | 223 |
 | `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores | 163 |
 
 ---

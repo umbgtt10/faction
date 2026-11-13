@@ -113,6 +113,14 @@
 //! until the layer above reports the commit, which every node applies, or the
 //! abort.
 //!
+//! A concluded node also tracks its members' liveness, the caller keeping the
+//! clock: at each probe period it names the member to probe, round-robin; a
+//! member that misses its probe is probed through others; one that misses as
+//! many periods running as the configuration's suspicion threshold is
+//! suspected, and one heard from again is revived. Its view says when the
+//! members not suspected fall below the required count, and when they reach it
+//! again. A suspect stays a member: liveness is reported, never a stage.
+//!
 //! ## Observer
 //!
 //! Every call — an accepted command, a rejected one, a probe — is reported once

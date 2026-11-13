@@ -113,12 +113,13 @@ quorum.** Not by policy. Not by convention. By construction.
 ### Construction
 
 ```rust
-let config = Config::new(peer_id, peers, QuorumPolicy::new(required));
+let config = Config::new(peer_id, peers, QuorumPolicy::new(required), suspicion_threshold);
 let machine = Faction::new(config, observer);
 ```
 
-`Config` holds the static peer list and quorum threshold. `QuorumPolicy` wraps an
-integer — the machine only checks "does the confirmed count meet or exceed this?"
+`Config` holds the static peer list, the quorum threshold and the suspicion threshold —
+how many probe periods running a member must miss before it is suspected. `QuorumPolicy`
+wraps an integer — the machine only checks "does the confirmed count meet or exceed this?"
 `Faction::new` takes both plus an `Observer` trait object. Construction produces a
 machine in the `Initial` state, its view `Fresh`: the configuration's peers as its
 members, its required count, and nothing confirmed.
@@ -130,7 +131,7 @@ members, its required count, and nothing confirmed.
 | `Initial` | Freshly created, no signal taken | Its members |
 | `Pinging` | Collecting participation signals from peers | Members, the participation and readiness accepted so far, and whether the deadline was missed |
 | `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
-| `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Members, and the peer sets at the conclusion |
+| `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Members, the peer sets at the conclusion, and its members' liveness |
 | `Reconfiguring` | Concluded, coordinating one addition — its peer state `Bootstrapped` | The concluded node, the peer whose addition is in flight, and whether it has acknowledged |
 
 Every stage carries the node's members — the configuration's peers, then each peer
@@ -155,6 +156,10 @@ progress, but it still accepts `ParticipationObserved` and re-advertises its rea
 (`AcknowledgeRejoin`) — so a peer that missed the original broadcast and is still
 pinging can always recover.
 
+Liveness is not a state either (`P1-ADR-LivenessReportedNotStaged`). A concluded node
+probes its members and suspects those it cannot reach, but a suspicion changes what its
+view shows, never what it admits.
+
 ### Commands
 
 | Command | Meaning |
@@ -171,6 +176,10 @@ pinging can always recover.
 | `AdditionCommitted { peer_id }` | The layer above committed the addition — reported to every node |
 | `AdditionAborted { peer_id }` | The layer above abandoned the addition |
 | `RequiredCountChanged { required_count }` | The required count in effect — reported with the change it belongs to |
+| `ProbeDue` | A probe period began |
+| `PeerHeard { peer_id }` | A sign of life from the member — an answer to a probe, direct or relayed |
+| `ProbeMissed { peer_id }` | The member missed its probe |
+| `IndirectProbesMissed { peer_id }` | The member missed the period, directly and through every member asked |
 | `Probe` | Query current state without mutation |
 
 ### Outcomes
@@ -197,6 +206,16 @@ pinging can always recover.
 | `AcknowledgementIgnored { peer_id }` | An acknowledgement not awaited, or a repeat |
 | `AbortIgnored { peer_id }` | An abort naming no addition in flight |
 | `RequiredCountSet { required_count }` | The required count in effect is now this |
+| `SendProbe { peer_id }` | Probe the member — the next in turn |
+| `NothingToProbe` | The node is its only member |
+| `SendIndirectProbes { peer_id, via }` | Ask members of those listed to probe it |
+| `MissCounted { peer_id, misses }` | A missed period counted, below the suspicion threshold |
+| `PeerSuspected { peer_id }` | The member has missed as many periods running as the threshold |
+| `PeerRevived { peer_id }` | A suspect heard from again |
+| `AliveNoted { peer_id }` | A member alive heard from; its missed periods forgotten |
+| `AlreadySuspected { peer_id }` | A suspect missed again; nothing changed |
+| `SelfIgnored { peer_id }` | A command of liveness naming the node itself |
+| `QuorumLost` / `QuorumRestored` | The command took the members not suspected across the required count |
 
 The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
 The view says so from then on: its peer state is `Bootstrapped`.
@@ -275,6 +294,28 @@ Duplicate signals never re-trigger quorum checks. Quorum is never checked before
 node's own completion: readiness accumulates while `Pinging` and counts at completion.
 This ensures the two-phase invariant holds under all inputs.
 
+Once concluded, the node holds its quorum while its members not suspected number the
+count in effect or more. A suspicion or a raised count may lose it; a revival, a member
+admitted or added, or a lowered count may restore it; the command that crosses says so,
+last among its outcomes.
+
+### Liveness
+
+A concluded node probes its members one period at a time, as SWIM's failure detector
+does, without its gossip (`P1-ADR-LivenessReportedNotStaged`). The caller keeps the clock:
+
+1. `ProbeDue` names the member after the one probed last, round-robin, the node skipped —
+   every other member once every N−1 periods.
+2. `ProbeMissed` lists the members not suspected that may probe the missed one, from the
+   member after it; the caller asks the first k.
+3. `IndirectProbesMissed` counts a missed period; at the configuration's suspicion
+   threshold the member is suspected.
+4. `PeerHeard` revives a suspect, and forgets an alive member's missed periods.
+
+A suspect stays a member: only a removal, committed by the layer above, takes a member
+away. How tolerant a node is, is its deployment's — the period and timeouts, the helpers
+asked, and the threshold it is created with.
+
 ### Step structs
 
 Decision logic is split into focused step structs. Each handles one kind of
@@ -312,6 +353,9 @@ returns:
 - The required count in effect
 - Members — the configuration's peers, then every admitted or added peer, in arrival order
 - The addition in flight — none, requested of a peer, or acknowledged by it
+- The suspected members, in the order suspected, and each member's missed periods
+- The member probed last
+- The quorum — not tracked before the conclusion, then held or lost
 
 The queryability model means external monitors can poll any node's view without
 perturbing the machine. Composition of multiple nodes' cluster views gives an

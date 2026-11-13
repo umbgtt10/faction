@@ -52,7 +52,10 @@ cost of stepping on each command to list them. No state holds an arm that cannot
 be reached. A state
 that hands over to another builds that `Stage` variant itself, so the states
 know `Stage`'s variants — the price of returning owned data instead of a trait
-object.
+object. What two states answer alike lives in one struct they share rather than
+in a state of its own: `Reconfiguring` wraps `Bootstrapped`, and both answer
+liveness through `Liveness` — `Probing` and `Suspicion` under `states/` — so its
+rows are written once.
 
 ## Enforcement
 `crates/core/src/states/` holds one file per state, each an `impl State`;

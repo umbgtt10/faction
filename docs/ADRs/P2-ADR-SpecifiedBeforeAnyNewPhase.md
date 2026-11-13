@@ -30,7 +30,8 @@ hardware forces is a change to the specification like any other.
 ## Consequences
 The specification's 0.1.0 is Phase 1's vocabulary — bootstrapping and joining —
 which the crate conforms to from 0.5.0; its 0.2.0 adds Phase 3's addition, which the
-crate conforms to from 0.6.0. Each later phase opens with its specification's next
+crate conforms to from 0.6.0; its 0.3.0 adds Phase 2's failure detection, which the
+crate conforms to from 0.7.0. Each later phase opens with its specification's next
 version.
 
 ## Enforcement

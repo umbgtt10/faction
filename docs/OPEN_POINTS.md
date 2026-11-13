@@ -28,7 +28,7 @@ integration (the ROADMAP publication checklist already asks for one).
 
 ---
 
-## Robustness under adversarial delivery (pre-Phase 2)
+## Robustness under adversarial delivery
 
 The whole transport matrix — InMemory, Channels, TCP, gRPC — is **reliable and
 ordered**: everything is delivered, in order, exactly once. That proves faction is
@@ -63,18 +63,22 @@ the wire decode already turns garbage into loss; **throttle / bandwidth** — fa
 cares about delivery, not throughput.
 
 **Hardening hypothesis.** Faction is already designed for this — retries, idempotent
-sets, and a non-terminal `TimedOut` that self-heals — so the expected Phase-2 verdict
+sets, and a non-terminal `TimedOut` that self-heals — so the expected verdict
 is *no core hardening*: the real knob is operational (the deadline / freshness margin
 tuned against the loss rate, which per faction's design is the caller's, not the
 machine's). The outcome that *would* mean hardening is a **permanent stall below
 100 % loss** — a convergence-critical signal that turns out not to be retried. That is
 what the assessment hunts for.
 
-**Fault logging (deferred with the wiring).** When `FaultyTransport` is wired into
-`ClusterBuilder`, a fired fault is recorded as one more line in the same per-node log the
-observers already write (`{"event":"fault","fault":…,"to":…,"message":…}`, sharing that
-node's writer) — so faults land inline in the per-node files and the merged
-`consolidated.jsonl` timeline, never a separate file. Deferred to the Phase-2 wiring.
+**Wired, the assessment still open.** Phase 2 wired `FaultyTransport` around every
+node's transport, a process's included, and gave it `LinkCuts`, the links a test cuts
+and mends while the cluster runs; its liveness scenarios silence members and cut links
+through it. Every fault it fires is one more line of the node's own log
+(`{"event":"fault","fault":…,"node":…,"to":…,"message":…}`), inline in the per-node file
+and the merged `consolidated.jsonl` timeline. What stays open is the assessment itself:
+the seeded policies — loss, duplication, delay, reordering, partition, one-way links,
+a selective drop — run against the bootstrap's retries, the hunt for a permanent stall
+below 100 % loss.
 
 ---
 

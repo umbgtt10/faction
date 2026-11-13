@@ -1,6 +1,32 @@
-# [PROPOSAL] Phase 2 — failure detection
+# [IMPLEMENTED] Phase 2 — failure detection
 
-**Status:** accepted, 2026-11-13: every decision, D1 to D12, the owner's twelfth added at their word.
+**Status:** implemented on the branch `phase-2`, 2026-11-13, every decision, D1 to D12 — the owner's twelfth
+added at their word — and the plan as accepted, but for these departures, each found while building:
+
+- **Only probe answers count.** D4 has the protocol report probe answers alone; §6 also had a received `Probe` count
+  as its sender heard. D4 holds: `ProbeAnswer` and `IndirectProbeAnswer` are `PeerHeard`, and a probe received is
+  only answered (§6).
+- **The period rescheduled while concluded.** `ProbeDue` is rescheduled each time it fires on a concluded node, and
+  on no other — the retries' rule, read the other way round (§6).
+- **`SelfIgnored` names the peer.** It carries the command's `peer_id`, as every outcome that names a peer does (§4).
+- **The helpers are the translator's.** dry4rust found `Protocol::new` and `Bootstrapped::new` near-duplicates, each
+  storing what it was given beside one value it built; `MessageTranslator::new` takes the helpers, its default
+  asking every member listed, and `Protocol::new` still takes them (§6).
+- **`Liveness` is `Probing` and `Suspicion`.** One file of liveness was past iceberg4rust's ceiling of 5; the rows
+  are still written once, the two concluded states sharing the three structs (§5).
+- **The deterministic cluster holds liveness timers.** Its timer fires every timer the next round, before that
+  round's messages: no period could be modelled. It holds each node's `ProbeDue`, `ProbeMissed` and
+  `IndirectProbesMissed` as scheduled, and fires one only when a test elapses it, so its earlier scenarios carry no
+  probe traffic. The seven scenarios are ten, one assertion each (§7).
+- **The node cuts its own links.** `FactionNode` holds the `LinkCuts` its `FaultyTransport` drops by, and a cut or a
+  mend travels as an admission does — a call, a thread's `NodeCommand`, a process's stdin line (§7).
+- **The probe period and its timeouts in delays of their own.** One delay for every timer suspected live members;
+  the period is five timer delays, the probe's timeout four, the indirect probes' eight (§7).
+- **A task node steps until idle.** One input a round could not keep up with its probes; a task node now steps
+  until its timer and its transport are both idle, as a thread or a process does between two pauses. Two tests
+  pinned the old single step and take the new values, as specific (§7).
+- **The quorum before the conclusion is `off` on the state line**, not `untracked`, which a test counting `ack`
+  lines matched (§7).
 **Releases:** specification 0.3.0, then the crate 0.7.0.
 **Order:** after Phase 3, before Phase 4, which removes a member and needs to know which members are alive.
 

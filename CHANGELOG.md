@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.7.0] — unreleased
+
+### Phase 2: a concluded node watches its members' liveness
+
+#### Added
+- [`spec/`](./spec/SPEC.md) 0.3.0: liveness, a concluded node probing its members one period at a
+  time, as SWIM's failure detector does, the caller keeping the clock
+  (`P1-ADR-LivenessReportedNotStaged`). The configuration gains a suspicion threshold — how many
+  periods running a member must miss before it is suspected, each node's own. Four commands,
+  admitted in the concluded stages alone, `ProbeDue`, `PeerHeard`, `ProbeMissed` and
+  `IndirectProbesMissed`; eleven outcomes, `SendProbe`, `NothingToProbe`, `SendIndirectProbes`,
+  `MissCounted`, `PeerSuspected`, `PeerRevived`, `AliveNoted`, `AlreadySuspected`, `SelfIgnored`,
+  `QuorumLost` and `QuorumRestored`; seventeen rows (46 in all) — twelve of liveness and five twins
+  of the admission, commit and count rows that say a crossing of the quorum; the view's
+  suspected members, missed periods, member probed last and quorum; 16 vectors (78 in all). The
+  0.2.0 vectors change only in their configurations, their views and the concluded stages'
+  admissible lists.
+- The specification's independent model answers 0.3.0 before the crate does.
+- The crate: the commands, the outcomes, `faction::quorum::Quorum`, `faction::miss_count::MissCount`,
+  `ClusterView`'s `suspected`, `misses`, `last_probed` and `quorum`, the builder's four `with_`
+  methods, `Config::suspicion_threshold`, and `faction::states::liveness::Liveness` — made of
+  `Probing` and `Suspicion` — shared by `Bootstrapped` and `Reconfiguring`.
+- `faction-protocol`: the messages `Probe`, `ProbeAnswer`, `IndirectProbe` and
+  `IndirectProbeAnswer`, a probe and its answer naming whom they are relayed for; the timers
+  `ProbeDue`, started at the conclusion, `ProbeMissed` and `IndirectProbesMissed`; `ProbeRelay`,
+  answering and relaying probes with no table of its own; only probe answers count as a sign of
+  life.
+- The matrix tier covers the four commands in every stage; the property tier draws them at a random
+  threshold, against the model, and holds three invariants of liveness; the in-process cluster
+  holds each node's liveness timers until a test elapses them, and runs ten scenarios; the system
+  tests silence members and cut links in every spawn and transport (50 tests), through a
+  `FaultyTransport` now around every node's transport, its faults in the node's log.
+
+#### Changed — breaking
+- `Config::new` takes the suspicion threshold.
+- `ClusterView::new` takes the suspected members, the missed periods, the member probed last and
+  the quorum.
+- `Bootstrapped::answer` takes the configuration.
+- `Protocol::new` takes the helpers a missed probe is followed up through, and
+  `MessageTranslator::new` takes them too, its default asking every member listed;
+  `Newcomer::new` takes its suspicion threshold and its helpers.
+
 ## [0.6.0] — 2026-11-13
 
 ### Phase 3: a concluded cluster grows by one
