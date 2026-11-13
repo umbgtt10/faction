@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.8.0] — unreleased
+
+### Phase 4: a concluded cluster shrinks by one
+
+#### Added
+- [`spec/`](./spec/SPEC.md) 0.4.0: removal, a concluded cluster shrinking by one through the layer
+  that commits changes above it (`P1-ADR-RemovalThroughTheLayerThatCommits`), coordinated as an
+  addition is but with no handshake. A node refuses to coordinate the removal of a member not
+  suspected when the members not suspected would number fewer than the required count without
+  it; a suspect's removal it never refuses for the quorum. A commit is applied on every node, in
+  every stage, the peer leaving every list the node holds, its liveness with it; it may lose the
+  quorum, and never restores it. A sixth stage, `Removed` — a node whose own removal committed,
+  admitting a probe alone, never shown `TimedOut`. Three commands, `RemovalRequested`,
+  `RemovalCommitted` and `RemovalAborted`; four outcomes, `ProposeRemoval`, `RemovalRefused`,
+  `RemovalWithdrawn` and `MemberRemoved`; the peer state `Removed`; ten rows (56 in all) and four
+  widened; 15 vectors (93 in all). The 0.3.0 vectors change only in the view's field and the
+  admissible lists.
+- The specification's independent model answers 0.4.0 before the crate does; it caught three of
+  the new vectors as first written.
+- The crate: the commands, the outcomes, `PeerState::Removed`,
+  `faction::states::removed::Removed`, `Members::without` and `Members::retained`, and the
+  liveness forgetting a member no longer one (`Liveness::of_members`, with `Probing`'s and
+  `Suspicion`'s).
+- `faction-protocol`: `request_removal`, `commit_removal` and `abort_removal`, and the output
+  `ProposeRemoval`; a member removed has its probe timeouts cancelled. No message on the wire.
+- The matrix tier covers the sixth stage and the three commands; the property tier draws them,
+  and holds that a removal is proposed exactly when the quorum can spare the member; the
+  in-process cluster runs seven scenarios; the system tests remove nodes in every spawn and
+  transport (50 tests), the process node's state line writing `removing:N` and `Removed`.
+
+#### Changed — breaking
+- The view's addition is its reconfiguration, one change in flight of either kind:
+  `faction::reconfiguration::Reconfiguration` — `None`, `AdditionRequested`,
+  `AdditionAcknowledged` and `RemovalRequested` — in place of `faction::addition::Addition`;
+  `ClusterView::reconfiguration` and `ClusterViewBuilder::with_reconfiguration` in place of
+  `addition` and `with_addition`.
+- `Reconfiguring::new` takes the change in flight.
+- `PeerState` gains `Removed`; `Command` and `Outcome` gain their variants.
+
+#### Changed
+- The ladder's invariants that held only while nothing was removed are stated exactly: the peers
+  gathered shrink by the removed peer alone, and a node's own removal leaves it `Removed` for good.
+- A node's own removal is taken by each stage that admits it, through `Removed::own_removal`;
+  `Stage` only delegates (`P2-ADR-StateStructsBehindStageEnum`).
+- `Pinging` takes readiness before its own completion through `ReadyBeforeCompletionStep`, as it
+  takes participation through `PingingStep`.
+
 ## [0.7.0] — 2026-11-13
 
 ### Phase 2: a concluded node watches its members' liveness

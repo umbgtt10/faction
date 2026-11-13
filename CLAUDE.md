@@ -167,20 +167,23 @@ gaps.
 - Valid transitions live in `state_transition_matrix_tests.rs` and expect the row's
   result; rejected commands live in per-state files (`initial_invalid_tests.rs`,
   `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`,
-  `bootstrapped_invalid_tests.rs`, `reconfiguring_invalid_tests.rs`) under the row
-  `not-admitted` -- Pinging refuses an addition's coordination and liveness alone, and
+  `bootstrapped_invalid_tests.rs`, `reconfiguring_invalid_tests.rs`,
+  `removed_invalid_tests.rs`) under the row `not-admitted` -- Pinging refuses a change's
+  coordination and liveness alone, `Removed` everything but the probe, and
   its file also asserts it accepts the rest -- and `admissible_invariant_tests.rs` checks each stage's
   admissible set against the table's `admits` and against
   `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
 - Any new state or command variant MUST add its rows to the table first, then the
   matching cases here.
-- `Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with an
-  addition in flight, shown as `PeerState::Bootstrapped`. A missed deadline is
+- `Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with a
+  change in flight, an addition or a removal, shown as `PeerState::Bootstrapped`;
+  `Removed` is a node whose own removal committed, shown as `PeerState::Removed`. A missed deadline is
   non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view
   flag.
 - Liveness is no stage: the concluded stages alone admit its four commands, and the
   suspected members, the missed periods, the member probed last and the quorum are what
-  the view reports of it. The property tier holds its three invariants
+  the view reports of it. The property tier holds its three invariants, and removal's
+  -- a removal proposed exactly when the quorum can spare the member
   (`property/liveness_tests.rs`).
 
 ### State transition model

@@ -1,6 +1,35 @@
-# [PROPOSAL] Phase 4 — single-node removal
+# [IMPLEMENTED] Phase 4 — single-node removal
 
-**Status:** accepted, 2026-11-13: every decision, D1 to D11; D5's count left to the caller, confirmed at the owner's word.
+**Status:** implemented on the branch `phase-4`, 2026-11-13, every decision, D1 to D11 — D5's count left to the
+caller at the owner's word — and the plan as accepted, but for these departures, each found while building:
+
+- **`removal-aborted` beside `addition-aborted`.** The table keeps the two aborts' rows together, after
+  `abort-ignored`, rather than among the rows after `addition-committed`; no other row answers `RemovalAborted`, so
+  the check order is unchanged (§4).
+- **Fifteen vectors, 93 in all.** Thirteen cover the new rows and the widened ones; two more — a node's own removal
+  while pinging, and while collecting past its deadline — came with the departure after next, so that the conformance
+  tier alone reaches each stage's own removal. The model caught three as first written: two kept a removed peer among
+  the collecting ones, one showed a collecting node past its deadline as `Collecting`, not `TimedOut` (§4, §8).
+- **A removed node's view is the one before, but itself.** `Removed` holds the node's id alone: its view is computed
+  from the view before the removal — the node out of every list, its liveness and its change in flight gone, its quorum
+  not tracked. `ClusterView::new` no longer shows a removed node `TimedOut`, as it did any stage but `Bootstrapped`
+  past its deadline (§5).
+- **A node's own removal is each stage's.** First taken in `Stage::step`, it broke
+  `P2-ADR-StateStructsBehindStageEnum`: `Stage` only delegates. Each of the five stages that admit it takes it
+  through `Removed::own_removal`. `Pinging`'s step then passed iceberg4rust's ceiling of 5, and its readiness before
+  completion became `ReadyBeforeCompletionStep`, named for its row (§5).
+- **The ladder's invariants restated exactly.** Seven property tests held only while nothing was removed — the peers
+  gathered never shrinking, a conclusion never left. Each is stated exactly instead: the lists shrink by the removed
+  peer alone, and a node's own removal leaves it `Removed` for good (§5).
+- **"Proposed" read from the coordinator's view.** As Phase 3's: `FactionNode` routes `ProposeRemoval` to nothing,
+  and `poll_until_removal_proposed` reads the coordinator's reconfiguration (§7).
+- **The in-process cluster's accessor renamed.** `Cluster::addition` reads either change, and is
+  `Cluster::reconfiguration` (§7).
+- **Found: a Phase 2 scenario starved once.** Stage 1 failed once, in the cut link saved by indirect probes over gRPC
+  between processes: 51 of its 59 probes missed at one instant across all five nodes, the machine starved under six
+  parallel slots, the removal scenarios among them. It passed alone five times running and in the full rerun; no
+  timeout was stretched for it.
+
 **Releases:** specification 0.4.0, then the crate 0.8.0.
 **Order:** after Phases 2 and 3, on which it depends; before Raft's slice 5, which wires it as slice 4 wired the
 addition, and before Phase 5.

@@ -246,7 +246,8 @@ may restore its quorum (§15).
 ## 12. Removal
 
 **A concluded cluster shrinks by one through the layer that commits changes above it**, one change in flight at a time,
-an addition or a removal. The node that coordinates a removal is asked for it and tells the caller to propose it at
+an addition or a removal
+([`P1-ADR-RemovalThroughTheLayerThatCommits`](../docs/ADRs/P1-ADR-RemovalThroughTheLayerThatCommits.md)). The node that coordinates a removal is asked for it and tells the caller to propose it at
 once — a member being removed has nothing to acknowledge, and may not answer at all; every node applies it once it has
 committed. Who may be removed, and how a change commits, are the caller's: a suspected member stays a member until its
 removal commits (§14).
