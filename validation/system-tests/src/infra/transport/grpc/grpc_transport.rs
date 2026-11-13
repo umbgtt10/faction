@@ -24,6 +24,7 @@ use crate::infra::transport::grpc::grpc_proto::wire::Envelope;
 use crate::infra::transport::grpc::grpc_proto::wire::transport_client::TransportClient;
 use crate::infra::transport::grpc::grpc_proto::wire::transport_server::TransportServer;
 use crate::infra::transport::grpc::grpc_service::GrpcService;
+use crate::infra::transport::wire_codec::WireCodec;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 type Clients = Arc<AsyncMutex<HashMap<PeerId, TransportClient<Channel>>>>;
@@ -138,18 +139,6 @@ impl GrpcTransport {
         Self::spawn_server(inbox, TcpListenerStream::new(tl))
     }
 
-    fn encode(m: &TransportMessage) -> Vec<u8> {
-        let (f, t): (PeerId, u8) = match m {
-            TransportMessage::Ping { from } => (*from, 0),
-            TransportMessage::Ready { from } => (*from, 1),
-            TransportMessage::Bootstrapped { from } => (*from, 2),
-        };
-        let mut d = Vec::with_capacity(9);
-        d.extend(&f.to_le_bytes());
-        d.push(t);
-        d
-    }
-
     fn runtime() -> &'static Runtime {
         static RT: OnceLock<Runtime> = OnceLock::new();
         RT.get_or_init(|| {
@@ -187,7 +176,7 @@ impl GrpcTransport {
                     }
                 }
                 if let Some(c) = guard.get_mut(&to) {
-                    let d = Self::encode(&msg);
+                    let d = WireCodec::encode(&msg);
                     let _ = c.deliver(Request::new(Envelope { data: d })).await;
                 }
             }

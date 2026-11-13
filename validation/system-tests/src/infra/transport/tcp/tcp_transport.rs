@@ -4,8 +4,7 @@
 use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
-use std::collections::HashMap;
-use std::io::{ErrorKind, Read, Write};
+use std::collections::{HashMap, VecDeque};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -13,14 +12,16 @@ use std::thread::{JoinHandle, spawn};
 use std::time::Duration;
 
 use crate::infra::network::address_book::AddressBook;
+use crate::infra::transport::tcp::connection::Connection;
+use crate::infra::transport::wire_codec::WireCodec;
 use crate::traits::pause::Pause;
 
 pub struct TcpTransport {
     peer_id: PeerId,
     address_book: AddressBook,
-    outbound: HashMap<PeerId, TcpStream>,
-    inbound: Arc<Mutex<Vec<TcpStream>>>,
-    buf: Vec<u8>,
+    outbound: HashMap<PeerId, Connection>,
+    inbound: Arc<Mutex<Vec<Connection>>>,
+    received: VecDeque<TransportMessage>,
     pause: Arc<dyn Pause>,
     _listener: TcpListener,
     _shutdown: Arc<AtomicBool>,
@@ -85,7 +86,7 @@ impl TcpTransport {
                 match incoming {
                     Ok(stream) => {
                         stream.set_nonblocking(true).unwrap();
-                        ib.lock().unwrap().push(stream);
+                        ib.lock().unwrap().push(Connection::new(stream));
                     }
                     Err(_) => {
                         thread_pause.pause(Duration::from_millis(1));
@@ -99,7 +100,7 @@ impl TcpTransport {
             address_book,
             outbound: HashMap::new(),
             inbound,
-            buf: Vec::new(),
+            received: VecDeque::new(),
             pause,
             _listener: listener,
             _shutdown: shutdown,
@@ -139,7 +140,7 @@ impl TcpTransport {
                     }
                 };
                 stream.set_nonblocking(true).unwrap();
-                transport.outbound.insert(pid, stream);
+                transport.outbound.insert(pid, Connection::new(stream));
             }
         }
 
@@ -165,57 +166,16 @@ impl TcpTransport {
         if let Some(addr) = addr {
             if let Ok(stream) = TcpStream::connect(addr) {
                 stream.set_nonblocking(true).unwrap();
-                self.outbound.insert(to, stream);
-            }
-        }
-    }
-
-    fn decode(data: &[u8]) -> Option<TransportMessage> {
-        if data.len() < 9 {
-            return None;
-        }
-        let from = PeerId::from_le_bytes(data[0..8].try_into().ok()?);
-        match data[8] {
-            0 => Some(TransportMessage::Ping { from }),
-            1 => Some(TransportMessage::Ready { from }),
-            2 => Some(TransportMessage::Bootstrapped { from }),
-            _ => None,
-        }
-    }
-
-    fn encode(from: PeerId, tag: u8) -> Vec<u8> {
-        let mut data = Vec::with_capacity(9);
-        data.extend(&from.to_le_bytes());
-        data.push(tag);
-        data
-    }
-
-    fn fill_buffer(&mut self) {
-        let mut inbound = self.inbound.lock().unwrap();
-        for stream in self.outbound.values_mut().chain(inbound.iter_mut()) {
-            let mut chunk = [0u8; 64];
-            if let Ok(read) = stream.read(&mut chunk) {
-                self.buf.extend_from_slice(&chunk[..read]);
+                self.outbound.insert(to, Connection::new(stream));
             }
         }
     }
 
     fn write_to(&mut self, to: PeerId, data: &[u8]) -> bool {
-        let Some(stream) = self.outbound.get_mut(&to) else {
-            return false;
-        };
-        let mut written = 0;
-        while written < data.len() {
-            match stream.write(&data[written..]) {
-                Ok(0) => return false,
-                Ok(n) => written += n,
-                Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
-                    self.pause.pause(Duration::from_millis(1));
-                }
-                Err(_) => return false,
-            }
-        }
-        true
+        let pause = self.pause.clone();
+        self.outbound
+            .get_mut(&to)
+            .is_some_and(|connection| connection.write(data, pause.as_ref()))
     }
 }
 
@@ -224,11 +184,7 @@ impl Transport for TcpTransport {
         if to == self.peer_id {
             return;
         }
-        let data = match &message {
-            TransportMessage::Ping { from } => Self::encode(*from, 0),
-            TransportMessage::Ready { from } => Self::encode(*from, 1),
-            TransportMessage::Bootstrapped { from } => Self::encode(*from, 2),
-        };
+        let data = WireCodec::encode(&message);
         for _ in 0..2 {
             self.connect_to(to);
             if !self.outbound.contains_key(&to) {
@@ -241,15 +197,14 @@ impl Transport for TcpTransport {
         }
     }
 
+    // Every connection read, each one's whole messages queued in the order they
+    // arrived: no connection waits behind another's backlog.
     fn recv(&mut self) -> Option<TransportMessage> {
-        self.fill_buffer();
-
-        if self.buf.len() >= 9 {
-            let msg = Self::decode(&self.buf[..9]);
-            self.buf.drain(..9);
-            msg
-        } else {
-            None
+        let mut inbound = self.inbound.lock().unwrap();
+        for connection in self.outbound.values_mut().chain(inbound.iter_mut()) {
+            connection.fill();
+            self.received.extend(connection.messages());
         }
+        self.received.pop_front()
     }
 }

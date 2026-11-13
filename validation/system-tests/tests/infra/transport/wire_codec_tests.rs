@@ -1,0 +1,64 @@
+// Copyright (c) 2025-2026 Umberto Gotti
+// SPDX-License-Identifier: MIT
+
+use faction_protocol::transport_message::TransportMessage;
+use faction_system_tests::infra::transport::wire_codec::WireCodec;
+
+fn every_message() -> Vec<TransportMessage> {
+    vec![
+        TransportMessage::Ping { from: 1 },
+        TransportMessage::Ready { from: u64::MAX },
+        TransportMessage::Bootstrapped { from: 7 },
+    ]
+}
+
+#[test]
+fn decode_of_a_frame_cut_short_is_none() {
+    // Arrange
+    let frame = WireCodec::encode(&TransportMessage::Ready { from: 3 });
+
+    // Act
+    let decoded = WireCodec::decode(&frame[..frame.len() - 1]);
+
+    // Assert
+    assert_eq!(decoded, None);
+}
+
+#[test]
+fn decode_of_a_frame_with_an_unknown_tag_is_none() {
+    // Arrange
+    let mut frame = WireCodec::encode(&TransportMessage::Ping { from: 3 });
+    frame[12] = 0xff;
+
+    // Act
+    let decoded = WireCodec::decode(&frame);
+
+    // Assert
+    assert_eq!(decoded, None);
+}
+
+#[test]
+fn decode_of_each_encoded_message_is_that_message() {
+    // Arrange
+    let messages = every_message();
+
+    // Act
+    let decoded: Vec<Option<TransportMessage>> = messages
+        .iter()
+        .map(|message| WireCodec::decode(&WireCodec::encode(message)))
+        .collect();
+
+    // Assert
+    assert_eq!(decoded, messages.into_iter().map(Some).collect::<Vec<_>>());
+}
+
+#[test]
+fn encode_of_a_message_opens_with_the_length_of_the_rest() {
+    // Arrange & Act
+    let frame = WireCodec::encode(&TransportMessage::Bootstrapped { from: 9 });
+
+    // Assert
+    let length = u32::from_le_bytes(frame[..4].try_into().unwrap());
+    assert_eq!(length as usize, frame.len() - 4);
+    assert_eq!(&frame[4..12], &9u64.to_le_bytes());
+}
