@@ -4,8 +4,8 @@
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 use super::helpers::{
-    addition_aborted, addition_requested, membership_acknowledged, participation,
-    pinging_admissible, ready,
+    addition_aborted, addition_requested, indirect_probes_missed, membership_acknowledged,
+    participation, peer_heard, pinging_admissible, probe_missed, ready,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -30,6 +30,30 @@ use rstest::rstest;
 #[case::rejects_addition_aborted(
     Init::Fresh,
     addition_aborted(9),
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::rejects_probe_due(
+    Init::Fresh,
+    Command::ProbeDue,
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::rejects_peer_heard(
+    Init::Fresh,
+    peer_heard(1),
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::rejects_probe_missed(
+    Init::Fresh,
+    probe_missed(1),
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::rejects_indirect_probes_missed(
+    Init::Fresh,
+    indirect_probes_missed(1),
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
     pinging_admissible(),
 )]

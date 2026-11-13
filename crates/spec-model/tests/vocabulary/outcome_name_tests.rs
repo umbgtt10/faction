@@ -4,11 +4,28 @@
 use crate::support::node_states::NodeStates;
 use faction_spec_model::addition::Addition;
 use faction_spec_model::command::Command;
+use faction_spec_model::node_state::NodeState;
 use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::outcome_name::OutcomeName;
 use faction_spec_model::vocabulary::stage::Stage;
 use serde_json::json;
 use serde_json::Value;
+
+fn naming(name: CommandName, peer_id: &str) -> Command {
+    Command {
+        name,
+        peer_id: Some(String::from(peer_id)),
+        required_count: None,
+    }
+}
+
+fn probe_due() -> Command {
+    Command {
+        name: CommandName::ProbeDue,
+        peer_id: None,
+        required_count: None,
+    }
+}
 
 fn signal_from(peer_id: &str) -> Command {
     Command {
@@ -16,6 +33,19 @@ fn signal_from(peer_id: &str) -> Command {
         peer_id: Some(String::from(peer_id)),
         required_count: None,
     }
+}
+
+#[test]
+fn encoded_of_a_liveness_outcome_names_the_command_s_peer() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let encoded =
+        OutcomeName::AlreadySuspected.encoded(&naming(CommandName::ProbeMissed, "2"), &state);
+
+    // Assert
+    assert_eq!(encoded, json!({"AlreadySuspected": {"peer_id": "2"}}));
 }
 
 #[test]
@@ -115,6 +145,38 @@ fn encoded_of_deadline_missed_counts_the_collecting_peers() {
 }
 
 #[test]
+fn encoded_of_miss_counted_counts_the_period_just_missed() {
+    // Arrange
+    let state = NodeState {
+        misses: NodeStates::misses(&[("2", 1)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let encoded =
+        OutcomeName::MissCounted.encoded(&naming(CommandName::IndirectProbesMissed, "2"), &state);
+
+    // Assert
+    assert_eq!(
+        encoded,
+        json!({"MissCounted": {"peer_id": "2", "misses": "2"}})
+    );
+}
+
+#[test]
+fn encoded_of_quorum_lost_is_a_unit() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let encoded =
+        OutcomeName::QuorumLost.encoded(&naming(CommandName::IndirectProbesMissed, "2"), &state);
+
+    // Assert
+    assert_eq!(encoded, json!({"QuorumLost": {}}));
+}
+
+#[test]
 fn encoded_of_required_count_set_carries_the_command_s_count() {
     // Arrange
     let new_count = Command {
@@ -132,6 +194,37 @@ fn encoded_of_required_count_set_carries_the_command_s_count() {
         encoded,
         json!({"RequiredCountSet": {"required_count": "3"}})
     );
+}
+
+#[test]
+fn encoded_of_send_indirect_probes_lists_the_members_to_ask() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let encoded =
+        OutcomeName::SendIndirectProbes.encoded(&naming(CommandName::ProbeMissed, "2"), &state);
+
+    // Assert
+    assert_eq!(
+        encoded,
+        json!({"SendIndirectProbes": {"peer_id": "2", "via": ["3"]}})
+    );
+}
+
+#[test]
+fn encoded_of_send_probe_names_the_member_to_probe() {
+    // Arrange
+    let state = NodeState {
+        last_probed: Some(String::from("2")),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let encoded = OutcomeName::SendProbe.encoded(&probe_due(), &state);
+
+    // Assert
+    assert_eq!(encoded, json!({"SendProbe": {"peer_id": "3"}}));
 }
 
 #[test]
@@ -163,6 +256,17 @@ fn name_of_each_outcome_is_the_vocabulary_s() {
             "AcknowledgementIgnored",
             "AbortIgnored",
             "RequiredCountSet",
+            "SendProbe",
+            "NothingToProbe",
+            "SendIndirectProbes",
+            "MissCounted",
+            "PeerSuspected",
+            "PeerRevived",
+            "AliveNoted",
+            "AlreadySuspected",
+            "SelfIgnored",
+            "QuorumLost",
+            "QuorumRestored",
         ]
     );
 }

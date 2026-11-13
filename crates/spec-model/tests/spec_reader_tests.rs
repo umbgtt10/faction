@@ -103,6 +103,7 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
         "peer_id": "2",
         "peers": ["3", "1", "2"],
         "required_count": "18446744073709551615",
+        "suspicion_threshold": "3",
     }));
 
     // Assert
@@ -112,6 +113,7 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
             peer_id: String::from("2"),
             peers: NodeStates::peers(&["3", "1", "2"]),
             required_count: u64::MAX,
+            suspicion_threshold: 3,
         }
     );
 }

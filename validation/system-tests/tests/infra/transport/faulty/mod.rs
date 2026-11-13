@@ -2,4 +2,5 @@
 // SPDX-License-Identifier: MIT
 
 pub mod faulty_transport_tests;
+pub mod link_cuts_tests;
 pub mod message_kind_tests;

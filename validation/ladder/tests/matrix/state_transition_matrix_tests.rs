@@ -5,9 +5,9 @@ use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 use super::helpers::{
     addition_aborted, addition_committed, addition_requested, bootstrapped_admissible,
-    collecting_admissible, initial_admissible, join_approved, join_rejected, join_requested,
-    membership_acknowledged, participation, pinging_admissible, ready, reconfiguring_admissible,
-    required_count_changed,
+    collecting_admissible, indirect_probes_missed, initial_admissible, join_approved,
+    join_rejected, join_requested, membership_acknowledged, participation, peer_heard,
+    pinging_admissible, probe_missed, ready, reconfiguring_admissible, required_count_changed,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -19,6 +19,7 @@ use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::outcome::Outcome::*;
 use faction::process_result::ProcessResult;
+use faction::quorum::Quorum;
 use rstest::rstest;
 
 extern crate alloc;
@@ -541,6 +542,97 @@ extern crate alloc;
     required_count_changed(3),
     &[RequiredCountSet { required_count: 3 }],
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::bootstrapped_probe_due(
+    "probe-due",
+    Init::Bootstrapped,
+    Command::ProbeDue,
+    &[SendProbe { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_peer_heard(
+    "alive-noted",
+    Init::Bootstrapped,
+    peer_heard(1),
+    &[AliveNoted { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_peer_heard_from_itself(
+    "liveness-self",
+    Init::Bootstrapped,
+    peer_heard(0),
+    &[SelfIgnored { peer_id: 0 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_probe_missed_of_a_non_member(
+    "liveness-non-member",
+    Init::Bootstrapped,
+    probe_missed(8),
+    &[NonMemberIgnored { peer_id: 8 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_probe_missed(
+    "probe-missed",
+    Init::Bootstrapped,
+    probe_missed(2),
+    &[SendIndirectProbes {
+        peer_id: 2,
+        via: vec![3, 4, 1],
+    }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_indirect_probes_missed(
+    "suspicion-loses-quorum",
+    Init::Bootstrapped,
+    indirect_probes_missed(1),
+    &[PeerSuspected { peer_id: 1 }, QuorumLost],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::SuspectedCount(1), Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_required_count_raised_past_the_members(
+    "count-loses-quorum",
+    Init::Bootstrapped,
+    required_count_changed(6),
+    &[RequiredCountSet { required_count: 6 }, QuorumLost],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::reconfiguring_probe_due(
+    "probe-due",
+    Init::Reconfiguring,
+    Command::ProbeDue,
+    &[SendProbe { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_peer_heard(
+    "alive-noted",
+    Init::Reconfiguring,
+    peer_heard(2),
+    &[AliveNoted { peer_id: 2 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_probe_missed_of_the_newcomer(
+    "liveness-non-member",
+    Init::Reconfiguring,
+    probe_missed(9),
+    &[NonMemberIgnored { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Quorum(Quorum::Held)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_indirect_probes_missed(
+    "suspicion-loses-quorum",
+    Init::Reconfiguring,
+    indirect_probes_missed(3),
+    &[PeerSuspected { peer_id: 3 }, QuorumLost],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::SuspectedCount(1), Assert::Quorum(Quorum::Lost)],
     reconfiguring_admissible(),
 )]
 fn valid_transition(

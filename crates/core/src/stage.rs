@@ -14,7 +14,7 @@ use crate::states::initial::Initial;
 use crate::states::pinging::Pinging;
 use crate::states::reconfiguring::Reconfiguring;
 
-const COMMANDS: [Command; 13] = [
+const COMMANDS: [Command; 17] = [
     Command::ParticipationObserved { peer_id: 0 },
     Command::ReadyObserved { peer_id: 0 },
     Command::LocalParticipationCompleted,
@@ -27,6 +27,10 @@ const COMMANDS: [Command; 13] = [
     Command::AdditionCommitted { peer_id: 0 },
     Command::AdditionAborted { peer_id: 0 },
     Command::RequiredCountChanged { required_count: 0 },
+    Command::ProbeDue,
+    Command::PeerHeard { peer_id: 0 },
+    Command::ProbeMissed { peer_id: 0 },
+    Command::IndirectProbesMissed { peer_id: 0 },
     Command::Probe,
 ];
 

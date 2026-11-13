@@ -19,7 +19,7 @@ extern crate alloc;
 
 fn faction(observer: Box<dyn Observer>) -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
         observer,
     )
 }

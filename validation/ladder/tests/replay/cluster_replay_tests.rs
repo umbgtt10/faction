@@ -31,6 +31,7 @@ fn departures(lines: &[Lines], required_count: usize) -> Vec<String> {
                 "peer_id": peer.to_string(),
                 "peers": peers,
                 "required_count": required_count.to_string(),
+                "suspicion_threshold": "1",
             });
             let log = [vec![configuration], lines.borrow().clone()].concat();
             LogReplay::replay(&log)

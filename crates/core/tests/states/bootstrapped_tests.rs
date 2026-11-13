@@ -14,6 +14,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction::state::State;
 use faction::states::bootstrapped::Bootstrapped;
@@ -28,11 +29,15 @@ fn concluded() -> Bootstrapped {
     )
 }
 
+fn config() -> Config {
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1)
+}
+
 extern crate alloc;
 
 fn reach_bootstrapped() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4)),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
@@ -50,7 +55,7 @@ fn answer_of_a_committed_addition_admits_the_peer() {
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::AdditionCommitted { peer_id: 9 })
+        .answer(Command::AdditionCommitted { peer_id: 9 }, &config())
         .expect("a concluded node applies a commit");
 
     // Assert
@@ -60,13 +65,38 @@ fn answer_of_a_committed_addition_admits_the_peer() {
 }
 
 #[test]
+fn answer_of_a_count_past_the_members_loses_the_quorum() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let (outcomes, answered) = bootstrapped
+        .answer(
+            Command::RequiredCountChanged { required_count: 4 },
+            &config(),
+        )
+        .expect("a concluded node takes a new count");
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::RequiredCountSet { required_count: 4 },
+            Outcome::QuorumLost
+        ]
+    );
+    let cluster_view = answered.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(cluster_view.quorum(), Quorum::Lost);
+}
+
+#[test]
 fn answer_of_a_member_s_participation_acknowledges_its_rejoin() {
     // Arrange
     let bootstrapped = concluded();
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::ParticipationObserved { peer_id: 2 })
+        .answer(Command::ParticipationObserved { peer_id: 2 }, &config())
         .expect("a concluded node answers a member still bootstrapping");
 
     // Assert
@@ -79,12 +109,29 @@ fn answer_of_a_member_s_participation_acknowledges_its_rejoin() {
 }
 
 #[test]
+fn answer_of_a_probe_period_names_the_member_to_probe() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let (outcomes, answered) = bootstrapped
+        .answer(Command::ProbeDue, &config())
+        .expect("a concluded node tracks its members' liveness");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::SendProbe { peer_id: 1 }]);
+    let cluster_view = answered.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(cluster_view.last_probed(), Some(1));
+    assert_eq!(cluster_view.quorum(), Quorum::Held);
+}
+
+#[test]
 fn answer_of_an_addition_request_is_none() {
     // Arrange
     let bootstrapped = concluded();
 
     // Act
-    let answered = bootstrapped.answer(Command::AdditionRequested { peer_id: 9 });
+    let answered = bootstrapped.answer(Command::AdditionRequested { peer_id: 9 }, &config());
 
     // Assert
     assert!(answered.is_none());

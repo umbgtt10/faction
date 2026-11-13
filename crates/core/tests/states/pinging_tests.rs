@@ -25,7 +25,7 @@ extern crate alloc;
 
 fn faction_in_pinging() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(THRESHOLD)),
+        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(THRESHOLD), 1),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
@@ -219,7 +219,7 @@ fn process_local_completion_no_quorum() {
 fn process_local_completion_triggers_quorum() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(4)),
+        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(4), 1),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });

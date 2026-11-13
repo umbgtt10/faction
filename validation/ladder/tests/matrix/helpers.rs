@@ -30,6 +30,10 @@ pub fn collecting_admissible() -> Vec<Command> {
 
 extern crate alloc;
 
+pub fn indirect_probes_missed(peer_id: PeerId) -> Command {
+    Command::IndirectProbesMissed { peer_id }
+}
+
 pub fn initial_admissible() -> Vec<Command> {
     MatrixTable::new(SpecFiles::matrix()).admits("Initial")
 }
@@ -54,8 +58,16 @@ pub fn participation(peer_id: PeerId) -> Command {
     Command::ParticipationObserved { peer_id }
 }
 
+pub fn peer_heard(peer_id: PeerId) -> Command {
+    Command::PeerHeard { peer_id }
+}
+
 pub fn pinging_admissible() -> Vec<Command> {
     MatrixTable::new(SpecFiles::matrix()).admits("Pinging")
+}
+
+pub fn probe_missed(peer_id: PeerId) -> Command {
+    Command::ProbeMissed { peer_id }
 }
 
 pub fn probe_only() -> Vec<Command> {

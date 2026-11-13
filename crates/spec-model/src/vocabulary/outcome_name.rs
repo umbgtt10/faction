@@ -6,6 +6,7 @@ use serde_json::json;
 use serde_json::Value;
 
 use crate::command::Command;
+use crate::liveness::Liveness;
 use crate::node_state::NodeState;
 use crate::vocabulary::variant::Variant;
 
@@ -33,10 +34,21 @@ pub enum OutcomeName {
     AcknowledgementIgnored,
     AbortIgnored,
     RequiredCountSet,
+    SendProbe,
+    NothingToProbe,
+    SendIndirectProbes,
+    MissCounted,
+    PeerSuspected,
+    PeerRevived,
+    AliveNoted,
+    AlreadySuspected,
+    SelfIgnored,
+    QuorumLost,
+    QuorumRestored,
 }
 
 impl OutcomeName {
-    pub const ALL: [OutcomeName; 20] = [
+    pub const ALL: [OutcomeName; 31] = [
         OutcomeName::ParticipationAccepted,
         OutcomeName::ReadyAccepted,
         OutcomeName::DuplicateParticipationIgnored,
@@ -57,6 +69,17 @@ impl OutcomeName {
         OutcomeName::AcknowledgementIgnored,
         OutcomeName::AbortIgnored,
         OutcomeName::RequiredCountSet,
+        OutcomeName::SendProbe,
+        OutcomeName::NothingToProbe,
+        OutcomeName::SendIndirectProbes,
+        OutcomeName::MissCounted,
+        OutcomeName::PeerSuspected,
+        OutcomeName::PeerRevived,
+        OutcomeName::AliveNoted,
+        OutcomeName::AlreadySuspected,
+        OutcomeName::SelfIgnored,
+        OutcomeName::QuorumLost,
+        OutcomeName::QuorumRestored,
     ];
 
     #[must_use]
@@ -70,9 +93,29 @@ impl OutcomeName {
     #[must_use]
     pub fn encoded(self, command: &Command, state: &NodeState) -> Value {
         match self {
-            OutcomeName::LocalParticipationCompleted | OutcomeName::BroadcastLocalReady => {
-                Variant::unit(self.name())
-            }
+            OutcomeName::LocalParticipationCompleted
+            | OutcomeName::BroadcastLocalReady
+            | OutcomeName::NothingToProbe
+            | OutcomeName::QuorumLost
+            | OutcomeName::QuorumRestored => Variant::unit(self.name()),
+            OutcomeName::SendProbe => Variant::of(
+                self.name(),
+                json!({"peer_id": Liveness::next_to_probe(state)}),
+            ),
+            OutcomeName::SendIndirectProbes => Variant::of(
+                self.name(),
+                json!({
+                    "peer_id": command.peer_id,
+                    "via": Liveness::helpers(state, Self::named(command)),
+                }),
+            ),
+            OutcomeName::MissCounted => Variant::of(
+                self.name(),
+                json!({
+                    "peer_id": command.peer_id,
+                    "misses": (Liveness::misses(state, Self::named(command)) + 1).to_string(),
+                }),
+            ),
             OutcomeName::DeadlineMissed => Variant::of(
                 self.name(),
                 json!({"confirmed_count": state.collecting_peers.len().to_string()}),
@@ -98,7 +141,12 @@ impl OutcomeName {
             | OutcomeName::ProposeAddition
             | OutcomeName::AdditionWithdrawn
             | OutcomeName::AcknowledgementIgnored
-            | OutcomeName::AbortIgnored => {
+            | OutcomeName::AbortIgnored
+            | OutcomeName::PeerSuspected
+            | OutcomeName::PeerRevived
+            | OutcomeName::AliveNoted
+            | OutcomeName::AlreadySuspected
+            | OutcomeName::SelfIgnored => {
                 Variant::of(self.name(), json!({"peer_id": command.peer_id}))
             }
         }
@@ -127,6 +175,21 @@ impl OutcomeName {
             OutcomeName::AcknowledgementIgnored => "AcknowledgementIgnored",
             OutcomeName::AbortIgnored => "AbortIgnored",
             OutcomeName::RequiredCountSet => "RequiredCountSet",
+            OutcomeName::SendProbe => "SendProbe",
+            OutcomeName::NothingToProbe => "NothingToProbe",
+            OutcomeName::SendIndirectProbes => "SendIndirectProbes",
+            OutcomeName::MissCounted => "MissCounted",
+            OutcomeName::PeerSuspected => "PeerSuspected",
+            OutcomeName::PeerRevived => "PeerRevived",
+            OutcomeName::AliveNoted => "AliveNoted",
+            OutcomeName::AlreadySuspected => "AlreadySuspected",
+            OutcomeName::SelfIgnored => "SelfIgnored",
+            OutcomeName::QuorumLost => "QuorumLost",
+            OutcomeName::QuorumRestored => "QuorumRestored",
         }
+    }
+
+    fn named(command: &Command) -> &str {
+        command.peer_id.as_deref().expect("a peer")
     }
 }

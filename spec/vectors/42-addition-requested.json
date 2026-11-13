@@ -11,7 +11,8 @@
       "2",
       "3"
     ],
-    "required_count": "1"
+    "required_count": "1",
+    "suspicion_threshold": "1"
   },
   "steps": [
     {
@@ -53,6 +54,14 @@
             ],
             "addition": {
               "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Held": {}
             }
           },
           "admissible": [
@@ -63,6 +72,10 @@
             "AdditionRequested",
             "AdditionCommitted",
             "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
             "Probe"
           ]
         }
@@ -103,6 +116,14 @@
               "Requested": {
                 "peer_id": "4"
               }
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "Held": {}
             }
           },
           "admissible": [
@@ -113,6 +134,10 @@
             "AdditionCommitted",
             "AdditionAborted",
             "RequiredCountChanged",
+            "ProbeDue",
+            "PeerHeard",
+            "ProbeMissed",
+            "IndirectProbesMissed",
             "Probe"
           ]
         }
@@ -140,6 +165,14 @@
         "Requested": {
           "peer_id": "4"
         }
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "Held": {}
       }
     },
     "admissible": [
@@ -150,6 +183,10 @@
       "AdditionCommitted",
       "AdditionAborted",
       "RequiredCountChanged",
+      "ProbeDue",
+      "PeerHeard",
+      "ProbeMissed",
+      "IndirectProbesMissed",
       "Probe"
     ]
   }

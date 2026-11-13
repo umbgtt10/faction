@@ -5,6 +5,7 @@ use alloc::string::String;
 
 use crate::addition::Addition;
 use crate::command::Command;
+use crate::liveness::Liveness;
 use crate::node_state::NodeState;
 use crate::rules::change::Change;
 use crate::vocabulary::command_name::CommandName;
@@ -23,6 +24,14 @@ pub enum Situation {
     PeerIsPending,
     PeerIsNotPending,
     CountConcludes,
+    NodeIsAlone,
+    PeerIsSelf,
+    PeerIsSuspected,
+    ThresholdReached,
+    RestoresQuorum(Change),
+    LosesQuorum(Change),
+    CompletionRestoresQuorum,
+    SuspicionLosesQuorum,
 }
 
 impl Situation {
@@ -50,6 +59,27 @@ impl Situation {
             Situation::CountConcludes => {
                 Self::reaches_required_count(&Change::CountSet.applied(command, state))
             }
+            Situation::NodeIsAlone => Liveness::next_to_probe(state).is_none(),
+            Situation::PeerIsSelf => peer_id == Some(&state.peer_id),
+            Situation::PeerIsSuspected => Self::lists(&state.suspected, peer_id),
+            Situation::ThresholdReached => Self::reaches_threshold(command, state),
+            Situation::RestoresQuorum(change) => {
+                !Liveness::holds_quorum(state)
+                    && Liveness::holds_quorum(&change.applied(command, state))
+            }
+            Situation::LosesQuorum(change) => {
+                Liveness::holds_quorum(state)
+                    && !Liveness::holds_quorum(&change.applied(command, state))
+            }
+            Situation::CompletionRestoresQuorum => {
+                Self::is_pending(&state.addition, peer_id)
+                    && Situation::RestoresQuorum(Change::AdditionCompletes)
+                        .holds(command, state, admitted)
+            }
+            Situation::SuspicionLosesQuorum => {
+                Self::reaches_threshold(command, state)
+                    && Situation::LosesQuorum(Change::PeerSuspected).holds(command, state, admitted)
+            }
         }
     }
 
@@ -66,5 +96,11 @@ impl Situation {
 
     fn reaches_required_count(state: &NodeState) -> bool {
         u64::try_from(state.collecting_peers.len()).is_ok_and(|count| count >= state.required_count)
+    }
+
+    fn reaches_threshold(command: &Command, state: &NodeState) -> bool {
+        command.peer_id.as_ref().is_some_and(|peer_id| {
+            Liveness::misses(state, peer_id) + 1 >= state.suspicion_threshold
+        })
     }
 }

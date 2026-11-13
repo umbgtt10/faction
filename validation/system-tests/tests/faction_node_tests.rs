@@ -11,16 +11,23 @@ use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
+use faction_system_tests::constants::DEFAULT_SUSPICION_THRESHOLD;
+use faction_system_tests::constants::HELPERS;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
+use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
+use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
+use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
 use faction_system_tests::node_snapshot::NodeSnapshot;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::role::Role;
 use std::iter::from_fn;
 use std::sync::Arc;
@@ -28,38 +35,49 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 // Node 0 of members 0, 1 and 2, requiring one, concluded; the transports of
-// peer 1 and of peer 7, which is no member.
-fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
+// peer 1 and of peer 7, which is no member; and the cuts its transport drops
+// messages by.
+fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) {
     let (time, clock) = fake_time();
     let mut mesh = InMemoryTransport::new_mesh(&[0, 1, 2, 7]);
     let outsider = mesh.remove(3);
     let peer_one = mesh.remove(1);
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1));
+    let cuts = LinkCuts::default();
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
         0,
+        HELPERS,
     );
     let timer = RealTimer::with_delays(
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        ProbeStretch::Minimal.factor(),
     );
     let mut node = FactionNode::new(
         0,
         peers,
         Role::Running(Box::new(protocol)),
-        Box::new(mesh.remove(0)),
+        Box::new(FaultyTransport::new(
+            0,
+            FaultPolicy::default(),
+            cuts.clone(),
+            None,
+            Box::new(mesh.remove(0)),
+        )),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
+        cuts.clone(),
     );
     node.start();
     while node.peer_state() != PeerState::Bootstrapped {
         clock.advance(Duration::from_millis(10));
         node.step();
     }
-    (node, peer_one, outsider)
+    (node, peer_one, outsider, cuts)
 }
 
 // Peer 5, waiting to be added, and the transport of node 0 that can reach it.
@@ -71,14 +89,21 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
         5,
         Vec::new(),
-        Role::Waiting(Newcomer::new(5, Box::new(NoOpObserver))),
+        Role::Waiting(Newcomer::new(
+            5,
+            DEFAULT_SUSPICION_THRESHOLD,
+            HELPERS,
+            Box::new(NoOpObserver),
+        )),
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
+        LinkCuts::default(),
     );
     (node, mesh.remove(0))
 }
@@ -86,16 +111,18 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
 fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
     let (time, clock) = fake_time();
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2));
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
         0,
+        HELPERS,
     );
     let timer = RealTimer::with_delays(
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        ProbeStretch::Minimal.factor(),
     );
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
@@ -105,6 +132,7 @@ fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
+        LinkCuts::default(),
     );
     (node, clock)
 }
@@ -114,7 +142,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     let (time, _) = fake_time();
     let commands = Arc::new(Mutex::new(Vec::new()));
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2));
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1);
     let protocol = Protocol::new(
         Faction::new(
             config,
@@ -124,11 +152,13 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         ),
         peers.clone(),
         0,
+        HELPERS,
     );
     let timer = RealTimer::with_delays(
         time.clock.clone(),
         Duration::from_millis(10),
         Duration::from_secs(10),
+        ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
         0,
@@ -137,6 +167,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         Box::new(InMemoryTransport::new_mesh(&peers).remove(0)),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
+        LinkCuts::default(),
     );
     (node, commands)
 }
@@ -155,7 +186,7 @@ impl Observer for Recording {
 #[test]
 fn abort_addition_of_a_concluded_node_withdraws_its_addition() {
     // Arrange
-    let (mut node, _, _) = concluded();
+    let (mut node, _, _, _) = concluded();
     node.request_addition(7);
 
     // Act
@@ -217,7 +248,7 @@ fn commit_addition_admits_the_peer() {
 #[test]
 fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Arrange
-    let (mut node, mut peer_one, mut outsider) = concluded();
+    let (mut node, mut peer_one, mut outsider, _) = concluded();
     node.commit_addition(7);
     peer_one.send(0, TransportMessage::Ping { from: 1 });
 
@@ -232,6 +263,35 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
         received.contains(&TransportMessage::Ready { from: 0 }),
         "{received:?}"
     );
+}
+
+#[test]
+fn cut_cuts_the_link_in_the_cuts_the_transport_drops_by() {
+    // Arrange
+    let (mut node, _, _, cuts) = concluded();
+
+    // Act
+    node.cut(2);
+
+    // Assert
+    assert!(cuts.is_cut(2));
+}
+
+#[test]
+fn cut_keeps_everything_from_crossing_the_link() {
+    // Arrange
+    let (mut node, mut peer_one, _, _) = concluded();
+    let _ = from_fn(|| peer_one.recv()).count();
+    node.cut(1);
+    peer_one.send(0, TransportMessage::Ping { from: 1 });
+
+    // Act
+    for _ in 0..4 {
+        node.step();
+    }
+
+    // Assert
+    assert_eq!(from_fn(|| peer_one.recv()).count(), 0);
 }
 
 #[test]
@@ -291,6 +351,26 @@ fn member_count_counts_the_configured_peers() {
 }
 
 #[test]
+fn mend_lets_messages_cross_the_link_again() {
+    // Arrange
+    let (mut node, mut peer_one, _, _) = concluded();
+    node.cut(1);
+    node.mend(1);
+    peer_one.send(0, TransportMessage::Ping { from: 1 });
+
+    // Act
+    for _ in 0..4 {
+        node.step();
+    }
+
+    // Assert
+    assert!(
+        from_fn(|| peer_one.recv())
+            .any(|message| matches!(message, TransportMessage::Ready { from: 0 }))
+    );
+}
+
+#[test]
 fn new_starts_fresh() {
     // Arrange & Act
     let (mut node, _) = node();
@@ -303,6 +383,8 @@ fn new_starts_fresh() {
             member_count: 3,
             required_count: 2,
             addition: Addition::None,
+            suspected: Vec::new(),
+            quorum: Quorum::NotTracked,
         }
     );
 }
@@ -322,7 +404,7 @@ fn peer_state_of_a_new_node_is_fresh() {
 #[test]
 fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
     // Arrange
-    let (mut node, _, mut outsider) = concluded();
+    let (mut node, _, mut outsider, _) = concluded();
 
     // Act
     node.request_addition(7);
@@ -410,6 +492,8 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
             member_count: 0,
             required_count: 0,
             addition: Addition::None,
+            suspected: Vec::new(),
+            quorum: Quorum::NotTracked,
         }
     );
 }

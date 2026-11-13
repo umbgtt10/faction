@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use faction::no_op_observer::NoOpObserver;
+use faction_protocol::input_message::InputMessage;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::timer_event::TimerEvent;
@@ -9,7 +10,34 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
 fn newcomer() -> Newcomer {
-    Newcomer::new(5, Box::new(NoOpObserver))
+    Newcomer::new(5, 1, 2, Box::new(NoOpObserver))
+}
+
+#[test]
+fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
+    // Arrange
+    let newcomer = Newcomer::new(5, 2, 1, Box::new(NoOpObserver));
+    let membership = TransportMessage::Membership {
+        from: 0,
+        members: vec![0],
+        required_count: 1,
+    };
+
+    // Act
+    let Ok((mut protocol, _)) = newcomer.join(membership) else {
+        panic!("a newcomer joins from its membership");
+    };
+    protocol.decide(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+    protocol.decide(InputMessage::Timer(TimerMessage::IndirectProbesMissed {
+        peer_id: 0,
+    }));
+
+    // Assert
+    let view = protocol.cluster_view();
+    assert!(view.suspected().is_empty());
+    assert_eq!(view.misses().len(), 1);
 }
 
 #[test]

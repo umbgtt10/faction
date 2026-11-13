@@ -1,11 +1,13 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::addition::Addition;
 use crate::command::Command;
+use crate::liveness::Liveness;
 use crate::node_state::NodeState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,6 +23,11 @@ pub enum Change {
     AdditionWithdrawn,
     AdditionCompletes,
     CountSet,
+    ProbeMoves,
+    PeerRevived,
+    MissesCleared,
+    MissCounted,
+    PeerSuspected,
 }
 
 impl Change {
@@ -74,6 +81,36 @@ impl Change {
                 required_count: command.required_count.expect("a required count"),
                 ..state.clone()
             },
+            Change::ProbeMoves => NodeState {
+                last_probed: Liveness::next_to_probe(state),
+                ..state.clone()
+            },
+            Change::PeerRevived => NodeState {
+                suspected: Self::without(&state.suspected, &Self::named(peer_id)),
+                ..state.clone()
+            },
+            Change::MissesCleared => NodeState {
+                misses: Self::forgotten(state, &Self::named(peer_id)),
+                ..state.clone()
+            },
+            Change::MissCounted => {
+                let peer_id = Self::named(peer_id);
+                let misses = Liveness::misses(state, &peer_id) + 1;
+                let mut counted = state.misses.clone();
+                counted.insert(peer_id, misses);
+                NodeState {
+                    misses: counted,
+                    ..state.clone()
+                }
+            }
+            Change::PeerSuspected => {
+                let peer_id = Self::named(peer_id);
+                NodeState {
+                    misses: Self::forgotten(state, &peer_id),
+                    suspected: Self::appended(&state.suspected, Some(peer_id)),
+                    ..state.clone()
+                }
+            }
         }
     }
 
@@ -81,7 +118,21 @@ impl Change {
         peers.iter().cloned().chain(peer_id).collect()
     }
 
+    fn forgotten(state: &NodeState, peer_id: &str) -> BTreeMap<String, u64> {
+        let mut misses = state.misses.clone();
+        misses.remove(peer_id);
+        misses
+    }
+
     fn named(peer_id: Option<String>) -> String {
         peer_id.expect("a peer")
+    }
+
+    fn without(peers: &[String], peer_id: &str) -> Vec<String> {
+        peers
+            .iter()
+            .filter(|peer| *peer != peer_id)
+            .cloned()
+            .collect()
     }
 }

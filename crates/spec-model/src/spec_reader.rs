@@ -42,6 +42,7 @@ impl SpecReader {
             peer_id: Self::string(&value["peer_id"]),
             peers: Self::list(&value["peers"]).map(Self::string).collect(),
             required_count: Self::count(&value["required_count"]),
+            suspicion_threshold: Self::count(&value["suspicion_threshold"]),
         }
     }
 

@@ -39,7 +39,7 @@ fn collecting() -> Stage {
 }
 
 fn config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4))
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1)
 }
 
 fn every_command() -> Vec<Command> {
@@ -56,13 +56,17 @@ fn every_command() -> Vec<Command> {
         Command::AdditionCommitted { peer_id: 0 },
         Command::AdditionAborted { peer_id: 0 },
         Command::RequiredCountChanged { required_count: 0 },
+        Command::ProbeDue,
+        Command::PeerHeard { peer_id: 0 },
+        Command::ProbeMissed { peer_id: 0 },
+        Command::IndirectProbesMissed { peer_id: 0 },
         Command::Probe,
     ]
 }
 
-// Every command but those coordinating an addition, which only a concluded
-// node admits.
-fn every_command_but_an_addition_s_coordination() -> Vec<Command> {
+// Every command but those only a concluded node admits: an addition's
+// coordination, and its members' liveness.
+fn every_command_but_a_concluded_node_s_own() -> Vec<Command> {
     every_command()
         .into_iter()
         .filter(|command| {
@@ -71,6 +75,10 @@ fn every_command_but_an_addition_s_coordination() -> Vec<Command> {
                 Command::AdditionRequested { .. }
                     | Command::MembershipAcknowledged { .. }
                     | Command::AdditionAborted { .. }
+                    | Command::ProbeDue
+                    | Command::PeerHeard { .. }
+                    | Command::ProbeMissed { .. }
+                    | Command::IndirectProbesMissed { .. }
             )
         })
         .collect()
@@ -98,7 +106,8 @@ fn reconfiguring() -> Stage {
 }
 
 #[test]
-fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_count_and_probe() {
+fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_count_liveness_and_probe(
+) {
     // Arrange
     let stage = bootstrapped();
 
@@ -116,13 +125,17 @@ fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_co
             Command::AdditionRequested { peer_id: 0 },
             Command::AdditionCommitted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
+            Command::ProbeDue,
+            Command::PeerHeard { peer_id: 0 },
+            Command::ProbeMissed { peer_id: 0 },
+            Command::IndirectProbesMissed { peer_id: 0 },
             Command::Probe,
         ]
     );
 }
 
 #[test]
-fn admissible_commands_collecting_returns_all_but_its_completion_and_an_addition_s_coordination() {
+fn admissible_commands_collecting_returns_all_but_its_completion_and_a_concluded_node_s_own() {
     // Arrange
     let stage = collecting();
 
@@ -147,7 +160,7 @@ fn admissible_commands_collecting_returns_all_but_its_completion_and_an_addition
 }
 
 #[test]
-fn admissible_commands_initial_returns_all_but_the_deadline_and_an_addition_s_coordination() {
+fn admissible_commands_initial_returns_all_but_the_deadline_and_a_concluded_node_s_own() {
     // Arrange
     let stage = initial();
 
@@ -172,7 +185,7 @@ fn admissible_commands_initial_returns_all_but_the_deadline_and_an_addition_s_co
 }
 
 #[test]
-fn admissible_commands_pinging_returns_all_but_an_addition_s_coordination() {
+fn admissible_commands_pinging_returns_all_but_a_concluded_node_s_own() {
     // Arrange
     let stage = pinging();
 
@@ -180,7 +193,7 @@ fn admissible_commands_pinging_returns_all_but_an_addition_s_coordination() {
     let admissible = stage.admissible_commands(&config());
 
     // Assert
-    assert_eq!(admissible, every_command_but_an_addition_s_coordination());
+    assert_eq!(admissible, every_command_but_a_concluded_node_s_own());
 }
 
 #[test]
@@ -203,6 +216,10 @@ fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an
             Command::AdditionCommitted { peer_id: 0 },
             Command::AdditionAborted { peer_id: 0 },
             Command::RequiredCountChanged { required_count: 0 },
+            Command::ProbeDue,
+            Command::PeerHeard { peer_id: 0 },
+            Command::ProbeMissed { peer_id: 0 },
+            Command::IndirectProbesMissed { peer_id: 0 },
             Command::Probe,
         ]
     );

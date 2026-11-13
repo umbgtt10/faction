@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:faction:spec:0.2.0:schema",
-  "title": "faction 0.2.0 -- the data model",
+  "$id": "urn:faction:spec:0.3.0:schema",
+  "title": "faction 0.3.0 -- the data model",
   "description": "Every command, result, outcome and view, and the forms of a conformance vector and of the decision table. Normative with SPEC.md.",
   "$ref": "#/$defs/vector",
   "$defs": {
@@ -9,6 +9,11 @@
       "description": "A u64 as a string of decimal digits: no sign, no leading zero, no exponent.",
       "type": "string",
       "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "positive_u64": {
+      "description": "A u64 of one or more, as a string of decimal digits: no sign, no leading zero, no exponent.",
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,19}$"
     },
     "nothing": {
       "description": "The payload of a value that carries nothing.",
@@ -25,13 +30,14 @@
       }
     },
     "configuration": {
-      "description": "What a node is created from: its own peer id, its genesis peers and the required count.",
+      "description": "What a node is created from: its own peer id, its genesis peers, the required count and the suspicion threshold.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "peer_id",
         "peers",
-        "required_count"
+        "required_count",
+        "suspicion_threshold"
       ],
       "properties": {
         "peer_id": {
@@ -42,6 +48,9 @@
         },
         "required_count": {
           "$ref": "#/$defs/u64"
+        },
+        "suspicion_threshold": {
+          "$ref": "#/$defs/positive_u64"
         }
       }
     },
@@ -59,6 +68,10 @@
         "AdditionCommitted",
         "AdditionAborted",
         "RequiredCountChanged",
+        "ProbeDue",
+        "PeerHeard",
+        "ProbeMissed",
+        "IndirectProbesMissed",
         "Probe"
       ]
     },
@@ -292,6 +305,81 @@
               ],
               "properties": {
                 "required_count": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ProbeDue"
+          ],
+          "properties": {
+            "ProbeDue": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "PeerHeard"
+          ],
+          "properties": {
+            "PeerHeard": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ProbeMissed"
+          ],
+          "properties": {
+            "ProbeMissed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "IndirectProbesMissed"
+          ],
+          "properties": {
+            "IndirectProbesMissed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
                   "$ref": "#/$defs/u64"
                 }
               }
@@ -731,6 +819,218 @@
               }
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SendProbe"
+          ],
+          "properties": {
+            "SendProbe": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "NothingToProbe"
+          ],
+          "properties": {
+            "NothingToProbe": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SendIndirectProbes"
+          ],
+          "properties": {
+            "SendIndirectProbes": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id",
+                "via"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                },
+                "via": {
+                  "$ref": "#/$defs/peers"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "MissCounted"
+          ],
+          "properties": {
+            "MissCounted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id",
+                "misses"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                },
+                "misses": {
+                  "$ref": "#/$defs/positive_u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "PeerSuspected"
+          ],
+          "properties": {
+            "PeerSuspected": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "PeerRevived"
+          ],
+          "properties": {
+            "PeerRevived": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AliveNoted"
+          ],
+          "properties": {
+            "AliveNoted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AlreadySuspected"
+          ],
+          "properties": {
+            "AlreadySuspected": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SelfIgnored"
+          ],
+          "properties": {
+            "SelfIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "QuorumLost"
+          ],
+          "properties": {
+            "QuorumLost": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "QuorumRestored"
+          ],
+          "properties": {
+            "QuorumRestored": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
         }
       ]
     },
@@ -857,6 +1157,105 @@
         }
       ]
     },
+    "misses": {
+      "description": "Each member that has missed one or more periods running and is not suspected, with how many, in the members' order.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "peer_id",
+          "misses"
+        ],
+        "properties": {
+          "peer_id": {
+            "$ref": "#/$defs/u64"
+          },
+          "misses": {
+            "$ref": "#/$defs/positive_u64"
+          }
+        }
+      }
+    },
+    "last_probed": {
+      "description": "The member probed last: none yet, or the member.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "None"
+          ],
+          "properties": {
+            "None": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Probed"
+          ],
+          "properties": {
+            "Probed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "quorum": {
+      "description": "Not tracked before the conclusion; then held while the members not suspected number the required count or more, lost while they number fewer.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "NotTracked"
+          ],
+          "properties": {
+            "NotTracked": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Held"
+          ],
+          "properties": {
+            "Held": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Lost"
+          ],
+          "properties": {
+            "Lost": {
+              "$ref": "#/$defs/nothing"
+            }
+          }
+        }
+      ]
+    },
     "cluster_view": {
       "description": "What a node shows of its state.",
       "type": "object",
@@ -869,7 +1268,11 @@
         "required_count",
         "deadline_missed",
         "members",
-        "addition"
+        "addition",
+        "suspected",
+        "misses",
+        "last_probed",
+        "quorum"
       ],
       "properties": {
         "peer_state": {
@@ -895,6 +1298,18 @@
         },
         "addition": {
           "$ref": "#/$defs/addition"
+        },
+        "suspected": {
+          "$ref": "#/$defs/peers"
+        },
+        "misses": {
+          "$ref": "#/$defs/misses"
+        },
+        "last_probed": {
+          "$ref": "#/$defs/last_probed"
+        },
+        "quorum": {
+          "$ref": "#/$defs/quorum"
         }
       }
     },
@@ -1209,7 +1624,18 @@
                     "AdditionWithdrawn",
                     "AcknowledgementIgnored",
                     "AbortIgnored",
-                    "RequiredCountSet"
+                    "RequiredCountSet",
+                    "SendProbe",
+                    "NothingToProbe",
+                    "SendIndirectProbes",
+                    "MissCounted",
+                    "PeerSuspected",
+                    "PeerRevived",
+                    "AliveNoted",
+                    "AlreadySuspected",
+                    "SelfIgnored",
+                    "QuorumLost",
+                    "QuorumRestored"
                   ]
                 }
               },

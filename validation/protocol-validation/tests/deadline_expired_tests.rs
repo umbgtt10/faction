@@ -32,7 +32,7 @@ fn all_nodes_time_out_when_deadline_fires_before_quorum(
     #[case] quorum: usize,
 ) {
     // Arrange
-    let mut cluster = Cluster::new(size, quorum);
+    let mut cluster = Cluster::new(size, quorum, 1);
     cluster.start_all();
     for i in 0..size {
         cluster.inject_timer(i, TimerMessage::DeadlineExpired);

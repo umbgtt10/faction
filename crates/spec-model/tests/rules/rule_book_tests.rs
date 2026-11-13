@@ -14,8 +14,8 @@ fn row_ids_names_each_known_row_once_the_probe_s_first() {
 
     // Assert
     let distinct: BTreeSet<&str> = row_ids.iter().copied().collect();
-    assert_eq!(row_ids.len(), 29);
-    assert_eq!(distinct.len(), 29);
+    assert_eq!(row_ids.len(), 46);
+    assert_eq!(distinct.len(), 46);
     assert_eq!(row_ids[0], "probed");
 }
 

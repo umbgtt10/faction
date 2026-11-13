@@ -5,7 +5,9 @@ use alloc::vec;
 use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::members::Members;
+use faction::miss_count::MissCount;
 use faction::peer_state::PeerState;
+use faction::quorum::Quorum;
 
 extern crate alloc;
 
@@ -21,6 +23,10 @@ fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
         true,
         Members::new(vec![0, 1, 2]),
         Addition::None,
+        vec![],
+        vec![],
+        None,
+        Quorum::Held,
     );
 
     // Assert
@@ -40,6 +46,13 @@ fn new_stores_every_field() {
         true,
         Members::new(vec![4, 5, 6]),
         Addition::Acknowledged { peer_id: 7 },
+        vec![6],
+        vec![MissCount {
+            peer_id: 5,
+            misses: 2,
+        }],
+        Some(5),
+        Quorum::Lost,
     );
 
     // Assert
@@ -51,4 +64,14 @@ fn new_stores_every_field() {
     assert!(view.deadline_missed());
     assert_eq!(view.members().as_slice(), &[4, 5, 6]);
     assert_eq!(view.addition(), Addition::Acknowledged { peer_id: 7 });
+    assert_eq!(view.suspected(), &[6]);
+    assert_eq!(
+        view.misses(),
+        &[MissCount {
+            peer_id: 5,
+            misses: 2
+        }]
+    );
+    assert_eq!(view.last_probed(), Some(5));
+    assert_eq!(view.quorum(), Quorum::Lost);
 }

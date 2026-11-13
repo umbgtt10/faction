@@ -36,13 +36,43 @@ fn membership_for(peer_id: u64) -> OutputMessage {
     }
 }
 
+// Node 0 of members 0 to 3, requiring one, concluded by its own completion,
+// asking one helper.
+fn of_four() -> Protocol {
+    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1);
+    let mut protocol = Protocol::new(
+        Faction::new(config, Box::new(NoOpObserver)),
+        vec![0, 1, 2, 3],
+        0,
+        1,
+    );
+    protocol.decide(InputMessage::Timer(
+        TimerMessage::LocalParticipationCompleted,
+    ));
+    protocol
+}
+
 fn protocol() -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2));
-    Protocol::new(Faction::new(config, Box::new(NoOpObserver)), vec![0, 1], 0)
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1);
+    Protocol::new(
+        Faction::new(config, Box::new(NoOpObserver)),
+        vec![0, 1],
+        0,
+        2,
+    )
 }
 
 fn retry_membership(peer_id: u64) -> TimerEvent {
     TimerEvent::Fire(TimerMessage::RetryMembership { peer_id })
+}
+
+fn timeouts_cancelled(peer_id: u64) -> Vec<OutputMessage> {
+    vec![
+        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id })),
+        OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+            peer_id,
+        })),
+    ]
 }
 
 #[test]
@@ -167,10 +197,14 @@ fn decide_convergence_sequence_reaches_bootstrapped() {
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
 
     // Assert
-    assert_eq!(decisions.len(), 3);
+    assert_eq!(decisions.len(), 4);
     assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[2], OutputMessage::Cancel(_)));
+    assert_eq!(
+        decisions[3],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue))
+    );
     assert_eq!(
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped
@@ -194,6 +228,59 @@ fn decide_deadline_expired_stays_receptive() {
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped
     );
+}
+
+#[test]
+fn decide_indirect_probe_answer_notes_the_target_alive_and_cancels_its_timeouts() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Transport(
+        TransportMessage::IndirectProbeAnswer { from: 2, target: 1 },
+    ));
+
+    // Assert
+    assert_eq!(outputs, timeouts_cancelled(1));
+}
+
+#[test]
+fn decide_indirect_probe_probes_the_target_for_the_node_that_asked() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Transport(TransportMessage::IndirectProbe {
+        from: 2,
+        target: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![OutputMessage::Send {
+            to: 1,
+            message: TransportMessage::Probe {
+                from: 0,
+                relay_for: Some(2),
+            },
+        }]
+    );
+}
+
+#[test]
+fn decide_indirect_probes_missed_at_the_threshold_suspects_the_member() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Timer(TimerMessage::IndirectProbesMissed {
+        peer_id: 1,
+    }));
+
+    // Assert
+    assert_eq!(outputs, vec![OutputMessage::Noop]);
+    assert_eq!(protocol.cluster_view().suspected(), &[1]);
 }
 
 #[test]
@@ -309,11 +396,113 @@ fn decide_pre_accumulated_ready_quorum_on_completion() {
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
         ]
     );
     assert_eq!(
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped
+    );
+}
+
+#[test]
+fn decide_probe_answer_notes_the_member_alive_and_cancels_its_timeouts() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Transport(TransportMessage::ProbeAnswer {
+        from: 1,
+        relay_for: None,
+    }));
+
+    // Assert
+    assert_eq!(outputs, timeouts_cancelled(1));
+}
+
+#[test]
+fn decide_probe_due_before_the_conclusion_produces_noop() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Timer(TimerMessage::ProbeDue));
+
+    // Assert
+    assert_eq!(outputs, vec![OutputMessage::Noop]);
+}
+
+#[test]
+fn decide_probe_due_probes_the_next_member_schedules_its_timeout_and_the_next_period() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Timer(TimerMessage::ProbeDue));
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Send {
+                to: 1,
+                message: TransportMessage::Probe {
+                    from: 0,
+                    relay_for: None,
+                },
+            },
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 })),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
+        ]
+    );
+}
+
+#[test]
+fn decide_probe_from_a_peer_is_answered() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Transport(TransportMessage::Probe {
+        from: 1,
+        relay_for: None,
+    }));
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![OutputMessage::Send {
+            to: 1,
+            message: TransportMessage::ProbeAnswer {
+                from: 0,
+                relay_for: None,
+            },
+        }]
+    );
+}
+
+#[test]
+fn decide_probe_missed_asks_as_many_helpers_as_the_protocol_takes() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Timer(TimerMessage::ProbeMissed {
+        peer_id: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Send {
+                to: 2,
+                message: TransportMessage::IndirectProbe { from: 0, target: 1 },
+            },
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+                peer_id: 1
+            })),
+        ]
     );
 }
 
@@ -330,10 +519,14 @@ fn decide_ready_after_local_completion_reaches_quorum() {
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
 
     // Assert
-    assert_eq!(decisions.len(), 3);
+    assert_eq!(decisions.len(), 4);
     assert!(matches!(decisions[0], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[1], OutputMessage::Cancel(_)));
     assert!(matches!(decisions[2], OutputMessage::Cancel(_)));
+    assert_eq!(
+        decisions[3],
+        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue))
+    );
     assert_eq!(
         protocol.cluster_view().peer_state(),
         PeerState::Bootstrapped
@@ -371,6 +564,27 @@ fn decide_rejected_command_returns_noop() {
     // Assert
     assert_eq!(decisions.len(), 1);
     assert!(matches!(decisions[0], OutputMessage::Noop));
+}
+
+#[test]
+fn decide_relayed_probe_answer_is_forwarded_to_the_node_that_asked() {
+    // Arrange
+    let mut protocol = of_four();
+
+    // Act
+    let outputs = protocol.decide(InputMessage::Transport(TransportMessage::ProbeAnswer {
+        from: 1,
+        relay_for: Some(2),
+    }));
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![OutputMessage::Send {
+            to: 2,
+            message: TransportMessage::IndirectProbeAnswer { from: 0, target: 1 },
+        }]
+    );
 }
 
 #[test]

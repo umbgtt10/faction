@@ -3,7 +3,7 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-13  
-**Current status:** Phase 3 — single-node addition landed (specification 0.2.0, released in 0.6.0)
+**Current status:** Phase 2 — failure detection landed (specification 0.3.0, unreleased; the crate 0.7.0 at the owner's word)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -122,7 +122,7 @@ control-plane decision, with policy owned by the caller. The scenario Phase 1 de
 
 ## Cross-cutting — Specification & conformance suite
 
-**Status:** specification 0.2.0 written, in [`spec/`](../spec/SPEC.md).
+**Status:** specification 0.3.0 written, in [`spec/`](../spec/SPEC.md).
 **Not a numbered phase:** this spans every phase rather than removing one
 limitation; it does not fit the L1-L7 framing above and does not shift any
 phase's numbering.
@@ -132,7 +132,7 @@ it, so a non-Rust port has a machine-checkable conformance target instead of
 only the Rust source to read (`P0-ADR-SpecificationIsNormativeCrateIsReference`).
 The specification's four parts — schema, decision table, prose and vectors — are
 written by hand and versioned together; its 0.1.0 is Phase 1's vocabulary,
-joining included, and its 0.2.0 adds Phase 3's addition. From here every phase changes the specification first, then
+joining included; its 0.2.0 adds Phase 3's addition, and its 0.3.0 Phase 2's failure detection. Every phase changes the specification first, then
 the crate (`P2-ADR-SpecifiedBeforeAnyNewPhase`). The specification's independent
 model, `crates/spec-model/`, checks each phase's vectors before the crate runs them
 (`P1-ADR-IndependentModelOfTheSpecification`).
@@ -141,37 +141,47 @@ model, `crates/spec-model/`, checks each phase's vectors before the crate runs t
 
 ## Phase 2 — Failure detection
 
-**Status:** Planned  
-**Target:** 4–6 weeks  
-**Depends on:** Phase 1 complete  
-**Removes limitation:** L2 — no liveness tracking  
+**Status:** ✅ Complete — specification 0.3.0; the crate 0.7.0, unreleased
+**Depends on:** Phases 1 and 3 complete — built after Phase 3
+**Removes limitation:** L2 — no liveness tracking
 
 `faction` answers: *"Is everyone still alive?"*
 
-The membership set is now mutable and tracked. The machine monitors liveness using
-SWIM-style probing: suspect → indirect probe → confirm or revive. Quorum is
-re-evaluated as liveness changes.
+A concluded node runs SWIM's failure detector, the caller keeping its clock and its
+wire (`P1-ADR-LivenessReportedNotStaged`). It names, one period at a time, the member to
+probe, round-robin; a member that misses its probe is probed through others; one that
+misses as many periods running as the node's suspicion threshold is suspected; one
+heard from again is revived. Quorum is the members not suspected against the count in
+effect, and the node says when it is lost and restored. Liveness is something the view
+reports, never a stage; each node judges for itself; a suspect stays a member — only a
+removal (Phase 4) takes one away.
 
-**New states:**
-- `Stable` — all members alive, quorum maintained
-- `Degraded(SuspectSet)` — one or more members suspected
-- `QuorumLost` — suspicion exceeds quorum threshold
+**New configuration:** the suspicion threshold — how many periods running a member must
+miss before it is suspected, each node's own.
 
-**New inputs:**
-- `ProbeAck { from }` — successful probe response
-- `ProbeMiss { from }` — probe timeout
-- `IndirectProbeAck { target, via }` — SWIM indirect confirmation
-- `IndirectProbeMiss { target, via }` — SWIM indirect miss
-- `Revive { node }` — suspected node re-confirmed
+**New commands:**
+- `ProbeDue` — a probe period began
+- `PeerHeard { peer_id }` — a sign of life from the member, direct or relayed
+- `ProbeMissed { peer_id }` — the member missed its probe
+- `IndirectProbesMissed { peer_id }` — the member missed the period, through every helper asked
 
-**New outputs (commands to caller):**
-- `SendProbe { to }` — caller executes the probe
-- `SendIndirectProbe { target, via }` — caller executes indirect probe
-- `EmitQuorumLost` — notify consensus layer
-- `EmitQuorumRestored` — notify consensus layer
+**New outcomes:**
+- `SendProbe { peer_id }`, `NothingToProbe`, `SendIndirectProbes { peer_id, via }`
+- `MissCounted { peer_id, misses }`, `PeerSuspected { peer_id }`, `PeerRevived { peer_id }`
+- `AliveNoted`, `AlreadySuspected`, `SelfIgnored`
+- `QuorumLost`, `QuorumRestored`
 
-The machine never probes. It emits probe commands. The caller executes them. Results
-return as inputs. The Mealy invariant is maintained.
+The machine never probes: it names whom to probe and whom to ask, and the caller's
+answers return as commands. The Mealy invariant is maintained.
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| Specification | 0.3.0 — 46 rows, 78 vectors, every row exercised |
+| Property invariants | Every other member probed within one round; a suspicion only at the threshold; the quorum held exactly while the members not suspected reach the count |
+| In-process scenarios | 10 — time passing at a test's word |
+| System scenarios | 5, in all 10 spawn and transport cases, members silenced and links cut by the harness |
 
 **Gate:** 100% `(state, input)` coverage. Phase 4 does not begin until this gate is green.
 
@@ -260,6 +270,10 @@ action with consequences.
   `ReconfigurationInFlight`
 - `EmitMemberRemoved { node }`
 
+*To settle in Phase 4's proposal:* `NodeAlreadySuspected` as a reason to refuse clashes
+with this phase's own table, which makes the removal of a suspect valid; and Phase 2 has
+left the suspected members and the quorum in the view for the removal rules to read.
+
 **Degenerate cases — each is a first-class state transition, not an error path:**
 
 | Input | State | Correct behaviour |
@@ -340,8 +354,8 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.2.0 written |
-| 2 | Failure detection (SWIM) | 4–6 weeks | Planned |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.3.0 written |
+| 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0; the crate 0.7.0, unreleased) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | Planned |
 | 5 | Membership epochs and rejoin | After Phase 4 | Planned |

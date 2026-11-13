@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -17,4 +18,8 @@ pub struct NodeState {
     pub collecting_peers: Vec<String>,
     pub deadline_missed: bool,
     pub addition: Addition,
+    pub suspicion_threshold: u64,
+    pub suspected: Vec<String>,
+    pub misses: BTreeMap<String, u64>,
+    pub last_probed: Option<String>,
 }

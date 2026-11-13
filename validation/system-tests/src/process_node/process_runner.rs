@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::quorum::Quorum;
+use faction::types::PeerId;
 use std::io::Write;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::TryRecvError;
@@ -82,6 +84,8 @@ impl ProcessRunner {
             ProcessCommand::RequiredCount(required_count) => {
                 self.node.change_required_count(required_count);
             }
+            ProcessCommand::Cut(peer_id) => self.node.cut(peer_id),
+            ProcessCommand::Mend(peer_id) => self.node.mend(peer_id),
             ProcessCommand::Peer(peer_id, addr) => {
                 self.address_book.lock().unwrap().push((peer_id, addr));
             }
@@ -112,12 +116,37 @@ impl ProcessRunner {
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
-            "state {:?} {} {} {}",
+            "state {:?} {} {} {} {} {}",
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
-            Self::addition(snapshot.addition)
+            Self::addition(snapshot.addition),
+            Self::suspected(&snapshot.suspected),
+            Self::quorum(snapshot.quorum)
         );
         let _ = self.out.flush();
+    }
+
+    // The quorum as the state line writes it.
+    fn quorum(quorum: Quorum) -> &'static str {
+        match quorum {
+            Quorum::NotTracked => "off",
+            Quorum::Held => "held",
+            Quorum::Lost => "lost",
+        }
+    }
+
+    // The suspected members as the state line writes them: by id, comma
+    // separated, or a dash for none.
+    fn suspected(suspected: &[PeerId]) -> String {
+        if suspected.is_empty() {
+            String::from("-")
+        } else {
+            suspected
+                .iter()
+                .map(PeerId::to_string)
+                .collect::<Vec<String>>()
+                .join(",")
+        }
     }
 }

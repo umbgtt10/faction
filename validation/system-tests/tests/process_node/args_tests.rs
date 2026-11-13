@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::process_node::args::Args;
 use faction_system_tests::transport_kind::TransportKind;
 use std::net::SocketAddr;
@@ -19,6 +20,8 @@ fn args(extra: &[&str]) -> Args {
         "0,1",
         "--required",
         "2",
+        "--suspicion-threshold",
+        "3",
         "--transport",
         "tcp",
         "--timer-delay",
@@ -49,6 +52,8 @@ fn parse_reads_every_required_argument() {
     assert_eq!(config.peer_id, 1);
     assert_eq!(config.peers, vec![0, 1]);
     assert_eq!(config.required, 2);
+    assert_eq!(config.suspicion_threshold, 3);
+    assert_eq!(config.probe_stretch, ProbeStretch::Minimal.factor());
     assert_eq!(config.transport, TransportKind::Tcp);
     assert_eq!(config.timer_delay_ms, 20);
     assert_eq!(config.listen_addr, addr("127.0.0.1:4001"));
@@ -79,6 +84,8 @@ fn parse_reads_the_optional_arguments_and_a_grpc_transport() {
     let args = args(&[
         "--freshness-margin",
         "7",
+        "--probe-stretch",
+        "3",
         "--log-path",
         "logs/node-1.jsonl",
         "--transport",
@@ -90,6 +97,7 @@ fn parse_reads_the_optional_arguments_and_a_grpc_transport() {
 
     // Assert
     assert_eq!(config.freshness_margin, 7);
+    assert_eq!(config.probe_stretch, 3);
     assert_eq!(config.log_path, Some(PathBuf::from("logs/node-1.jsonl")));
     assert_eq!(config.transport, TransportKind::Grpc);
 }

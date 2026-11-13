@@ -42,6 +42,15 @@ fn parse_commit_addition_reads_the_peer() {
 }
 
 #[test]
+fn parse_cut_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("cut 4");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::Cut(4)));
+}
+
+#[test]
 fn parse_deny_reads_the_peer() {
     // Arrange & Act
     let command = ProcessCommand::parse("deny 4");
@@ -57,6 +66,15 @@ fn parse_expire_is_expire_deadline() {
 
     // Assert
     assert_eq!(command, Some(ProcessCommand::ExpireDeadline));
+}
+
+#[test]
+fn parse_mend_reads_the_peer() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("mend 4");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::Mend(4)));
 }
 
 #[test]

@@ -31,6 +31,10 @@ fn of_a_bootstrapped_node_past_its_deadline_is_bootstrapped_and_says_so() {
             "deadline_missed": true,
             "members": ["1", "2", "3"],
             "addition": {"None": {}},
+            "suspected": [],
+            "misses": [],
+            "last_probed": {"None": {}},
+            "quorum": {"Held": {}},
         })
     );
 }
@@ -46,6 +50,33 @@ fn of_a_collecting_node_shows_its_stage_and_its_pinging_completed() {
     // Assert
     assert_eq!(view["peer_state"], json!({"Collecting": {}}));
     assert_eq!(view["is_pinging_completed"], json!(true));
+}
+
+#[test]
+fn of_a_concluded_node_holding_its_quorum_says_held() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["quorum"], json!({"Held": {}}));
+}
+
+#[test]
+fn of_a_concluded_node_short_of_its_count_says_its_quorum_lost() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2", "3"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["quorum"], json!({"Lost": {}}));
 }
 
 #[test]
@@ -68,8 +99,60 @@ fn of_a_fresh_node_is_fresh() {
             "deadline_missed": false,
             "members": ["1", "2", "3"],
             "addition": {"None": {}},
+            "suspected": [],
+            "misses": [],
+            "last_probed": {"None": {}},
+            "quorum": {"NotTracked": {}},
         })
     );
+}
+
+#[test]
+fn of_a_node_lists_its_missed_periods_in_the_members_order() {
+    // Arrange
+    let state = NodeState {
+        misses: NodeStates::misses(&[("3", 1), ("2", 2)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(
+        view["misses"],
+        json!([{"peer_id": "2", "misses": "2"}, {"peer_id": "3", "misses": "1"}])
+    );
+}
+
+#[test]
+fn of_a_node_that_probed_names_the_member_probed_last() {
+    // Arrange
+    let state = NodeState {
+        last_probed: Some(String::from("3")),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["last_probed"], json!({"Probed": {"peer_id": "3"}}));
+}
+
+#[test]
+fn of_a_node_that_suspects_lists_its_suspects() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["3", "2"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["suspected"], json!(["3", "2"]));
 }
 
 #[test]
@@ -121,6 +204,10 @@ fn of_a_reconfiguring_node_is_bootstrapped_with_its_addition_requested() {
             "deadline_missed": false,
             "members": ["1", "2", "3"],
             "addition": {"Requested": {"peer_id": "4"}},
+            "suspected": [],
+            "misses": [],
+            "last_probed": {"None": {}},
+            "quorum": {"Held": {}},
         })
     );
 }

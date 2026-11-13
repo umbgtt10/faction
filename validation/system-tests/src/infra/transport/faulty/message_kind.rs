@@ -11,6 +11,10 @@ pub enum MessageKind {
     Bootstrapped,
     Membership,
     MembershipAcknowledged,
+    Probe,
+    ProbeAnswer,
+    IndirectProbe,
+    IndirectProbeAnswer,
 }
 
 impl MessageKind {
@@ -22,6 +26,10 @@ impl MessageKind {
             TransportMessage::Bootstrapped { .. } => MessageKind::Bootstrapped,
             TransportMessage::Membership { .. } => MessageKind::Membership,
             TransportMessage::MembershipAcknowledged { .. } => MessageKind::MembershipAcknowledged,
+            TransportMessage::Probe { .. } => MessageKind::Probe,
+            TransportMessage::ProbeAnswer { .. } => MessageKind::ProbeAnswer,
+            TransportMessage::IndirectProbe { .. } => MessageKind::IndirectProbe,
+            TransportMessage::IndirectProbeAnswer { .. } => MessageKind::IndirectProbeAnswer,
         }
     }
 }

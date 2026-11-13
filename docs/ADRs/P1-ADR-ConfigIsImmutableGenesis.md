@@ -22,7 +22,10 @@ count in effect are authoritative state carried in each `State` — a `Members`
 value object seeded from `Config.peers`, a `QuorumPolicy` seeded from the
 configuration's — and each changes only through a `Command`, never through a
 setter and never by mutating `Config`: the members by an admission or a committed
-addition, the count by `RequiredCountChanged`.
+addition, the count by `RequiredCountChanged`. The suspicion threshold — how many
+probe periods running a member must miss before it is suspected — is the
+configuration's alone and never changes: each node's own, given by its deployment
+(`P1-ADR-LivenessReportedNotStaged`).
 
 ## Forcing constraints / Evidence
 Determinism (`P0-ADR-DeterministicReplayable`): `output = F(state, input)`. A

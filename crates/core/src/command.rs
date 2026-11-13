@@ -17,5 +17,9 @@ pub enum Command {
     AdditionCommitted { peer_id: PeerId },
     AdditionAborted { peer_id: PeerId },
     RequiredCountChanged { required_count: usize },
+    ProbeDue,
+    PeerHeard { peer_id: PeerId },
+    ProbeMissed { peer_id: PeerId },
+    IndirectProbesMissed { peer_id: PeerId },
     Probe,
 }

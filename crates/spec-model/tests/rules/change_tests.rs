@@ -111,6 +111,52 @@ fn applied_count_set_makes_the_command_s_count_the_count_in_effect() {
 }
 
 #[test]
+fn applied_miss_counted_counts_one_more_missed_period() {
+    // Arrange
+    let state = NodeState {
+        misses: NodeStates::misses(&[("2", 1)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let changed = Change::MissCounted.applied(
+        &command(CommandName::IndirectProbesMissed, Some("2")),
+        &state,
+    );
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            misses: NodeStates::misses(&[("2", 2)]),
+            ..NodeStates::concluded()
+        }
+    );
+}
+
+#[test]
+fn applied_misses_cleared_forgets_the_peer_s_missed_periods() {
+    // Arrange
+    let state = NodeState {
+        misses: NodeStates::misses(&[("2", 1), ("3", 1)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let changed =
+        Change::MissesCleared.applied(&command(CommandName::PeerHeard, Some("2")), &state);
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            misses: NodeStates::misses(&[("3", 1)]),
+            ..NodeStates::concluded()
+        }
+    );
+}
+
+#[test]
 fn applied_misses_deadline_records_the_missed_deadline_alone() {
     // Arrange
     let expiry = command(CommandName::DeadlineExpired, None);
@@ -203,4 +249,68 @@ fn applied_peer_pings_makes_the_peer_the_last_pinging_peer() {
     // Assert
     assert_eq!(changed.pinging_peers, NodeStates::peers(&["3", "2"]));
     assert_eq!(changed.collecting_peers, NodeStates::peers(&["2"]));
+}
+
+#[test]
+fn applied_peer_revived_no_longer_suspects_the_peer() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["2", "3"]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let changed = Change::PeerRevived.applied(&command(CommandName::PeerHeard, Some("2")), &state);
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            suspected: NodeStates::peers(&["3"]),
+            ..NodeStates::concluded()
+        }
+    );
+}
+
+#[test]
+fn applied_peer_suspected_makes_the_peer_the_last_suspected_and_forgets_its_misses() {
+    // Arrange
+    let state = NodeState {
+        suspected: NodeStates::peers(&["3"]),
+        misses: NodeStates::misses(&[("2", 2)]),
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let changed = Change::PeerSuspected.applied(
+        &command(CommandName::IndirectProbesMissed, Some("2")),
+        &state,
+    );
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            suspected: NodeStates::peers(&["3", "2"]),
+            ..NodeStates::concluded()
+        }
+    );
+}
+
+#[test]
+fn applied_probe_moves_makes_the_member_after_the_last_probed_the_one_probed_last() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let changed = Change::ProbeMoves.applied(&command(CommandName::ProbeDue, None), &state);
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            last_probed: Some(String::from("2")),
+            ..NodeStates::concluded()
+        }
+    );
 }

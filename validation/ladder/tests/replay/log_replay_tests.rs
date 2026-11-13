@@ -24,7 +24,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 fn config(required_count: usize) -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count))
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), 1)
 }
 
 // The log a node writes of the given commands: its configuration, then a step

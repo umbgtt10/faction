@@ -48,6 +48,7 @@
 //!     0,                                 // our peer id
 //!     alloc::vec![0, 1, 2, 3, 4],        // all peers
 //!     QuorumPolicy::new(4),              // quorum threshold
+//!     1,                                 // missed probe periods before suspicion
 //! );
 //!
 //! let mut machine = Faction::new(config, Box::new(NoOpObserver));
@@ -112,6 +113,14 @@
 //! until the layer above reports the commit, which every node applies, or the
 //! abort.
 //!
+//! A concluded node also tracks its members' liveness, the caller keeping the
+//! clock: at each probe period it names the member to probe, round-robin; a
+//! member that misses its probe is probed through others; one that misses as
+//! many periods running as the configuration's suspicion threshold is
+//! suspected, and one heard from again is revived. Its view says when the
+//! members not suspected fall below the required count, and when they reach it
+//! again. A suspect stays a member: liveness is reported, never a stage.
+//!
 //! ## Observer
 //!
 //! Every call — an accepted command, a rejected one, a probe — is reported once
@@ -142,10 +151,12 @@ pub mod conclusion;
 pub mod config;
 pub mod faction;
 pub mod members;
+pub mod miss_count;
 pub mod observer;
 pub mod outcome;
 pub mod peer_state;
 pub mod process_result;
+pub mod quorum;
 pub mod quorum_policy;
 pub mod stage;
 pub mod state;

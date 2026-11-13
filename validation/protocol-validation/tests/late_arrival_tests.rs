@@ -29,7 +29,7 @@ use rstest::rstest;
 #[case(2, 2)]
 fn cluster_recovers_after_deadline_via_late_readiness(#[case] size: usize, #[case] quorum: usize) {
     // Arrange
-    let mut cluster = Cluster::new(size, quorum);
+    let mut cluster = Cluster::new(size, quorum, 1);
     cluster.start_all();
     for i in 0..size {
         cluster.inject_timer(i, TimerMessage::DeadlineExpired);
@@ -94,7 +94,7 @@ fn pre_accumulated_ready_counts_toward_quorum_when_local_completion_fires(
     #[case] quorum: usize,
 ) {
     // Arrange
-    let mut cluster = Cluster::new(size, quorum);
+    let mut cluster = Cluster::new(size, quorum, 1);
     cluster.start_node(0);
     cluster.start_node(1);
 

@@ -24,4 +24,20 @@ pub enum TransportMessage {
     MembershipAcknowledged {
         from: PeerId,
     },
+    Probe {
+        from: PeerId,
+        relay_for: Option<PeerId>,
+    },
+    ProbeAnswer {
+        from: PeerId,
+        relay_for: Option<PeerId>,
+    },
+    IndirectProbe {
+        from: PeerId,
+        target: PeerId,
+    },
+    IndirectProbeAnswer {
+        from: PeerId,
+        target: PeerId,
+    },
 }

@@ -34,6 +34,10 @@ impl SpecReader {
                 required_count: usize::try_from(Self::number(&body["required_count"]))
                     .expect("a required count this platform can hold"),
             },
+            "ProbeDue" => Command::ProbeDue,
+            "PeerHeard" => Command::PeerHeard { peer_id: peer_id() },
+            "ProbeMissed" => Command::ProbeMissed { peer_id: peer_id() },
+            "IndirectProbesMissed" => Command::IndirectProbesMissed { peer_id: peer_id() },
             "Probe" => Command::Probe,
             other => panic!("not a command of the specification: {other}"),
         }
@@ -48,10 +52,13 @@ impl SpecReader {
             .collect();
         let required = usize::try_from(Self::number(&value["required_count"]))
             .expect("a required count this platform can hold");
+        let threshold = usize::try_from(Self::number(&value["suspicion_threshold"]))
+            .expect("a suspicion threshold this platform can hold");
         Config::new(
             Self::number(&value["peer_id"]),
             peers,
             QuorumPolicy::new(required),
+            threshold,
         )
     }
 

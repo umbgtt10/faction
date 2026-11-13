@@ -5,7 +5,9 @@ use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction_protocol::timer::Timer;
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
+use faction_system_tests::constants::DEFAULT_DEADLINE_CYCLES;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
+use faction_system_tests::probe_stretch::ProbeStretch;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -157,6 +159,28 @@ fn schedule_returns_event_after_delay() {
 }
 
 #[test]
+fn with_delay_deadline_waits_the_default_deadline_cycles() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delay(clock.clone(), Duration::from_millis(1));
+    timer.schedule(TimerEvent::Fire(TimerMessage::DeadlineExpired));
+    clock.advance(Duration::from_millis(
+        u64::from(DEFAULT_DEADLINE_CYCLES) - 1,
+    ));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::DeadlineExpired))
+    );
+}
+
+#[test]
 fn with_delays_deadline_waits_its_own_delay() {
     // Arrange
     let clock = clock();
@@ -164,6 +188,7 @@ fn with_delays_deadline_waits_its_own_delay() {
         clock.clone(),
         Duration::from_millis(10),
         Duration::from_millis(100),
+        ProbeStretch::Minimal.factor(),
     );
     timer.schedule(TimerEvent::Fire(TimerMessage::DeadlineExpired));
     timer.schedule(some_event());
@@ -182,5 +207,157 @@ fn with_delays_deadline_waits_its_own_delay() {
     assert_eq!(
         timer.poll(),
         Some(TimerEvent::Fire(TimerMessage::DeadlineExpired))
+    );
+}
+
+#[test]
+fn with_delays_indirect_probes_missed_waits_eight_delays() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        ProbeStretch::Minimal.factor(),
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+        peer_id: 1,
+    }));
+    clock.advance(Duration::from_millis(79));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+            peer_id: 1
+        }))
+    );
+}
+
+#[test]
+fn with_delays_probe_due_waits_five_delays() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        ProbeStretch::Minimal.factor(),
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::ProbeDue));
+    clock.advance(Duration::from_millis(49));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(timer.poll(), Some(TimerEvent::Fire(TimerMessage::ProbeDue)));
+}
+
+#[test]
+fn with_delays_probe_missed_waits_four_delays() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        ProbeStretch::Minimal.factor(),
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }));
+    clock.advance(Duration::from_millis(39));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }))
+    );
+}
+
+#[test]
+fn with_delays_stretches_the_indirect_probes_timeout() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        3,
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+        peer_id: 1,
+    }));
+    clock.advance(Duration::from_millis(239));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::IndirectProbesMissed {
+            peer_id: 1
+        }))
+    );
+}
+
+#[test]
+fn with_delays_stretches_the_probe_period() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        3,
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::ProbeDue));
+    clock.advance(Duration::from_millis(149));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(timer.poll(), Some(TimerEvent::Fire(TimerMessage::ProbeDue)));
+}
+
+#[test]
+fn with_delays_stretches_the_probe_period_and_its_timeouts() {
+    // Arrange
+    let clock = clock();
+    let mut timer = RealTimer::with_delays(
+        clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        3,
+    );
+    timer.schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }));
+    clock.advance(Duration::from_millis(119));
+    let early = timer.poll();
+
+    // Act
+    clock.advance(Duration::from_millis(1));
+
+    // Assert
+    assert_eq!(early, None);
+    assert_eq!(
+        timer.poll(),
+        Some(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 }))
     );
 }

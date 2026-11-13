@@ -4,9 +4,16 @@
 use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
+use faction_system_tests::infra::logging::shared_writer::SharedWriter;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
+use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::faulty::message_kind::MessageKind;
+use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
+use std::env::temp_dir;
+use std::fs::read_to_string;
+use std::fs::remove_file;
+use std::process::id;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -24,7 +31,7 @@ fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) 
         forwarded: forwarded.clone(),
     };
     (
-        FaultyTransport::new(peer_id, policy, Box::new(inner)),
+        FaultyTransport::new(peer_id, policy, LinkCuts::default(), None, Box::new(inner)),
         forwarded,
     )
 }
@@ -167,6 +174,29 @@ fn partition_at_100_percent_cuts_the_link() {
 }
 
 #[test]
+fn recv_from_a_peer_cut_off_drops_what_it_sent() {
+    // Arrange
+    let mut mesh = InMemoryTransport::new_mesh(&[0, 1]);
+    let mut peer_one = mesh.remove(1);
+    let cuts = LinkCuts::default();
+    let mut faulty = FaultyTransport::new(
+        0,
+        FaultPolicy::default(),
+        cuts.clone(),
+        None,
+        Box::new(mesh.remove(0)),
+    );
+    cuts.cut(1);
+    peer_one.send(0, ping(1));
+
+    // Act
+    let received = faulty.recv();
+
+    // Assert
+    assert_eq!(received, None);
+}
+
+#[test]
 fn reorder_at_100_percent_holds_then_eventually_delivers() {
     // Arrange
     let policy = FaultPolicy {
@@ -207,5 +237,36 @@ fn selective_at_100_percent_drops_only_the_target_kind() {
         !forwarded
             .iter()
             .any(|(_, message)| matches!(message, TransportMessage::Ready { .. }))
+    );
+}
+
+#[test]
+fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
+    // Arrange
+    let path = temp_dir().join(format!("faulty-transport-tests-{}.jsonl", id()));
+    let _ = remove_file(&path);
+    let forwarded: Forwarded = Arc::new(Mutex::new(Vec::new()));
+    let cuts = LinkCuts::default();
+    let mut faulty = FaultyTransport::new(
+        0,
+        FaultPolicy::default(),
+        cuts.clone(),
+        Some(SharedWriter::open(&path)),
+        Box::new(RecordingTransport {
+            forwarded: forwarded.clone(),
+        }),
+    );
+    cuts.cut(1);
+
+    // Act
+    faulty.send(1, ping(0));
+    faulty.send(2, ping(0));
+
+    // Assert
+    assert_eq!(*forwarded.lock().unwrap(), vec![(2, ping(0))]);
+    let log = read_to_string(&path).unwrap();
+    assert!(
+        log.contains("\"event\":\"fault\"") && log.contains("\"to\":1"),
+        "{log}"
     );
 }

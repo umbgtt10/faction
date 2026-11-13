@@ -9,4 +9,5 @@ pub struct Configuration {
     pub peer_id: String,
     pub peers: Vec<String>,
     pub required_count: u64,
+    pub suspicion_threshold: u64,
 }

@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::HELPERS;
+use crate::infra::transport::faulty::fault_policy::FaultPolicy;
+use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
+use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -31,8 +35,10 @@ use crate::time_ports::TimePorts;
 #[derive(Clone)]
 pub struct NodeRecipe {
     required: usize,
+    suspicion_threshold: usize,
     delay: Duration,
     deadline_delay: Duration,
+    probe_stretch: u32,
     log_dir: Option<PathBuf>,
     time: TimePorts,
 }
@@ -41,15 +47,19 @@ impl NodeRecipe {
     #[must_use]
     pub fn new(
         required: usize,
+        suspicion_threshold: usize,
         delay: Duration,
         deadline_delay: Duration,
+        probe_stretch: u32,
         log_dir: Option<PathBuf>,
         time: TimePorts,
     ) -> Self {
         Self {
             required,
+            suspicion_threshold,
             delay,
             deadline_delay,
+            probe_stretch,
             log_dir,
             time,
         }
@@ -63,19 +73,27 @@ impl NodeRecipe {
         transport: Box<dyn Transport>,
     ) -> FactionNode {
         let (faction_observer, node_observer) = self.observers(peer_id);
-        let config = Config::new(peer_id, peers.clone(), QuorumPolicy::new(self.required));
+        let cuts = LinkCuts::default();
+        let config = Config::new(
+            peer_id,
+            peers.clone(),
+            QuorumPolicy::new(self.required),
+            self.suspicion_threshold,
+        );
         let protocol = Protocol::new(
             Faction::new(config, faction_observer),
             peers.clone(),
             peer_id,
+            HELPERS,
         );
         FactionNode::new(
             peer_id,
             peers,
             Role::Running(Box::new(protocol)),
-            transport,
+            self.faulty(peer_id, transport, &cuts),
             self.timer(),
             node_observer,
+            cuts,
         )
     }
 
@@ -83,13 +101,20 @@ impl NodeRecipe {
     #[must_use]
     pub fn build_newcomer(&self, peer_id: PeerId, transport: Box<dyn Transport>) -> FactionNode {
         let (faction_observer, node_observer) = self.observers(peer_id);
+        let cuts = LinkCuts::default();
         FactionNode::new(
             peer_id,
             Vec::new(),
-            Role::Waiting(Newcomer::new(peer_id, faction_observer)),
-            transport,
+            Role::Waiting(Newcomer::new(
+                peer_id,
+                self.suspicion_threshold,
+                HELPERS,
+                faction_observer,
+            )),
+            self.faulty(peer_id, transport, &cuts),
             self.timer(),
             node_observer,
+            cuts,
         )
     }
 
@@ -133,6 +158,23 @@ impl NodeRecipe {
         }
     }
 
+    // The node's transport behind the faults a test injects: no seeded fault,
+    // the links its cuts name cut, every fault one line of the node's log.
+    fn faulty(
+        &self,
+        peer_id: PeerId,
+        transport: Box<dyn Transport>,
+        cuts: &LinkCuts,
+    ) -> Box<dyn Transport> {
+        Box::new(FaultyTransport::new(
+            peer_id,
+            FaultPolicy::default(),
+            cuts.clone(),
+            self.writer(peer_id),
+            transport,
+        ))
+    }
+
     fn observers(&self, peer_id: PeerId) -> (Box<dyn Observer>, Box<dyn NodeObserver>) {
         let writer = self.writer(peer_id);
         let faction_observer: Box<dyn Observer> = match &writer {
@@ -159,6 +201,7 @@ impl NodeRecipe {
             self.time.clock.clone(),
             self.delay,
             self.deadline_delay,
+            self.probe_stretch,
         ))
     }
 

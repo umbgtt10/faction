@@ -1,11 +1,11 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "admits": {
     "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RequiredCountChanged", "Probe"],
     "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RequiredCountChanged", "Probe"],
     "Collecting": ["ParticipationObserved", "ReadyObserved", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RequiredCountChanged", "Probe"],
-    "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "AdditionCommitted", "RequiredCountChanged", "Probe"],
-    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RequiredCountChanged", "Probe"]
+    "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "AdditionCommitted", "RequiredCountChanged", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
+    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RequiredCountChanged", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"]
   },
   "rows": [
     {
@@ -20,7 +20,7 @@
     {
       "id": "not-admitted",
       "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
-      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RequiredCountChanged"],
+      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RequiredCountChanged", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
       "situation": "the stage does not admit the command (`admits`)",
       "result": "Rejected",
       "outcomes": [],
@@ -153,6 +153,15 @@
       "next": "unchanged"
     },
     {
+      "id": "join-restores-quorum",
+      "stages": ["Bootstrapped"],
+      "commands": ["JoinApproved"],
+      "situation": "`peer_id` becomes the last member, and the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["MemberAdmitted", "QuorumRestored"],
+      "next": "unchanged"
+    },
+    {
       "id": "join-admitted",
       "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped"],
       "commands": ["JoinApproved"],
@@ -234,6 +243,15 @@
       "next": "unchanged"
     },
     {
+      "id": "completion-restores-quorum",
+      "stages": ["Reconfiguring"],
+      "commands": ["AdditionCommitted"],
+      "situation": "the addition in flight is of `peer_id`: it becomes the last member, no addition is in flight, and the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["MemberAdmitted", "QuorumRestored"],
+      "next": "Bootstrapped"
+    },
+    {
       "id": "addition-completed",
       "stages": ["Reconfiguring"],
       "commands": ["AdditionCommitted"],
@@ -241,6 +259,15 @@
       "result": "Accepted",
       "outcomes": ["MemberAdmitted"],
       "next": "Bootstrapped"
+    },
+    {
+      "id": "commit-restores-quorum",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["AdditionCommitted"],
+      "situation": "`peer_id` becomes the last member, and the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["MemberAdmitted", "QuorumRestored"],
+      "next": "unchanged"
     },
     {
       "id": "addition-committed",
@@ -261,12 +288,138 @@
       "next": "Bootstrapped"
     },
     {
+      "id": "count-loses-quorum",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["RequiredCountChanged"],
+      "situation": "with `required_count` in effect, the quorum, held, is lost",
+      "result": "Accepted",
+      "outcomes": ["RequiredCountSet", "QuorumLost"],
+      "next": "unchanged"
+    },
+    {
+      "id": "count-restores-quorum",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["RequiredCountChanged"],
+      "situation": "with `required_count` in effect, the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["RequiredCountSet", "QuorumRestored"],
+      "next": "unchanged"
+    },
+    {
       "id": "count-set",
       "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
       "commands": ["RequiredCountChanged"],
       "situation": "otherwise: `required_count` is the count in effect",
       "result": "Accepted",
       "outcomes": ["RequiredCountSet"],
+      "next": "unchanged"
+    },
+    {
+      "id": "probe-alone",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["ProbeDue"],
+      "situation": "the node is its only member",
+      "result": "Accepted",
+      "outcomes": ["NothingToProbe"],
+      "next": "unchanged"
+    },
+    {
+      "id": "probe-due",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["ProbeDue"],
+      "situation": "otherwise: the member after the one probed last, in the members' order and past the last back to the first, the node skipped, is probed, and is the one probed last",
+      "result": "Accepted",
+      "outcomes": ["SendProbe"],
+      "next": "unchanged"
+    },
+    {
+      "id": "liveness-self",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
+      "situation": "`peer_id` is the node itself",
+      "result": "Accepted",
+      "outcomes": ["SelfIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "liveness-non-member",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
+      "situation": "`peer_id` is not a member",
+      "result": "Accepted",
+      "outcomes": ["NonMemberIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "revival-restores-quorum",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["PeerHeard"],
+      "situation": "`peer_id` is suspected: it is no longer, and the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["PeerRevived", "QuorumRestored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "peer-revived",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["PeerHeard"],
+      "situation": "`peer_id` is suspected: it is no longer",
+      "result": "Accepted",
+      "outcomes": ["PeerRevived"],
+      "next": "unchanged"
+    },
+    {
+      "id": "alive-noted",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["PeerHeard"],
+      "situation": "otherwise: `peer_id` has missed no period",
+      "result": "Accepted",
+      "outcomes": ["AliveNoted"],
+      "next": "unchanged"
+    },
+    {
+      "id": "miss-of-a-suspect",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["ProbeMissed", "IndirectProbesMissed"],
+      "situation": "`peer_id` is suspected",
+      "result": "Accepted",
+      "outcomes": ["AlreadySuspected"],
+      "next": "unchanged"
+    },
+    {
+      "id": "probe-missed",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["ProbeMissed"],
+      "situation": "otherwise: the members not suspected but the node and `peer_id` are listed to probe it",
+      "result": "Accepted",
+      "outcomes": ["SendIndirectProbes"],
+      "next": "unchanged"
+    },
+    {
+      "id": "suspicion-loses-quorum",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["IndirectProbesMissed"],
+      "situation": "with this period `peer_id` has missed as many as the suspicion threshold: it is suspected, and the quorum, held, is lost",
+      "result": "Accepted",
+      "outcomes": ["PeerSuspected", "QuorumLost"],
+      "next": "unchanged"
+    },
+    {
+      "id": "peer-suspected",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["IndirectProbesMissed"],
+      "situation": "with this period `peer_id` has missed as many as the suspicion threshold: it becomes the last suspected peer, and has missed no period",
+      "result": "Accepted",
+      "outcomes": ["PeerSuspected"],
+      "next": "unchanged"
+    },
+    {
+      "id": "miss-counted",
+      "stages": ["Bootstrapped", "Reconfiguring"],
+      "commands": ["IndirectProbesMissed"],
+      "situation": "otherwise: `peer_id` has missed one period more",
+      "result": "Accepted",
+      "outcomes": ["MissCounted"],
       "next": "unchanged"
     }
   ]

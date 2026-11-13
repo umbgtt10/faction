@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::quorum::Quorum;
 use std::cell::RefCell;
 use std::io::BufReader;
 use std::net::SocketAddr;
@@ -31,6 +32,8 @@ const FRESH: NodeSnapshot = NodeSnapshot {
     member_count: 0,
     required_count: 0,
     addition: Addition::None,
+    suspected: Vec::new(),
+    quorum: Quorum::NotTracked,
 };
 
 pub enum Node {
@@ -140,6 +143,16 @@ impl Node {
         }
     }
 
+    pub fn cut(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().cut(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::Cut(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("cut {peer_id}")),
+        }
+    }
+
     pub fn deny(&self, peer_id: PeerId) {
         match self {
             Self::Task { node } => node.borrow_mut().deny(peer_id),
@@ -167,6 +180,16 @@ impl Node {
             Self::Thread { snapshot, .. } | Self::Process { snapshot, .. } => {
                 snapshot.lock().unwrap().member_count
             }
+        }
+    }
+
+    pub fn mend(&self, peer_id: PeerId) {
+        match self {
+            Self::Task { node } => node.borrow_mut().mend(peer_id),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::Mend(peer_id, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("mend {peer_id}")),
         }
     }
 
@@ -228,7 +251,7 @@ impl Node {
         match self {
             Self::Task { node } => node.borrow_mut().snapshot(),
             Self::Thread { snapshot, .. } | Self::Process { snapshot, .. } => {
-                *snapshot.lock().unwrap()
+                snapshot.lock().unwrap().clone()
             }
         }
     }

@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde_json::Value;
@@ -37,6 +38,10 @@ impl Model {
                 collecting_peers: Vec::new(),
                 deadline_missed: false,
                 addition: Addition::None,
+                suspicion_threshold: configuration.suspicion_threshold,
+                suspected: Vec::new(),
+                misses: BTreeMap::new(),
+                last_probed: None,
             },
         }
     }

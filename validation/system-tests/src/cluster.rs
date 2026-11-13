@@ -25,6 +25,7 @@ use crate::traits::pause::Pause;
 
 pub struct Cluster {
     nodes: Vec<Node>,
+    peer_ids: Vec<PeerId>,
     spawn: Spawn,
     poll_delay: Duration,
     started: bool,
@@ -38,6 +39,7 @@ impl Cluster {
     #[must_use]
     pub fn new(
         nodes: Vec<Node>,
+        peer_ids: Vec<PeerId>,
         spawn: Spawn,
         timer_delay: TimerDelay,
         joining: Option<Joining>,
@@ -46,6 +48,7 @@ impl Cluster {
     ) -> Self {
         Self {
             nodes,
+            peer_ids,
             spawn,
             poll_delay: timer_delay.duration(),
             started: false,
@@ -108,6 +111,7 @@ impl Cluster {
             self.added_addrs.push((newcomer_id, addr));
         }
         self.nodes.push(newcomer);
+        self.peer_ids.push(newcomer_id);
     }
 
     pub fn admit(&self, peer_id: PeerId) {
@@ -126,6 +130,12 @@ impl Cluster {
                 node.change_required_count(required_count);
             }
         }
+    }
+
+    // The link between `first` and `second` cut, at both ends.
+    pub fn cut(&self, first: PeerId, second: PeerId) {
+        self.node_of(first).cut(second);
+        self.node_of(second).cut(first);
     }
 
     pub fn expire_deadline(&self) {
@@ -160,6 +170,7 @@ impl Cluster {
         }
 
         self.nodes.push(newcomer);
+        self.peer_ids.push(newcomer_id);
     }
 
     #[must_use]
@@ -175,6 +186,15 @@ impl Cluster {
     #[must_use]
     pub fn node_state(&self, index: usize) -> PeerState {
         self.nodes[index].peer_state()
+    }
+
+    // Until the cluster's nodes show what `holds` asks of them.
+    pub fn poll_until(&mut self, holds: impl Fn(&Self) -> bool) {
+        self.start_all();
+        while !holds(self) {
+            self.step_all();
+            self.pause.pause(self.poll_delay);
+        }
     }
 
     pub fn poll_until_bootstrapped(&mut self) {
@@ -210,6 +230,13 @@ impl Cluster {
         }
     }
 
+    // Every link of `peer_id`'s cut: it hears no one, and no one hears it.
+    pub fn silence(&self, peer_id: PeerId) {
+        for other in self.others(peer_id) {
+            self.cut(peer_id, other);
+        }
+    }
+
     #[must_use]
     pub fn snapshot(&self, index: usize) -> NodeSnapshot {
         self.nodes[index].snapshot()
@@ -228,6 +255,14 @@ impl Cluster {
     pub fn step_all(&mut self) {
         for node in &self.nodes {
             node.step();
+        }
+    }
+
+    // Every link of `peer_id`'s mended, as cut by `silence`.
+    pub fn unsilence(&self, peer_id: PeerId) {
+        for other in self.others(peer_id) {
+            self.node_of(peer_id).mend(other);
+            self.node_of(other).mend(peer_id);
         }
     }
 
@@ -291,6 +326,23 @@ impl Cluster {
             body.push('\n');
         }
         let _ = write(dir.join("consolidated.jsonl"), body);
+    }
+
+    fn node_of(&self, peer_id: PeerId) -> &Node {
+        let index = self
+            .peer_ids
+            .iter()
+            .position(|id| *id == peer_id)
+            .expect("a node of the cluster");
+        &self.nodes[index]
+    }
+
+    fn others(&self, peer_id: PeerId) -> Vec<PeerId> {
+        self.peer_ids
+            .iter()
+            .copied()
+            .filter(|other| *other != peer_id)
+            .collect()
     }
 }
 

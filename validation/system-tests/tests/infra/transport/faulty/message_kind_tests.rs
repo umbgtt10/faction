@@ -54,10 +54,52 @@ fn of_a_ping_is_ping() {
 }
 
 #[test]
+fn of_a_probe_answer_is_probe_answer() {
+    // Arrange & Act
+    let kind = MessageKind::of(&TransportMessage::ProbeAnswer {
+        from: 1,
+        relay_for: Some(2),
+    });
+
+    // Assert
+    assert_eq!(kind, MessageKind::ProbeAnswer);
+}
+
+#[test]
+fn of_a_probe_is_probe() {
+    // Arrange & Act
+    let kind = MessageKind::of(&TransportMessage::Probe {
+        from: 1,
+        relay_for: None,
+    });
+
+    // Assert
+    assert_eq!(kind, MessageKind::Probe);
+}
+
+#[test]
 fn of_a_ready_is_ready() {
     // Arrange & Act
     let kind = MessageKind::of(&TransportMessage::Ready { from: 1 });
 
     // Assert
     assert_eq!(kind, MessageKind::Ready);
+}
+
+#[test]
+fn of_an_indirect_probe_answer_is_indirect_probe_answer() {
+    // Arrange & Act
+    let kind = MessageKind::of(&TransportMessage::IndirectProbeAnswer { from: 1, target: 2 });
+
+    // Assert
+    assert_eq!(kind, MessageKind::IndirectProbeAnswer);
+}
+
+#[test]
+fn of_an_indirect_probe_is_indirect_probe() {
+    // Arrange & Act
+    let kind = MessageKind::of(&TransportMessage::IndirectProbe { from: 1, target: 2 });
+
+    // Assert
+    assert_eq!(kind, MessageKind::IndirectProbe);
 }

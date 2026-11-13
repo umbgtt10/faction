@@ -15,11 +15,15 @@ pub enum CommandName {
     AdditionCommitted,
     AdditionAborted,
     RequiredCountChanged,
+    ProbeDue,
+    PeerHeard,
+    ProbeMissed,
+    IndirectProbesMissed,
     Probe,
 }
 
 impl CommandName {
-    pub const ALL: [CommandName; 13] = [
+    pub const ALL: [CommandName; 17] = [
         CommandName::ParticipationObserved,
         CommandName::ReadyObserved,
         CommandName::LocalParticipationCompleted,
@@ -32,6 +36,10 @@ impl CommandName {
         CommandName::AdditionCommitted,
         CommandName::AdditionAborted,
         CommandName::RequiredCountChanged,
+        CommandName::ProbeDue,
+        CommandName::PeerHeard,
+        CommandName::ProbeMissed,
+        CommandName::IndirectProbesMissed,
         CommandName::Probe,
     ];
 
@@ -58,6 +66,10 @@ impl CommandName {
             CommandName::AdditionCommitted => "AdditionCommitted",
             CommandName::AdditionAborted => "AdditionAborted",
             CommandName::RequiredCountChanged => "RequiredCountChanged",
+            CommandName::ProbeDue => "ProbeDue",
+            CommandName::PeerHeard => "PeerHeard",
+            CommandName::ProbeMissed => "ProbeMissed",
+            CommandName::IndirectProbesMissed => "IndirectProbesMissed",
             CommandName::Probe => "Probe",
         }
     }

@@ -40,7 +40,12 @@ impl ClusterSimulation {
             .zip(&peer_ids)
             .map(|(observer, &peer_id)| {
                 Faction::new(
-                    Config::new(peer_id, peer_ids.clone(), QuorumPolicy::new(required_count)),
+                    Config::new(
+                        peer_id,
+                        peer_ids.clone(),
+                        QuorumPolicy::new(required_count),
+                        1,
+                    ),
                     observer,
                 )
             })

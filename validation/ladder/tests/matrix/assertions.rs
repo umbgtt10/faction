@@ -7,6 +7,7 @@ use faction::conclusion::Conclusion;
 use faction::faction::Faction;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
+use faction::quorum::Quorum;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Assert {
@@ -17,6 +18,8 @@ pub enum Assert {
     Conclusion(Conclusion),
     LocalComplete,
     NotLocalComplete,
+    Quorum(Quorum),
+    SuspectedCount(usize),
 }
 
 pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
@@ -37,6 +40,8 @@ pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
             ),
             Assert::LocalComplete => assert!(cluster_view.is_pinging_completed()),
             Assert::NotLocalComplete => assert!(!cluster_view.is_pinging_completed()),
+            Assert::Quorum(quorum) => assert_eq!(cluster_view.quorum(), quorum),
+            Assert::SuspectedCount(n) => assert_eq!(cluster_view.suspected().len(), n),
         }
     }
     cluster_view

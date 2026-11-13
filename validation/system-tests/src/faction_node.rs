@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::DEFAULT_SUSPICION_THRESHOLD;
+use crate::constants::HELPERS;
+use crate::infra::transport::faulty::link_cuts::LinkCuts;
+use faction::quorum::Quorum;
 use std::mem::replace;
 
 use faction::addition::Addition;
@@ -33,6 +37,7 @@ pub struct FactionNode {
     transport: Box<dyn Transport>,
     timer: Box<dyn Timer>,
     observer: Box<dyn NodeObserver>,
+    cuts: LinkCuts,
     toggle_timer_and_transport: bool,
 }
 
@@ -45,6 +50,7 @@ impl FactionNode {
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
         observer: Box<dyn NodeObserver>,
+        cuts: LinkCuts,
     ) -> Self {
         Self {
             peer_id,
@@ -53,6 +59,7 @@ impl FactionNode {
             transport,
             timer,
             observer,
+            cuts,
             toggle_timer_and_transport: true,
         }
     }
@@ -75,6 +82,12 @@ impl FactionNode {
         self.read_members();
     }
 
+    // The link to `peer_id` cut, as the transport this node's cuts are shared
+    // with drops what crosses it.
+    pub fn cut(&mut self, peer_id: PeerId) {
+        self.cuts.cut(peer_id);
+    }
+
     pub fn deny(&mut self, peer_id: PeerId) {
         self.command(|protocol| protocol.deny(peer_id));
     }
@@ -85,6 +98,10 @@ impl FactionNode {
 
     pub fn member_count(&mut self) -> usize {
         self.snapshot().member_count
+    }
+
+    pub fn mend(&mut self, peer_id: PeerId) {
+        self.cuts.mend(peer_id);
     }
 
     #[must_use]
@@ -110,6 +127,8 @@ impl FactionNode {
                     member_count: view.members().as_slice().len(),
                     required_count: view.required_count(),
                     addition: view.addition(),
+                    suspected: view.suspected().to_vec(),
+                    quorum: view.quorum(),
                 }
             }
             Role::Waiting(_) => NodeSnapshot {
@@ -117,6 +136,8 @@ impl FactionNode {
                 member_count: 0,
                 required_count: 0,
                 addition: Addition::None,
+                suspected: Vec::new(),
+                quorum: Quorum::NotTracked,
             },
         }
     }
@@ -215,7 +236,12 @@ impl FactionNode {
     // A waiting newcomer given a message: its membership makes it a running
     // node, which opens as a started node does; anything else it lets pass.
     fn join(&mut self, message: TransportMessage) -> Vec<OutputMessage> {
-        let placeholder = Role::Waiting(Newcomer::new(self.peer_id, Box::new(NoOpObserver)));
+        let placeholder = Role::Waiting(Newcomer::new(
+            self.peer_id,
+            DEFAULT_SUSPICION_THRESHOLD,
+            HELPERS,
+            Box::new(NoOpObserver),
+        ));
         match replace(&mut self.role, placeholder) {
             Role::Waiting(newcomer) => match newcomer.join(message) {
                 Ok((protocol, decisions)) => {
