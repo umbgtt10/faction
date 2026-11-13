@@ -171,7 +171,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
         .collect();
 
     // Assert
-    assert_eq!(vectors.len(), 91);
+    assert_eq!(vectors.len(), 93);
     assert!(departures.is_empty(), "{departures:#?}");
 }
 

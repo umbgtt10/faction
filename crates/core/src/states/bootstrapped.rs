@@ -20,6 +20,7 @@ use crate::states::liveness::Liveness;
 use crate::states::membership_decision::MembershipDecision;
 use crate::states::membership_step::MembershipStep;
 use crate::states::reconfiguring::Reconfiguring;
+use crate::states::removed::Removed;
 use crate::types::PeerId;
 
 #[derive(Debug, Clone)]
@@ -119,6 +120,9 @@ impl Bootstrapped {
 impl State for Bootstrapped {
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         match command {
+            Command::RemovalCommitted { peer_id } if peer_id == config.peer_id() => {
+                Some(Removed::own_removal(peer_id))
+            }
             Command::AdditionRequested { peer_id } if self.members.is_member(peer_id) => Some((
                 vec![Outcome::DuplicateMemberIgnored { peer_id }],
                 Stage::Bootstrapped(self.clone()),

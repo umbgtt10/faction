@@ -22,6 +22,8 @@ use super::local_completion_step::LocalCompletionStep;
 use super::membership_decision::MembershipDecision;
 use super::membership_step::MembershipStep;
 use super::pinging_step::PingingStep;
+use super::ready_before_completion_step::ReadyBeforeCompletionStep;
+use super::removed::Removed;
 
 #[derive(Debug, Clone)]
 pub struct Pinging {
@@ -59,7 +61,13 @@ impl State for Pinging {
     }
 
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        if let Some(peer_id) = self.members.non_member_observed(&command) {
+        if command
+            == (Command::RemovalCommitted {
+                peer_id: config.peer_id(),
+            })
+        {
+            Some(Removed::own_removal(config.peer_id()))
+        } else if let Some(peer_id) = self.members.non_member_observed(&command) {
             Some((
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Stage::Pinging(self.clone()),
@@ -92,22 +100,13 @@ impl State for Pinging {
                 }
 
                 Command::ReadyObserved { peer_id } => {
-                    let is_dup = self.collecting_peers.contains(&peer_id);
-                    let mut new_collecting = self.collecting_peers.clone();
-                    if !is_dup {
-                        new_collecting.push(peer_id);
-                    }
-
-                    let outcome = if is_dup {
-                        Outcome::DuplicateReadyIgnored { peer_id }
-                    } else {
-                        Outcome::ReadyAccepted { peer_id }
-                    };
+                    let step =
+                        ReadyBeforeCompletionStep::new(self.collecting_peers.clone(), peer_id);
 
                     Some((
-                        vec![outcome],
+                        step.outcomes().to_vec(),
                         Stage::Pinging(Self {
-                            collecting_peers: new_collecting,
+                            collecting_peers: step.collecting_peers().to_vec(),
                             ..self.clone()
                         }),
                     ))

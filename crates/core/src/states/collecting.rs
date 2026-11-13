@@ -22,6 +22,7 @@ use super::bootstrapped::Bootstrapped;
 use super::membership_decision::MembershipDecision;
 use super::membership_step::MembershipStep;
 use super::ready_step::ReadyStep;
+use super::removed::Removed;
 
 pub struct Collecting {
     members: Members,
@@ -78,8 +79,14 @@ impl State for Collecting {
             .build()
     }
 
-    fn step(&self, command: Command, _config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        if let Some(peer_id) = self.members.non_member_observed(&command) {
+    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
+        if command
+            == (Command::RemovalCommitted {
+                peer_id: config.peer_id(),
+            })
+        {
+            Some(Removed::own_removal(config.peer_id()))
+        } else if let Some(peer_id) = self.members.non_member_observed(&command) {
             Some((
                 vec![Outcome::NonMemberIgnored { peer_id }],
                 Stage::Collecting(Self::new(

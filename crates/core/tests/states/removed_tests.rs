@@ -7,10 +7,12 @@ use faction::command::Command;
 use faction::config::Config;
 use faction::members::Members;
 use faction::miss_count::MissCount;
+use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
+use faction::stage::Stage;
 use faction::state::State;
 use faction::states::removed::Removed;
 
@@ -58,6 +60,16 @@ fn cluster_view_shows_what_the_node_held_but_itself_and_its_liveness() {
             .build()
     );
     assert_eq!(cluster_view.peer_state(), PeerState::Removed);
+}
+
+#[test]
+fn own_removal_answers_the_node_removed_and_leaves_it_removed() {
+    // Arrange & Act
+    let (outcomes, stage) = Removed::own_removal(0);
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 0 }]);
+    assert!(matches!(stage, Stage::Removed(_)));
 }
 
 #[test]

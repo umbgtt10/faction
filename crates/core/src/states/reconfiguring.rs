@@ -14,6 +14,7 @@ use crate::stage::Stage;
 use crate::state::State;
 
 use super::bootstrapped::Bootstrapped;
+use super::removed::Removed;
 
 // A concluded node with a change in flight, an addition or a removal: it
 // answers as a concluded node does, but for an admission, which no change is
@@ -54,6 +55,9 @@ impl Reconfiguring {
 impl State for Reconfiguring {
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
         match command {
+            Command::RemovalCommitted { peer_id } if peer_id == config.peer_id() => {
+                Some(Removed::own_removal(peer_id))
+            }
             Command::JoinApproved { .. } => None,
             Command::MembershipAcknowledged { peer_id } => {
                 let awaited = self.in_flight == Reconfiguration::AdditionRequested { peer_id };

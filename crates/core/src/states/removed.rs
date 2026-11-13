@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
@@ -27,6 +28,16 @@ impl Removed {
     #[must_use]
     pub fn new(peer_id: PeerId) -> Self {
         Self { peer_id }
+    }
+
+    // What a node answers its own removal, committed, in every stage that
+    // admits it: the node removed, and `Removed`.
+    #[must_use]
+    pub fn own_removal(peer_id: PeerId) -> (Vec<Outcome>, Stage) {
+        (
+            vec![Outcome::MemberRemoved { peer_id }],
+            Stage::Removed(Self::new(peer_id)),
+        )
     }
 }
 

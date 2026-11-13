@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
@@ -70,20 +69,8 @@ impl Stage {
 }
 
 impl State for Stage {
-    // A node's own removal, committed, leaves any stage but `Removed` for it;
-    // every other command is the stage's.
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        match command {
-            Command::RemovalCommitted { peer_id }
-                if peer_id == config.peer_id() && !matches!(self, Self::Removed(_)) =>
-            {
-                Some((
-                    vec![Outcome::MemberRemoved { peer_id }],
-                    Self::Removed(Removed::new(peer_id)),
-                ))
-            }
-            _ => self.current().step(command, config),
-        }
+        self.current().step(command, config)
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {

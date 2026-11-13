@@ -9,6 +9,7 @@ pub mod membership_decision_tests;
 pub mod membership_step_tests;
 pub mod pinging_step_tests;
 pub mod probing_tests;
+pub mod ready_before_completion_step_tests;
 pub mod ready_step_tests;
 pub mod suspicion_tests;
 

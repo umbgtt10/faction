@@ -17,6 +17,7 @@ use crate::state::State;
 use crate::states::membership_decision::MembershipDecision;
 use crate::states::membership_step::MembershipStep;
 use crate::states::pinging::Pinging;
+use crate::states::removed::Removed;
 
 pub struct Initial {
     members: Members,
@@ -47,7 +48,13 @@ impl State for Initial {
     }
 
     fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        if let Some(decision) = MembershipDecision::of(&command) {
+        if command
+            == (Command::RemovalCommitted {
+                peer_id: config.peer_id(),
+            })
+        {
+            Some(Removed::own_removal(config.peer_id()))
+        } else if let Some(decision) = MembershipDecision::of(&command) {
             let membership =
                 MembershipStep::new(self.members.clone(), self.quorum_policy, decision);
             Some((
