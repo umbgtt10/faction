@@ -29,9 +29,9 @@ all run by one gate:
    transition (`P1-ADR-TotalityExhaustiveMatrix`) plus the admissible-command
    invariant, each case checked against the row of `spec/matrix.json` it names
    (`ladder/tests/matrix/`).
-4. **Property-based** — invariants, a reference model, and the crate against the
-   specification's independent model, replayed over random command sequences with
-   `proptest` (`ladder/tests/property/`).
+4. **Property-based** — invariants, and the crate against the specification's
+   independent model, replayed over random command sequences with `proptest`
+   (`ladder/tests/property/`).
 5. **Replay** — a node's log, its configuration then every call it reported as the
    specification writes a step, replays whole into a node created from the
    configuration: for random command sequences, and for every node of a simulated
@@ -60,8 +60,8 @@ pressure, which is exactly when they matter.
 
 ## Consequences
 A new command or state lands in the specification first — its rows and its vectors —
-then in every applicable tier: unit, matrix, admissible-invariant and the property
-model, and a system scenario when it changes runtime behaviour. The gate is slower than unit-only, and the system tier spawns
+then in the specification's model, and in every applicable tier: unit, matrix and
+admissible-invariant, and a system scenario when it changes runtime behaviour. The gate is slower than unit-only, and the system tier spawns
 processes and opens real sockets; that cost is the price of the "exhaustively tested"
 claim.
 

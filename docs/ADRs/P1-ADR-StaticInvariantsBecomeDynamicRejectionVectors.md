@@ -32,7 +32,7 @@ anywhere.
 Every state (`Initial`, `Pinging`, `Collecting`, `Bootstrapped`) implements
 `State`, and `Stage` delegates to it; every `Command` variant is offered to every
 state's `step()`, which ends in an arm for the commands its stage does not admit.
-`ladder/tests/property/{invariant_tests,model_tests,safety_tests}.rs`
+`ladder/tests/property/{invariant_tests,safety_tests,spec_model_tests}.rs`
 confirm it: every safety property there is checked by `proptest` over generated
 runtime input, never by a type constraint.
 

@@ -338,12 +338,13 @@ sequences:
 | Exit mode never changes after exit |
 | A state's admissible set equals exactly its accepted commands plus `Probe` |
 | Required quorum count never changes |
-| Model reference implementation agrees with the real machine for all sequences |
+| The specification's independent model agrees with the machine for all sequences |
 
-The last invariant is the strongest: a simplified reference implementation of the
-machine is maintained alongside the production implementation. For every random input
-sequence, both must produce identical outputs. Any divergence is a specification bug
-or an implementation bug — both are caught immediately.
+The last invariant is the strongest: the specification's independent model
+(`spec-model/`), written from the prose and the decision table and depending on nothing
+of the crate, answers every random input sequence beside the machine, and every result
+must be identical in the specification's encoding. Any divergence is a specification
+bug or an implementation bug — both are caught immediately.
 
 ### Multi-node scenarios
 

@@ -26,6 +26,12 @@
   command sequences (`P1-ADR-IndependentModelOfTheSpecification`). Its grip and braintax join every
   commit message's scores.
 
+#### Removed
+- The property tier's own reference model, `ModelCoordinator`, written with the crate before the
+  specification: the crate against the specification's model checks everything it did — each
+  command's outcomes and the view after it — and more: every result whole, a rejection told apart
+  from an acceptance with no outcomes, the peers listed rather than counted, and every required count.
+
 #### Changed — breaking
 - The observer is one method, `observe(&command, &result)`: every call — accepted, rejected or a
   probe — is reported once with the `ProcessResult` it was answered. `observe_query`,
