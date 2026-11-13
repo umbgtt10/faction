@@ -3,7 +3,7 @@
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
-use super::helpers::ready;
+use super::helpers::{addition_aborted, bootstrapped_admissible, membership_acknowledged, ready};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
@@ -17,31 +17,43 @@ use rstest::rstest;
     Init::Bootstrapped,
     ready(1),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    bootstrapped_admissible(),
 )]
 #[case::rejects_ready_observed_non_member(
     Init::Bootstrapped,
     ready(99),
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    bootstrapped_admissible(),
 )]
 #[case::rejects_is_pinging_completedd(
     Init::Bootstrapped,
     Command::LocalParticipationCompleted,
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    bootstrapped_admissible(),
 )]
 #[case::rejects_deadline_expired(
     Init::Bootstrapped,
     Command::DeadlineExpired,
     &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    bootstrapped_admissible(),
+)]
+#[case::rejects_membership_acknowledged(
+    Init::Bootstrapped,
+    membership_acknowledged(9),
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::rejects_addition_aborted(
+    Init::Bootstrapped,
+    addition_aborted(9),
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
 )]
 fn invalid_transition(
     #[case] init: Init,
     #[case] command: Command,
     #[case] asserts: &[Assert],
-    #[case] expected_admissible: &[Command],
+    #[case] expected_admissible: Vec<Command>,
 ) {
     // Arrange
     let mut faction = build(init);

@@ -200,7 +200,8 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining
-    // peer) plus the Phase 1 join commands.
+    // peer), the join commands, an addition to coordinate, a committed
+    // addition and a new required count.
     assert_eq!(
         admissible,
         alloc::vec![
@@ -208,6 +209,9 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
+            Command::AdditionRequested { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0 },
+            Command::RequiredCountChanged { required_count: 0 },
             Command::Probe
         ]
     );

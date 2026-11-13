@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::answers::Answers;
 use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
@@ -38,7 +39,8 @@ fn cluster_view_inherits_correctly() {
         .build();
 
     // Act
-    let result = Initial::new(Members::new(vec![0, 1, 2, 3, 4])).cluster_view(&prev);
+    let result =
+        Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4)).cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Fresh);
@@ -52,7 +54,7 @@ fn cluster_view_inherits_correctly() {
 #[test]
 fn new_returns_initial_state() {
     // Arrange & Act
-    let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]));
+    let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
     let config = Config::new(0, vec![0], QuorumPolicy::new(1));
     let (outcomes, new_state) = initial
         .step(Command::ParticipationObserved { peer_id: 0 }, &config)
@@ -148,6 +150,21 @@ fn process_accepts_ready_observed() {
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 1 }]);
     assert_eq!(snap.peer_state(), PeerState::Pinging);
     assert_eq!(snap.collecting_peers().len(), 1);
+}
+
+#[test]
+fn process_addition_committed_admits_the_peer_and_stays_fresh() {
+    // Arrange
+    let mut faction = test_faction();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
+    assert_eq!(cluster_view.peer_state(), PeerState::Fresh);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4, 9]);
 }
 
 #[test]
@@ -295,6 +312,24 @@ fn process_rejects_invalid_commands() {
     assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
     assert_ne!(snap.peer_state(), PeerState::Bootstrapped);
     assert!(!snap.is_pinging_completed());
+}
+
+#[test]
+fn process_required_count_changed_sets_the_count_and_stays_fresh() {
+    // Arrange
+    let mut faction = test_faction();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 2 }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::RequiredCountSet { required_count: 2 }]
+    );
+    assert_eq!(cluster_view.peer_state(), PeerState::Fresh);
+    assert_eq!(cluster_view.required_count(), 2);
 }
 
 #[test]

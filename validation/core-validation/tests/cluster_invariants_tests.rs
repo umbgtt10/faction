@@ -3,6 +3,7 @@
 
 use alloc::vec;
 use alloc::vec::Vec;
+use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::members::Members;
 use faction::peer_state::PeerState;
@@ -18,6 +19,7 @@ fn concluded(collecting_peers: Vec<PeerId>, required_count: usize) -> ClusterVie
         required_count,
         false,
         Members::new(vec![0, 1, 2]),
+        Addition::None,
     )
 }
 
@@ -32,6 +34,7 @@ fn pinging(pinging_peers: Vec<PeerId>, collecting_peers: Vec<PeerId>) -> Cluster
         3,
         false,
         Members::new(vec![0, 1, 2]),
+        Addition::None,
     )
 }
 

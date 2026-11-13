@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::vec;
+use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::members::Members;
 use faction::peer_state::PeerState;
@@ -19,6 +20,7 @@ fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
         3,
         true,
         Members::new(vec![0, 1, 2]),
+        Addition::None,
     );
 
     // Assert
@@ -37,6 +39,7 @@ fn new_stores_every_field() {
         2,
         true,
         Members::new(vec![4, 5, 6]),
+        Addition::Acknowledged { peer_id: 7 },
     );
 
     // Assert
@@ -47,4 +50,5 @@ fn new_stores_every_field() {
     assert_eq!(view.required_count(), 2);
     assert!(view.deadline_missed());
     assert_eq!(view.members().as_slice(), &[4, 5, 6]);
+    assert_eq!(view.addition(), Addition::Acknowledged { peer_id: 7 });
 }

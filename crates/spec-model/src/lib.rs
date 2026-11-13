@@ -24,6 +24,7 @@
 
 extern crate alloc;
 
+pub mod addition;
 pub mod answer;
 pub mod command;
 pub mod configuration;

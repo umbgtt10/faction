@@ -4,8 +4,10 @@
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
 use super::helpers::{
-    all_admissible, bootstrapped_admissible, collecting_admissible, initial_admissible,
-    join_approved, join_rejected, join_requested, participation, ready,
+    addition_aborted, addition_committed, addition_requested, bootstrapped_admissible,
+    collecting_admissible, initial_admissible, join_approved, join_rejected, join_requested,
+    membership_acknowledged, participation, pinging_admissible, ready, reconfiguring_admissible,
+    required_count_changed,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -28,7 +30,7 @@ extern crate alloc;
     participation(1),
     &[ParticipationAccepted { peer_id: 1 }],
     &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::participation_non_member(
     "non-member-before-completion",
@@ -36,7 +38,7 @@ extern crate alloc;
     participation(99),
     &[NonMemberIgnored { peer_id: 99 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::participation_duplicate(
     "participation-duplicate",
@@ -44,7 +46,7 @@ extern crate alloc;
     participation(1),
     &[DuplicateParticipationIgnored { peer_id: 1 }],
     &[Assert::PingingCount(1), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::ready_timely_member(
     "ready-before-completion",
@@ -52,7 +54,7 @@ extern crate alloc;
     ready(1),
     &[ReadyAccepted { peer_id: 1 }],
     &[Assert::CollectingCount(1), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::ready_non_member(
     "non-member-before-completion",
@@ -60,7 +62,7 @@ extern crate alloc;
     ready(99),
     &[NonMemberIgnored { peer_id: 99 }],
     &[Assert::CollectingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::ready_duplicate(
     "ready-duplicate",
@@ -123,7 +125,7 @@ extern crate alloc;
     Command::DeadlineExpired,
     &[DeadlineMissed { confirmed_count: 0 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::deadline_missed_from_collecting(
     "deadline-missed",
@@ -179,7 +181,7 @@ extern crate alloc;
     join_requested(99),
     &[EmitJoinRequest { peer_id: 99 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::pinging_join_approved_new_member(
     "join-admitted",
@@ -187,7 +189,7 @@ extern crate alloc;
     join_approved(99),
     &[MemberAdmitted { peer_id: 99 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::pinging_join_approved_existing_member(
     "join-duplicate-member",
@@ -195,7 +197,7 @@ extern crate alloc;
     join_approved(1),
     &[DuplicateMemberIgnored { peer_id: 1 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::pinging_join_rejected(
     "join-denied",
@@ -203,7 +205,7 @@ extern crate alloc;
     join_rejected(99),
     &[JoinDenied { peer_id: 99 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::collecting_join_requested(
     "join-requested",
@@ -291,7 +293,7 @@ extern crate alloc;
     join_requested(1),
     &[EmitJoinRequest { peer_id: 1 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::timed_out_join_requested(
     "join-requested",
@@ -299,7 +301,7 @@ extern crate alloc;
     join_requested(99),
     &[EmitJoinRequest { peer_id: 99 }],
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
-    all_admissible(),
+    pinging_admissible(),
 )]
 #[case::collecting_accepts_readiness_below_the_required_count(
     "ready-accepted",
@@ -316,6 +318,230 @@ extern crate alloc;
     &[NonMemberIgnored { peer_id: 99 }],
     &[Assert::CollectingCount(5), Assert::Exited],
     bootstrapped_admissible(),
+)]
+#[case::initial_addition_committed_new_member(
+    "addition-committed",
+    Init::Initial,
+    addition_committed(9),
+    &[MemberAdmitted { peer_id: 9 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::initial_addition_committed_existing_member(
+    "commit-member",
+    Init::Initial,
+    addition_committed(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::initial_required_count_changed(
+    "count-set",
+    Init::Initial,
+    required_count_changed(3),
+    &[RequiredCountSet { required_count: 3 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::pinging_addition_committed_new_member(
+    "addition-committed",
+    Init::Fresh,
+    addition_committed(9),
+    &[MemberAdmitted { peer_id: 9 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::pinging_addition_committed_existing_member(
+    "commit-member",
+    Init::Fresh,
+    addition_committed(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::pinging_required_count_changed(
+    "count-set",
+    Init::Fresh,
+    required_count_changed(3),
+    &[RequiredCountSet { required_count: 3 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::collecting_addition_committed_new_member(
+    "addition-committed",
+    Init::CollectingNoReadiness,
+    addition_committed(9),
+    &[MemberAdmitted { peer_id: 9 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_addition_committed_existing_member(
+    "commit-member",
+    Init::CollectingNoReadiness,
+    addition_committed(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_required_count_changed_short(
+    "count-set",
+    Init::CollectingNoReadiness,
+    required_count_changed(3),
+    &[RequiredCountSet { required_count: 3 }],
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::collecting_required_count_changed_reached_concludes(
+    "count-concluded",
+    Init::CollectingNoReadiness,
+    required_count_changed(1),
+    &[RequiredCountSet { required_count: 1 }, Concluded { mode: Conclusion::Bootstrapped }],
+    &[Assert::CollectingCount(1), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_addition_requested_newcomer(
+    "addition-requested",
+    Init::Bootstrapped,
+    addition_requested(9),
+    &[SendMembership { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::bootstrapped_addition_requested_member(
+    "addition-member",
+    Init::Bootstrapped,
+    addition_requested(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_addition_committed_new_member(
+    "addition-committed",
+    Init::Bootstrapped,
+    addition_committed(9),
+    &[MemberAdmitted { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_addition_committed_existing_member(
+    "commit-member",
+    Init::Bootstrapped,
+    addition_committed(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::bootstrapped_required_count_changed(
+    "count-set",
+    Init::Bootstrapped,
+    required_count_changed(3),
+    &[RequiredCountSet { required_count: 3 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::reconfiguring_acknowledges_member_participation(
+    "rejoin-acknowledged",
+    Init::Reconfiguring,
+    participation(1),
+    &[AcknowledgeRejoin { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_ignores_the_newcomer_s_participation(
+    "non-member",
+    Init::Reconfiguring,
+    participation(9),
+    &[NonMemberIgnored { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_join_requested(
+    "join-requested",
+    Init::Reconfiguring,
+    join_requested(8),
+    &[EmitJoinRequest { peer_id: 8 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_join_rejected(
+    "join-denied",
+    Init::Reconfiguring,
+    join_rejected(8),
+    &[JoinDenied { peer_id: 8 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_acknowledgement_accepted(
+    "acknowledgement-accepted",
+    Init::Reconfiguring,
+    membership_acknowledged(9),
+    &[ProposeAddition { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_acknowledgement_from_another_peer(
+    "acknowledgement-ignored",
+    Init::Reconfiguring,
+    membership_acknowledged(8),
+    &[AcknowledgementIgnored { peer_id: 8 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_acknowledgement_repeated(
+    "acknowledgement-ignored",
+    Init::ReconfiguringAcknowledged,
+    membership_acknowledged(9),
+    &[AcknowledgementIgnored { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_addition_completed(
+    "addition-completed",
+    Init::ReconfiguringAcknowledged,
+    addition_committed(9),
+    &[MemberAdmitted { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::reconfiguring_addition_committed_of_another_peer(
+    "addition-committed",
+    Init::Reconfiguring,
+    addition_committed(8),
+    &[MemberAdmitted { peer_id: 8 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_addition_committed_of_a_member(
+    "commit-member",
+    Init::Reconfiguring,
+    addition_committed(1),
+    &[DuplicateMemberIgnored { peer_id: 1 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_addition_aborted(
+    "addition-aborted",
+    Init::Reconfiguring,
+    addition_aborted(9),
+    &[AdditionWithdrawn { peer_id: 9 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    bootstrapped_admissible(),
+)]
+#[case::reconfiguring_abort_of_another_peer(
+    "abort-ignored",
+    Init::Reconfiguring,
+    addition_aborted(8),
+    &[AbortIgnored { peer_id: 8 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
+)]
+#[case::reconfiguring_required_count_changed(
+    "count-set",
+    Init::Reconfiguring,
+    required_count_changed(3),
+    &[RequiredCountSet { required_count: 3 }],
+    &[Assert::CollectingCount(5), Assert::Exited, Assert::Conclusion(Conclusion::Bootstrapped)],
+    reconfiguring_admissible(),
 )]
 fn valid_transition(
     #[case] row: &str,

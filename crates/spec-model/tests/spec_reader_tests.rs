@@ -22,6 +22,7 @@ fn matrix() -> Value {
             "Pinging": ["LocalParticipationCompleted", "Probe"],
             "Collecting": ["Probe"],
             "Bootstrapped": ["Probe"],
+            "Reconfiguring": ["Probe"],
         },
         "rows": [
             {
@@ -57,6 +58,23 @@ fn command_of_a_command_carrying_nothing_names_no_peer() {
         Command {
             name: CommandName::DeadlineExpired,
             peer_id: None,
+            required_count: None,
+        }
+    );
+}
+
+#[test]
+fn command_of_a_new_required_count_reads_the_count() {
+    // Arrange & Act
+    let command = SpecReader::command(&json!({"RequiredCountChanged": {"required_count": "3"}}));
+
+    // Assert
+    assert_eq!(
+        command,
+        Command {
+            name: CommandName::RequiredCountChanged,
+            peer_id: None,
+            required_count: Some(3),
         }
     );
 }
@@ -73,6 +91,7 @@ fn command_of_a_peer_s_signal_names_the_command_and_its_peer() {
         Command {
             name: CommandName::ReadyObserved,
             peer_id: Some(String::from("18446744073709551615")),
+            required_count: None,
         }
     );
 }

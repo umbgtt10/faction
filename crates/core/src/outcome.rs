@@ -20,4 +20,10 @@ pub enum Outcome {
     DuplicateMemberIgnored { peer_id: PeerId },
     JoinDenied { peer_id: PeerId },
     Concluded { mode: Conclusion },
+    SendMembership { peer_id: PeerId },
+    ProposeAddition { peer_id: PeerId },
+    AdditionWithdrawn { peer_id: PeerId },
+    AcknowledgementIgnored { peer_id: PeerId },
+    AbortIgnored { peer_id: PeerId },
+    RequiredCountSet { required_count: usize },
 }

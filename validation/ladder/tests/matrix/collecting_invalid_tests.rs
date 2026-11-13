@@ -3,6 +3,9 @@
 
 use super::assertions::{verify, Assert};
 use super::builder::{build, Init};
+use super::helpers::{
+    addition_aborted, addition_requested, collecting_admissible, membership_acknowledged,
+};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
@@ -15,19 +18,37 @@ use rstest::rstest;
     Init::CollectingNoReadiness,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    collecting_admissible(),
 )]
 #[case::rejects_is_pinging_completedd_after_ready(
     Init::CollectingPeer1Confirmed,
     Command::LocalParticipationCompleted,
     &[Assert::PingingCount(0), Assert::CollectingCount(2), Assert::LocalComplete, Assert::NotExited],
-    &[Command::ParticipationObserved { peer_id: 0 }, Command::ReadyObserved { peer_id: 0 }, Command::DeadlineExpired, Command::JoinRequested { peer_id: 0 }, Command::JoinApproved { peer_id: 0 }, Command::JoinRejected { peer_id: 0 }, Command::Probe],
+    collecting_admissible(),
+)]
+#[case::rejects_addition_requested(
+    Init::CollectingNoReadiness,
+    addition_requested(9),
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::rejects_membership_acknowledged(
+    Init::CollectingNoReadiness,
+    membership_acknowledged(9),
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
+)]
+#[case::rejects_addition_aborted(
+    Init::CollectingNoReadiness,
+    addition_aborted(9),
+    &[Assert::CollectingCount(1), Assert::LocalComplete, Assert::NotExited],
+    collecting_admissible(),
 )]
 fn invalid_transition(
     #[case] init: Init,
     #[case] command: Command,
     #[case] asserts: &[Assert],
-    #[case] expected_admissible: &[Command],
+    #[case] expected_admissible: Vec<Command>,
 ) {
     // Arrange
     let mut faction = build(init);

@@ -47,7 +47,10 @@
               "4",
               "5",
               "6"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
@@ -56,6 +59,8 @@
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -93,7 +98,10 @@
               "5",
               "6",
               "7"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
@@ -102,6 +110,8 @@
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -140,7 +150,10 @@
               "5",
               "6",
               "7"
-            ]
+            ],
+            "addition": {
+              "None": {}
+            }
           },
           "admissible": [
             "ParticipationObserved",
@@ -149,6 +162,8 @@
             "JoinRequested",
             "JoinApproved",
             "JoinRejected",
+            "AdditionCommitted",
+            "RequiredCountChanged",
             "Probe"
           ]
         }
@@ -175,7 +190,10 @@
         "5",
         "6",
         "7"
-      ]
+      ],
+      "addition": {
+        "None": {}
+      }
     },
     "admissible": [
       "ParticipationObserved",
@@ -184,6 +202,8 @@
       "JoinRequested",
       "JoinApproved",
       "JoinRejected",
+      "AdditionCommitted",
+      "RequiredCountChanged",
       "Probe"
     ]
   }

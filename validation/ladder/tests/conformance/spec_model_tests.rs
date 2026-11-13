@@ -56,12 +56,24 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
             .filter(|name| !refused.contains(name))
             .collect()
     };
+    let addition = [
+        CommandName::AdditionRequested,
+        CommandName::MembershipAcknowledged,
+        CommandName::AdditionAborted,
+    ];
     let prose = [
-        (Stage::Initial, but(&[CommandName::DeadlineExpired])),
-        (Stage::Pinging, every.clone()),
+        (
+            Stage::Initial,
+            but(&[[CommandName::DeadlineExpired].as_slice(), &addition].concat()),
+        ),
+        (Stage::Pinging, but(&addition)),
         (
             Stage::Collecting,
-            but(&[CommandName::LocalParticipationCompleted]),
+            but(&[
+                [CommandName::LocalParticipationCompleted].as_slice(),
+                &addition,
+            ]
+            .concat()),
         ),
         (
             Stage::Bootstrapped,
@@ -70,6 +82,22 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::JoinRequested,
                 CommandName::JoinApproved,
                 CommandName::JoinRejected,
+                CommandName::AdditionRequested,
+                CommandName::AdditionCommitted,
+                CommandName::RequiredCountChanged,
+                CommandName::Probe,
+            ],
+        ),
+        (
+            Stage::Reconfiguring,
+            vec![
+                CommandName::ParticipationObserved,
+                CommandName::JoinRequested,
+                CommandName::JoinRejected,
+                CommandName::MembershipAcknowledged,
+                CommandName::AdditionCommitted,
+                CommandName::AdditionAborted,
+                CommandName::RequiredCountChanged,
                 CommandName::Probe,
             ],
         ),
@@ -113,7 +141,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
         .collect();
 
     // Assert
-    assert_eq!(vectors.len(), 41);
+    assert_eq!(vectors.len(), 62);
     assert!(departures.is_empty(), "{departures:#?}");
 }
 

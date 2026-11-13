@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::answers::Answers;
 use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
@@ -48,7 +49,10 @@ fn get_pinging_peers_length(faction: &mut Faction) -> usize {
 #[test]
 fn cluster_view_inherits_correctly() {
     // Arrange
-    let pinging = Pinging::new(Members::new(PEER_SET.to_vec()));
+    let pinging = Pinging::new(
+        Members::new(PEER_SET.to_vec()),
+        QuorumPolicy::new(THRESHOLD),
+    );
     let prev = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Collecting)
         .with_is_pinging_completed(true)
@@ -139,6 +143,24 @@ fn process_accepts_ready_observed() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ReadyAccepted { peer_id: 2 }]);
+}
+
+#[test]
+fn process_addition_committed_admits_a_peer_whose_participation_then_counts() {
+    // Arrange
+    let mut faction = faction_in_pinging();
+    let _ = faction.process(Command::AdditionCommitted { peer_id: 9 });
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::ParticipationObserved { peer_id: 9 }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::ParticipationAccepted { peer_id: 9 }]
+    );
+    assert_eq!(cluster_view.pinging_peers(), &[1, 9]);
 }
 
 #[test]
@@ -365,4 +387,28 @@ fn process_ready_observed_non_member() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 99 }]);
     assert_eq!(get_collecting_peers_length(&mut faction), before);
+}
+
+#[test]
+fn process_required_count_changed_is_the_count_the_node_s_completion_checks() {
+    // Arrange
+    let mut faction = faction_in_pinging();
+    let _ = faction.process(Command::RequiredCountChanged { required_count: 1 });
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::LocalParticipationCompleted));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::LocalParticipationCompleted,
+            Outcome::BroadcastLocalReady,
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
+            },
+        ]
+    );
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }

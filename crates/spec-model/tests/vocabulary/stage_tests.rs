@@ -9,7 +9,16 @@ fn name_of_each_stage_is_the_vocabulary_s() {
     let names: Vec<&str> = Stage::ALL.iter().map(|stage| stage.name()).collect();
 
     // Assert
-    assert_eq!(names, ["Initial", "Pinging", "Collecting", "Bootstrapped"]);
+    assert_eq!(
+        names,
+        [
+            "Initial",
+            "Pinging",
+            "Collecting",
+            "Bootstrapped",
+            "Reconfiguring"
+        ]
+    );
 }
 
 #[test]

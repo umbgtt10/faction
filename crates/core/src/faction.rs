@@ -24,7 +24,10 @@ pub struct Faction {
 impl Faction {
     #[must_use]
     pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
-        let stage = Stage::Initial(Initial::new(Members::new(config.peers().to_vec())));
+        let stage = Stage::Initial(Initial::new(
+            Members::new(config.peers().to_vec()),
+            config.quorum_policy(),
+        ));
         let base = ClusterViewBuilder::default()
             .with_required_count(config.required_count())
             .with_members(Members::new(config.peers().to_vec()))

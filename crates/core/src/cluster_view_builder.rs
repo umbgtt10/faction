@@ -3,6 +3,7 @@
 
 use alloc::vec::Vec;
 
+use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::members::Members;
 use crate::peer_state::PeerState;
@@ -16,6 +17,7 @@ pub struct ClusterViewBuilder {
     required_count: usize,
     deadline_missed: bool,
     members: Members,
+    addition: Addition,
 }
 
 impl ClusterViewBuilder {
@@ -29,6 +31,7 @@ impl ClusterViewBuilder {
             required_count: view.required_count(),
             deadline_missed: view.deadline_missed(),
             members: view.members().clone(),
+            addition: view.addition(),
         }
     }
 
@@ -42,7 +45,14 @@ impl ClusterViewBuilder {
             self.required_count,
             self.deadline_missed,
             self.members,
+            self.addition,
         )
+    }
+
+    #[must_use]
+    pub fn with_addition(mut self, addition: Addition) -> Self {
+        self.addition = addition;
+        self
     }
 
     #[must_use]
@@ -98,6 +108,7 @@ impl Default for ClusterViewBuilder {
             required_count: 0,
             deadline_missed: false,
             members: Members::new(Vec::new()),
+            addition: Addition::None,
         }
     }
 }

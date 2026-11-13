@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction_spec_model::addition::Addition;
 use faction_spec_model::node_state::NodeState;
 use faction_spec_model::vocabulary::stage::Stage;
 
@@ -18,6 +19,16 @@ impl NodeStates {
             pinging_peers: Self::peers(pinging_peers),
             collecting_peers: Self::peers(collecting_peers),
             deadline_missed: false,
+            addition: Addition::None,
+        }
+    }
+
+    // Concluded with an addition in flight, the node itself its one collecting
+    // peer.
+    pub fn reconfiguring(addition: Addition) -> NodeState {
+        NodeState {
+            addition,
+            ..Self::of(Stage::Reconfiguring, &[], &["1"])
         }
     }
 

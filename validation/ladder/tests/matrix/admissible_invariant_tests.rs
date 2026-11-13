@@ -13,6 +13,7 @@ use rstest::rstest;
 #[case(Init::Fresh, "Pinging")]
 #[case(Init::CollectingNoReadiness, "Collecting")]
 #[case(Init::Bootstrapped, "Bootstrapped")]
+#[case(Init::Reconfiguring, "Reconfiguring")]
 fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case] stage: &str) {
     let candidates = [
         Command::ParticipationObserved { peer_id: 0 },
@@ -22,6 +23,11 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
         Command::JoinRequested { peer_id: 0 },
         Command::JoinApproved { peer_id: 0 },
         Command::JoinRejected { peer_id: 0 },
+        Command::AdditionRequested { peer_id: 0 },
+        Command::MembershipAcknowledged { peer_id: 0 },
+        Command::AdditionCommitted { peer_id: 0 },
+        Command::AdditionAborted { peer_id: 0 },
+        Command::RequiredCountChanged { required_count: 0 },
     ];
 
     // Arrange — the admissible set the state advertises via Probe

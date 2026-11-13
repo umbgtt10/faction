@@ -161,14 +161,18 @@ gaps.
 
 - Valid transitions live in `state_transition_matrix_tests.rs` and expect the row's
   result; rejected commands live in per-state files (`initial_invalid_tests.rs`,
-  `collecting_invalid_tests.rs`, `bootstrapped_invalid_tests.rs`) under the row
-  `not-admitted`; `pinging_invalid_tests.rs` asserts Pinging rejects nothing, and
-  `admissible_invariant_tests.rs` checks each stage's admissible set against the table's
-  `admits` and against `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
+  `pinging_invalid_tests.rs`, `collecting_invalid_tests.rs`,
+  `bootstrapped_invalid_tests.rs`, `reconfiguring_invalid_tests.rs`) under the row
+  `not-admitted` -- Pinging refuses an addition's coordination alone, and its file also
+  asserts it accepts the rest -- and `admissible_invariant_tests.rs` checks each stage's
+  admissible set against the table's `admits` and against
+  `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
 - Any new state or command variant MUST add its rows to the table first, then the
   matching cases here.
-- `Bootstrapped` is the only terminal state; a missed deadline is non-terminal
-  (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view flag.
+- `Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with an
+  addition in flight, shown as `PeerState::Bootstrapped`. A missed deadline is
+  non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view
+  flag.
 
 ### State transition model
 

@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 18] = [
+const RULES: [(&str, Rule); 29] = [
     (
         "probed",
         Rule {
@@ -132,6 +132,83 @@ const RULES: [(&str, Rule); 18] = [
         Rule {
             situation: Situation::Always,
             change: Change::Nothing,
+        },
+    ),
+    (
+        "addition-member",
+        Rule {
+            situation: Situation::PeerIsMember,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "addition-requested",
+        Rule {
+            situation: Situation::Always,
+            change: Change::AdditionPends,
+        },
+    ),
+    (
+        "acknowledgement-ignored",
+        Rule {
+            situation: Situation::AcknowledgementNotAwaited,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "acknowledgement-accepted",
+        Rule {
+            situation: Situation::Always,
+            change: Change::AdditionAcknowledged,
+        },
+    ),
+    (
+        "abort-ignored",
+        Rule {
+            situation: Situation::PeerIsNotPending,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "addition-aborted",
+        Rule {
+            situation: Situation::Always,
+            change: Change::AdditionWithdrawn,
+        },
+    ),
+    (
+        "commit-member",
+        Rule {
+            situation: Situation::PeerIsMember,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "addition-completed",
+        Rule {
+            situation: Situation::PeerIsPending,
+            change: Change::AdditionCompletes,
+        },
+    ),
+    (
+        "addition-committed",
+        Rule {
+            situation: Situation::Always,
+            change: Change::PeerJoins,
+        },
+    ),
+    (
+        "count-concluded",
+        Rule {
+            situation: Situation::CountConcludes,
+            change: Change::CountSet,
+        },
+    ),
+    (
+        "count-set",
+        Rule {
+            situation: Situation::Always,
+            change: Change::CountSet,
         },
     ),
 ];

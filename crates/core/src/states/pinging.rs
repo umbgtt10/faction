@@ -4,6 +4,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::addition::Addition;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
@@ -11,18 +12,21 @@ use crate::config::Config;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
+use crate::quorum_policy::QuorumPolicy;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::types::PeerId;
 
 use super::collecting::Collecting;
-use super::join_decision::JoinDecision;
-use super::join_step::JoinStep;
 use super::local_completion_step::LocalCompletionStep;
+use super::membership_decision::MembershipDecision;
+use super::membership_step::MembershipStep;
 use super::pinging_step::PingingStep;
 
+#[derive(Debug, Clone)]
 pub struct Pinging {
     members: Members,
+    quorum_policy: QuorumPolicy,
     pinging_peers: Vec<PeerId>,
     collecting_peers: Vec<PeerId>,
     deadline_missed: bool,
@@ -30,9 +34,10 @@ pub struct Pinging {
 
 impl Pinging {
     #[must_use]
-    pub fn new(members: Members) -> Self {
+    pub fn new(members: Members, quorum_policy: QuorumPolicy) -> Self {
         Self {
             members,
+            quorum_policy,
             pinging_peers: Vec::new(),
             collecting_peers: Vec::new(),
             deadline_missed: false,
@@ -47,7 +52,9 @@ impl State for Pinging {
             .with_pinging_peers(self.pinging_peers.clone())
             .with_collecting_peers(self.collecting_peers.clone())
             .with_deadline_missed(self.deadline_missed)
+            .with_required_count(self.quorum_policy.threshold())
             .with_members(self.members.clone())
+            .with_addition(Addition::None)
             .build()
     }
 
@@ -55,22 +62,17 @@ impl State for Pinging {
         if let Some(peer_id) = self.members.non_member_observed(&command) {
             Some((
                 vec![Outcome::NonMemberIgnored { peer_id }],
-                Stage::Pinging(Self {
-                    members: self.members.clone(),
-                    pinging_peers: self.pinging_peers.clone(),
-                    collecting_peers: self.collecting_peers.clone(),
-                    deadline_missed: self.deadline_missed,
-                }),
+                Stage::Pinging(self.clone()),
             ))
-        } else if let Some(decision) = JoinDecision::of(&command) {
-            let join = JoinStep::new(self.members.clone(), decision);
+        } else if let Some(decision) = MembershipDecision::of(&command) {
+            let membership =
+                MembershipStep::new(self.members.clone(), self.quorum_policy, decision);
             Some((
-                join.outcomes().to_vec(),
+                membership.outcomes().to_vec(),
                 Stage::Pinging(Self {
-                    members: join.members().clone(),
-                    pinging_peers: self.pinging_peers.clone(),
-                    collecting_peers: self.collecting_peers.clone(),
-                    deadline_missed: self.deadline_missed,
+                    members: membership.members().clone(),
+                    quorum_policy: membership.quorum_policy(),
+                    ..self.clone()
                 }),
             ))
         } else {
@@ -81,10 +83,8 @@ impl State for Pinging {
                     Some((
                         step.outcomes().to_vec(),
                         Stage::Pinging(Self {
-                            members: self.members.clone(),
                             pinging_peers: step.confirmed_peers().to_vec(),
-                            collecting_peers: self.collecting_peers.clone(),
-                            deadline_missed: self.deadline_missed,
+                            ..self.clone()
                         }),
                     ))
                 }
@@ -105,10 +105,8 @@ impl State for Pinging {
                     Some((
                         vec![outcome],
                         Stage::Pinging(Self {
-                            members: self.members.clone(),
-                            pinging_peers: self.pinging_peers.clone(),
                             collecting_peers: new_collecting,
-                            deadline_missed: self.deadline_missed,
+                            ..self.clone()
                         }),
                     ))
                 }
@@ -117,13 +115,14 @@ impl State for Pinging {
                     let step = LocalCompletionStep::new(
                         self.collecting_peers.clone(),
                         config.peer_id(),
-                        config.quorum_policy(),
+                        self.quorum_policy,
                     );
 
                     Some((
                         step.outcomes().to_vec(),
                         Collecting::new(
                             self.members.clone(),
+                            self.quorum_policy,
                             step.confirmed_peers().to_vec(),
                             self.pinging_peers.clone(),
                             self.deadline_missed,
@@ -137,10 +136,8 @@ impl State for Pinging {
                         confirmed_count: self.collecting_peers.len(),
                     }],
                     Stage::Pinging(Self {
-                        members: self.members.clone(),
-                        pinging_peers: self.pinging_peers.clone(),
-                        collecting_peers: self.collecting_peers.clone(),
                         deadline_missed: true,
+                        ..self.clone()
                     }),
                 )),
 

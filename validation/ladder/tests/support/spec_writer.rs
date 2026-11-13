@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::addition::Addition;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
@@ -24,8 +25,15 @@ impl SpecWriter {
             | Command::ReadyObserved { peer_id }
             | Command::JoinRequested { peer_id }
             | Command::JoinApproved { peer_id }
-            | Command::JoinRejected { peer_id } => {
+            | Command::JoinRejected { peer_id }
+            | Command::AdditionRequested { peer_id }
+            | Command::MembershipAcknowledged { peer_id }
+            | Command::AdditionCommitted { peer_id }
+            | Command::AdditionAborted { peer_id } => {
                 json!({ Self::name(command): { "peer_id": Self::number(*peer_id) } })
+            }
+            Command::RequiredCountChanged { required_count } => {
+                json!({ Self::name(command): { "required_count": Self::number(*required_count) } })
             }
             Command::LocalParticipationCompleted | Command::DeadlineExpired | Command::Probe => {
                 json!({ Self::name(command): {} })
@@ -91,6 +99,11 @@ impl SpecWriter {
             Command::JoinRequested { .. } => "JoinRequested",
             Command::JoinApproved { .. } => "JoinApproved",
             Command::JoinRejected { .. } => "JoinRejected",
+            Command::AdditionRequested { .. } => "AdditionRequested",
+            Command::MembershipAcknowledged { .. } => "MembershipAcknowledged",
+            Command::AdditionCommitted { .. } => "AdditionCommitted",
+            Command::AdditionAborted { .. } => "AdditionAborted",
+            Command::RequiredCountChanged { .. } => "RequiredCountChanged",
             Command::Probe => "Probe",
         }
     }
@@ -129,6 +142,24 @@ impl SpecWriter {
                     json!({ "Concluded": { "mode": { "Bootstrapped": {} } } })
                 }
             },
+            Outcome::SendMembership { peer_id } => Self::peer("SendMembership", *peer_id),
+            Outcome::ProposeAddition { peer_id } => Self::peer("ProposeAddition", *peer_id),
+            Outcome::AdditionWithdrawn { peer_id } => Self::peer("AdditionWithdrawn", *peer_id),
+            Outcome::AcknowledgementIgnored { peer_id } => {
+                Self::peer("AcknowledgementIgnored", *peer_id)
+            }
+            Outcome::AbortIgnored { peer_id } => Self::peer("AbortIgnored", *peer_id),
+            Outcome::RequiredCountSet { required_count } => {
+                json!({ "RequiredCountSet": { "required_count": Self::number(required_count) } })
+            }
+        }
+    }
+
+    fn addition(addition: Addition) -> Value {
+        match addition {
+            Addition::None => json!({ "None": {} }),
+            Addition::Requested { peer_id } => Self::peer("Requested", peer_id),
+            Addition::Acknowledged { peer_id } => Self::peer("Acknowledged", peer_id),
         }
     }
 
@@ -160,6 +191,7 @@ impl SpecWriter {
             "required_count": Self::number(view.required_count()),
             "deadline_missed": view.deadline_missed(),
             "members": Self::peers(view.members().as_slice()),
+            "addition": Self::addition(view.addition()),
         })
     }
 }

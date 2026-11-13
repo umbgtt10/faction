@@ -27,10 +27,16 @@ pub enum OutcomeName {
     DuplicateMemberIgnored,
     JoinDenied,
     Concluded,
+    SendMembership,
+    ProposeAddition,
+    AdditionWithdrawn,
+    AcknowledgementIgnored,
+    AbortIgnored,
+    RequiredCountSet,
 }
 
 impl OutcomeName {
-    pub const ALL: [OutcomeName; 14] = [
+    pub const ALL: [OutcomeName; 20] = [
         OutcomeName::ParticipationAccepted,
         OutcomeName::ReadyAccepted,
         OutcomeName::DuplicateParticipationIgnored,
@@ -45,6 +51,12 @@ impl OutcomeName {
         OutcomeName::DuplicateMemberIgnored,
         OutcomeName::JoinDenied,
         OutcomeName::Concluded,
+        OutcomeName::SendMembership,
+        OutcomeName::ProposeAddition,
+        OutcomeName::AdditionWithdrawn,
+        OutcomeName::AcknowledgementIgnored,
+        OutcomeName::AbortIgnored,
+        OutcomeName::RequiredCountSet,
     ];
 
     #[must_use]
@@ -68,6 +80,10 @@ impl OutcomeName {
             OutcomeName::Concluded => {
                 Variant::of(self.name(), json!({"mode": Variant::unit(CONCLUSION_MODE)}))
             }
+            OutcomeName::RequiredCountSet => Variant::of(
+                self.name(),
+                json!({"required_count": command.required_count.map(|count| count.to_string())}),
+            ),
             OutcomeName::ParticipationAccepted
             | OutcomeName::ReadyAccepted
             | OutcomeName::DuplicateParticipationIgnored
@@ -77,7 +93,12 @@ impl OutcomeName {
             | OutcomeName::EmitJoinRequest
             | OutcomeName::MemberAdmitted
             | OutcomeName::DuplicateMemberIgnored
-            | OutcomeName::JoinDenied => {
+            | OutcomeName::JoinDenied
+            | OutcomeName::SendMembership
+            | OutcomeName::ProposeAddition
+            | OutcomeName::AdditionWithdrawn
+            | OutcomeName::AcknowledgementIgnored
+            | OutcomeName::AbortIgnored => {
                 Variant::of(self.name(), json!({"peer_id": command.peer_id}))
             }
         }
@@ -100,6 +121,12 @@ impl OutcomeName {
             OutcomeName::DuplicateMemberIgnored => "DuplicateMemberIgnored",
             OutcomeName::JoinDenied => "JoinDenied",
             OutcomeName::Concluded => "Concluded",
+            OutcomeName::SendMembership => "SendMembership",
+            OutcomeName::ProposeAddition => "ProposeAddition",
+            OutcomeName::AdditionWithdrawn => "AdditionWithdrawn",
+            OutcomeName::AcknowledgementIgnored => "AcknowledgementIgnored",
+            OutcomeName::AbortIgnored => "AbortIgnored",
+            OutcomeName::RequiredCountSet => "RequiredCountSet",
         }
     }
 }

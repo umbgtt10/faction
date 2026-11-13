@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::answers::Answers;
 use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
@@ -42,6 +43,7 @@ fn cluster_view_inherits_correctly() {
     let collecting_set = vec![1, 3];
     let collecting = Collecting::new(
         Members::new(vec![0, 1, 2, 3, 4]),
+        QuorumPolicy::new(THRESHOLD),
         collecting_set,
         vec![5, 6],
         false,
@@ -260,6 +262,21 @@ fn process_acknowledges_member_participation() {
 }
 
 #[test]
+fn process_addition_committed_admits_the_peer() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4, 9]);
+}
+
+#[test]
 fn process_deadline_expired_stays_receptive_in_collecting() {
     // Arrange
     let mut faction = faction_in_collecting();
@@ -389,10 +406,52 @@ fn process_rejects_local_participation_completed() {
 }
 
 #[test]
+fn process_required_count_changed_reached_concludes() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 1 }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::RequiredCountSet { required_count: 1 },
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped,
+            },
+        ]
+    );
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.required_count(), 1);
+}
+
+#[test]
+fn process_required_count_changed_short_stays_collecting() {
+    // Arrange
+    let mut faction = faction_in_collecting();
+
+    // Act
+    let (outcomes, cluster_view, _) =
+        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 3 }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::RequiredCountSet { required_count: 3 }]
+    );
+    assert_eq!(cluster_view.peer_state(), PeerState::Collecting);
+    assert_eq!(cluster_view.required_count(), 3);
+}
+
+#[test]
 fn resolve_at_quorum_returns_bootstrapped() {
     // Arrange
     let collecting = Collecting::new(
         Members::new(vec![0, 1, 2, 3, 4]),
+        QuorumPolicy::new(THRESHOLD),
         vec![0, 1, 2, 3],
         vec![1],
         false,
@@ -411,7 +470,13 @@ fn resolve_at_quorum_returns_bootstrapped() {
 #[test]
 fn resolve_below_quorum_returns_collecting() {
     // Arrange
-    let collecting = Collecting::new(Members::new(vec![0, 1, 2, 3, 4]), vec![0, 1], vec![1], true);
+    let collecting = Collecting::new(
+        Members::new(vec![0, 1, 2, 3, 4]),
+        QuorumPolicy::new(THRESHOLD),
+        vec![0, 1],
+        vec![1],
+        true,
+    );
 
     // Act
     let stage = collecting.resolve(false);
