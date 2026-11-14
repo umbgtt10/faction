@@ -25,6 +25,7 @@ use crate::infra::transport::grpc::grpc_proto::wire::transport_client::Transport
 use crate::infra::transport::grpc::grpc_proto::wire::transport_server::TransportServer;
 use crate::infra::transport::grpc::grpc_service::GrpcService;
 use crate::infra::transport::wire_codec::WireCodec;
+use tokio::select;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
 type Clients = Arc<AsyncMutex<HashMap<PeerId, TransportClient<Channel>>>>;
@@ -186,7 +187,7 @@ impl GrpcTransport {
     fn spawn_server(inbox: Inbox, stream: TcpListenerStream) -> OneshotSender<()> {
         let (shutdown_tx, shutdown_rx) = oneshot_channel();
         Self::runtime().spawn(async move {
-            tokio::select! {
+            select! {
                 _ = Server::builder()
                     .add_service(TransportServer::new(GrpcService::new(inbox)))
                     .serve_with_incoming(stream) => {},
