@@ -156,6 +156,27 @@ fn of_members_forgets_whom_the_node_no_longer_counts() {
     assert_eq!(kept.last_probed(), None);
 }
 
+// A member the change keeps keeps its liveness: still suspected, still the
+// member probed last.
+#[test]
+fn of_members_keeps_whom_the_node_still_counts() {
+    // Arrange
+    let (_, liveness) = stepped(
+        &[
+            Command::ProbeDue,
+            Command::IndirectProbesMissed { peer_id: 1 },
+        ],
+        1,
+    );
+
+    // Act
+    let kept = liveness.of_members(&Members::new(vec![0, 1, 2, 3]));
+
+    // Assert
+    assert_eq!(kept.suspected(), &[1]);
+    assert_eq!(kept.last_probed(), Some(1));
+}
+
 #[test]
 fn step_of_a_command_not_of_liveness_is_none() {
     // Arrange
