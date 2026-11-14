@@ -373,6 +373,25 @@ fn process_required_count_changed_sets_the_count_in_effect() {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
+// Only the node's own removal removes it: another member's, committed, is a
+// membership decision it applies and stays concluded.
+#[test]
+fn step_removal_committed_of_another_member_takes_it_out_still_bootstrapped() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let (outcomes, stage) = bootstrapped
+        .step(Command::RemovalCommitted { peer_id: 1 }, &config())
+        .expect("a concluded node applies a commit");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 1 }]);
+    let cluster_view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 2]);
+}
+
 #[test]
 fn step_removal_requested_of_a_member_the_quorum_can_spare_proposes_it_still_bootstrapped() {
     // Arrange
