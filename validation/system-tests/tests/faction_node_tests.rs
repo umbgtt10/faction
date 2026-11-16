@@ -181,6 +181,43 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     (node, commands)
 }
 
+// Node 0 of members 0, 1 and 2, requiring two, started and pinging, its
+// retries due; the transports of peer 1 and of peer 7, which is no member.
+fn pinging() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
+    let (time, clock) = fake_time();
+    let mut mesh = InMemoryTransport::new_mesh(&[0, 1, 2, 7]);
+    let outsider = mesh.remove(3);
+    let peer_one = mesh.remove(1);
+    let peers = vec![0, 1, 2];
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0, false);
+    let protocol = Protocol::new(
+        Faction::new(config, Box::new(NoOpObserver)),
+        peers,
+        0,
+        HELPERS,
+    );
+    let timer = RealTimer::with_delays(
+        time.clock.clone(),
+        Duration::from_millis(10),
+        Duration::from_secs(10),
+        ProbeStretch::Minimal.factor(),
+    );
+    let mut node = FactionNode::new(
+        0,
+        Role::Running(Box::new(protocol)),
+        Box::new(mesh.remove(0)),
+        Box::new(timer),
+        Box::new(NoOpNodeObserver),
+        NodeFaults::default(),
+        Box::new(recipe(1, &time)),
+    );
+    node.start();
+    clock.advance(Duration::from_millis(10));
+    node.step();
+    clock.advance(Duration::from_secs(1));
+    (node, peer_one, outsider)
+}
+
 // Every command a node's machine is given.
 struct Recording {
     commands: Arc<Mutex<Vec<Command>>>,
@@ -271,19 +308,16 @@ fn commit_addition_admits_the_peer() {
 #[test]
 fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Arrange
-    let (mut node, mut peer_one, mut outsider, _) = concluded();
+    let (mut node, _, mut outsider) = pinging();
     node.commit_addition(7, 1);
-    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 1 });
 
     // Act
-    for _ in 0..4 {
-        node.step();
-    }
+    while node.step() {}
 
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        received.contains(&TransportMessage::Ready { from: 0, epoch: 1 }),
+        received.contains(&TransportMessage::Ping { from: 0, epoch: 1 }),
         "{received:?}"
     );
 }
@@ -291,21 +325,23 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
 #[test]
 fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     // Arrange
-    let (mut node, mut peer_one, mut outsider, _) = concluded();
+    let (mut node, mut peer_one, mut outsider) = pinging();
     node.commit_addition(7, 1);
     node.commit_removal(7, 2);
-    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 2 });
 
     // Act
-    for _ in 0..4 {
-        node.step();
-    }
+    while node.step() {}
 
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
+    let kept: Vec<TransportMessage> = from_fn(|| peer_one.recv()).collect();
     assert!(
-        !received.contains(&TransportMessage::Ready { from: 0, epoch: 2 }),
+        !received.contains(&TransportMessage::Ping { from: 0, epoch: 2 }),
         "{received:?}"
+    );
+    assert!(
+        kept.contains(&TransportMessage::Ping { from: 0, epoch: 2 }),
+        "{kept:?}"
     );
 }
 

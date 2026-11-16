@@ -24,6 +24,10 @@ release since names the version it conforms to.
   is invited back by it, a running node adopts it. A membership delivered to another
   node, as a transport that misdelivers can, is ignored: a removed node no longer comes
   back on another peer's invitation, believing itself a member no one else holds.
+- faction-protocol: a node answers a member still pinging it (`AcknowledgeRejoin`) by sending
+  its readiness to that member alone, as the specification says, instead of broadcasting it
+  to every member. Each round of a straggler's pings drew n x (n - 1) messages from n
+  concluded members where n were needed, the concluded receivers ignoring theirs.
 
 #### Changed
 - The specification is 0.5.1: it answers every command as 0.5.0 does, and states what the

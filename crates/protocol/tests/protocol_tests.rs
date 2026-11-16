@@ -227,13 +227,18 @@ fn decide_after_bootstrapped_re_advertises_on_ping_and_ignores_ready() {
         epoch: 0,
     }));
 
-    // Act & Assert — a member's ping re-advertises this node's readiness
+    // Act & Assert — a member's ping re-advertises this node's readiness to it
     let on_ping = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
         from: 1,
         epoch: 0,
     }));
-    assert_eq!(on_ping.len(), 1);
-    assert!(matches!(on_ping[0], OutputMessage::BroadcastReady { .. }));
+    assert_eq!(
+        on_ping,
+        vec![OutputMessage::Send {
+            to: 1,
+            message: TransportMessage::Ready { from: 0, epoch: 0 },
+        }]
+    );
 
     // Act & Assert — a duplicate ready draws no reply
     let on_ready = protocol.decide(InputMessage::Transport(TransportMessage::Ready {

@@ -162,8 +162,12 @@ impl MessageTranslator {
                     peer_id,
                 })),
             ],
-            Outcome::AcknowledgeRejoin { .. } => vec![OutputMessage::BroadcastReady {
-                epoch: view.epoch(),
+            Outcome::AcknowledgeRejoin { peer_id } => vec![OutputMessage::Send {
+                to: peer_id,
+                message: TransportMessage::Ready {
+                    from: local_peer_id,
+                    epoch: view.epoch(),
+                },
             }],
             Outcome::SendMembership { peer_id } => vec![
                 OutputMessage::Send {
