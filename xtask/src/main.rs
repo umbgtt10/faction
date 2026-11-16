@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use std::env::args;
-use std::env::set_var;
 use std::env::temp_dir;
 use std::fs::read_to_string;
 use std::fs::remove_dir_all;
@@ -88,7 +87,7 @@ fn main() -> ExitCode {
 // trailers; given none, they are printed.
 fn grip_braintax() -> Result<(), String> {
     let scratch = temp_dir().join(format!("xtask-grip-braintax-{}", id()));
-    let runner = SystemCommandRunner::new();
+    let runner = SystemCommandRunner::new(Vec::new());
     let scored = LibraryScorer::new(&runner, scratch.to_string_lossy().into_owned()).score();
     let _ = remove_dir_all(&scratch);
     let block = scored.map_err(|failure| failure.to_string())?.render();
@@ -104,7 +103,7 @@ fn grip_braintax() -> Result<(), String> {
 
 fn stage2() -> Result<&'static str, String> {
     let manifest_path = workspace_manifest_path();
-    let runner = SystemCommandRunner::new();
+    let runner = SystemCommandRunner::new(Vec::new());
     let parser = CrapReportParser::new();
     let every_package = vec![
         String::from(CORE_PACKAGE),
@@ -199,13 +198,12 @@ fn stage2() -> Result<&'static str, String> {
 // in parallel by slotgate; every run's logs -- slotgate's and the scenarios'
 // -- in one folder under logs/, the newest RUNS_TO_KEEP kept.
 fn system_tests() -> Result<&'static str, String> {
-    let runner = SystemCommandRunner::new();
     let root = workspace_root();
     let log_directory = RunLogDirectory::new(root.join("logs"), RUNS_TO_KEEP);
     let run_name = RunStamp::new(seconds_since_epoch()).to_directory_name();
-    // Every test process slotgate starts inherits the run's name, and its
+    // Every test process slotgate starts is handed the run's name, and its
     // scenarios write into the run's folder: one folder a run, pruned whole.
-    set_var(LOG_RUN, &run_name);
+    let runner = SystemCommandRunner::new(vec![(String::from(LOG_RUN), run_name.clone())]);
     let slotgate = SlotgateGate::new(
         &runner,
         &log_directory,

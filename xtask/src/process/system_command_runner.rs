@@ -10,11 +10,27 @@ use std::env::var_os;
 use std::path::PathBuf;
 use std::process::Command;
 
-pub struct SystemCommandRunner;
+// The operating system's processes, each started with the environment this
+// runner was given beside the one it inherits: the run's name for the system
+// tests reaches every process slotgate starts that way, with no variable of
+// this process's own set.
+pub struct SystemCommandRunner {
+    environment: Vec<(String, String)>,
+}
 
 impl SystemCommandRunner {
-    pub fn new() -> Self {
-        Self
+    pub fn new(environment: Vec<(String, String)>) -> Self {
+        Self { environment }
+    }
+
+    fn command(&self, program: &str, args: &[String]) -> Command {
+        let mut command = Command::new(program);
+        command.args(args).envs(
+            self.environment
+                .iter()
+                .map(|(name, value)| (name.as_str(), value.as_str())),
+        );
+        command
     }
 
     fn locate(binary_name: &str) -> Option<PathBuf> {
@@ -26,20 +42,13 @@ impl SystemCommandRunner {
     }
 }
 
-impl Default for SystemCommandRunner {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl CommandRunner for SystemCommandRunner {
     fn is_available(&self, binary_name: &str) -> bool {
         Self::locate(binary_name).is_some()
     }
 
     fn run_streaming(&self, program: &str, args: &[String]) -> Result<Option<i32>, LaunchFailure> {
-        Command::new(program)
-            .args(args)
+        self.command(program, args)
             .status()
             .map(|status| status.code())
             .map_err(|error| LaunchFailure::new(program, &error.to_string()))
@@ -50,8 +59,8 @@ impl CommandRunner for SystemCommandRunner {
         program: &str,
         args: &[String],
     ) -> Result<CommandOutcome, LaunchFailure> {
-        let output = Command::new(program)
-            .args(args)
+        let output = self
+            .command(program, args)
             .output()
             .map_err(|error| LaunchFailure::new(program, &error.to_string()))?;
 
