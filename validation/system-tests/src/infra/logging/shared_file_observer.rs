@@ -52,7 +52,7 @@ impl NodeObserver for SharedFileObserver {
     fn on_step(&mut self, input: &InputMessage, decisions: &[OutputMessage]) {
         let ts = self.now_utc();
         self.writer.write_line(&format!(
-                r#"{{"timestamp":"{ts}","peer_id":{},"event":"step","input":"{input:?}","decisions":{decisions:?}}}"#,
+                r#"{{"timestamp":"{ts}","peer_id":{},"event":"step","input":"{input:?}","decisions":"{decisions:?}"}}"#,
                 self.peer_id,
             ),
         );
