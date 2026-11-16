@@ -5,6 +5,13 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Fixed
+- faction-protocol: a membership names the peer it is addressed to, and a node takes as
+  an offer only a membership addressed to it -- a newcomer joins from it, a removed node
+  is invited back by it, a running node adopts it. A membership delivered to another
+  node, as a transport that misdelivers can, is ignored: a removed node no longer comes
+  back on another peer's invitation, believing itself a member no one else holds.
+
 #### Changed
 - The specification is 0.5.1: it answers every command as 0.5.0 does, and states what the
   layer above owes a node — its commits in epoch order. A commit reported after one at a

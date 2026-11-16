@@ -85,10 +85,14 @@ impl Protocol {
                 }),
             ) => ProbeRelay::reply(self.local_peer_id, &message),
             InputMessage::Transport(message @ TransportMessage::Membership { .. }) => {
-                let offer = Offer::of(&message, self.local_peer_id).expect("a membership");
-                let taken = self.apply(offer.command());
-                let epoch = self.cluster_view().epoch();
-                offer.acknowledged(taken, self.local_peer_id, epoch)
+                match Offer::of(&message, self.local_peer_id) {
+                    Some(offer) => {
+                        let taken = self.apply(offer.command());
+                        let epoch = self.cluster_view().epoch();
+                        offer.acknowledged(taken, self.local_peer_id, epoch)
+                    }
+                    None => vec![OutputMessage::Noop],
+                }
             }
             other => {
                 let epoch = self.cluster_view().epoch();
@@ -131,10 +135,10 @@ impl Protocol {
     }
 
     // Whether `message` invites this node, removed from its cluster, to join
-    // it again: a membership, which a removed node takes as a newcomer does,
-    // created again from it.
+    // it again: a membership addressed to it, which a removed node takes as a
+    // newcomer does, created again from it.
     pub fn invites(&mut self, message: &TransportMessage) -> bool {
-        matches!(message, TransportMessage::Membership { .. })
+        Offer::of(message, self.local_peer_id).is_some()
             && self.cluster_view().peer_state() == PeerState::Removed
     }
 

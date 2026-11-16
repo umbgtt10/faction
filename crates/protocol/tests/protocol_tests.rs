@@ -37,6 +37,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
         to: peer_id,
         message: TransportMessage::Membership {
             from: 0,
+            to: peer_id,
             members: vec![0, 1],
             required_count: 2,
             epoch: 0,
@@ -416,6 +417,7 @@ fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_
     // Act
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
         from: 7,
+        to: 0,
         members: vec![7],
         required_count: 1,
         epoch: 3,
@@ -457,6 +459,25 @@ fn decide_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
 }
 
 #[test]
+fn decide_membership_addressed_to_another_peer_is_ignored() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
+        from: 7,
+        to: 9,
+        members: vec![7],
+        required_count: 1,
+        epoch: 3,
+    }));
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(protocol.cluster_view().epoch(), 0);
+}
+
+#[test]
 fn decide_membership_at_a_running_node_acknowledges_it() {
     // Arrange
     let mut protocol = protocol();
@@ -464,6 +485,7 @@ fn decide_membership_at_a_running_node_acknowledges_it() {
     // Act
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
         from: 7,
+        to: 0,
         members: vec![7],
         required_count: 1,
         epoch: 0,
@@ -498,6 +520,7 @@ fn decide_ping_from_behind_is_answered_with_the_membership_at_the_node_s_epoch()
                 to: 1,
                 message: TransportMessage::Membership {
                     from: 0,
+                    to: 1,
                     members: vec![0, 1],
                     required_count: 2,
                     epoch: 2,
@@ -1049,11 +1072,35 @@ fn initialize_with_two_peers_produces_decisions() {
 }
 
 #[test]
+fn invites_of_a_membership_addressed_to_another_peer_is_false() {
+    // Arrange
+    let mut protocol = protocol();
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 1,
+    });
+    let addressed_to_nine = TransportMessage::Membership {
+        from: 1,
+        to: 9,
+        members: vec![1],
+        required_count: 1,
+        epoch: 2,
+    };
+
+    // Act
+    let invited = protocol.invites(&addressed_to_nine);
+
+    // Assert
+    assert!(!invited);
+}
+
+#[test]
 fn invites_of_a_membership_holds_once_the_node_is_removed_alone() {
     // Arrange
     let mut protocol = protocol();
     let membership = TransportMessage::Membership {
         from: 1,
+        to: 0,
         members: vec![1],
         required_count: 1,
         epoch: 2,
@@ -1095,6 +1142,7 @@ fn request_addition_after_a_removal_sends_the_membership_without_the_removed_mem
             to: 5,
             message: TransportMessage::Membership {
                 from: 0,
+                to: 5,
                 members: vec![0, 1, 3],
                 required_count: 1,
                 epoch: 0

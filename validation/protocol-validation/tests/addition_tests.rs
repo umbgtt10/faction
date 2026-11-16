@@ -22,6 +22,7 @@ fn concluded_with_a_newcomer() -> Cluster {
 fn membership_from_node_0() -> TransportMessage {
     TransportMessage::Membership {
         from: 0,
+        to: NEWCOMER,
         members: vec![0, 1, 2],
         required_count: 2,
         epoch: 0,

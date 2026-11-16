@@ -19,6 +19,7 @@ fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
     let newcomer = Newcomer::new(5, 2, 1, Box::new(NoOpObserver));
     let membership = TransportMessage::Membership {
         from: 0,
+        to: 5,
         members: vec![0],
         required_count: 1,
         epoch: 0,
@@ -42,10 +43,29 @@ fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
 }
 
 #[test]
+fn join_of_a_membership_addressed_to_another_peer_keeps_it_waiting() {
+    // Arrange
+    let addressed_to_six = TransportMessage::Membership {
+        from: 0,
+        to: 6,
+        members: vec![0, 1],
+        required_count: 2,
+        epoch: 0,
+    };
+
+    // Act
+    let joined = newcomer().join(addressed_to_six);
+
+    // Assert
+    assert!(joined.is_err());
+}
+
+#[test]
 fn join_of_a_membership_already_naming_the_newcomer_lists_it_once() {
     // Arrange
     let membership = TransportMessage::Membership {
         from: 0,
+        to: 5,
         members: vec![0, 1, 5],
         required_count: 2,
         epoch: 0,
@@ -65,6 +85,7 @@ fn join_of_a_membership_at_an_epoch_starts_at_it_and_acknowledges_with_it() {
     // Arrange
     let membership = TransportMessage::Membership {
         from: 0,
+        to: 5,
         members: vec![0, 1],
         required_count: 2,
         epoch: 6,
@@ -92,6 +113,7 @@ fn join_of_a_membership_becomes_a_node_of_it_acknowledges_and_starts() {
     // Arrange
     let membership = TransportMessage::Membership {
         from: 0,
+        to: 5,
         members: vec![0, 1],
         required_count: 2,
         epoch: 0,

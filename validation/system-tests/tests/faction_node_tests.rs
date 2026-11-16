@@ -470,6 +470,7 @@ fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
         outsider.recv(),
         Some(TransportMessage::Membership {
             from: 0,
+            to: 7,
             members: vec![0, 1, 2],
             required_count: 1,
             epoch: 0
@@ -629,6 +630,7 @@ fn step_of_a_waiting_newcomer_given_its_membership_becomes_a_node_of_it() {
         5,
         TransportMessage::Membership {
             from: 0,
+            to: 5,
             members: vec![0, 1],
             required_count: 2,
             epoch: 0,

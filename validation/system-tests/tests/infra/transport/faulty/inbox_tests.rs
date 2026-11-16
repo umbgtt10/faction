@@ -16,6 +16,7 @@ fn lost_of(message: TransportMessage, policy: &FaultPolicy) -> usize {
 fn membership(members: u64) -> TransportMessage {
     TransportMessage::Membership {
         from: 0,
+        to: 2,
         members: (0..members).collect(),
         required_count: 1,
         epoch: 1,

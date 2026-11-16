@@ -170,6 +170,7 @@ impl MessageTranslator {
                     to: peer_id,
                     message: TransportMessage::Membership {
                         from: local_peer_id,
+                        to: peer_id,
                         members: view.members().as_slice().to_vec(),
                         required_count: view.required_count(),
                         epoch: view.epoch(),
