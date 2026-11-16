@@ -11,8 +11,8 @@ use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 
 // The crate's types written as the specification's JSON: a command, a result
 // and a step -- what a vector expects and a log keeps. The admissible commands

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::vec::Vec;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 
 use crate::vocabulary::variant::Variant;
 

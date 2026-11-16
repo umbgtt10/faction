@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use super::builder::{build, Init};
+use super::builder::{Init, build};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use faction::command::Command;

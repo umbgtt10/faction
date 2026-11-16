@@ -1,7 +1,7 @@
 [package]
 name = "faction"
 version = "0.8.1"
-edition = "2021"
+edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 description = "A no_std + alloc, protocol-independent cluster membership state machine: whether the cluster is ready before consensus starts, then joins, additions, removals and its members' liveness."

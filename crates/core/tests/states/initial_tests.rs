@@ -65,16 +65,18 @@ fn new_returns_initial_state() {
         outcomes,
         vec![Outcome::ParticipationAccepted { peer_id: 0 }]
     );
-    assert!(!new_state
-        .cluster_view(
-            &ClusterViewBuilder::default()
-                .with_peer_state(PeerState::Pinging)
-                .with_pinging_peers(vec![0])
-                .with_required_count(1)
-                .build(),
-        )
-        .pinging_peers()
-        .is_empty());
+    assert!(
+        !new_state
+            .cluster_view(
+                &ClusterViewBuilder::default()
+                    .with_peer_state(PeerState::Pinging)
+                    .with_pinging_peers(vec![0])
+                    .with_required_count(1)
+                    .build(),
+            )
+            .pinging_peers()
+            .is_empty()
+    );
 }
 
 #[test]

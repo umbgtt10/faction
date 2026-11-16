@@ -81,7 +81,10 @@ impl fmt::Display for GateFailure {
             Self::Crappy { count } => write!(formatter, "{count} crappy functions detected"),
             Self::Duplicated => write!(formatter, "duplicated code was found"),
             Self::JobsFile { path, reason } => {
-                write!(formatter, "could not write the job list to {path}: {reason}")
+                write!(
+                    formatter,
+                    "could not write the job list to {path}: {reason}"
+                )
             }
             Self::Launch(failure) => write!(formatter, "{failure}"),
             Self::LogDirectory(failure) => write!(formatter, "{failure}"),

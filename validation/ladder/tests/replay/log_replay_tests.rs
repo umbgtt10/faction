@@ -18,8 +18,8 @@ use faction::config::Config;
 use faction::faction::Faction;
 use faction::quorum_policy::QuorumPolicy;
 use proptest::prelude::*;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 use std::cell::RefCell;
 use std::rc::Rc;
 

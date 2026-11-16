@@ -1,8 +1,8 @@
 [package]
 name = "xtask"
 version = "0.1.0"
-edition = "2021"
-license = "MIT"
+edition.workspace = true
+license.workspace = true
 description = "Gate orchestration for the faction workspace"
 publish = false
 

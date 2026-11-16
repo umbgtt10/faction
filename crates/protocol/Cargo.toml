@@ -1,9 +1,9 @@
 [package]
 name = "faction-protocol"
 version = "0.8.0"
-edition = "2024"
+edition.workspace = true
 rust-version = "1.85"
-license = "MIT"
+license.workspace = true
 description = "Message translator and protocol runtime for the faction cluster readiness state machine."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"

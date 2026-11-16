@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::string::ToString;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 
 use crate::command::Command;
 use crate::liveness::Liveness;

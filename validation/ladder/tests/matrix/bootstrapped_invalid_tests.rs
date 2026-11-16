@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use super::assertions::{verify, Assert};
-use super::builder::{build, Init};
+use super::assertions::{Assert, verify};
+use super::builder::{Init, build};
 use super::helpers::{
     addition_aborted, bootstrapped_admissible, membership_acknowledged, ready, removal_aborted,
 };

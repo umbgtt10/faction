@@ -13,8 +13,8 @@ use faction::observer::Observer;
 use faction::types::PeerId;
 use faction_core_validation::cluster_simulation::ClusterSimulation;
 use proptest::prelude::*;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 use std::cell::RefCell;
 use std::rc::Rc;
 

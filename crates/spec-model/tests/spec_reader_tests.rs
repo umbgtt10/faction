@@ -10,8 +10,8 @@ use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::outcome_name::OutcomeName;
 use faction_spec_model::vocabulary::result_name::ResultName;
 use faction_spec_model::vocabulary::stage::Stage;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 
 // A table of two rows: the probe, and the node's own completion concluding.
 fn matrix() -> Value {

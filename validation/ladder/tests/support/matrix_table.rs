@@ -3,8 +3,8 @@
 
 use crate::support::spec_reader::SpecReader;
 use faction::command::Command;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 
 // The specification's decision table, read by the matrix tier: what each stage
 // admits, and each row's stages, commands, result, outcomes and next stage --

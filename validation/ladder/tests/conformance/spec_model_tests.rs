@@ -15,8 +15,8 @@ use faction_spec_model::rules::rule_book::RuleBook;
 use faction_spec_model::spec_reader::SpecReader;
 use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::stage::Stage;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 use std::collections::BTreeSet;
 
 // The model's answers to a vector's steps, then to the closing Probe.

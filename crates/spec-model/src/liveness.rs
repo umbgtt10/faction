@@ -53,7 +53,10 @@ impl Liveness {
 
     // Every member once, starting after `from` -- from the first, with no
     // `from` or one that is no member.
-    fn after<'a>(members: &'a [String], from: Option<&str>) -> impl Iterator<Item = &'a String> {
+    fn after<'a>(
+        members: &'a [String],
+        from: Option<&str>,
+    ) -> impl Iterator<Item = &'a String> + use<'a> {
         let start = from
             .and_then(|from| members.iter().position(|member| member == from))
             .map_or(0, |position| position + 1);

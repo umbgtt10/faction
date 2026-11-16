@@ -8,8 +8,8 @@ use faction_spec_model::reconfiguration::Reconfiguration;
 use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::outcome_name::OutcomeName;
 use faction_spec_model::vocabulary::stage::Stage;
-use serde_json::json;
 use serde_json::Value;
+use serde_json::json;
 
 fn naming(name: CommandName, peer_id: &str) -> Command {
     Command {

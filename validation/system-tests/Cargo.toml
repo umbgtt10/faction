@@ -1,9 +1,9 @@
 [package]
 name = "faction-system-tests"
 version = "0.8.0"
-edition = "2024"
+edition.workspace = true
 rust-version = "1.85"
-license = "MIT"
+license.workspace = true
 description = "Multi-process convergence, transport, timer, and observer system tests for faction."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"

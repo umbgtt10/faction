@@ -1,9 +1,9 @@
 [package]
 name = "faction-core-validation"
 version = "0.8.0"
-edition = "2021"
+edition.workspace = true
 rust-version = "1.85"
-license = "MIT"
+license.workspace = true
 description = "Deterministic scenario harness for testing the faction core state machine."
 repository = "https://github.com/umbgtt10/faction"
 homepage = "https://github.com/umbgtt10/faction"

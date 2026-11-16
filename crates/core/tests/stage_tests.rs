@@ -112,8 +112,8 @@ fn reconfiguring() -> Stage {
 }
 
 #[test]
-fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_count_liveness_and_probe(
-) {
+fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_count_liveness_and_probe()
+ {
     // Arrange
     let stage = bootstrapped();
 
@@ -207,8 +207,8 @@ fn admissible_commands_pinging_returns_all_but_a_concluded_node_s_own() {
 }
 
 #[test]
-fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an_admission_or_a_second_request(
-) {
+fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an_admission_or_a_second_request()
+ {
     // Arrange
     let stage = reconfiguring();
 
