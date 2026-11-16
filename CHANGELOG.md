@@ -1,5 +1,16 @@
 # Changelog
 
+The crate's versions. The specification in [`spec/`](spec/SPEC.md) is versioned on its own since 0.5.0; each
+release since names the version it conforms to.
+
+## [Unreleased]
+
+#### Changed
+- The README and the crate's front page follow the outline the three bookkeepers now share; the tagline names what
+  `faction` now is, a cluster membership state machine. The quick start asks for 0.8 and runs as written.
+- The agent rules carry the strict rules beggar's and cartel's do: tests first, never removing a test or relaxing an
+  assertion without asking, no re-export shims, and additive releases as faction keeps them.
+
 ## [0.8.0] — 2026-11-13
 
 ### Phase 4: a concluded cluster shrinks by one
