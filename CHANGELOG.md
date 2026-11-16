@@ -5,6 +5,15 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Changed
+- The specification is 0.5.1: it answers every command as 0.5.0 does, and states what the
+  layer above owes a node — its commits in epoch order. A commit reported after one at a
+  higher epoch is ignored as held, and its change lost to the node, which cannot see the gap;
+  a caller that cannot keep the order hands the node a membership instead.
+- ARCHITECTURE states the reference protocol's timer rule — a retry re-arms until its answer
+  comes, a timeout and a one-shot never re-arm — and the runtime's contract: a timer fires at
+  least once.
+
 ## [0.9.0] — 2026-11-16
 
 ### Published on crates.io

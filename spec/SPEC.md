@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.5.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.5.1.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -15,7 +15,8 @@ node probing its members and suspecting those it cannot reach; quorum, its membe
 the epoch, the version of the membership a node holds, with which a claim from behind is refused, a commit already
 held ignored and a newer membership adopted, a removed node's way back among them; and the probe. Each command with
 every row it has. 0.5.0 is the first version to grow by the rule of §1: every vector 0.4.0 and 0.4.1 released is
-answered alike.
+answered alike. 0.5.1 answers every command as 0.5.0 does, and states what the layer above owes a node: its commits in
+epoch order (§16).
 
 ## 1. Conventions
 
@@ -384,6 +385,12 @@ an epoch of one or more, at or below the node's, are answered `CommitIgnored`, c
 changes: the node holds that membership already, or a later one. This comes before any other answer to a commit, the
 node's own removal's included, so a commit reported twice, or after the node adopted a membership past it, is applied
 once.
+
+**The layer above reports its commits to a node in epoch order.** It may report one late, or twice; it never reports
+one after a commit at a higher epoch. A commit reported out of order is held already by the node, ignored, and its
+change lost to it — epochs need not be contiguous, so the node cannot see the gap — which is outside this
+specification. A caller that cannot keep the order hands the node a membership instead (`MembershipReceived`), which
+carries the whole of it.
 
 **Every other commit moves the epoch.** A commit the node accepts and does not ignore leaves the node at the commit's
 epoch, if it is above the node's, whatever else its row says — a commit answered `DuplicateMemberIgnored` or

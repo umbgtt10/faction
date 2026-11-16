@@ -22,7 +22,7 @@ consensus begins?
 that answers the question deterministically, observably, and provably.
 
 **Phases 1 to 5 of six are built** (2026-11-16): bootstrapping, dynamic joining, single-node addition, failure
-detection, single-node removal, and epochs and rejoin, conformant to version 0.5.0 of the specification in
+detection, single-node removal, and epochs and rejoin, conformant to version 0.5.1 of the specification in
 [`spec/`](spec/SPEC.md).
 Version 0.9.0 is on [crates.io](https://crates.io/crates/faction).
 
@@ -325,7 +325,7 @@ across all combinations.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~2,350 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.5.0 — its independent model and the crate answer all 108 vectors as written, each kept as released |
+| Specification | [`spec/`](./spec/SPEC.md) 0.5.1 — its independent model and the crate answer all 108 vectors as written, each kept as released |
 | Total tests | 1,755 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |

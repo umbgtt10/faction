@@ -401,6 +401,28 @@ The reference protocol carries the epoch on `Ping`, `Ready`, `Membership` and
 acknowledges it at its new epoch; a removed node invited back by one is made a newcomer
 again, by whoever runs it (`Protocol::invites`), and joins from it.
 
+### Timers
+
+The reference protocol schedules nine timers, and follows one rule: a retry re-arms itself
+when it fires, until the answer it waits for arrives; a period re-arms while it applies; a
+timeout and a one-shot never re-arm — the firing is the verdict, or the act.
+
+| Timer | Kind | On firing |
+|---|---|---|
+| `RetryPing`, `RetryReady` | retry | re-broadcasts and re-arms, until the node concludes or is removed |
+| `RetryMembership` | retry | re-sends the membership and re-arms, until the newcomer acknowledges |
+| `ProbeDue` | period | probes the next member and re-arms, while the node is concluded |
+| `ProbeMissed`, `IndirectProbesMissed` | timeout | no re-arm: its firing is the verdict; an answer cancels it |
+| `DeadlineExpired` | timeout | no re-arm: it records a fact |
+| `LocalParticipationCompleted`, `ParticipationObserved` | one-shot | no re-arm: fired once, at start |
+
+The runtime owes the protocol one thing: a timer it schedules fires at least once — late,
+early within a bound, twice, out of order with another, or after a cancel lost its race.
+The protocol is built to converge under that contract, whatever its timers do within it; the
+chaos validation checks that it does, safety under every timer fault and the end state under
+those the contract admits. A timer lost for good is outside it: a lost retry or period ends
+its chain, and a lost `LocalParticipationCompleted` leaves its node never concluding.
+
 ### Step structs
 
 Decision logic is split into focused step structs. Each handles one kind of
