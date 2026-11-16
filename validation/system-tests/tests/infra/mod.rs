@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod dice_tests;
+pub mod live_policy_tests;
 pub mod logging;
 pub mod network;
 pub mod timer;
