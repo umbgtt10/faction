@@ -1,28 +1,74 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::vec::Vec;
+
+use crate::types::Epoch;
 use crate::types::PeerId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
-    ParticipationObserved { peer_id: PeerId },
-    ReadyObserved { peer_id: PeerId },
+    ParticipationObserved {
+        peer_id: PeerId,
+        epoch: Epoch,
+    },
+    ReadyObserved {
+        peer_id: PeerId,
+        epoch: Epoch,
+    },
     LocalParticipationCompleted,
     DeadlineExpired,
-    JoinRequested { peer_id: PeerId },
-    JoinApproved { peer_id: PeerId },
-    JoinRejected { peer_id: PeerId },
-    AdditionRequested { peer_id: PeerId },
-    MembershipAcknowledged { peer_id: PeerId },
-    AdditionCommitted { peer_id: PeerId },
-    AdditionAborted { peer_id: PeerId },
-    RemovalRequested { peer_id: PeerId },
-    RemovalCommitted { peer_id: PeerId },
-    RemovalAborted { peer_id: PeerId },
-    RequiredCountChanged { required_count: usize },
+    JoinRequested {
+        peer_id: PeerId,
+    },
+    JoinApproved {
+        peer_id: PeerId,
+    },
+    JoinRejected {
+        peer_id: PeerId,
+    },
+    AdditionRequested {
+        peer_id: PeerId,
+    },
+    MembershipAcknowledged {
+        peer_id: PeerId,
+        epoch: Epoch,
+    },
+    AdditionCommitted {
+        peer_id: PeerId,
+        epoch: Epoch,
+    },
+    AdditionAborted {
+        peer_id: PeerId,
+    },
+    RemovalRequested {
+        peer_id: PeerId,
+    },
+    RemovalCommitted {
+        peer_id: PeerId,
+        epoch: Epoch,
+    },
+    RemovalAborted {
+        peer_id: PeerId,
+    },
+    RequiredCountChanged {
+        required_count: usize,
+        epoch: Epoch,
+    },
+    MembershipReceived {
+        members: Vec<PeerId>,
+        required_count: usize,
+        epoch: Epoch,
+    },
     ProbeDue,
-    PeerHeard { peer_id: PeerId },
-    ProbeMissed { peer_id: PeerId },
-    IndirectProbesMissed { peer_id: PeerId },
+    PeerHeard {
+        peer_id: PeerId,
+    },
+    ProbeMissed {
+        peer_id: PeerId,
+    },
+    IndirectProbesMissed {
+        peer_id: PeerId,
+    },
     Probe,
 }

@@ -50,7 +50,7 @@ fn bootstrapped_node_stays_silent_to_further_signals(#[case] size: usize, #[case
     );
 
     // Act & Assert — a peer's ready draws no reply and the node stays bootstrapped
-    cluster.inject_transport(0, TransportMessage::Ready { from: 1 });
+    cluster.inject_transport(0, TransportMessage::Ready { from: 1, epoch: 0 });
     cluster.step_transport_node(0);
     assert!(
         !cluster.step_transport_node(1),

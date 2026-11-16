@@ -31,6 +31,7 @@ impl ScenarioHarness {
                     peer_set.clone(),
                     QuorumPolicy::new(required_count),
                     1,
+                    0,
                 ),
                 Box::new(NoOpObserver),
             );
@@ -41,7 +42,9 @@ impl ScenarioHarness {
     }
 
     pub fn apply_participation(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
-        match self.factions[faction_index].process(Command::ParticipationObserved { peer_id }) {
+        match self.factions[faction_index]
+            .process(Command::ParticipationObserved { peer_id, epoch: 0 })
+        {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
@@ -49,7 +52,7 @@ impl ScenarioHarness {
     }
 
     pub fn apply_ready(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
-        match self.factions[faction_index].process(Command::ReadyObserved { peer_id }) {
+        match self.factions[faction_index].process(Command::ReadyObserved { peer_id, epoch: 0 }) {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),

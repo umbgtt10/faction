@@ -14,6 +14,18 @@ fn command(name: CommandName, peer_id: Option<&str>) -> Command {
         name,
         peer_id: peer_id.map(String::from),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
+    }
+}
+
+fn membership(members: &[&str], required_count: u64, epoch: u64) -> Command {
+    Command {
+        name: CommandName::MembershipReceived,
+        peer_id: None,
+        required_count: Some(required_count),
+        epoch,
+        members: NodeStates::peers(members),
     }
 }
 
@@ -98,6 +110,8 @@ fn applied_count_set_makes_the_command_s_count_the_count_in_effect() {
         name: CommandName::RequiredCountChanged,
         peer_id: None,
         required_count: Some(5),
+        epoch: 0,
+        members: Vec::new(),
     };
 
     // Act
@@ -109,6 +123,62 @@ fn applied_count_set_makes_the_command_s_count_the_count_in_effect() {
         NodeState {
             required_count: 5,
             ..state()
+        }
+    );
+}
+
+#[test]
+fn applied_membership_adopted_replaces_the_membership_and_keeps_its_members_in_every_list() {
+    // Arrange
+    let tracked = NodeState {
+        suspected: NodeStates::peers(&["2"]),
+        misses: NodeStates::misses(&[("3", 1)]),
+        last_probed: Some(String::from("2")),
+        ..NodeStates::reconfiguring(Reconfiguration::AdditionRequested(String::from("4")))
+    };
+    let adopted = membership(&["3", "1", "4"], 1, 5);
+
+    // Act
+    let changed = Change::MembershipAdopted.applied(&adopted, &tracked);
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            members: NodeStates::peers(&["3", "1", "4"]),
+            required_count: 1,
+            epoch: 5,
+            reconfiguration: Reconfiguration::None,
+            suspected: Vec::new(),
+            misses: NodeStates::misses(&[("3", 1)]),
+            last_probed: None,
+            ..tracked
+        }
+    );
+}
+
+#[test]
+fn applied_membership_removes_node_adopts_it_and_removes_the_node() {
+    // Arrange
+    let concluded = NodeState {
+        last_probed: Some(String::from("2")),
+        ..NodeStates::of(Stage::Bootstrapped, &["2"], &["1", "2"])
+    };
+    let omitting = membership(&["2", "3"], 2, 1);
+
+    // Act
+    let changed = Change::MembershipRemovesNode.applied(&omitting, &concluded);
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            members: NodeStates::peers(&["2", "3"]),
+            collecting_peers: NodeStates::peers(&["2"]),
+            epoch: 1,
+            last_probed: None,
+            completed_before_removal: true,
+            ..concluded
         }
     );
 }
@@ -201,6 +271,36 @@ fn applied_node_collects_with_its_own_readiness_already_accepted_changes_nothing
 
     // Assert
     assert_eq!(changed, ready);
+}
+
+#[test]
+fn applied_node_rejoins_is_a_fresh_node_holding_the_membership() {
+    // Arrange
+    let removed = NodeState {
+        completed_before_removal: true,
+        deadline_missed: true,
+        epoch: 2,
+        ..NodeStates::of(Stage::Removed, &["2"], &["3"])
+    };
+    let naming = membership(&["2", "3", "1"], 3, 4);
+
+    // Act
+    let changed = Change::NodeRejoins.applied(&naming, &removed);
+
+    // Assert
+    assert_eq!(
+        changed,
+        NodeState {
+            members: NodeStates::peers(&["2", "3", "1"]),
+            required_count: 3,
+            epoch: 4,
+            pinging_peers: Vec::new(),
+            collecting_peers: Vec::new(),
+            deadline_missed: false,
+            completed_before_removal: false,
+            ..removed
+        }
+    );
 }
 
 #[test]

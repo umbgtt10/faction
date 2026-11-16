@@ -14,8 +14,8 @@ fn row_ids_names_each_known_row_once_the_probe_s_first() {
 
     // Assert
     let distinct: BTreeSet<&str> = row_ids.iter().copied().collect();
-    assert_eq!(row_ids.len(), 56);
-    assert_eq!(distinct.len(), 56);
+    assert_eq!(row_ids.len(), 70);
+    assert_eq!(distinct.len(), 70);
     assert_eq!(row_ids[0], "probed");
 }
 
@@ -87,6 +87,21 @@ fn rule_of_the_row_completing_an_addition_admits_the_pending_peer() {
 }
 
 #[test]
+fn rule_of_the_row_ignoring_a_commit_held_already_changes_nothing() {
+    // Arrange & Act
+    let rule = RuleBook::rule("commit-held");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::CommitIsHeld,
+            change: Change::Nothing,
+        }
+    );
+}
+
+#[test]
 fn rule_of_the_row_refusing_a_removal_asks_whether_the_quorum_can_spare_the_peer() {
     // Arrange & Act
     let rule = RuleBook::rule("removal-refused");
@@ -112,6 +127,21 @@ fn rule_of_the_row_removing_the_node_itself_asks_whether_the_peer_is_the_node() 
         Rule {
             situation: Situation::PeerIsSelf,
             change: Change::NodeRemoved,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_taking_a_removed_node_back_makes_it_fresh() {
+    // Arrange & Act
+    let rule = RuleBook::rule("membership-rejoined");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::MembershipNamesNode,
+            change: Change::NodeRejoins,
         }
     );
 }

@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 use super::assertions::{Assert, verify};
-use super::builder::{Init, build};
+use super::builder::{EPOCH, Init, NEWCOMER, SUSPECT, build};
 use super::helpers::{
     addition_aborted, addition_committed, addition_requested, bootstrapped_admissible,
     collecting_admissible, indirect_probes_missed, initial_admissible, join_approved,
-    join_rejected, join_requested, membership_acknowledged, participation, peer_heard,
+    join_rejected, join_requested, membership, membership_acknowledged, participation, peer_heard,
     pinging_admissible, probe_missed, ready, reconfiguring_admissible, removal_aborted,
     removal_committed, removal_requested, removed_admissible, required_count_changed,
 };
@@ -21,6 +21,7 @@ use faction::outcome::Outcome;
 use faction::outcome::Outcome::*;
 use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
+use faction::reconfiguration::Reconfiguration;
 use rstest::rstest;
 
 extern crate alloc;
@@ -804,6 +805,132 @@ extern crate alloc;
     &[Assert::MemberCount(4), Assert::SuspectedCount(0), Assert::Quorum(Quorum::Lost)],
     bootstrapped_admissible(),
 )]
+#[case::claim_from_behind_before_completion(
+    "claim-behind-before-completion",
+    Init::InitialAtEpoch,
+    participation(1),
+    &[StaleEpochIgnored { peer_id: 1, epoch: 0 }, SendMembership { peer_id: 1 }],
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::claim_from_behind_after_completion(
+    "claim-behind",
+    Init::CollectingAtEpoch,
+    ready(1),
+    &[StaleEpochIgnored { peer_id: 1, epoch: 0 }, SendMembership { peer_id: 1 }],
+    &[Assert::CollectingCount(1), Assert::NotExited, Assert::LocalComplete],
+    collecting_admissible(),
+)]
+#[case::acknowledgement_from_behind(
+    "acknowledgement-behind",
+    Init::ReconfiguringAtEpoch,
+    membership_acknowledged(NEWCOMER),
+    &[
+        StaleEpochIgnored { peer_id: NEWCOMER, epoch: 0 },
+        SendMembership { peer_id: NEWCOMER },
+    ],
+    &[Assert::Exited, Assert::MemberCount(5)],
+    reconfiguring_admissible(),
+)]
+#[case::commit_held_already(
+    "commit-held",
+    Init::BootstrappedAtEpoch,
+    Command::AdditionCommitted { peer_id: 7, epoch: EPOCH },
+    &[CommitIgnored { epoch: EPOCH }],
+    &[Assert::Exited, Assert::MemberCount(5)],
+    bootstrapped_admissible(),
+)]
+#[case::membership_held_already(
+    "membership-held",
+    Init::Removed,
+    membership(&[0, 1, 2, 3, 4], 5, 0),
+    &[MembershipIgnored { epoch: 0 }],
+    &[Assert::Removed, Assert::MemberCount(4)],
+    removed_admissible(),
+)]
+#[case::membership_takes_a_removed_node_back(
+    "membership-rejoined",
+    Init::Removed,
+    membership(&[0, 1, 2], 3, 1),
+    &[MembershipAdopted { epoch: 1 }],
+    &[Assert::MemberCount(3), Assert::PingingCount(0), Assert::CollectingCount(0), Assert::NotLocalComplete],
+    initial_admissible(),
+)]
+#[case::membership_without_the_node(
+    "membership-removes-node",
+    Init::Bootstrapped,
+    membership(&[1, 2, 3], 2, 1),
+    &[MembershipAdopted { epoch: 1 }, MemberRemoved { peer_id: 0 }],
+    &[Assert::Removed, Assert::MemberCount(3), Assert::Quorum(Quorum::NotTracked)],
+    removed_admissible(),
+)]
+#[case::membership_concludes_collecting(
+    "membership-concludes",
+    Init::CollectingAlmostQuorum,
+    membership(&[0, 1, 2, 3, 4], 4, 1),
+    &[MembershipAdopted { epoch: 1 }, Concluded { mode: Conclusion::Bootstrapped }],
+    &[Assert::Exited, Assert::CollectingCount(4), Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::abandonment_loses_the_quorum(
+    "abandonment-loses-quorum",
+    Init::Reconfiguring,
+    membership(&[0, 1, 2, 3, 4], 6, 1),
+    &[
+        MembershipAdopted { epoch: 1 },
+        ChangeAbandoned { reconfiguration: Reconfiguration::AdditionRequested { peer_id: NEWCOMER } },
+        QuorumLost,
+    ],
+    &[Assert::Exited, Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::abandonment_restores_the_quorum(
+    "abandonment-restores-quorum",
+    Init::Removing,
+    membership(&[0, 1, 2, 3], 4, 1),
+    &[
+        MembershipAdopted { epoch: 1 },
+        ChangeAbandoned { reconfiguration: Reconfiguration::RemovalRequested { peer_id: SUSPECT } },
+        QuorumRestored,
+    ],
+    &[Assert::Exited, Assert::SuspectedCount(0), Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::change_abandoned(
+    "change-abandoned",
+    Init::ReconfiguringAcknowledged,
+    membership(&[0, 1, 2, 3, 4, NEWCOMER], 5, 1),
+    &[
+        MembershipAdopted { epoch: 1 },
+        ChangeAbandoned { reconfiguration: Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER } },
+    ],
+    &[Assert::Exited, Assert::MemberCount(6), Assert::Quorum(Quorum::Held)],
+    bootstrapped_admissible(),
+)]
+#[case::adoption_loses_the_quorum(
+    "adoption-loses-quorum",
+    Init::Bootstrapped,
+    membership(&[0, 1, 2, 3, 4], 6, 1),
+    &[MembershipAdopted { epoch: 1 }, QuorumLost],
+    &[Assert::Exited, Assert::Quorum(Quorum::Lost)],
+    bootstrapped_admissible(),
+)]
+#[case::adoption_restores_the_quorum(
+    "adoption-restores-quorum",
+    Init::Suspecting,
+    membership(&[0, 1, 2, 3], 4, 1),
+    &[MembershipAdopted { epoch: 1 }, QuorumRestored],
+    &[Assert::Exited, Assert::SuspectedCount(0), Assert::MemberCount(4)],
+    bootstrapped_admissible(),
+)]
+#[case::membership_adopted_while_pinging(
+    "membership-adopted",
+    Init::PingingPeer1Confirmed,
+    membership(&[0, 2, 3], 3, 1),
+    &[MembershipAdopted { epoch: 1 }],
+    &[Assert::PingingCount(0), Assert::MemberCount(3), Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
 fn valid_transition(
     #[case] row: &str,
     #[case] init: Init,
@@ -818,7 +945,7 @@ fn valid_transition(
     let before = table.stage_of(&SpecWriter::result(&faction.process(Command::Probe)));
 
     // Act
-    let result = faction.process(command);
+    let result = faction.process(command.clone());
 
     // Assert
     let (results, admissible, returned_view) = match result.clone() {

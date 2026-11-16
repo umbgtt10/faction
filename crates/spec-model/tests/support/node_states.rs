@@ -26,6 +26,7 @@ impl NodeStates {
             suspected: Vec::new(),
             misses: BTreeMap::new(),
             last_probed: None,
+            epoch: 0,
         }
     }
 

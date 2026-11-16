@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::fake_time;
+use crate::support::recipe;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::command::Command;
 use faction::config::Config;
@@ -25,6 +26,7 @@ use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
+use faction_system_tests::membership::Membership;
 use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::probe_stretch::ProbeStretch;
@@ -44,7 +46,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
     let peer_one = mesh.remove(1);
     let peers = vec![0, 1, 2];
     let cuts = LinkCuts::default();
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1, 0);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
@@ -59,7 +61,6 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
     );
     let mut node = FactionNode::new(
         0,
-        peers,
         Role::Running(Box::new(protocol)),
         Box::new(FaultyTransport::new(
             0,
@@ -71,6 +72,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         cuts.clone(),
+        Box::new(recipe(1, &time)),
     );
     node.start();
     while node.peer_state() != PeerState::Bootstrapped {
@@ -93,7 +95,6 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
     );
     let node = FactionNode::new(
         5,
-        Vec::new(),
         Role::Waiting(Newcomer::new(
             5,
             DEFAULT_SUSPICION_THRESHOLD,
@@ -104,6 +105,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         LinkCuts::default(),
+        Box::new(recipe(1, &time)),
     );
     (node, mesh.remove(0))
 }
@@ -111,7 +113,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
 fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
     let (time, clock) = fake_time();
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
@@ -127,12 +129,12 @@ fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
         0,
-        peers,
         Role::Running(Box::new(protocol)),
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         LinkCuts::default(),
+        Box::new(recipe(1, &time)),
     );
     (node, clock)
 }
@@ -142,7 +144,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     let (time, _) = fake_time();
     let commands = Arc::new(Mutex::new(Vec::new()));
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0);
     let protocol = Protocol::new(
         Faction::new(
             config,
@@ -162,12 +164,12 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     );
     let node = FactionNode::new(
         0,
-        peers.clone(),
         Role::Running(Box::new(protocol)),
         Box::new(InMemoryTransport::new_mesh(&peers).remove(0)),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         LinkCuts::default(),
+        Box::new(recipe(1, &time)),
     );
     (node, commands)
 }
@@ -179,7 +181,7 @@ struct Recording {
 
 impl Observer for Recording {
     fn observe(&mut self, command: &Command, _result: &ProcessResult) {
-        self.commands.lock().unwrap().push(*command);
+        self.commands.lock().unwrap().push(command.clone());
     }
 }
 
@@ -241,7 +243,7 @@ fn change_required_count_sets_the_count_in_effect() {
     let (mut node, _) = node();
 
     // Act
-    node.change_required_count(3);
+    node.change_required_count(3, 1);
 
     // Assert
     assert_eq!(node.snapshot().required_count, 3);
@@ -253,7 +255,7 @@ fn commit_addition_admits_the_peer() {
     let (mut node, _) = node();
 
     // Act
-    node.commit_addition(7);
+    node.commit_addition(7, 1);
 
     // Assert
     assert_eq!(node.member_count(), 4);
@@ -263,8 +265,8 @@ fn commit_addition_admits_the_peer() {
 fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Arrange
     let (mut node, mut peer_one, mut outsider, _) = concluded();
-    node.commit_addition(7);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    node.commit_addition(7, 1);
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 1 });
 
     // Act
     for _ in 0..4 {
@@ -274,7 +276,7 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        received.contains(&TransportMessage::Ready { from: 0 }),
+        received.contains(&TransportMessage::Ready { from: 0, epoch: 1 }),
         "{received:?}"
     );
 }
@@ -283,9 +285,9 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
 fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     // Arrange
     let (mut node, mut peer_one, mut outsider, _) = concluded();
-    node.commit_addition(7);
-    node.commit_removal(7);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    node.commit_addition(7, 1);
+    node.commit_removal(7, 2);
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 2 });
 
     // Act
     for _ in 0..4 {
@@ -295,7 +297,7 @@ fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        !received.contains(&TransportMessage::Ready { from: 0 }),
+        !received.contains(&TransportMessage::Ready { from: 0, epoch: 2 }),
         "{received:?}"
     );
 }
@@ -306,7 +308,7 @@ fn commit_removal_takes_the_member_out() {
     let (mut node, _) = node();
 
     // Act
-    node.commit_removal(2);
+    node.commit_removal(2, 1);
 
     // Assert
     assert_eq!(node.member_count(), 2);
@@ -330,7 +332,7 @@ fn cut_keeps_everything_from_crossing_the_link() {
     let (mut node, mut peer_one, _, _) = concluded();
     let _ = from_fn(|| peer_one.recv()).count();
     node.cut(1);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Act
     for _ in 0..4 {
@@ -403,7 +405,7 @@ fn mend_lets_messages_cross_the_link_again() {
     let (mut node, mut peer_one, _, _) = concluded();
     node.cut(1);
     node.mend(1);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Act
     for _ in 0..4 {
@@ -413,7 +415,7 @@ fn mend_lets_messages_cross_the_link_again() {
     // Assert
     assert!(
         from_fn(|| peer_one.recv())
-            .any(|message| matches!(message, TransportMessage::Ready { from: 0 }))
+            .any(|message| matches!(message, TransportMessage::Ready { from: 0, .. }))
     );
 }
 
@@ -432,6 +434,7 @@ fn new_starts_fresh() {
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
+            epoch: 0
         }
     );
 }
@@ -467,6 +470,7 @@ fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
             from: 0,
             members: vec![0, 1, 2],
             required_count: 1,
+            epoch: 0
         })
     );
 }
@@ -528,6 +532,26 @@ fn request_removal_of_a_concluded_node_proposes_it() {
 }
 
 #[test]
+fn restart_creates_a_started_node_again_at_the_membership_and_opens_it() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+
+    // Act
+    node.restart(&Membership {
+        peers: vec![0, 1],
+        required_count: 2,
+        epoch: 3,
+    });
+
+    // Assert
+    let snapshot = node.snapshot();
+    assert_eq!(
+        (snapshot.peer_state, snapshot.member_count, snapshot.epoch),
+        (PeerState::Fresh, 2, 3)
+    );
+}
+
+#[test]
 fn snapshot_after_admitting_reports_the_new_member() {
     // Arrange
     let (mut node, _) = node();
@@ -559,6 +583,7 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
+            epoch: 0
         }
     );
 }
@@ -582,7 +607,7 @@ fn start_schedules_participation_that_a_due_step_applies() {
 fn step_of_a_waiting_newcomer_given_anything_else_keeps_waiting() {
     // Arrange
     let (mut newcomer, mut coordinator) = newcomer();
-    coordinator.send(5, TransportMessage::Ping { from: 0 });
+    coordinator.send(5, TransportMessage::Ping { from: 0, epoch: 0 });
 
     // Act
     let worked = [newcomer.step(), newcomer.step()];
@@ -603,6 +628,7 @@ fn step_of_a_waiting_newcomer_given_its_membership_becomes_a_node_of_it() {
             from: 0,
             members: vec![0, 1],
             required_count: 2,
+            epoch: 0,
         },
     );
 
@@ -615,7 +641,7 @@ fn step_of_a_waiting_newcomer_given_its_membership_becomes_a_node_of_it() {
     assert_eq!(newcomer.snapshot().required_count, 2);
     assert_eq!(
         coordinator.recv(),
-        Some(TransportMessage::MembershipAcknowledged { from: 5 })
+        Some(TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 })
     );
 }
 

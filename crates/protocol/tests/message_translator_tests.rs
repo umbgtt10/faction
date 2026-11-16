@@ -36,10 +36,43 @@ fn default_translates_as_new_does() {
     let translator: MessageTranslator = defaulted();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired), 0);
 
     // Assert
     assert_eq!(command, Command::DeadlineExpired);
+}
+
+#[test]
+fn to_command_of_a_peer_s_signal_carries_its_epoch_and_of_a_timer_s_the_node_s() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let commands = [
+        translator.to_command(
+            InputMessage::Transport(TransportMessage::Ready { from: 2, epoch: 3 }),
+            5,
+        ),
+        translator.to_command(
+            InputMessage::Timer(TimerMessage::ParticipationObserved { peer_id: 2 }),
+            5,
+        ),
+    ];
+
+    // Assert
+    assert_eq!(
+        commands,
+        [
+            Command::ReadyObserved {
+                peer_id: 2,
+                epoch: 3
+            },
+            Command::ParticipationObserved {
+                peer_id: 2,
+                epoch: 5
+            },
+        ]
+    );
 }
 
 #[test]
@@ -48,7 +81,7 @@ fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired));
+    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired), 0);
 
     // Assert
     assert_eq!(command, Command::DeadlineExpired);
@@ -60,9 +93,10 @@ fn to_command_timer_indirect_probes_missed_maps_to_indirect_probes_missed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::IndirectProbesMissed {
-        peer_id: 2,
-    }));
+    let command = translator.to_command(
+        InputMessage::Timer(TimerMessage::IndirectProbesMissed { peer_id: 2 }),
+        0,
+    );
 
     // Assert
     assert_eq!(command, Command::IndirectProbesMissed { peer_id: 2 });
@@ -74,9 +108,10 @@ fn to_command_timer_local_participation_completed_maps_to_local_participation_co
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(
-        TimerMessage::LocalParticipationCompleted,
-    ));
+    let command = translator.to_command(
+        InputMessage::Timer(TimerMessage::LocalParticipationCompleted),
+        0,
+    );
 
     // Assert
     assert_eq!(command, Command::LocalParticipationCompleted);
@@ -88,19 +123,26 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::ParticipationObserved {
-        peer_id: 3,
-    }));
+    let command = translator.to_command(
+        InputMessage::Timer(TimerMessage::ParticipationObserved { peer_id: 3 }),
+        0,
+    );
 
     // Assert
-    assert_eq!(command, Command::ParticipationObserved { peer_id: 3 });
+    assert_eq!(
+        command,
+        Command::ParticipationObserved {
+            peer_id: 3,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
 #[should_panic(expected = "handled in decide()")]
 fn to_command_timer_probe_due_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Timer(TimerMessage::ProbeDue));
+    let _ = translator().to_command(InputMessage::Timer(TimerMessage::ProbeDue), 0);
 }
 
 #[test]
@@ -109,9 +151,10 @@ fn to_command_timer_probe_missed_maps_to_probe_missed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::ProbeMissed {
-        peer_id: 2,
-    }));
+    let command = translator.to_command(
+        InputMessage::Timer(TimerMessage::ProbeMissed { peer_id: 2 }),
+        0,
+    );
 
     // Assert
     assert_eq!(command, Command::ProbeMissed { peer_id: 2 });
@@ -121,9 +164,10 @@ fn to_command_timer_probe_missed_maps_to_probe_missed() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_timer_retry_membership_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Timer(TimerMessage::RetryMembership {
-        peer_id: 5,
-    }));
+    let _ = translator().to_command(
+        InputMessage::Timer(TimerMessage::RetryMembership { peer_id: 5 }),
+        0,
+    );
 }
 
 #[test]
@@ -133,7 +177,7 @@ fn to_command_timer_retry_ping_panics() {
     let translator = translator();
 
     // Act & Assert
-    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryPing));
+    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryPing), 0);
 }
 
 #[test]
@@ -143,7 +187,7 @@ fn to_command_timer_retry_ready_panics() {
     let translator = translator();
 
     // Act & Assert
-    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryReady));
+    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryReady), 0);
 }
 
 #[test]
@@ -152,9 +196,10 @@ fn to_command_transport_bootstrapped_maps_to_probe() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Transport(TransportMessage::Bootstrapped {
-        from: 1,
-    }));
+    let command = translator.to_command(
+        InputMessage::Transport(TransportMessage::Bootstrapped { from: 1 }),
+        0,
+    );
 
     // Assert
     assert_eq!(command, Command::Probe);
@@ -166,9 +211,10 @@ fn to_command_transport_indirect_probe_answer_maps_to_the_target_heard() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Transport(
-        TransportMessage::IndirectProbeAnswer { from: 1, target: 2 },
-    ));
+    let command = translator.to_command(
+        InputMessage::Transport(TransportMessage::IndirectProbeAnswer { from: 1, target: 2 }),
+        0,
+    );
 
     // Assert
     assert_eq!(command, Command::PeerHeard { peer_id: 2 });
@@ -178,10 +224,10 @@ fn to_command_transport_indirect_probe_answer_maps_to_the_target_heard() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_indirect_probe_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Transport(TransportMessage::IndirectProbe {
-        from: 1,
-        target: 2,
-    }));
+    let _ = translator().to_command(
+        InputMessage::Transport(TransportMessage::IndirectProbe { from: 1, target: 2 }),
+        0,
+    );
 }
 
 #[test]
@@ -190,23 +236,34 @@ fn to_command_transport_membership_acknowledged_maps_to_membership_acknowledged(
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Transport(
-        TransportMessage::MembershipAcknowledged { from: 5 },
-    ));
+    let command = translator.to_command(
+        InputMessage::Transport(TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 }),
+        0,
+    );
 
     // Assert
-    assert_eq!(command, Command::MembershipAcknowledged { peer_id: 5 });
+    assert_eq!(
+        command,
+        Command::MembershipAcknowledged {
+            peer_id: 5,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_membership_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Transport(TransportMessage::Membership {
-        from: 0,
-        members: vec![0, 1],
-        required_count: 2,
-    }));
+    let _ = translator().to_command(
+        InputMessage::Transport(TransportMessage::Membership {
+            from: 0,
+            members: vec![0, 1],
+            required_count: 2,
+            epoch: 0,
+        }),
+        0,
+    );
 }
 
 #[test]
@@ -215,11 +272,19 @@ fn to_command_transport_ping_maps_to_participation_observed() {
     let translator = translator();
 
     // Act
-    let command =
-        translator.to_command(InputMessage::Transport(TransportMessage::Ping { from: 42 }));
+    let command = translator.to_command(
+        InputMessage::Transport(TransportMessage::Ping { from: 42, epoch: 0 }),
+        0,
+    );
 
     // Assert
-    assert_eq!(command, Command::ParticipationObserved { peer_id: 42 });
+    assert_eq!(
+        command,
+        Command::ParticipationObserved {
+            peer_id: 42,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
@@ -228,10 +293,13 @@ fn to_command_transport_probe_answer_maps_to_the_member_heard() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Transport(TransportMessage::ProbeAnswer {
-        from: 2,
-        relay_for: None,
-    }));
+    let command = translator.to_command(
+        InputMessage::Transport(TransportMessage::ProbeAnswer {
+            from: 2,
+            relay_for: None,
+        }),
+        0,
+    );
 
     // Assert
     assert_eq!(command, Command::PeerHeard { peer_id: 2 });
@@ -241,10 +309,13 @@ fn to_command_transport_probe_answer_maps_to_the_member_heard() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_probe_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Transport(TransportMessage::Probe {
-        from: 1,
-        relay_for: None,
-    }));
+    let _ = translator().to_command(
+        InputMessage::Transport(TransportMessage::Probe {
+            from: 1,
+            relay_for: None,
+        }),
+        0,
+    );
 }
 
 #[test]
@@ -253,21 +324,32 @@ fn to_command_transport_ready_maps_to_ready_observed() {
     let translator = translator();
 
     // Act
-    let command =
-        translator.to_command(InputMessage::Transport(TransportMessage::Ready { from: 7 }));
+    let command = translator.to_command(
+        InputMessage::Transport(TransportMessage::Ready { from: 7, epoch: 0 }),
+        0,
+    );
 
     // Assert
-    assert_eq!(command, Command::ReadyObserved { peer_id: 7 });
+    assert_eq!(
+        command,
+        Command::ReadyObserved {
+            peer_id: 7,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_relayed_probe_answer_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Transport(TransportMessage::ProbeAnswer {
-        from: 1,
-        relay_for: Some(2),
-    }));
+    let _ = translator().to_command(
+        InputMessage::Transport(TransportMessage::ProbeAnswer {
+            from: 1,
+            relay_for: Some(2),
+        }),
+        0,
+    );
 }
 
 #[test]
@@ -341,7 +423,7 @@ fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
 
     // Assert
     assert_eq!(result.len(), 2);
-    assert!(matches!(result[0], OutputMessage::BroadcastReady));
+    assert!(matches!(result[0], OutputMessage::BroadcastReady { .. }));
     assert!(matches!(
         result[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
@@ -369,7 +451,7 @@ fn to_output_messages_broadcast_local_ready_then_concluded_returns_both_in_order
     assert_eq!(
         result,
         vec![
-            OutputMessage::BroadcastReady,
+            OutputMessage::BroadcastReady { epoch: 0 },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
@@ -404,7 +486,7 @@ fn to_output_messages_concluded_then_broadcast_local_ready_returns_both_in_order
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
-            OutputMessage::BroadcastReady,
+            OutputMessage::BroadcastReady { epoch: 0 },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
         ]
     );
@@ -490,7 +572,7 @@ fn to_output_messages_of_a_completion_that_concludes_announces_readiness_and_sto
     assert_eq!(
         result,
         vec![
-            OutputMessage::BroadcastReady,
+            OutputMessage::BroadcastReady { epoch: 0 },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
@@ -658,6 +740,7 @@ fn to_output_messages_send_membership_sends_the_view_s_membership_and_schedules_
                     from: 0,
                     members: vec![0, 1, 2],
                     required_count: 2,
+                    epoch: 0
                 },
             },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryMembership {
@@ -710,7 +793,7 @@ fn to_output_messages_skips_non_matching_and_finds_broadcast_local_ready() {
 
     // Assert
     assert_eq!(result.len(), 2);
-    assert!(matches!(result[0], OutputMessage::BroadcastReady));
+    assert!(matches!(result[0], OutputMessage::BroadcastReady { .. }));
 }
 
 #[test]

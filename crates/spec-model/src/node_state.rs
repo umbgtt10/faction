@@ -23,4 +23,5 @@ pub struct NodeState {
     pub suspected: Vec<String>,
     pub misses: BTreeMap<String, u64>,
     pub last_probed: Option<String>,
+    pub epoch: u64,
 }

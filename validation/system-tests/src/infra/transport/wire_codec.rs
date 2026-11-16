@@ -1,9 +1,11 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::types::Epoch;
 use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 
+const EPOCH: usize = 8;
 const LENGTH: usize = 4;
 const SENDER: usize = 8;
 const REQUIRED_COUNT: usize = 8;
@@ -11,10 +13,11 @@ const MEMBER_COUNT: usize = 4;
 const PEER: usize = 8;
 
 // The bytes a message travels as over TCP and gRPC: a frame, its length -- of
-// what follows it -- then the sender, a tag and the payload. A membership's
-// payload is the required count, the number of members, then each member; a
-// probe's and its answer's, a flag and, set, the node it is relayed for; an
-// indirect probe's and its answer's, the target.
+// what follows it -- then the sender, a tag and the payload. A ping's, a
+// readiness' and an acknowledgement's payload is the sender's epoch; a
+// membership's, its epoch, the required count, the number of members, then
+// each member; a probe's and its answer's, a flag and, set, the node it is
+// relayed for; an indirect probe's and its answer's, the target.
 pub struct WireCodec;
 
 impl WireCodec {
@@ -26,11 +29,12 @@ impl WireCodec {
         let from = PeerId::from_le_bytes(body.get(..SENDER)?.try_into().ok()?);
         let payload = body.get(SENDER + 1..)?;
         match body.get(SENDER)? {
-            0 => Some(TransportMessage::Ping { from }),
-            1 => Some(TransportMessage::Ready { from }),
+            0 => Self::epoch(payload).map(|epoch| TransportMessage::Ping { from, epoch }),
+            1 => Self::epoch(payload).map(|epoch| TransportMessage::Ready { from, epoch }),
             2 => Some(TransportMessage::Bootstrapped { from }),
             3 => Self::membership(from, payload),
-            4 => Some(TransportMessage::MembershipAcknowledged { from }),
+            4 => Self::epoch(payload)
+                .map(|epoch| TransportMessage::MembershipAcknowledged { from, epoch }),
             5 => {
                 Self::relayed(payload).map(|relay_for| TransportMessage::Probe { from, relay_for })
             }
@@ -46,15 +50,22 @@ impl WireCodec {
     #[must_use]
     pub fn encode(message: &TransportMessage) -> Vec<u8> {
         let (from, tag, payload): (PeerId, u8, Vec<u8>) = match message {
-            TransportMessage::Ping { from } => (*from, 0, Vec::new()),
-            TransportMessage::Ready { from } => (*from, 1, Vec::new()),
+            TransportMessage::Ping { from, epoch } => (*from, 0, epoch.to_le_bytes().to_vec()),
+            TransportMessage::Ready { from, epoch } => (*from, 1, epoch.to_le_bytes().to_vec()),
             TransportMessage::Bootstrapped { from } => (*from, 2, Vec::new()),
             TransportMessage::Membership {
                 from,
                 members,
                 required_count,
-            } => (*from, 3, Self::membership_payload(members, *required_count)),
-            TransportMessage::MembershipAcknowledged { from } => (*from, 4, Vec::new()),
+                epoch,
+            } => (
+                *from,
+                3,
+                Self::membership_payload(members, *required_count, *epoch),
+            ),
+            TransportMessage::MembershipAcknowledged { from, epoch } => {
+                (*from, 4, epoch.to_le_bytes().to_vec())
+            }
             TransportMessage::Probe { from, relay_for } => {
                 (*from, 5, Self::relay_payload(*relay_for))
             }
@@ -78,7 +89,13 @@ impl WireCodec {
         length.to_le_bytes().into_iter().chain(body).collect()
     }
 
-    fn membership(from: PeerId, payload: &[u8]) -> Option<TransportMessage> {
+    fn epoch(payload: &[u8]) -> Option<Epoch> {
+        payload.try_into().ok().map(Epoch::from_le_bytes)
+    }
+
+    fn membership(from: PeerId, framed: &[u8]) -> Option<TransportMessage> {
+        let epoch = Epoch::from_le_bytes(framed.get(..EPOCH)?.try_into().ok()?);
+        let payload = framed.get(EPOCH..)?;
         let required_count = usize::try_from(u64::from_le_bytes(
             payload.get(..REQUIRED_COUNT)?.try_into().ok()?,
         ))
@@ -100,15 +117,17 @@ impl WireCodec {
             from,
             members,
             required_count,
+            epoch,
         })
     }
 
-    fn membership_payload(members: &[PeerId], required_count: usize) -> Vec<u8> {
+    fn membership_payload(members: &[PeerId], required_count: usize, epoch: Epoch) -> Vec<u8> {
         let required_count = u64::try_from(required_count).expect("a count within a u64");
         let member_count = u32::try_from(members.len()).expect("fewer members than 2^32");
-        required_count
+        epoch
             .to_le_bytes()
             .into_iter()
+            .chain(required_count.to_le_bytes())
             .chain(member_count.to_le_bytes())
             .chain(members.iter().flat_map(|member| member.to_le_bytes()))
             .collect()

@@ -58,7 +58,7 @@ taxonomy, each row a claim faction already makes:
 | Asymmetric / one-way | convergence survives half-open links |
 | Selective by type | each retry path is individually sufficient (dropping `Bootstrapped` announces is harmless — they map to `Probe`) |
 
-Out of scope: **corruption / mutation** is a *lying peer* → Byzantine (Phase 5), and
+Out of scope: **corruption / mutation** is a *lying peer* → Byzantine, outside faction (the Notary bookkeeper's), and
 the wire decode already turns garbage into loss; **throttle / bandwidth** — faction
 cares about delivery, not throughput.
 

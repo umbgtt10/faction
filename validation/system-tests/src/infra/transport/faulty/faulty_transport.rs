@@ -132,11 +132,11 @@ impl FaultyTransport {
 
     fn sender(message: &TransportMessage) -> PeerId {
         match message {
-            TransportMessage::Ping { from }
-            | TransportMessage::Ready { from }
+            TransportMessage::Ping { from, .. }
+            | TransportMessage::Ready { from, .. }
             | TransportMessage::Bootstrapped { from }
             | TransportMessage::Membership { from, .. }
-            | TransportMessage::MembershipAcknowledged { from }
+            | TransportMessage::MembershipAcknowledged { from, .. }
             | TransportMessage::Probe { from, .. }
             | TransportMessage::ProbeAnswer { from, .. }
             | TransportMessage::IndirectProbe { from, .. }

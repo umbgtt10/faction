@@ -25,7 +25,11 @@ setter and never by mutating `Config`: the members by an admission, a committed
 addition or a committed removal, the count by `RequiredCountChanged`. The suspicion threshold — how many
 probe periods running a member must miss before it is suspected — is the
 configuration's alone and never changes: each node's own, given by its deployment
-(`P1-ADR-LivenessReportedNotStaged`).
+(`P1-ADR-LivenessReportedNotStaged`). A configuration states the epoch of the
+membership it seeds, 0 for a genesis: a node created from a snapshot of a later
+membership starts at its epoch, its own genesis still (`P1-ADR-TheEpochComesWithTheCommit`).
+The members, the count and the epoch are replaced together by a membership the
+node adopts, a `Command` like any other.
 
 ## Forcing constraints / Evidence
 Determinism (`P0-ADR-DeterministicReplayable`): `output = F(state, input)`. A

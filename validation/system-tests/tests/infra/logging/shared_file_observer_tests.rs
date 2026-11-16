@@ -144,7 +144,7 @@ fn node_observer_on_step_writes_step_event_with_decision_count() {
     let input = InputMessage::Timer(TimerMessage::RetryPing);
     let decisions = vec![
         OutputMessage::Noop,
-        OutputMessage::BroadcastReady,
+        OutputMessage::BroadcastReady { epoch: 0 },
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
     ];
 
@@ -166,7 +166,10 @@ fn observe_accepted_writes_accepted_event() {
     let tmp = TempFile::new();
     let writer = tmp.reader();
     let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
-    let command = Command::ParticipationObserved { peer_id: 3 };
+    let command = Command::ParticipationObserved {
+        peer_id: 3,
+        epoch: 0,
+    };
 
     // Act
     observer.observe(&command, &make_accepted());
@@ -274,7 +277,10 @@ fn write_json_output_is_valid() {
     // Act
     observer.on_start();
     observer.observe(
-        &Command::ParticipationObserved { peer_id: 1 },
+        &Command::ParticipationObserved {
+            peer_id: 1,
+            epoch: 0,
+        },
         &make_accepted(),
     );
     observer.observe(

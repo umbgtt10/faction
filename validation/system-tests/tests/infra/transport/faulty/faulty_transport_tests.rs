@@ -39,7 +39,7 @@ fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) 
 type Forwarded = Arc<Mutex<Vec<(PeerId, TransportMessage)>>>;
 
 fn ping(from: PeerId) -> TransportMessage {
-    TransportMessage::Ping { from }
+    TransportMessage::Ping { from, epoch: 0 }
 }
 
 struct RecordingTransport {
@@ -151,7 +151,7 @@ fn none_policy_forwards_every_message() {
 
     // Act
     transport.send(1, ping(0));
-    transport.send(1, TransportMessage::Ready { from: 0 });
+    transport.send(1, TransportMessage::Ready { from: 0, epoch: 0 });
 
     // Assert
     assert_eq!(forwarded.lock().unwrap().len(), 2);
@@ -226,8 +226,8 @@ fn selective_at_100_percent_drops_only_the_target_kind() {
     let (mut transport, forwarded) = faulty(0, policy);
 
     // Act
-    transport.send(1, TransportMessage::Ping { from: 0 });
-    transport.send(1, TransportMessage::Ready { from: 0 });
+    transport.send(1, TransportMessage::Ping { from: 0, epoch: 0 });
+    transport.send(1, TransportMessage::Ready { from: 0, epoch: 0 });
     transport.send(1, TransportMessage::Bootstrapped { from: 0 });
 
     // Assert

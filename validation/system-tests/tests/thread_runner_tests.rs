@@ -23,6 +23,7 @@ fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
         reconfiguration: Reconfiguration::None,
         suspected: Vec::new(),
         quorum: Quorum::NotTracked,
+        epoch: 0,
     }))
 }
 
@@ -80,13 +81,13 @@ fn run_applies_the_addition_commands_and_acknowledges_each() {
         .send(NodeCommand::RequestAddition(7, ack.clone()))
         .unwrap();
     commands
-        .send(NodeCommand::CommitAddition(7, ack.clone()))
+        .send(NodeCommand::CommitAddition(7, 1, ack.clone()))
         .unwrap();
     commands
         .send(NodeCommand::AbortAddition(7, ack.clone()))
         .unwrap();
     commands
-        .send(NodeCommand::ChangeRequiredCount(3, ack))
+        .send(NodeCommand::ChangeRequiredCount(3, 2, ack))
         .unwrap();
     commands.send(NodeCommand::Shutdown).unwrap();
     let published = snapshot();
@@ -143,7 +144,7 @@ fn run_applies_the_removal_commands_and_acknowledges_each() {
         .send(NodeCommand::RequestRemoval(2, ack.clone()))
         .unwrap();
     commands
-        .send(NodeCommand::CommitRemoval(2, ack.clone()))
+        .send(NodeCommand::CommitRemoval(2, 1, ack.clone()))
         .unwrap();
     commands.send(NodeCommand::AbortRemoval(2, ack)).unwrap();
     commands.send(NodeCommand::Shutdown).unwrap();

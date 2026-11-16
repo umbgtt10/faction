@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 use crate::conclusion::Conclusion;
+use crate::reconfiguration::Reconfiguration;
 use alloc::vec::Vec;
 
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,4 +45,9 @@ pub enum Outcome {
     SelfIgnored { peer_id: PeerId },
     QuorumLost,
     QuorumRestored,
+    StaleEpochIgnored { peer_id: PeerId, epoch: Epoch },
+    CommitIgnored { epoch: Epoch },
+    MembershipIgnored { epoch: Epoch },
+    MembershipAdopted { epoch: Epoch },
+    ChangeAbandoned { reconfiguration: Reconfiguration },
 }

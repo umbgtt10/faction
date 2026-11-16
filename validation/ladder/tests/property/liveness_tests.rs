@@ -45,13 +45,19 @@ fn answered(faction: &mut Faction, command: Command) -> (Vec<Outcome>, ClusterVi
 // Concluded: its own completion and two peers' readiness reach three.
 fn concluded(threshold: usize) -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(3), threshold),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(3), threshold, 0),
         Box::new(NoOpObserver),
     );
     for command in [
         Command::LocalParticipationCompleted,
-        Command::ReadyObserved { peer_id: 1 },
-        Command::ReadyObserved { peer_id: 2 },
+        Command::ReadyObserved {
+            peer_id: 1,
+            epoch: 0,
+        },
+        Command::ReadyObserved {
+            peer_id: 2,
+            epoch: 0,
+        },
     ] {
         let _ = faction.process(command);
     }
@@ -68,7 +74,7 @@ fn liveness_command() -> impl Strategy<Value = Command> {
         2 => peer.clone().prop_map(|peer_id| Command::ProbeMissed { peer_id }),
         3 => peer.clone().prop_map(|peer_id| Command::IndirectProbesMissed { peer_id }),
         1 => peer.prop_map(|peer_id| Command::JoinApproved { peer_id }),
-        1 => (0usize..=6).prop_map(|required_count| Command::RequiredCountChanged { required_count }),
+        1 => (0usize..=6).prop_map(|required_count| Command::RequiredCountChanged { required_count, epoch: 0 }),
     ]
 }
 
@@ -181,7 +187,7 @@ proptest! {
 
         // Act
         for command in commands {
-            let (outcomes, cluster_view) = answered(&mut faction, command);
+            let (outcomes, cluster_view) = answered(&mut faction, command.clone());
 
             // Assert
             if let Command::RemovalRequested { peer_id } = command {
@@ -205,7 +211,7 @@ fn removal_command() -> impl Strategy<Value = Command> {
         8 => liveness_command(),
         3 => peer.clone().prop_map(|peer_id| Command::RemovalRequested { peer_id }),
         2 => peer.clone().prop_map(|peer_id| Command::RemovalAborted { peer_id }),
-        1 => peer.prop_map(|peer_id| Command::RemovalCommitted { peer_id }),
+        1 => peer.prop_map(|peer_id| Command::RemovalCommitted { peer_id, epoch: 0 }),
     ]
 }
 

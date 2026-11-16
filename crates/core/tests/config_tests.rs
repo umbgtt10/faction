@@ -8,12 +8,24 @@ use faction::quorum_policy::QuorumPolicy;
 extern crate alloc;
 
 #[test]
+fn epoch_is_the_one_given() {
+    // Arrange
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 6);
+
+    // Act
+    let epoch = config.epoch();
+
+    // Assert
+    assert_eq!(epoch, 6);
+}
+
+#[test]
 fn new_stores_provided_values() {
     // Arrange
     let peers = vec![0, 1, 2, 3, 4];
 
     // Act
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(3), 1);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(3), 1, 0);
 
     // Assert
     assert_eq!(config.peer_id(), 0);
@@ -26,7 +38,7 @@ fn new_stores_provided_values() {
 #[test]
 fn suspicion_threshold_is_the_one_given() {
     // Arrange
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 3);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 3, 0);
 
     // Act
     let threshold = config.suspicion_threshold();

@@ -24,7 +24,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 fn config(required_count: usize) -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), 1)
+    Config::new(
+        0,
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(required_count),
+        1,
+        0,
+    )
 }
 
 // The log a node writes of the given commands: its configuration, then a step
@@ -34,7 +40,7 @@ fn log_of(config: Config, commands: &[Command]) -> Vec<Value> {
     let configuration = SpecWriter::configuration(&config);
     let mut faction = Faction::new(config, Box::new(SpecLog::new(Rc::clone(&lines))));
     for command in commands {
-        let _ = faction.process(*command);
+        let _ = faction.process(command.clone());
     }
     let steps = lines.borrow().clone();
     [vec![configuration], steps].concat()
@@ -44,10 +50,19 @@ fn pinging_log() -> Vec<Value> {
     log_of(
         config(4),
         &[
-            Command::ParticipationObserved { peer_id: 1 },
-            Command::ParticipationObserved { peer_id: 2 },
+            Command::ParticipationObserved {
+                peer_id: 1,
+                epoch: 0,
+            },
+            Command::ParticipationObserved {
+                peer_id: 2,
+                epoch: 0,
+            },
             Command::LocalParticipationCompleted,
-            Command::ReadyObserved { peer_id: 3 },
+            Command::ReadyObserved {
+                peer_id: 3,
+                epoch: 0,
+            },
         ],
     )
 }

@@ -9,6 +9,7 @@ use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::peer_state::PeerState;
 use faction_system_tests::infra::network::tcp_readiness::TcpReadiness;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
+use faction_system_tests::membership::Membership;
 use faction_system_tests::node::Node;
 use faction_system_tests::probe_stretch::ProbeStretch;
 use faction_system_tests::process_spec::ProcessSpec;
@@ -37,6 +38,14 @@ fn free_addr() -> SocketAddr {
 fn process_node() -> Node {
     let addr = free_addr();
     spec().launch(0, &[0], &[(0, addr)], addr)
+}
+
+fn restarted_at_epoch_three() -> Membership {
+    Membership {
+        peers: vec![0, 5],
+        required_count: 2,
+        epoch: 3,
+    }
 }
 
 fn spec() -> ProcessSpec {
@@ -283,6 +292,51 @@ fn request_join_of_a_thread_node_leaves_the_members() {
 
     // Assert
     assert_eq!(node.member_count(), 1);
+    node.shutdown();
+}
+
+#[test]
+fn restart_of_a_process_node_creates_it_again_at_the_membership() {
+    // Arrange
+    let mut node = process_node();
+    bootstrapped(&node);
+
+    // Act
+    node.restart(restarted_at_epoch_three());
+
+    // Assert
+    let snapshot = node.snapshot();
+    assert_eq!((snapshot.member_count, snapshot.epoch), (2, 3));
+    node.shutdown();
+}
+
+#[test]
+fn restart_of_a_task_node_creates_it_again_at_the_membership() {
+    // Arrange
+    let (node, _) = task_node();
+
+    // Act
+    node.restart(restarted_at_epoch_three());
+
+    // Assert
+    let snapshot = node.snapshot();
+    assert_eq!(
+        (snapshot.peer_state, snapshot.member_count, snapshot.epoch),
+        (PeerState::Fresh, 2, 3)
+    );
+}
+
+#[test]
+fn restart_of_a_thread_node_creates_it_again_at_the_membership() {
+    // Arrange
+    let mut node = thread_node();
+
+    // Act
+    node.restart(restarted_at_epoch_three());
+
+    // Assert
+    let snapshot = node.snapshot();
+    assert_eq!((snapshot.member_count, snapshot.epoch), (2, 3));
     node.shutdown();
 }
 

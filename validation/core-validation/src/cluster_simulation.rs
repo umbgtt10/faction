@@ -45,6 +45,7 @@ impl ClusterSimulation {
                         peer_ids.clone(),
                         QuorumPolicy::new(required_count),
                         1,
+                        0,
                     ),
                     observer,
                 )
@@ -116,7 +117,8 @@ impl ClusterSimulation {
 
     pub fn inject_participation(&mut self, peer_id: PeerId) {
         for index in 0..self.peers.len() {
-            let outputs = self.apply_to(index, Command::ParticipationObserved { peer_id });
+            let outputs =
+                self.apply_to(index, Command::ParticipationObserved { peer_id, epoch: 0 });
             self.enqueue_broadcasts(&outputs, index);
         }
         self.drain_pending();
@@ -124,7 +126,7 @@ impl ClusterSimulation {
 
     pub fn inject_ready(&mut self, peer_id: PeerId) {
         for index in 0..self.peers.len() {
-            let outputs = self.apply_to(index, Command::ReadyObserved { peer_id });
+            let outputs = self.apply_to(index, Command::ReadyObserved { peer_id, epoch: 0 });
             self.enqueue_broadcasts(&outputs, index);
         }
         self.drain_pending();
@@ -171,6 +173,7 @@ impl ClusterSimulation {
                 target,
                 Command::ReadyObserved {
                     peer_id: self.peer_ids[source_index],
+                    epoch: 0,
                 },
             ));
         }

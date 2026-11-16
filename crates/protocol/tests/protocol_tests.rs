@@ -7,6 +7,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
+use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
@@ -17,11 +18,17 @@ use faction_protocol::transport_message::TransportMessage;
 // Node 0 of members 0 and 1, requiring two, concluded.
 fn bootstrapped() -> Protocol {
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
-    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
     protocol
 }
 
@@ -32,6 +39,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
             from: 0,
             members: vec![0, 1],
             required_count: 2,
+            epoch: 0,
         },
     }
 }
@@ -39,7 +47,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
 // Node 0 of members 0 to 3, requiring one, concluded by its own completion,
 // asking one helper.
 fn of_four() -> Protocol {
-    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1);
+    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1, 0);
     let mut protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1, 2, 3],
@@ -53,7 +61,12 @@ fn of_four() -> Protocol {
 }
 
 fn protocol() -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1);
+    protocol_at(0)
+}
+
+// Node 0 of members 0 and 1, requiring two, created at `epoch`.
+fn protocol_at(epoch: u64) -> Protocol {
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, epoch);
     Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1],
@@ -129,7 +142,10 @@ fn change_required_count_sets_the_count_in_effect() {
     let mut protocol = bootstrapped();
 
     // Act
-    let decisions = protocol.change_required_count(3);
+    let decisions = protocol.commit(Commit::RequiredCount {
+        required_count: 3,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
@@ -143,7 +159,10 @@ fn commit_addition_of_the_newcomer_admits_it() {
     protocol.request_addition(5);
 
     // Act
-    let decisions = protocol.commit_addition(5);
+    let decisions = protocol.commit(Commit::Addition {
+        peer_id: 5,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
@@ -160,7 +179,10 @@ fn commit_removal_of_the_node_itself_leaves_it_removed() {
     let mut protocol = of_four();
 
     // Act
-    let _ = protocol.commit_removal(0);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::Removed);
@@ -174,7 +196,10 @@ fn commit_removal_of_the_peer_in_flight_takes_it_out_and_cancels_its_timeouts() 
     protocol.request_removal(2);
 
     // Act
-    let decisions = protocol.commit_removal(2);
+    let decisions = protocol.commit(Commit::Removal {
+        peer_id: 2,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(decisions, timeouts_cancelled(2));
@@ -189,19 +214,31 @@ fn commit_removal_of_the_peer_in_flight_takes_it_out_and_cancels_its_timeouts() 
 fn decide_after_bootstrapped_re_advertises_on_ping_and_ignores_ready() {
     // Arrange — drive the node to Bootstrapped (quorum 2: self plus peer 1)
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
-    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act & Assert — a member's ping re-advertises this node's readiness
-    let on_ping = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    let on_ping = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     assert_eq!(on_ping.len(), 1);
-    assert!(matches!(on_ping[0], OutputMessage::BroadcastReady));
+    assert!(matches!(on_ping[0], OutputMessage::BroadcastReady { .. }));
 
     // Act & Assert — a duplicate ready draws no reply
-    let on_ready = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    let on_ready = protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
     assert_eq!(on_ready.len(), 1);
     assert!(matches!(on_ready[0], OutputMessage::Noop));
 }
@@ -227,7 +264,10 @@ fn decide_convergence_sequence_reaches_bootstrapped() {
     let mut protocol = protocol();
 
     // Act — Ping
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(decisions.len(), 1);
@@ -241,7 +281,7 @@ fn decide_convergence_sequence_reaches_bootstrapped() {
 
     // Assert
     assert_eq!(decisions.len(), 2);
-    assert!(matches!(decisions[0], OutputMessage::BroadcastReady));
+    assert!(matches!(decisions[0], OutputMessage::BroadcastReady { .. }));
     assert!(matches!(
         decisions[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
@@ -249,7 +289,10 @@ fn decide_convergence_sequence_reaches_bootstrapped() {
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::Collecting);
 
     // Act — Ready from peer
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(decisions.len(), 4);
@@ -270,7 +313,10 @@ fn decide_convergence_sequence_reaches_bootstrapped() {
 fn decide_deadline_expired_stays_receptive() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::DeadlineExpired));
@@ -342,7 +388,10 @@ fn decide_indirect_probes_missed_at_the_threshold_suspects_the_member() {
 fn decide_local_completion_produces_broadcast_ready_and_retry() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(
@@ -351,12 +400,39 @@ fn decide_local_completion_produces_broadcast_ready_and_retry() {
 
     // Assert
     assert_eq!(decisions.len(), 2);
-    assert!(matches!(decisions[0], OutputMessage::BroadcastReady));
+    assert!(matches!(decisions[0], OutputMessage::BroadcastReady { .. }));
     assert!(matches!(
         decisions[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
     ));
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::Collecting);
+}
+
+#[test]
+fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_it() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
+        from: 7,
+        members: vec![7],
+        required_count: 1,
+        epoch: 3,
+    }));
+
+    // Assert
+    let view = protocol.cluster_view();
+    assert_eq!(
+        decisions,
+        vec![OutputMessage::Send {
+            to: 7,
+            message: TransportMessage::MembershipAcknowledged { from: 0, epoch: 3 },
+        }]
+    );
+    assert_eq!(view.members().as_slice(), &[7, 0]);
+    assert_eq!(view.required_count(), 1);
+    assert_eq!(view.epoch(), 3);
 }
 
 #[test]
@@ -367,7 +443,7 @@ fn decide_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
 
     // Act
     let decisions = protocol.decide(InputMessage::Transport(
-        TransportMessage::MembershipAcknowledged { from: 5 },
+        TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 },
     ));
 
     // Assert
@@ -390,6 +466,7 @@ fn decide_membership_at_a_running_node_acknowledges_it() {
         from: 7,
         members: vec![7],
         required_count: 1,
+        epoch: 0,
     }));
 
     // Assert
@@ -397,8 +474,37 @@ fn decide_membership_at_a_running_node_acknowledges_it() {
         decisions,
         vec![OutputMessage::Send {
             to: 7,
-            message: TransportMessage::MembershipAcknowledged { from: 0 },
+            message: TransportMessage::MembershipAcknowledged { from: 0, epoch: 0 },
         }]
+    );
+}
+
+#[test]
+fn decide_ping_from_behind_is_answered_with_the_membership_at_the_node_s_epoch() {
+    // Arrange
+    let mut protocol = protocol_at(2);
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![
+            OutputMessage::Send {
+                to: 1,
+                message: TransportMessage::Membership {
+                    from: 0,
+                    members: vec![0, 1],
+                    required_count: 2,
+                    epoch: 2,
+                },
+            },
+            OutputMessage::Schedule(retry_membership(1)),
+        ]
     );
 }
 
@@ -408,7 +514,10 @@ fn decide_ping_from_member_produces_broadcast() {
     let mut protocol = protocol();
 
     // Act
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(decisions.len(), 1);
@@ -422,7 +531,10 @@ fn decide_ping_from_non_member_produces_noop_with_state_transition() {
     let mut protocol = protocol();
 
     // Act
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 99 }));
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 99,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(decisions.len(), 1);
@@ -434,8 +546,14 @@ fn decide_ping_from_non_member_produces_noop_with_state_transition() {
 fn decide_pre_accumulated_ready_quorum_on_completion() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
-    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act — LPC fires with Ready already accumulated
     let decisions = protocol.decide(InputMessage::Timer(
@@ -446,7 +564,7 @@ fn decide_pre_accumulated_ready_quorum_on_completion() {
     assert_eq!(
         decisions,
         vec![
-            OutputMessage::BroadcastReady,
+            OutputMessage::BroadcastReady { epoch: 0 },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
@@ -491,7 +609,10 @@ fn decide_probe_due_before_the_conclusion_produces_noop() {
 fn decide_probe_due_once_removed_produces_noop_and_no_next_period() {
     // Arrange
     let mut protocol = of_four();
-    let _ = protocol.commit_removal(0);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 0,
+    });
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::ProbeDue));
@@ -578,13 +699,19 @@ fn decide_probe_missed_asks_as_many_helpers_as_the_protocol_takes() {
 fn decide_ready_after_local_completion_reaches_quorum() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
 
     // Act
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(decisions.len(), 4);
@@ -605,10 +732,16 @@ fn decide_ready_after_local_completion_reaches_quorum() {
 fn decide_ready_before_local_completion_is_noop() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
-    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(decisions.len(), 1);
@@ -619,7 +752,10 @@ fn decide_ready_before_local_completion_is_noop() {
 fn decide_rejected_command_returns_noop() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
@@ -661,7 +797,7 @@ fn decide_retry_membership_once_acknowledged_produces_noop() {
     let mut protocol = bootstrapped();
     protocol.request_addition(5);
     protocol.decide(InputMessage::Transport(
-        TransportMessage::MembershipAcknowledged { from: 5 },
+        TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 },
     ));
 
     // Act
@@ -695,17 +831,36 @@ fn decide_retry_membership_while_requested_resends_and_reschedules() {
 }
 
 #[test]
+fn decide_retry_ping_once_removed_produces_noop() {
+    // Arrange
+    let mut protocol = protocol();
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 1,
+    });
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+}
+
+#[test]
 fn decide_retry_ping_while_active_produces_broadcast_and_retry() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
 
     // Assert
     assert_eq!(decisions.len(), 2);
-    assert!(matches!(decisions[0], OutputMessage::BroadcastPing));
+    assert!(matches!(decisions[0], OutputMessage::BroadcastPing { .. }));
     assert!(matches!(
         decisions[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
@@ -716,11 +871,17 @@ fn decide_retry_ping_while_active_produces_broadcast_and_retry() {
 fn decide_retry_ping_while_exited_produces_noop() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
-    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
@@ -734,7 +895,10 @@ fn decide_retry_ping_while_exited_produces_noop() {
 fn decide_retry_ready_while_active_produces_broadcast_and_retry() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
@@ -744,7 +908,7 @@ fn decide_retry_ready_while_active_produces_broadcast_and_retry() {
 
     // Assert
     assert_eq!(decisions.len(), 2);
-    assert!(matches!(decisions[0], OutputMessage::BroadcastReady));
+    assert!(matches!(decisions[0], OutputMessage::BroadcastReady { .. }));
     assert!(matches!(
         decisions[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
@@ -755,11 +919,17 @@ fn decide_retry_ready_while_active_produces_broadcast_and_retry() {
 fn decide_retry_ready_while_exited_produces_noop() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
     protocol.decide(InputMessage::Timer(
         TimerMessage::LocalParticipationCompleted,
     ));
-    protocol.decide(InputMessage::Transport(TransportMessage::Ready { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ready {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryReady));
@@ -767,6 +937,20 @@ fn decide_retry_ready_while_exited_produces_noop() {
     // Assert
     assert_eq!(decisions.len(), 1);
     assert!(matches!(decisions[0], OutputMessage::Noop));
+}
+
+#[test]
+fn decide_timer_participation_at_a_later_epoch_counts_it() {
+    // Arrange
+    let mut protocol = protocol_at(2);
+
+    // Act
+    let _ = protocol.decide(InputMessage::Timer(TimerMessage::ParticipationObserved {
+        peer_id: 1,
+    }));
+
+    // Assert
+    assert_eq!(protocol.cluster_view().pinging_peers(), &[1]);
 }
 
 #[test]
@@ -815,7 +999,10 @@ fn expire_deadline_while_fresh_is_rejected_as_noop() {
 fn expire_deadline_while_pinging_reports_timed_out() {
     // Arrange
     let mut protocol = protocol();
-    protocol.decide(InputMessage::Transport(TransportMessage::Ping { from: 1 }));
+    protocol.decide(InputMessage::Transport(TransportMessage::Ping {
+        from: 1,
+        epoch: 0,
+    }));
 
     // Act
     let decisions = protocol.expire_deadline();
@@ -823,6 +1010,18 @@ fn expire_deadline_while_pinging_reports_timed_out() {
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::TimedOut);
+}
+
+#[test]
+fn initialize_at_an_epoch_broadcasts_its_ping_at_it() {
+    // Arrange
+    let mut protocol = protocol_at(4);
+
+    // Act
+    let decisions = protocol.initialize();
+
+    // Assert
+    assert!(decisions.contains(&OutputMessage::BroadcastPing { epoch: 4 }));
 }
 
 #[test]
@@ -842,7 +1041,7 @@ fn initialize_with_two_peers_produces_decisions() {
         decisions[1],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted))
     ));
-    assert!(matches!(decisions[2], OutputMessage::BroadcastPing));
+    assert!(matches!(decisions[2], OutputMessage::BroadcastPing { .. }));
     assert!(matches!(
         decisions[3],
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
@@ -850,11 +1049,41 @@ fn initialize_with_two_peers_produces_decisions() {
 }
 
 #[test]
+fn invites_of_a_membership_holds_once_the_node_is_removed_alone() {
+    // Arrange
+    let mut protocol = protocol();
+    let membership = TransportMessage::Membership {
+        from: 1,
+        members: vec![1],
+        required_count: 1,
+        epoch: 2,
+    };
+    let running = protocol.invites(&membership);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 1,
+    });
+
+    // Act
+    let invited = [
+        protocol.invites(&membership),
+        protocol.invites(&TransportMessage::Ping { from: 1, epoch: 2 }),
+    ];
+
+    // Assert
+    assert!(!running);
+    assert_eq!(invited, [true, false]);
+}
+
+#[test]
 fn request_addition_after_a_removal_sends_the_membership_without_the_removed_member() {
     // Arrange
     let mut protocol = of_four();
     protocol.request_removal(2);
-    let _ = protocol.commit_removal(2);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 2,
+        epoch: 0,
+    });
 
     // Act
     let decisions = protocol.request_addition(5);
@@ -868,6 +1097,7 @@ fn request_addition_after_a_removal_sends_the_membership_without_the_removed_mem
                 from: 0,
                 members: vec![0, 1, 3],
                 required_count: 1,
+                epoch: 0
             },
         }
     );

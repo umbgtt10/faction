@@ -31,7 +31,7 @@ fn concluded() -> Bootstrapped {
 }
 
 fn config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1)
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0)
 }
 
 extern crate alloc;
@@ -48,14 +48,26 @@ fn needing_all_three() -> Bootstrapped {
 
 fn reach_bootstrapped() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
         Box::new(NoOpObserver),
     );
-    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
     let _ = faction.process(Command::LocalParticipationCompleted);
-    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 3 });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 3,
+        epoch: 0,
+    });
     faction
 }
 
@@ -66,7 +78,14 @@ fn answer_of_a_committed_addition_admits_the_peer() {
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::AdditionCommitted { peer_id: 9 }, &config())
+        .answer(
+            Command::AdditionCommitted {
+                peer_id: 9,
+                epoch: 0,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node applies a commit");
 
     // Assert
@@ -82,7 +101,14 @@ fn answer_of_a_committed_removal_takes_the_member_out_of_the_members_and_the_pee
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::RemovalCommitted { peer_id: 1 }, &config())
+        .answer(
+            Command::RemovalCommitted {
+                peer_id: 1,
+                epoch: 0,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node applies a commit");
 
     // Assert
@@ -101,7 +127,14 @@ fn answer_of_a_committed_removal_the_count_needs_loses_the_quorum() {
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::RemovalCommitted { peer_id: 1 }, &config())
+        .answer(
+            Command::RemovalCommitted {
+                peer_id: 1,
+                epoch: 0,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node applies a commit");
 
     // Assert
@@ -121,8 +154,12 @@ fn answer_of_a_count_past_the_members_loses_the_quorum() {
     // Act
     let (outcomes, answered) = bootstrapped
         .answer(
-            Command::RequiredCountChanged { required_count: 4 },
+            Command::RequiredCountChanged {
+                required_count: 4,
+                epoch: 0,
+            },
             &config(),
+            0,
         )
         .expect("a concluded node takes a new count");
 
@@ -145,7 +182,14 @@ fn answer_of_a_member_s_participation_acknowledges_its_rejoin() {
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::ParticipationObserved { peer_id: 2 }, &config())
+        .answer(
+            Command::ParticipationObserved {
+                peer_id: 2,
+                epoch: 0,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node answers a member still bootstrapping");
 
     // Assert
@@ -158,13 +202,43 @@ fn answer_of_a_member_s_participation_acknowledges_its_rejoin() {
 }
 
 #[test]
+fn answer_of_a_member_s_participation_from_behind_refuses_it() {
+    // Arrange
+    let concluded = concluded();
+
+    // Act
+    let (outcomes, _) = concluded
+        .answer(
+            Command::ParticipationObserved {
+                peer_id: 2,
+                epoch: 1,
+            },
+            &config(),
+            2,
+        )
+        .expect("a participation is admitted");
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::StaleEpochIgnored {
+                peer_id: 2,
+                epoch: 1
+            },
+            Outcome::SendMembership { peer_id: 2 },
+        ]
+    );
+}
+
+#[test]
 fn answer_of_a_probe_period_names_the_member_to_probe() {
     // Arrange
     let bootstrapped = concluded();
 
     // Act
     let (outcomes, answered) = bootstrapped
-        .answer(Command::ProbeDue, &config())
+        .answer(Command::ProbeDue, &config(), 0)
         .expect("a concluded node tracks its members' liveness");
 
     // Assert
@@ -180,7 +254,7 @@ fn answer_of_a_removal_request_is_none() {
     let bootstrapped = concluded();
 
     // Act
-    let answered = bootstrapped.answer(Command::RemovalRequested { peer_id: 1 }, &config());
+    let answered = bootstrapped.answer(Command::RemovalRequested { peer_id: 1 }, &config(), 0);
 
     // Assert
     assert!(answered.is_none());
@@ -192,10 +266,31 @@ fn answer_of_an_addition_request_is_none() {
     let bootstrapped = concluded();
 
     // Act
-    let answered = bootstrapped.answer(Command::AdditionRequested { peer_id: 9 }, &config());
+    let answered = bootstrapped.answer(Command::AdditionRequested { peer_id: 9 }, &config(), 0);
 
     // Assert
     assert!(answered.is_none());
+}
+
+#[test]
+fn changed_of_a_count_raised_past_the_members_loses_the_quorum() {
+    // Arrange
+    let concluded = concluded();
+
+    // Act
+    let (outcomes, changed) = concluded.changed(
+        vec![Outcome::MembershipAdopted { epoch: 1 }],
+        &Members::new(vec![0, 1, 2]),
+        QuorumPolicy::new(4),
+    );
+
+    // Assert
+    let view = changed.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(
+        outcomes,
+        vec![Outcome::MembershipAdopted { epoch: 1 }, Outcome::QuorumLost]
+    );
+    assert_eq!(view.quorum(), Quorum::Lost);
 }
 
 #[test]
@@ -228,13 +323,58 @@ fn cluster_view_overrides_all_fields() {
 }
 
 #[test]
+fn departure_of_another_peer_s_removal_is_none() {
+    // Arrange
+    let concluded = concluded();
+
+    // Act
+    let departure = concluded.departure(
+        &Command::RemovalCommitted {
+            peer_id: 2,
+            epoch: 0,
+        },
+        0,
+    );
+
+    // Assert
+    assert!(departure.is_none());
+}
+
+#[test]
+fn departure_of_the_node_s_own_removal_leaves_it_removed_holding_its_other_members() {
+    // Arrange
+    let concluded = concluded();
+
+    // Act
+    let (outcomes, stage) = concluded
+        .departure(
+            &Command::RemovalCommitted {
+                peer_id: 0,
+                epoch: 0,
+            },
+            0,
+        )
+        .expect("the node's own removal");
+
+    // Assert
+    let view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 0 }]);
+    assert_eq!(view.peer_state(), PeerState::Removed);
+    assert_eq!(view.members(), &Members::new(vec![1, 2]));
+    assert_eq!(view.required_count(), 2);
+}
+
+#[test]
 fn process_addition_committed_admits_the_peer() {
     // Arrange
     let mut faction = reach_bootstrapped();
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::AdditionCommitted {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
@@ -288,12 +428,18 @@ fn process_all_inputs_leave_state_unchanged() {
     };
 
     // Act
-    let r1 = match faction.process(Command::ParticipationObserved { peer_id: 0 }) {
+    let r1 = match faction.process(Command::ParticipationObserved {
+        peer_id: 0,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
     };
-    let r2 = match faction.process(Command::ReadyObserved { peer_id: 4 }) {
+    let r2 = match faction.process(Command::ReadyObserved {
+        peer_id: 4,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => vec![],
@@ -362,7 +508,10 @@ fn process_required_count_changed_sets_the_count_in_effect() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 2 }));
+        Answers::accepted(faction.process(Command::RequiredCountChanged {
+            required_count: 2,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -382,7 +531,14 @@ fn step_removal_committed_of_another_member_takes_it_out_still_bootstrapped() {
 
     // Act
     let (outcomes, stage) = bootstrapped
-        .step(Command::RemovalCommitted { peer_id: 1 }, &config())
+        .step(
+            Command::RemovalCommitted {
+                peer_id: 1,
+                epoch: 0,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node applies a commit");
 
     // Assert
@@ -399,7 +555,7 @@ fn step_removal_requested_of_a_member_the_quorum_can_spare_proposes_it_still_boo
 
     // Act
     let (outcomes, stage) = bootstrapped
-        .step(Command::RemovalRequested { peer_id: 1 }, &config())
+        .step(Command::RemovalRequested { peer_id: 1 }, &config(), 0)
         .expect("a concluded node is asked for a removal");
 
     // Assert
@@ -419,7 +575,7 @@ fn step_removal_requested_of_a_non_member_is_ignored() {
 
     // Act
     let (outcomes, stage) = bootstrapped
-        .step(Command::RemovalRequested { peer_id: 9 }, &config())
+        .step(Command::RemovalRequested { peer_id: 9 }, &config(), 0)
         .expect("a concluded node is asked for a removal");
 
     // Assert
@@ -431,12 +587,12 @@ fn step_removal_requested_of_a_non_member_is_ignored() {
 fn step_removal_requested_of_a_suspect_is_proposed_with_the_quorum_lost() {
     // Arrange
     let (_, suspecting) = needing_all_three()
-        .answer(Command::IndirectProbesMissed { peer_id: 2 }, &config())
+        .answer(Command::IndirectProbesMissed { peer_id: 2 }, &config(), 0)
         .expect("a concluded node tracks its members' liveness");
 
     // Act
     let (outcomes, stage) = suspecting
-        .step(Command::RemovalRequested { peer_id: 2 }, &config())
+        .step(Command::RemovalRequested { peer_id: 2 }, &config(), 0)
         .expect("a concluded node is asked for a removal");
 
     // Assert
@@ -453,7 +609,7 @@ fn step_removal_requested_the_quorum_cannot_spare_is_refused() {
     let refusals: Vec<Vec<Outcome>> = [1, 0]
         .map(|peer_id| {
             bootstrapped
-                .step(Command::RemovalRequested { peer_id }, &config())
+                .step(Command::RemovalRequested { peer_id }, &config(), 0)
                 .expect("a concluded node is asked for a removal")
                 .0
         })

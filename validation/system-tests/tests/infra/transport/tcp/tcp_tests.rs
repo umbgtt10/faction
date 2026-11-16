@@ -20,11 +20,11 @@ fn free_addr() -> SocketAddr {
 }
 
 fn msg_ping(from: PeerId) -> TransportMessage {
-    TransportMessage::Ping { from }
+    TransportMessage::Ping { from, epoch: 0 }
 }
 
 fn msg_ready(from: PeerId) -> TransportMessage {
-    TransportMessage::Ready { from }
+    TransportMessage::Ready { from, epoch: 0 }
 }
 
 fn received(transport: &mut impl Transport) -> Option<TransportMessage> {
@@ -161,18 +161,18 @@ fn send_all_message_types() {
     let mut transports = TcpTransport::new_mesh(&[0, 1], Arc::new(ThreadPause));
 
     // Act
-    transports[0].send(1, TransportMessage::Ping { from: 0 });
-    transports[0].send(1, TransportMessage::Ready { from: 0 });
+    transports[0].send(1, TransportMessage::Ping { from: 0, epoch: 0 });
+    transports[0].send(1, TransportMessage::Ready { from: 0, epoch: 0 });
     transports[0].send(1, TransportMessage::Bootstrapped { from: 0 });
 
     // Assert
     assert_eq!(
         received(&mut transports[1]),
-        Some(TransportMessage::Ping { from: 0 })
+        Some(TransportMessage::Ping { from: 0, epoch: 0 })
     );
     assert_eq!(
         received(&mut transports[1]),
-        Some(TransportMessage::Ready { from: 0 })
+        Some(TransportMessage::Ready { from: 0, epoch: 0 })
     );
     assert_eq!(
         received(&mut transports[1]),

@@ -10,8 +10,10 @@ use std::mem::replace;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
+use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::output_message::OutputMessage;
@@ -22,14 +24,18 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
+use crate::membership::Membership;
 use crate::node_observer::NodeObserver;
 use crate::node_snapshot::NodeSnapshot;
 use crate::role::Role;
+use crate::traits::roles::Roles;
 
 // A node's loop: its timer and its transport polled in turn, every decision
 // carried out. A newcomer waits for its membership and becomes a running node
 // of it; a node broadcasts to the members its view shows, read again when an
-// admission or a commit changes them.
+// admission, a commit or a membership changes them. A removed node a
+// membership invites back becomes a newcomer again, and a restarted node is
+// created again at a membership; its roles made anew by `roles`.
 pub struct FactionNode {
     peer_id: PeerId,
     peers: Vec<PeerId>,
@@ -38,6 +44,8 @@ pub struct FactionNode {
     timer: Box<dyn Timer>,
     observer: Box<dyn NodeObserver>,
     cuts: LinkCuts,
+    roles: Box<dyn Roles>,
+    started: bool,
     toggle_timer_and_transport: bool,
 }
 
@@ -45,23 +53,27 @@ impl FactionNode {
     #[must_use]
     pub fn new(
         peer_id: PeerId,
-        peers: Vec<PeerId>,
         role: Role,
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
         observer: Box<dyn NodeObserver>,
         cuts: LinkCuts,
+        roles: Box<dyn Roles>,
     ) -> Self {
-        Self {
+        let mut node = Self {
             peer_id,
-            peers,
+            peers: Vec::new(),
             role,
             transport,
             timer,
             observer,
             cuts,
+            roles,
+            started: false,
             toggle_timer_and_transport: true,
-        }
+        };
+        node.read_members();
+        node
     }
 
     pub fn abort_addition(&mut self, peer_id: PeerId) {
@@ -77,17 +89,22 @@ impl FactionNode {
         self.read_members();
     }
 
-    pub fn change_required_count(&mut self, required_count: usize) {
-        self.command(|protocol| protocol.change_required_count(required_count));
+    pub fn change_required_count(&mut self, required_count: usize, epoch: Epoch) {
+        self.command(|protocol| {
+            protocol.commit(Commit::RequiredCount {
+                required_count,
+                epoch,
+            })
+        });
     }
 
-    pub fn commit_addition(&mut self, peer_id: PeerId) {
-        self.command(|protocol| protocol.commit_addition(peer_id));
+    pub fn commit_addition(&mut self, peer_id: PeerId, epoch: Epoch) {
+        self.command(|protocol| protocol.commit(Commit::Addition { peer_id, epoch }));
         self.read_members();
     }
 
-    pub fn commit_removal(&mut self, peer_id: PeerId) {
-        self.command(|protocol| protocol.commit_removal(peer_id));
+    pub fn commit_removal(&mut self, peer_id: PeerId, epoch: Epoch) {
+        self.command(|protocol| protocol.commit(Commit::Removal { peer_id, epoch }));
         self.read_members();
     }
 
@@ -130,6 +147,22 @@ impl FactionNode {
         self.command(|protocol| protocol.request_removal(peer_id));
     }
 
+    // The node created again at `membership`, its state gone but its link: a
+    // started node opens again at once, one not yet started when it starts.
+    pub fn restart(&mut self, membership: &Membership) {
+        self.role = self.roles.running(self.peer_id, membership);
+        self.read_members();
+        if self.started {
+            let decisions = match &mut self.role {
+                Role::Running(protocol) => Self::opening(protocol.initialize()),
+                Role::Waiting(_) => Vec::new(),
+            };
+            for decision in decisions {
+                self.dispatch(decision);
+            }
+        }
+    }
+
     #[must_use]
     pub fn snapshot(&mut self) -> NodeSnapshot {
         match &mut self.role {
@@ -142,6 +175,7 @@ impl FactionNode {
                     reconfiguration: view.reconfiguration(),
                     suspected: view.suspected().to_vec(),
                     quorum: view.quorum(),
+                    epoch: view.epoch(),
                 }
             }
             Role::Waiting(_) => NodeSnapshot {
@@ -151,13 +185,15 @@ impl FactionNode {
                 reconfiguration: Reconfiguration::None,
                 suspected: Vec::new(),
                 quorum: Quorum::NotTracked,
+                epoch: 0,
             },
         }
     }
 
     pub fn start(&mut self) {
+        self.started = true;
         self.observer.on_start();
-        let decisions = match &self.role {
+        let decisions = match &mut self.role {
             Role::Running(protocol) => Self::opening(protocol.initialize()),
             Role::Waiting(_) => Vec::new(),
         };
@@ -207,29 +243,56 @@ impl FactionNode {
         }
     }
 
+    // A message decided: a removed node a membership invites back made a
+    // newcomer that joins from it, and the members read again after any
+    // membership a running node takes.
     fn decide(&mut self, message: InputMessage) -> Vec<OutputMessage> {
-        match (&mut self.role, message) {
+        if let (Role::Running(protocol), InputMessage::Transport(transport)) =
+            (&mut self.role, &message)
+            && protocol.invites(transport)
+        {
+            self.role = self.roles.waiting(self.peer_id);
+        }
+        let membership = matches!(
+            message,
+            InputMessage::Transport(TransportMessage::Membership { .. })
+        );
+        let decisions = match (&mut self.role, message) {
             (Role::Running(protocol), message) => protocol.decide(message),
             (Role::Waiting(_), InputMessage::Transport(message)) => self.join(message),
             (Role::Waiting(_), InputMessage::Timer(_)) => Vec::new(),
+        };
+        if membership {
+            self.read_members();
         }
+        decisions
     }
 
     fn dispatch(&mut self, decision: OutputMessage) {
         match decision {
-            OutputMessage::BroadcastPing => {
+            OutputMessage::BroadcastPing { epoch } => {
                 for to in &self.peers {
                     if *to != self.peer_id {
-                        self.transport
-                            .send(*to, TransportMessage::Ping { from: self.peer_id });
+                        self.transport.send(
+                            *to,
+                            TransportMessage::Ping {
+                                from: self.peer_id,
+                                epoch,
+                            },
+                        );
                     }
                 }
             }
-            OutputMessage::BroadcastReady => {
+            OutputMessage::BroadcastReady { epoch } => {
                 for to in &self.peers {
                     if *to != self.peer_id {
-                        self.transport
-                            .send(*to, TransportMessage::Ready { from: self.peer_id });
+                        self.transport.send(
+                            *to,
+                            TransportMessage::Ready {
+                                from: self.peer_id,
+                                epoch,
+                            },
+                        );
                     }
                 }
             }

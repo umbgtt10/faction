@@ -25,10 +25,13 @@ extern crate alloc;
 
 fn faction_in_pinging() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(THRESHOLD), 1),
+        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(THRESHOLD), 1, 0),
         Box::new(NoOpObserver),
     );
-    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
     faction
 }
 
@@ -116,7 +119,10 @@ fn process_accepts_participation_observed() {
     let mut faction = faction_in_pinging();
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 2,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -135,7 +141,10 @@ fn process_accepts_ready_observed() {
     let mut faction = faction_in_pinging();
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
+    let outcomes = match faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -149,11 +158,17 @@ fn process_accepts_ready_observed() {
 fn process_addition_committed_admits_a_peer_whose_participation_then_counts() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let _ = faction.process(Command::AdditionCommitted { peer_id: 9 });
+    let _ = faction.process(Command::AdditionCommitted {
+        peer_id: 9,
+        epoch: 0,
+    });
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::ParticipationObserved { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::ParticipationObserved {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -219,13 +234,25 @@ fn process_local_completion_no_quorum() {
 fn process_local_completion_triggers_quorum() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(4), 1),
+        Config::new(0, PEER_SET.to_vec(), QuorumPolicy::new(4), 1, 0),
         Box::new(NoOpObserver),
     );
-    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 3 });
+    let _ = faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 3,
+        epoch: 0,
+    });
 
     // Act
     let outcomes = match faction.process(Command::LocalParticipationCompleted) {
@@ -257,11 +284,17 @@ fn process_local_completion_triggers_quorum() {
 fn process_participation_observed_duplicate() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let _ = faction.process(Command::ParticipationObserved { peer_id: 2 });
+    let _ = faction.process(Command::ParticipationObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
     let before = get_pinging_peers_length(&mut faction);
 
     // Act & Assert
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 2,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -280,7 +313,10 @@ fn process_participation_observed_first_timely() {
     let before = get_pinging_peers_length(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 3 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 3,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -301,7 +337,10 @@ fn process_participation_observed_non_member() {
     let before = get_pinging_peers_length(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 99,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -335,11 +374,17 @@ fn process_probe_in_pinging() {
 fn process_ready_observed_duplicate() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
     let before = get_collecting_peers_length(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 2 }) {
+    let outcomes = match faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -360,7 +405,10 @@ fn process_ready_observed_first_timely() {
     let before = get_collecting_peers_length(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 3 }) {
+    let outcomes = match faction.process(Command::ReadyObserved {
+        peer_id: 3,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -378,7 +426,10 @@ fn process_ready_observed_non_member() {
     let before = get_collecting_peers_length(&mut faction);
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 99 }) {
+    let outcomes = match faction.process(Command::ReadyObserved {
+        peer_id: 99,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -393,11 +444,17 @@ fn process_ready_observed_non_member() {
 fn process_removal_committed_takes_the_peer_out_of_the_members_and_the_peers_gathered() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 1 }));
+        Answers::accepted(faction.process(Command::RemovalCommitted {
+            peer_id: 1,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 1 }]);
@@ -411,7 +468,10 @@ fn process_removal_committed_takes_the_peer_out_of_the_members_and_the_peers_gat
 fn process_required_count_changed_is_the_count_the_node_s_completion_checks() {
     // Arrange
     let mut faction = faction_in_pinging();
-    let _ = faction.process(Command::RequiredCountChanged { required_count: 1 });
+    let _ = faction.process(Command::RequiredCountChanged {
+        required_count: 1,
+        epoch: 0,
+    });
 
     // Act
     let (outcomes, cluster_view, _) =
@@ -429,4 +489,52 @@ fn process_required_count_changed_is_the_count_the_node_s_completion_checks() {
         ]
     );
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+}
+
+#[test]
+fn step_of_a_membership_naming_the_node_keeps_the_peers_gathered_that_are_members() {
+    // Arrange
+    let mut faction = faction_in_pinging();
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
+
+    // Act
+    let (outcomes, view, _) = Answers::accepted(faction.process(Command::MembershipReceived {
+        members: vec![0, 1, 3],
+        required_count: 2,
+        epoch: 1,
+    }));
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MembershipAdopted { epoch: 1 }]);
+    assert_eq!(view.peer_state(), PeerState::Pinging);
+    assert_eq!(view.collecting_peers(), &[] as &[u64]);
+    assert_eq!(view.members(), &Members::new(vec![0, 1, 3]));
+    assert_eq!(view.epoch(), 1);
+}
+
+#[test]
+fn step_of_a_membership_not_naming_the_node_removes_it() {
+    // Arrange
+    let mut faction = faction_in_pinging();
+
+    // Act
+    let (outcomes, view, _) = Answers::accepted(faction.process(Command::MembershipReceived {
+        members: vec![1, 2],
+        required_count: 2,
+        epoch: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::MembershipAdopted { epoch: 1 },
+            Outcome::MemberRemoved { peer_id: 0 },
+        ]
+    );
+    assert_eq!(view.peer_state(), PeerState::Removed);
+    assert_eq!(view.members(), &Members::new(vec![1, 2]));
 }

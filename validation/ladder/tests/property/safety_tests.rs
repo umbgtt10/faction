@@ -30,8 +30,9 @@ fn faction() -> Faction {
 }
 
 fn input_strategy() -> impl Strategy<Value = Command> {
-    let participation = (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id });
-    let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id });
+    let participation =
+        (0u64..=6).prop_map(|peer_id| Command::ParticipationObserved { peer_id, epoch: 0 });
+    let ready = (0u64..=6).prop_map(|peer_id| Command::ReadyObserved { peer_id, epoch: 0 });
 
     prop_oneof![
         participation,
@@ -143,5 +144,5 @@ proptest! {
 }
 
 fn test_config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1)
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0)
 }

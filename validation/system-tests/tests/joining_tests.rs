@@ -4,8 +4,8 @@
 use crate::support::log_dir;
 use crate::support::real_time;
 use faction::peer_state::PeerState;
-use faction_system_tests::approver::Approver;
 use faction_system_tests::cluster_builder::ClusterBuilder;
+use faction_system_tests::join::approver::Approver;
 use faction_system_tests::spawn::Spawn;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;

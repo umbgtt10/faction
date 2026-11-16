@@ -63,12 +63,12 @@ impl Liveness {
     #[must_use]
     pub fn step(
         &self,
-        command: Command,
+        command: &Command,
         members: &Members,
         quorum_policy: QuorumPolicy,
         config: &Config,
     ) -> Option<(Vec<Outcome>, Self)> {
-        match command {
+        match *command {
             Command::ProbeDue => {
                 let (outcomes, probing) = self.probing.probe(members, config.peer_id());
                 Some((
@@ -117,7 +117,7 @@ impl Liveness {
     // and a non-member are ignored, and a suspect is not suspected twice.
     fn observed(
         &self,
-        command: Command,
+        command: &Command,
         peer_id: PeerId,
         members: &Members,
         quorum_policy: QuorumPolicy,

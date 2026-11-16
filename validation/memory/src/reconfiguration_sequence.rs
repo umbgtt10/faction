@@ -29,7 +29,13 @@ impl<'a> ReconfigurationSequence<'a> {
     pub fn run(&self, changes: u64) -> MemoryProfile {
         self.counter.start();
         let mut faction = Faction::new(
-            Config::new(NODE, (NODE..=self.peers).collect(), QuorumPolicy::new(1), 1),
+            Config::new(
+                NODE,
+                (NODE..=self.peers).collect(),
+                QuorumPolicy::new(1),
+                1,
+                0,
+            ),
             Box::new(NoOpObserver),
         );
         let skeleton = self.counter.live();
@@ -39,10 +45,10 @@ impl<'a> ReconfigurationSequence<'a> {
             let peer_id = peers + change;
             [
                 Command::AdditionRequested { peer_id },
-                Command::MembershipAcknowledged { peer_id },
-                Command::AdditionCommitted { peer_id },
+                Command::MembershipAcknowledged { peer_id, epoch: 0 },
+                Command::AdditionCommitted { peer_id, epoch: 0 },
                 Command::RemovalRequested { peer_id },
-                Command::RemovalCommitted { peer_id },
+                Command::RemovalCommitted { peer_id, epoch: 0 },
             ]
         }) {
             let _ = faction.process(command);

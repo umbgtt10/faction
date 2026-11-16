@@ -1,8 +1,10 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod adoption;
 pub mod bootstrapped;
 pub mod collecting;
+pub mod epoch_rule;
 pub mod liveness;
 pub mod local_completion_step;
 pub mod membership_decision;

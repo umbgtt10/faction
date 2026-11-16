@@ -19,6 +19,24 @@ fn policy() -> QuorumPolicy {
 }
 
 #[test]
+fn new_adopted_returns_membership_adopted_and_the_membership_whole() {
+    // Arrange & Act
+    let membership = MembershipStep::new(
+        members(),
+        policy(),
+        MembershipDecision::Adopted(Members::new(vec![7, 0]), QuorumPolicy::new(1), 4),
+    );
+
+    // Assert
+    assert_eq!(
+        membership.outcomes(),
+        &[Outcome::MembershipAdopted { epoch: 4 }]
+    );
+    assert_eq!(membership.members(), &Members::new(vec![7, 0]));
+    assert_eq!(membership.quorum_policy(), QuorumPolicy::new(1));
+}
+
+#[test]
 fn new_committed_member_returns_duplicate_ignored() {
     // Arrange & Act
     let membership = MembershipStep::new(members(), policy(), MembershipDecision::Committed(2));

@@ -25,12 +25,14 @@ use crate::faction_node::FactionNode;
 use crate::infra::logging::shared_file_observer::SharedFileObserver;
 use crate::infra::logging::shared_writer::SharedWriter;
 use crate::infra::timer::real::real_timer::RealTimer;
+use crate::membership::Membership;
 use crate::no_op_node_observer::NoOpNodeObserver;
 use crate::node::Node;
 use crate::node_observer::NodeObserver;
 use crate::role::Role;
 use crate::spawn::Spawn;
 use crate::time_ports::TimePorts;
+use crate::traits::roles::Roles;
 
 #[derive(Clone)]
 pub struct NodeRecipe {
@@ -72,50 +74,17 @@ impl NodeRecipe {
         peers: Vec<PeerId>,
         transport: Box<dyn Transport>,
     ) -> FactionNode {
-        let (faction_observer, node_observer) = self.observers(peer_id);
-        let cuts = LinkCuts::default();
-        let config = Config::new(
-            peer_id,
-            peers.clone(),
-            QuorumPolicy::new(self.required),
-            self.suspicion_threshold,
-        );
-        let protocol = Protocol::new(
-            Faction::new(config, faction_observer),
-            peers.clone(),
-            peer_id,
-            HELPERS,
-        );
-        FactionNode::new(
-            peer_id,
-            peers,
-            Role::Running(Box::new(protocol)),
-            self.faulty(peer_id, transport, &cuts),
-            self.timer(),
-            node_observer,
-            cuts,
-        )
+        let genesis = Membership {
+            peers: peers.clone(),
+            required_count: self.required,
+            epoch: 0,
+        };
+        self.node_of(peer_id, self.running(peer_id, &genesis), transport)
     }
 
-    // A newcomer that waits for its membership, connected to the transport.
     #[must_use]
     pub fn build_newcomer(&self, peer_id: PeerId, transport: Box<dyn Transport>) -> FactionNode {
-        let (faction_observer, node_observer) = self.observers(peer_id);
-        let cuts = LinkCuts::default();
-        FactionNode::new(
-            peer_id,
-            Vec::new(),
-            Role::Waiting(Newcomer::new(
-                peer_id,
-                self.suspicion_threshold,
-                HELPERS,
-                faction_observer,
-            )),
-            self.faulty(peer_id, transport, &cuts),
-            self.timer(),
-            node_observer,
-            cuts,
-        )
+        self.node_of(peer_id, self.waiting(peer_id), transport)
     }
 
     #[must_use]
@@ -175,6 +144,21 @@ impl NodeRecipe {
         ))
     }
 
+    // A node of `role`, its roles made anew by this recipe.
+    fn node_of(&self, peer_id: PeerId, role: Role, transport: Box<dyn Transport>) -> FactionNode {
+        let (_, node_observer) = self.observers(peer_id);
+        let cuts = LinkCuts::default();
+        FactionNode::new(
+            peer_id,
+            role,
+            self.faulty(peer_id, transport, &cuts),
+            self.timer(),
+            node_observer,
+            cuts,
+            Box::new(self.clone()),
+        )
+    }
+
     fn observers(&self, peer_id: PeerId) -> (Box<dyn Observer>, Box<dyn NodeObserver>) {
         let writer = self.writer(peer_id);
         let faction_observer: Box<dyn Observer> = match &writer {
@@ -209,5 +193,36 @@ impl NodeRecipe {
         self.log_dir
             .as_ref()
             .map(|dir| SharedWriter::open(&dir.join(format!("node-{peer_id}.jsonl"))))
+    }
+}
+
+// A recipe's roles: a node created at a membership, or a newcomer, each with
+// a faction observer of its own on the node's log.
+impl Roles for NodeRecipe {
+    fn running(&self, peer_id: PeerId, membership: &Membership) -> Role {
+        let (faction_observer, _) = self.observers(peer_id);
+        let config = Config::new(
+            peer_id,
+            membership.peers.clone(),
+            QuorumPolicy::new(membership.required_count),
+            self.suspicion_threshold,
+            membership.epoch,
+        );
+        Role::Running(Box::new(Protocol::new(
+            Faction::new(config, faction_observer),
+            membership.peers.clone(),
+            peer_id,
+            HELPERS,
+        )))
+    }
+
+    fn waiting(&self, peer_id: PeerId) -> Role {
+        let (faction_observer, _) = self.observers(peer_id);
+        Role::Waiting(Newcomer::new(
+            peer_id,
+            self.suspicion_threshold,
+            HELPERS,
+            faction_observer,
+        ))
     }
 }

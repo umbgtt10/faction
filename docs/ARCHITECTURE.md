@@ -117,8 +117,9 @@ let config = Config::new(peer_id, peers, QuorumPolicy::new(required), suspicion_
 let machine = Faction::new(config, observer);
 ```
 
-`Config` holds the static peer list, the quorum threshold and the suspicion threshold —
-how many probe periods running a member must miss before it is suspected. `QuorumPolicy`
+`Config` holds the static peer list, the quorum threshold, the suspicion threshold —
+how many probe periods running a member must miss before it is suspected — and the
+epoch of the membership its peers and count are, 0 for a genesis. `QuorumPolicy`
 wraps an integer — the machine only checks "does the confirmed count meet or exceed this?"
 `Faction::new` takes both plus an `Observer` trait object. Construction produces a
 machine in the `Initial` state, its view `Fresh`: the configuration's peers as its
@@ -133,7 +134,7 @@ members, its required count, and nothing confirmed.
 | `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
 | `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Members, the peer sets at the conclusion, and its members' liveness |
 | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — its peer state `Bootstrapped` | The concluded node and the change in flight |
-| `Removed` | Removed from its own cluster — admits a probe alone | Its own id: its view is what it held when removed, but itself and its liveness |
+| `Removed` | Removed from its own cluster — admits a membership and a probe alone | Its own id and the membership it holds: its view is what it held, but itself and its liveness |
 
 Every stage carries the node's members — the configuration's peers, then each peer
 admitted or added, less each removed — and the required count in effect, starting at
@@ -157,8 +158,9 @@ is not penalized; its signal waits and is counted in `Collecting`.
 The terminal state is not a silent sink. A `Bootstrapped` node stops driving its own
 progress, but it still accepts `ParticipationObserved` and re-advertises its readiness
 (`AcknowledgeRejoin`) — so a peer that missed the original broadcast and is still
-pinging can always recover. A removed node answers a probe alone: no member waits on
-it, since every member applies the same commit.
+pinging can always recover. A removed node answers a membership and a probe alone: no
+member waits on it, since every member applies the same commit, and a membership that
+names it takes it back to `Initial`.
 
 Liveness is not a state either (`P1-ADR-LivenessReportedNotStaged`). A concluded node
 probes its members and suspects those it cannot reach, but a suspicion changes what its
@@ -168,21 +170,22 @@ view shows, never what it admits.
 
 | Command | Meaning |
 |---|---|
-| `ParticipationObserved { peer_id }` | A peer sent a participation signal |
-| `ReadyObserved { peer_id }` | A peer sent a readiness signal |
+| `ParticipationObserved { peer_id, epoch }` | A peer sent a participation signal, at the epoch it holds |
+| `ReadyObserved { peer_id, epoch }` | A peer sent a readiness signal, at the epoch it holds |
 | `LocalParticipationCompleted` | The local node finished its own participation |
 | `DeadlineExpired` | External deadline timer fired |
 | `JoinRequested { peer_id }` | A newcomer asked to join |
 | `JoinApproved { peer_id }` | The caller admitted the newcomer |
 | `JoinRejected { peer_id }` | The caller refused the newcomer |
 | `AdditionRequested { peer_id }` | The caller asks a concluded node to coordinate an addition |
-| `MembershipAcknowledged { peer_id }` | The newcomer holds the membership it was sent |
-| `AdditionCommitted { peer_id }` | The layer above committed the addition — reported to every node |
+| `MembershipAcknowledged { peer_id, epoch }` | The newcomer holds the membership it was sent, at this epoch |
+| `AdditionCommitted { peer_id, epoch }` | The layer above committed the addition at its epoch — reported to every node |
 | `AdditionAborted { peer_id }` | The layer above abandoned the addition |
 | `RemovalRequested { peer_id }` | The caller asks a concluded node to coordinate a member's removal |
-| `RemovalCommitted { peer_id }` | The layer above committed the removal — reported to every node |
+| `RemovalCommitted { peer_id, epoch }` | The layer above committed the removal at its epoch — reported to every node |
 | `RemovalAborted { peer_id }` | The layer above abandoned the removal |
-| `RequiredCountChanged { required_count }` | The required count in effect — reported with the change it belongs to |
+| `RequiredCountChanged { required_count, epoch }` | The required count in effect, at its epoch — reported with the change it belongs to |
+| `MembershipReceived { members, required_count, epoch }` | A membership handed to the node — a member's answer to a claim from behind, or a snapshot |
 | `ProbeDue` | A probe period began |
 | `PeerHeard { peer_id }` | A sign of life from the member — an answer to a probe, direct or relayed |
 | `ProbeMissed { peer_id }` | The member missed its probe |
@@ -207,7 +210,7 @@ view shows, never what it admits.
 | `DuplicateMemberIgnored { peer_id }` | The peer approved was already a member |
 | `JoinDenied { peer_id }` | The newcomer was refused; nothing changed |
 | `Concluded { mode }` | The node concluded bootstrapping (`mode` is `Bootstrapped`) |
-| `SendMembership { peer_id }` | Send the newcomer the members and the required count |
+| `SendMembership { peer_id }` | Send the peer — a newcomer, or a member behind — the members, the required count and the epoch |
 | `ProposeAddition { peer_id }` | Propose the addition to the layer that commits |
 | `AdditionWithdrawn { peer_id }` | The addition in flight was aborted |
 | `AcknowledgementIgnored { peer_id }` | An acknowledgement not awaited, or a repeat |
@@ -227,6 +230,11 @@ view shows, never what it admits.
 | `AlreadySuspected { peer_id }` | A suspect missed again; nothing changed |
 | `SelfIgnored { peer_id }` | A command of liveness naming the node itself |
 | `QuorumLost` / `QuorumRestored` | The command took the members not suspected across the required count |
+| `StaleEpochIgnored { peer_id, epoch }` | A member's claim from behind its epoch, refused; `SendMembership` follows |
+| `CommitIgnored { epoch }` | A commit the node holds already |
+| `MembershipIgnored { epoch }` | A membership at or below the node's epoch |
+| `MembershipAdopted { epoch }` | A membership above the node's epoch, taken |
+| `ChangeAbandoned { reconfiguration }` | The change in flight given up for a membership past it |
 
 The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
 The view says so from then on: its peer state is `Bootstrapped`.
@@ -241,7 +249,13 @@ Command
 the stage's step ── answers nothing? ─► ProcessResult::Probed for a Probe,
   │                                     ProcessResult::Rejected otherwise (no mutation)
   ▼
+Gate 0: held already? ─► CommitIgnored / MembershipIgnored (a commit or a membership)
+  │
+  ▼
 Gate 1: non-member? ──► NonMemberIgnored
+  │
+  ▼
+Gate 1b: from behind? ─► StaleEpochIgnored, SendMembership (a member's claim)
   │
   ▼
 Gate 2: duplicate? ───► Duplicate*Ignored
@@ -350,6 +364,43 @@ Who is removed, and when, is the caller's: `faction` never removes a member for 
 silence. The required count is the caller's too, reported with the commit — lowered
 first, if the removal needs it.
 
+### Epochs
+
+Every membership a node holds carries an epoch (`P1-ADR-TheEpochComesWithTheCommit`):
+the number the layer above gave the change that made it, which a commit brings and the
+node takes, never counting. `EpochRule` holds what the epoch decides, apart from any
+stage:
+
+1. A commit at an epoch of one or more, at or below the node's, is held already:
+   `CommitIgnored`, before any other answer, the node's own removal's included. A
+   membership at or below it: `MembershipIgnored`. `Stage::step` applies it once the
+   stage has admitted the command.
+2. A member's participation or readiness, or the awaited acknowledgement, from below
+   the node's epoch is refused — `StaleEpochIgnored`, then `SendMembership` — after a
+   non-member's signal is ignored, so a newcomer pinging before its admission is never
+   removed by it. Liveness carries no epoch.
+3. An accepted commit or membership above the node's epoch moves it; nothing else does.
+   The epoch is the view's, which `Faction` moves before the stage shows itself.
+
+A membership above the node's epoch is adopted in every stage. Naming the node, it is a
+membership decision like a commit — `MembershipDecision::Adopted`, applied by each
+stage's `MembershipStep` — so the stage is kept, its lists filtered, a collecting node
+concluding on the new count, a concluded node's quorum checked; a `Reconfiguring` node
+gives up its change (`ChangeAbandoned`) and is `Bootstrapped`. Not naming it, it removes
+the node, as its own removal's commit would: `Removed::departure` answers both, first in
+every live stage. A removed node a membership names comes back to `Initial`
+(`Adoption::taken_back`); one not naming it is adopted, and the node stays `Removed`.
+
+Epoch 0 is a caller's that numbers nothing: a commit at 0 is never held and moves
+nothing, so the node answers as before epochs. The specification omits it wherever it
+would stand, and its 93 vectors of 0.4.0 pass unchanged.
+
+The reference protocol carries the epoch on `Ping`, `Ready`, `Membership` and
+`MembershipAcknowledged`, and a broadcast at the node's. A running node takes a
+`Membership` a peer sends as a newcomer does — its members and the node itself — and
+acknowledges it at its new epoch; a removed node invited back by one is made a newcomer
+again, by whoever runs it (`Protocol::invites`), and joins from it.
+
 ### Step structs
 
 Decision logic is split into focused step structs. Each handles one kind of
@@ -361,13 +412,14 @@ observation.
 | `ReadyBeforeCompletionStep` | `ReadyObserved` before the node's own completion | Never |
 | `ReadyStep` | `ReadyObserved` while `Collecting` | Yes, with threshold |
 | `LocalCompletionStep` | `LocalParticipationCompleted` | Yes, always |
-| `MembershipStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionCommitted`, `RemovalCommitted` of another peer, `RequiredCountChanged`, in every stage that admits them | `Collecting` checks the new count |
+| `MembershipStep` | `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionCommitted`, `RemovalCommitted` of another peer, `RequiredCountChanged`, and `MembershipReceived` naming the node, in every stage that admits them | `Collecting` checks the new count |
 
 What a concluded node answers whatever its change in flight — a peer still
 bootstrapping, a membership decision — is `Bootstrapped::answer`; `Reconfiguring`
 reuses it, refusing an admission and a second request of either kind, and carries the
-change's acknowledgement, abort and commit itself. A node's own removal, answered alike
-in every stage that admits it, each of them takes through `Removed::own_removal`.
+change's acknowledgement, abort and commit itself, and a membership past its change. What
+removes a node — its own removal committed, or a membership not naming it — every live
+stage asks first, through `Removed::departure`.
 
 Readiness before the node's own completion is accepted by `ReadyBeforeCompletionStep`,
 with no quorum check.
@@ -392,6 +444,7 @@ returns:
 - The suspected members, in the order suspected, and each member's missed periods
 - The member probed last
 - The quorum — not tracked before the conclusion nor once removed, held or lost between
+- The epoch of the membership the node holds
 
 The queryability model means external monitors can poll any node's view without
 perturbing the machine. Composition of multiple nodes' cluster views gives an
@@ -529,7 +582,8 @@ from cartel's list less four of faction's own.
 | elected, prepared, decided, value | what a quorum means to one protocol | concluded |
 
 Kept, though cartel leaves them out: `view`, the cluster view; `commit` and
-`committed`, the layer above that commits a change; and `epoch`, Phase 5's.
+`committed`, the layer above that commits a change; and `epoch`, the version of a
+membership.
 
 ---
 

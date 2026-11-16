@@ -3,15 +3,18 @@
 
 use alloc::vec::Vec;
 
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransportMessage {
     Ping {
         from: PeerId,
+        epoch: Epoch,
     },
     Ready {
         from: PeerId,
+        epoch: Epoch,
     },
     Bootstrapped {
         from: PeerId,
@@ -20,9 +23,11 @@ pub enum TransportMessage {
         from: PeerId,
         members: Vec<PeerId>,
         required_count: usize,
+        epoch: Epoch,
     },
     MembershipAcknowledged {
         from: PeerId,
+        epoch: Epoch,
     },
     Probe {
         from: PeerId,

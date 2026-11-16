@@ -21,6 +21,7 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
         reconfiguration: Reconfiguration::AdditionAcknowledged { peer_id: 9 },
         suspected: vec![9],
         quorum: Quorum::Lost,
+        epoch: 0,
     }));
     let (acks, ack_receiver) = channel();
     StateReader::new(snapshot.clone(), acks)
@@ -32,13 +33,13 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
 }
 
 #[rstest]
-#[case("state Fresh 2 3 none - off", PeerState::Fresh)]
-#[case("state Pinging 2 3 none - off", PeerState::Pinging)]
-#[case("state Collecting 2 3 none - off", PeerState::Collecting)]
-#[case("state Bootstrapped 2 3 none - off", PeerState::Bootstrapped)]
-#[case("state TimedOut 2 3 none - off", PeerState::TimedOut)]
-#[case("state Removed 2 3 none - off", PeerState::Removed)]
-#[case("state Weird 2 3 none - off", PeerState::Fresh)]
+#[case("state Fresh 2 3 none - off 5", PeerState::Fresh)]
+#[case("state Pinging 2 3 none - off 5", PeerState::Pinging)]
+#[case("state Collecting 2 3 none - off 5", PeerState::Collecting)]
+#[case("state Bootstrapped 2 3 none - off 5", PeerState::Bootstrapped)]
+#[case("state TimedOut 2 3 none - off 5", PeerState::TimedOut)]
+#[case("state Removed 2 3 none - off 5", PeerState::Removed)]
+#[case("state Weird 2 3 none - off 5", PeerState::Fresh)]
 fn spawn_reads_a_state_line_into_the_snapshot(
     #[case] line: &'static str,
     #[case] peer_state: PeerState,
@@ -56,15 +57,16 @@ fn spawn_reads_a_state_line_into_the_snapshot(
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
+            epoch: 5,
         }
     );
 }
 
 #[rstest]
-#[case("state Bootstrapped 3 2 none - held", Reconfiguration::None)]
-#[case("state Bootstrapped 3 2 requested:7 - held", Reconfiguration::AdditionRequested { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 acknowledged:7 - held", Reconfiguration::AdditionAcknowledged { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 removing:7 - held", Reconfiguration::RemovalRequested { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 none - held 0", Reconfiguration::None)]
+#[case("state Bootstrapped 3 2 requested:7 - held 0", Reconfiguration::AdditionRequested { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 acknowledged:7 - held 0", Reconfiguration::AdditionAcknowledged { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 removing:7 - held 0", Reconfiguration::RemovalRequested { peer_id: 7 })]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
     #[case] reconfiguration: Reconfiguration,
@@ -77,9 +79,9 @@ fn spawn_reads_the_addition_of_a_state_line(
 }
 
 #[rstest]
-#[case("state Bootstrapped 5 3 none - held", Vec::new(), Quorum::Held)]
-#[case("state Bootstrapped 5 3 none 4,2 lost", vec![4, 2], Quorum::Lost)]
-#[case("state Pinging 5 3 none - off", Vec::new(), Quorum::NotTracked)]
+#[case("state Bootstrapped 5 3 none - held 0", Vec::new(), Quorum::Held)]
+#[case("state Bootstrapped 5 3 none 4,2 lost 0", vec![4, 2], Quorum::Lost)]
+#[case("state Pinging 5 3 none - off 0", Vec::new(), Quorum::NotTracked)]
 fn spawn_reads_the_suspected_members_and_the_quorum_of_a_state_line(
     #[case] line: &'static str,
     #[case] suspected: Vec<u64>,

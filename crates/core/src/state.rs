@@ -8,9 +8,15 @@ use crate::command::Command;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::stage::Stage;
+use crate::types::Epoch;
 
 pub trait State: Send {
-    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)>;
+    fn step(
+        &self,
+        command: Command,
+        config: &Config,
+        epoch: Epoch,
+    ) -> Option<(Vec<Outcome>, Stage)>;
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView;
 }

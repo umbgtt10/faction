@@ -20,6 +20,39 @@ fn model() -> Model {
 }
 
 #[test]
+fn process_of_a_commit_a_removed_node_rejects_leaves_its_epoch() {
+    // Arrange
+    let mut model = model();
+    let _ = model.process(&json!({"RemovalCommitted": {"peer_id": "1", "epoch": "1"}}));
+
+    // Act
+    let answer = model.process(&json!({"AdditionCommitted": {"peer_id": "4", "epoch": "3"}}));
+
+    // Assert
+    assert_eq!(answer.row, "not-admitted");
+    assert_eq!(
+        answer.result["Rejected"]["cluster_view"]["epoch"],
+        json!("1")
+    );
+}
+
+#[test]
+fn process_of_a_commit_at_a_later_epoch_moves_the_node_s_epoch() {
+    // Arrange
+    let mut model = model();
+
+    // Act
+    let answer = model.process(&json!({"RemovalCommitted": {"peer_id": "9", "epoch": "2"}}));
+
+    // Assert
+    assert_eq!(answer.row, "commit-non-member");
+    assert_eq!(
+        answer.result["Accepted"]["cluster_view"]["epoch"],
+        json!("2")
+    );
+}
+
+#[test]
 fn process_of_a_deadline_on_a_fresh_node_is_rejected_by_not_admitted() {
     // Arrange
     let mut model = model();
@@ -72,9 +105,27 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "AdditionCommitted",
                 "RemovalCommitted",
                 "RequiredCountChanged",
+                "MembershipReceived",
                 "Probe",
             ],
         }})
+    );
+}
+
+#[test]
+fn process_of_a_signal_at_a_later_epoch_leaves_the_node_s_epoch() {
+    // Arrange
+    let mut model = model();
+
+    // Act
+    let answer = model.process(&json!({"ParticipationObserved": {"peer_id": "2", "epoch": "2"}}));
+
+    // Assert
+    assert_eq!(answer.row, "participation-accepted");
+    assert!(
+        answer.result["Accepted"]["cluster_view"]
+            .get("epoch")
+            .is_none()
     );
 }
 
@@ -114,6 +165,7 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
             "RemovalCommitted",
             "RemovalAborted",
             "RequiredCountChanged",
+            "MembershipReceived",
             "ProbeDue",
             "PeerHeard",
             "ProbeMissed",
@@ -157,6 +209,7 @@ fn process_of_the_readiness_the_count_lacks_concludes() {
             "RemovalRequested",
             "RemovalCommitted",
             "RequiredCountChanged",
+            "MembershipReceived",
             "ProbeDue",
             "PeerHeard",
             "ProbeMissed",

@@ -12,44 +12,81 @@ use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
+use crate::quorum_policy::QuorumPolicy;
 use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
+use crate::states::adoption::Adoption;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
-// A node removed from its own cluster: it admits a probe alone, and shows what
-// it held when it was removed, but itself and its liveness.
-#[derive(Debug, Clone, Copy)]
+// A node removed from its own cluster: it admits a membership and a probe
+// alone, and shows the membership it holds but itself, the peers it gathered
+// among its members, and no liveness. A membership that names it takes it back
+// to `Initial`.
+#[derive(Debug, Clone)]
 pub struct Removed {
     peer_id: PeerId,
+    members: Members,
+    quorum_policy: QuorumPolicy,
 }
 
 impl Removed {
     #[must_use]
-    pub fn new(peer_id: PeerId) -> Self {
-        Self { peer_id }
+    pub fn new(peer_id: PeerId, members: Members, quorum_policy: QuorumPolicy) -> Self {
+        Self {
+            peer_id,
+            members,
+            quorum_policy,
+        }
     }
 
-    // What a node answers its own removal, committed, in every stage that
-    // admits it: the node removed, and `Removed`.
+    // What removes the node `peer_id`, in every stage that admits it, holding
+    // `members` and their count: its own removal committed, or a membership
+    // that does not name it (§12, §16).
     #[must_use]
-    pub fn own_removal(peer_id: PeerId) -> (Vec<Outcome>, Stage) {
+    pub fn departure(
+        command: &Command,
+        peer_id: PeerId,
+        members: &Members,
+        quorum_policy: QuorumPolicy,
+    ) -> Option<(Vec<Outcome>, Stage)> {
+        match *command {
+            Command::RemovalCommitted {
+                peer_id: removed, ..
+            } if removed == peer_id => Some(Self::own_removal(peer_id, members, quorum_policy)),
+            _ => Adoption::of(command).and_then(|adoption| adoption.removal(peer_id)),
+        }
+    }
+
+    // What a node answers its own removal, committed: the node removed, and
+    // `Removed`, holding the members and the count it held.
+    #[must_use]
+    pub fn own_removal(
+        peer_id: PeerId,
+        members: &Members,
+        quorum_policy: QuorumPolicy,
+    ) -> (Vec<Outcome>, Stage) {
         (
             vec![Outcome::MemberRemoved { peer_id }],
-            Stage::Removed(Self::new(peer_id)),
+            Stage::Removed(Self::new(peer_id, members.clone(), quorum_policy)),
         )
     }
 }
 
 impl State for Removed {
-    fn step(&self, _command: Command, _config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        None
+    fn step(
+        &self,
+        command: Command,
+        _config: &Config,
+        _epoch: Epoch,
+    ) -> Option<(Vec<Outcome>, Stage)> {
+        Adoption::of(&command).map(|adoption| adoption.taken_back(self.peer_id))
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
         let members = Members::new(
-            previous
-                .members()
+            self.members
                 .as_slice()
                 .iter()
                 .copied()
@@ -60,6 +97,7 @@ impl State for Removed {
             .with_peer_state(PeerState::Removed)
             .with_pinging_peers(members.retained(previous.pinging_peers()))
             .with_collecting_peers(members.retained(previous.collecting_peers()))
+            .with_required_count(self.quorum_policy.threshold())
             .with_members(members)
             .with_reconfiguration(Reconfiguration::None)
             .with_suspected(Vec::new())

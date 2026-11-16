@@ -5,6 +5,7 @@
 // test says so, and the answers a test names are lost on their way.
 
 use faction::quorum::Quorum;
+use faction_protocol::commit::Commit;
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol_validation::cluster::Cluster;
@@ -86,10 +87,22 @@ fn probed(cluster: Cluster, peer: u64) -> Cluster {
 fn a_lowered_count_restores_the_quorum() {
     // Arrange
     let mut cluster = concluded(3, 2, 1);
-    cluster.change_required_count(0, 4);
+    cluster.commit(
+        0,
+        Commit::RequiredCount {
+            required_count: 4,
+            epoch: 1,
+        },
+    );
 
     // Act
-    cluster.change_required_count(0, 2);
+    cluster.commit(
+        0,
+        Commit::RequiredCount {
+            required_count: 2,
+            epoch: 2,
+        },
+    );
 
     // Assert
     assert_eq!(cluster.quorum(0), Quorum::Held);
@@ -104,7 +117,13 @@ fn a_member_added_mid_round_is_probed_in_the_same_round() {
     cluster.request_addition(0, NEWCOMER);
     cluster.run(ROUNDS);
     for index in 0..4 {
-        cluster.commit_addition(index, NEWCOMER);
+        cluster.commit(
+            index,
+            Commit::Addition {
+                peer_id: NEWCOMER,
+                epoch: 1,
+            },
+        );
     }
     cluster.run(ROUNDS);
 
@@ -179,7 +198,13 @@ fn a_raised_count_loses_the_quorum() {
     let mut cluster = concluded(3, 2, 1);
 
     // Act
-    cluster.change_required_count(0, 4);
+    cluster.commit(
+        0,
+        Commit::RequiredCount {
+            required_count: 4,
+            epoch: 1,
+        },
+    );
 
     // Assert
     assert_eq!(cluster.quorum(0), Quorum::Lost);

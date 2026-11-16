@@ -8,6 +8,7 @@
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction_protocol::commit::Commit;
 use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol_validation::cluster::Cluster;
@@ -20,7 +21,13 @@ const ROUNDS: usize = 100;
 fn committed_everywhere(cluster: Cluster, peer: u64) -> Cluster {
     let mut cluster = cluster;
     for index in 0..3 {
-        cluster.commit_removal(index, peer);
+        cluster.commit(
+            index,
+            Commit::Removal {
+                peer_id: peer,
+                epoch: 1,
+            },
+        );
     }
     cluster.run(ROUNDS);
     cluster
@@ -121,8 +128,20 @@ fn a_removal_committed_while_bootstrapping_with_a_lowered_count_lets_the_rest_co
 
     // Act
     for index in 0..2 {
-        cluster.change_required_count(index, 2);
-        cluster.commit_removal(index, 2);
+        cluster.commit(
+            index,
+            Commit::RequiredCount {
+                required_count: 2,
+                epoch: 1,
+            },
+        );
+        cluster.commit(
+            index,
+            Commit::Removal {
+                peer_id: 2,
+                epoch: 2,
+            },
+        );
     }
     cluster.run(ROUNDS);
 

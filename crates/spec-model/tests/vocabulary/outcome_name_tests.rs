@@ -11,11 +11,23 @@ use faction_spec_model::vocabulary::stage::Stage;
 use serde_json::Value;
 use serde_json::json;
 
+fn at_epoch(name: CommandName, peer_id: Option<&str>, epoch: u64) -> Command {
+    Command {
+        name,
+        peer_id: peer_id.map(String::from),
+        required_count: None,
+        epoch,
+        members: Vec::new(),
+    }
+}
+
 fn naming(name: CommandName, peer_id: &str) -> Command {
     Command {
         name,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -24,6 +36,8 @@ fn probe_due() -> Command {
         name: CommandName::ProbeDue,
         peer_id: None,
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -32,7 +46,58 @@ fn signal_from(peer_id: &str) -> Command {
         name: CommandName::ReadyObserved,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
+}
+
+#[test]
+fn encoded_of_a_claim_refused_carries_the_peer_and_its_epoch_omitted_at_0() {
+    // Arrange
+    let behind = at_epoch(CommandName::ReadyObserved, Some("2"), 3);
+    let unnumbered = at_epoch(CommandName::ReadyObserved, Some("2"), 0);
+
+    // Act
+    let encoded = [
+        OutcomeName::StaleEpochIgnored.encoded(&behind, &NodeStates::concluded()),
+        OutcomeName::StaleEpochIgnored.encoded(&unnumbered, &NodeStates::concluded()),
+    ];
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [
+            json!({"StaleEpochIgnored": {"peer_id": "2", "epoch": "3"}}),
+            json!({"StaleEpochIgnored": {"peer_id": "2"}}),
+        ]
+    );
+}
+
+#[test]
+fn encoded_of_a_commit_or_a_membership_carries_its_epoch() {
+    // Arrange
+    let commit = at_epoch(CommandName::AdditionCommitted, Some("4"), 2);
+    let membership = at_epoch(CommandName::MembershipReceived, None, 3);
+    let unnumbered = at_epoch(CommandName::MembershipReceived, None, 0);
+
+    // Act
+    let encoded = [
+        OutcomeName::CommitIgnored.encoded(&commit, &NodeStates::concluded()),
+        OutcomeName::MembershipAdopted.encoded(&membership, &NodeStates::concluded()),
+        OutcomeName::MembershipIgnored.encoded(&membership, &NodeStates::concluded()),
+        OutcomeName::MembershipIgnored.encoded(&unnumbered, &NodeStates::concluded()),
+    ];
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [
+            json!({"CommitIgnored": {"epoch": "2"}}),
+            json!({"MembershipAdopted": {"epoch": "3"}}),
+            json!({"MembershipIgnored": {"epoch": "3"}}),
+            json!({"MembershipIgnored": {}}),
+        ]
+    );
 }
 
 #[test]
@@ -46,6 +111,28 @@ fn encoded_of_a_liveness_outcome_names_the_command_s_peer() {
 
     // Assert
     assert_eq!(encoded, json!({"AlreadySuspected": {"peer_id": "2"}}));
+}
+
+#[test]
+fn encoded_of_a_membership_s_outcomes_carries_the_change_and_names_the_node() {
+    // Arrange
+    let membership = at_epoch(CommandName::MembershipReceived, None, 1);
+    let removing = NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("3")));
+
+    // Act
+    let encoded = [
+        OutcomeName::ChangeAbandoned.encoded(&membership, &removing),
+        OutcomeName::MemberRemoved.encoded(&membership, &removing),
+    ];
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [
+            json!({"ChangeAbandoned": {"reconfiguration": {"RemovalRequested": {"peer_id": "3"}}}}),
+            json!({"MemberRemoved": {"peer_id": "1"}}),
+        ]
+    );
 }
 
 #[test]
@@ -84,6 +171,8 @@ fn encoded_of_an_addition_s_outcome_names_the_command_s_peer() {
         name: CommandName::AdditionCommitted,
         peer_id: Some(String::from("4")),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     };
     let addition_outcomes = [
         OutcomeName::SendMembership,
@@ -119,6 +208,8 @@ fn encoded_of_an_outcome_carrying_nothing_is_a_unit() {
         name: CommandName::LocalParticipationCompleted,
         peer_id: None,
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     };
 
     // Act
@@ -161,6 +252,8 @@ fn encoded_of_deadline_missed_counts_the_collecting_peers() {
         name: CommandName::DeadlineExpired,
         peer_id: None,
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     };
 
     // Act
@@ -212,6 +305,8 @@ fn encoded_of_required_count_set_carries_the_command_s_count() {
         name: CommandName::RequiredCountChanged,
         peer_id: None,
         required_count: Some(3),
+        epoch: 0,
+        members: Vec::new(),
     };
 
     // Act
@@ -300,6 +395,11 @@ fn name_of_each_outcome_is_the_vocabulary_s() {
             "SelfIgnored",
             "QuorumLost",
             "QuorumRestored",
+            "StaleEpochIgnored",
+            "CommitIgnored",
+            "MembershipIgnored",
+            "MembershipAdopted",
+            "ChangeAbandoned",
         ]
     );
 }

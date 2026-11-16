@@ -102,9 +102,11 @@ fn assert_non_member_outputs_do_not_mutate_state(
     Ok(())
 }
 
-// Every command but the probe the properties make between two calls.
+// Every command but the probe the properties make between two calls, and a
+// membership handed to the node: one it adopts may shrink what it gathered, and
+// take it back from Removed, which the epoch's properties check (§16).
 fn command_strategy() -> impl Strategy<Value = Command> {
-    RandomCommands::command().prop_filter("a command, not a probe", |command| {
+    RandomCommands::handed_no_membership().prop_filter("a command, not a probe", |command| {
         *command != Command::Probe
     })
 }
@@ -401,7 +403,7 @@ fn removed_peer(outputs: &[Outcome]) -> Option<u64> {
 }
 
 fn test_config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1)
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0)
 }
 
 fn without(peers: &[u64], peer_id: u64) -> Vec<u64> {

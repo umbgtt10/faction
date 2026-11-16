@@ -8,7 +8,7 @@ use faction_protocol_validation::cluster::Cluster;
 fn drop_message_withholds_the_matching_message_count_times() {
     // Arrange
     let mut cluster = Cluster::new(2, 2, 1);
-    cluster.drop_message(0, 1, TransportMessage::Ready { from: 0 }, 1);
+    cluster.drop_message(0, 1, TransportMessage::Ready { from: 0, epoch: 0 }, 1);
     cluster.start_node(0);
 
     // Act
@@ -38,7 +38,7 @@ fn inject_transport_ready_is_counted_by_the_node() {
     let mut cluster = Cluster::new(3, 2, 1);
 
     // Act
-    cluster.inject_transport(1, TransportMessage::Ready { from: 0 });
+    cluster.inject_transport(1, TransportMessage::Ready { from: 0, epoch: 0 });
     cluster.step_transport_node(1);
 
     // Assert

@@ -71,7 +71,8 @@ stage and its peer state, the view's reconfiguration in place of its addition,
 ten rows and four widened; the 0.3.0 vectors change in that field and in the
 admissible lists alone. `Removed` keeps what the node held but itself and its
 liveness, and is never shown `TimedOut`. A way back for a removed node, and a
-removed peer's stale identity, are Phase 5's (epochs and rejoin). The protocol
+removed peer's stale identity, are Phase 5's (epochs and rejoin), since given by
+`P1-ADR-TheEpochComesWithTheCommit`. The protocol
 carries no message for a removal: the commit reaches each node from the layer
 above, and a removed member's late answers are a non-member's.
 

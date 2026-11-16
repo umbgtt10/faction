@@ -21,8 +21,9 @@ consensus begins?
 `faction` replaces that with a **formally specified, fully tested Mealy state machine**
 that answers the question deterministically, observably, and provably.
 
-**Phases 1 to 4 of six are built** (2026-11-13): bootstrapping, dynamic joining, single-node addition, failure
-detection and single-node removal, conformant to version 0.4.1 of the specification in [`spec/`](spec/SPEC.md).
+**Phases 1 to 5 of six are built** (2026-11-16): bootstrapping, dynamic joining, single-node addition, failure
+detection, single-node removal, and epochs and rejoin, conformant to version 0.5.0 of the specification in
+[`spec/`](spec/SPEC.md).
 Version 0.8.3 is on [crates.io](https://crates.io/crates/faction).
 
 ---
@@ -33,7 +34,9 @@ Version 0.8.3 is on [crates.io](https://crates.io/crates/faction).
 emits a deterministic exit decision — **Bootstrapped** — when quorum forms. A missed
 deadline is reported as **TimedOut**, but is not terminal: the node stays receptive.
 Once concluded, a node watches its members' liveness and says when too few of them
-answer to hold its quorum.
+answer to hold its quorum. Every membership it holds carries an epoch, the number the
+layer above gave the change that made it: a node behind is refused and handed the
+membership, and a node handed a newer one adopts it.
 
 It does exactly this. Nothing more.
 
@@ -77,12 +80,15 @@ reproduce and expensive to diagnose.
 ### The state machine
 
 The machine progresses through four stages to a single conclusion; a concluded node
-may then coordinate an addition or a removal in a fifth, and a node whose own removal
-commits leaves for a sixth:
+may then coordinate an addition or a removal in a fifth, and a node removed from its
+cluster leaves for a sixth, from which a membership that names it takes it back to the
+first:
 
 ```text
 Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
    └────────┴───────────┴──────────────┴──────────────┴──▶ Removed
+   ▲                                                         │
+   └──────────── a membership that names it ─────────────────┘
 ```
 
 | State | Meaning | Carries |
@@ -92,7 +98,7 @@ Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
 | `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Final peer sets at time of exit, and its members' liveness |
 | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` | The concluded node's sets and the change in flight |
-| `Removed` | Removed from its own cluster — admits a probe alone | Nothing but its id: its view is what it held, but itself and its liveness |
+| `Removed` | Removed from its own cluster — admits a membership and a probe alone | Its id and the membership it holds: its view is what it held, but itself and its liveness |
 
 A missed deadline is **not** a state: it is recorded as a fact (reported as
 `PeerState::TimedOut` through a derived flag) while the node stays receptive and
@@ -102,25 +108,26 @@ concluded node's suspicions are what its view reports, never where it is.
 
 ### Commands and outcomes
 
-Twenty commands drive the machine:
+Twenty-one commands drive the machine:
 
 | Command | Meaning |
 |---|---|
-| `ParticipationObserved { peer_id }` | A peer signalled participation |
-| `ReadyObserved { peer_id }` | A peer signalled readiness |
+| `ParticipationObserved { peer_id, epoch }` | A peer signalled participation, at the epoch it holds |
+| `ReadyObserved { peer_id, epoch }` | A peer signalled readiness, at the epoch it holds |
 | `LocalParticipationCompleted` | The local node finished its own participation |
 | `DeadlineExpired` | Deadline timer fired |
 | `JoinRequested { peer_id }` | A newcomer asked to join |
 | `JoinApproved { peer_id }` | A newcomer was admitted to membership |
 | `JoinRejected { peer_id }` | A newcomer was denied |
 | `AdditionRequested { peer_id }` | Coordinate the addition of a peer |
-| `MembershipAcknowledged { peer_id }` | The newcomer holds the membership it was sent |
-| `AdditionCommitted { peer_id }` | The layer above committed the addition |
+| `MembershipAcknowledged { peer_id, epoch }` | The newcomer holds the membership it was sent |
+| `AdditionCommitted { peer_id, epoch }` | The layer above committed the addition, at its epoch |
 | `AdditionAborted { peer_id }` | The layer above abandoned it |
 | `RemovalRequested { peer_id }` | Coordinate the removal of a member |
-| `RemovalCommitted { peer_id }` | The layer above committed the removal |
+| `RemovalCommitted { peer_id, epoch }` | The layer above committed the removal, at its epoch |
 | `RemovalAborted { peer_id }` | The layer above abandoned it |
-| `RequiredCountChanged { required_count }` | The required count in effect changed |
+| `RequiredCountChanged { required_count, epoch }` | The required count in effect changed, at its epoch |
+| `MembershipReceived { members, required_count, epoch }` | A membership was handed to the node |
 | `ProbeDue` | A probe period began |
 | `PeerHeard { peer_id }` | A sign of life from a member |
 | `ProbeMissed { peer_id }` | A member missed its probe |
@@ -180,6 +187,20 @@ node whose own removal commits is `Removed`, and answers nothing but a probe. Wh
 removed, and when — a suspect, say — is the caller's: `faction` never removes a member
 on its own.
 
+### Epochs and rejoin
+
+A membership carries an epoch: the number the layer above gave the change that made
+it — a consensus log's index, a chain's height — strictly increasing, which a commit
+brings and a node takes, never counting. A commit at or below the node's epoch is one
+it holds already, and is ignored. A node's participation, readiness and an addition's
+acknowledgement carry the epoch it holds; a member's from behind is refused, and the
+node answers it with the membership. Liveness carries none: a member slow to apply a
+commit is never suspected for it. A node handed a membership above its epoch adopts it,
+whatever its stage: its members, count and epoch are the membership's, a change in
+flight is given up, and a removed node it names comes back as a fresh node. That is
+how a restarted node, a partitioned one and a removed one catch up. An epoch of 0 is
+what a caller that numbers nothing gives, and it is answered as before.
+
 ### Failure detection
 
 A concluded node probes its members one period at a time, as SWIM's failure detector
@@ -217,36 +238,38 @@ let config = Config::new(
     alloc::vec![0, 1, 2, 3, 4],
     QuorumPolicy::new(4),
     1,
+    0,
 );
 
 let mut machine = Faction::new(config, Box::new(NoOpObserver));
 
-let _ = machine.process(Command::ParticipationObserved { peer_id: 1 });
-let _ = machine.process(Command::ParticipationObserved { peer_id: 2 });
+let _ = machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 });
+let _ = machine.process(Command::ParticipationObserved { peer_id: 2, epoch: 0 });
 let _ = machine.process(Command::LocalParticipationCompleted);
-let _ = machine.process(Command::ReadyObserved { peer_id: 1 });
-let _ = machine.process(Command::ReadyObserved { peer_id: 2 });
+let _ = machine.process(Command::ReadyObserved { peer_id: 1, epoch: 0 });
+let _ = machine.process(Command::ReadyObserved { peer_id: 2, epoch: 0 });
 
 // Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
-let result = machine.process(Command::ReadyObserved { peer_id: 3 });
+let result = machine.process(Command::ReadyObserved { peer_id: 3, epoch: 0 });
 if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining
-    // peer), the join commands, an addition to coordinate, a committed
-    // addition and a new required count.
+    // peer), the join commands, an addition or a removal to coordinate, a
+    // committed one, a new required count, a membership and liveness.
     assert_eq!(
         admissible,
         alloc::vec![
-            Command::ParticipationObserved { peer_id: 0 },
+            Command::ParticipationObserved { peer_id: 0, epoch: 0 },
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionRequested { peer_id: 0 },
-            Command::AdditionCommitted { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0, epoch: 0 },
             Command::RemovalRequested { peer_id: 0 },
-            Command::RemovalCommitted { peer_id: 0 },
-            Command::RequiredCountChanged { required_count: 0 },
+            Command::RemovalCommitted { peer_id: 0, epoch: 0 },
+            Command::RequiredCountChanged { required_count: 0, epoch: 0 },
+            Command::MembershipReceived { members: alloc::vec![], required_count: 0, epoch: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },
             Command::ProbeMissed { peer_id: 0 },
@@ -267,20 +290,21 @@ The caller owns the network. `faction` owns the state.
 
 | Package | What it tests | Tests |
 |---|---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 56 rows and 93 conformance vectors | — |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 157 |
-| `crates/core/` unit tests | Each type and each step in isolation | 253 |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed | 211 |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 70 rows and 108 conformance vectors | — |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 185 |
+| `crates/core/` unit tests | Each type and each step in isolation | 289 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 229 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 97 |
-| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, and removal | 193 |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 111 |
+| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, removal, and epochs and rejoin | 198 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
 | `validation/system-tests/` addition | A node added to a running cluster across spawn/transport | 50 |
 | `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport | 50 |
 | `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself | 242 |
+| `validation/system-tests/` rejoin | Nodes restarted, re-added, partitioned and ahead, across spawn/transport | 50 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself | 247 |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -300,9 +324,9 @@ across all combinations.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~1,970 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.4.1 — its independent model and the crate answer all 93 vectors as written, each kept as released |
-| Total tests | 1,599 |
+| Core productive LOC | ~2,350 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.5.0 — its independent model and the crate answer all 108 vectors as written, the 93 released at 0.4.0 unchanged |
+| Total tests | 1,755 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -334,7 +358,7 @@ across all combinations.
   Nothing is written to disk; state is rebuilt by replaying the input log. Durability
   is the caller's.
 
-Each principle above is recorded as an Architecture Decision Record — twenty-nine, in
+Each principle above is recorded as an Architecture Decision Record — thirty, in
 [docs/ADRs/](./docs/ADRs/), the authoritative rationale.
 
 ---
@@ -345,7 +369,8 @@ Each principle above is recorded as an Architecture Decision Record — twenty-n
 
 - Perform network I/O — the caller sends and receives messages
 - Confirm a member dead, or remove one for its silence — a suspect stays a member until the caller has its removal committed
-- Manage the full membership lifecycle — joining, addition, failure detection and removal have landed; epochs and concurrent changes are Phases 5–6
+- Manage the full membership lifecycle — joining, addition, failure detection, removal and epochs have landed; concurrent changes are Phase 6
+- Check that a membership it is handed is genuine — that is the caller's, as a signature is
 - Know about consensus — protocols build on top of `faction`, not inside it
 - Provide a runtime — async, threading, and process management are the caller's concern
 
@@ -384,7 +409,9 @@ addition)** with it: a concluded cluster grows by one through the layer that com
 changes above it — **Phase 2 (failure detection)** after it: a concluded node
 probes its members and suspects those it cannot reach — and **Phase 4 (single-node
 removal)**: a concluded cluster shrinks by one through the same layer, never below
-what its quorum can spare. Epochs and rejoin, and concurrent changes, follow.
+what its quorum can spare — and **Phase 5 (epochs and rejoin)**: every membership
+carries the layer above's number for it, a node behind is refused and caught up, and a
+removed node comes back. Concurrent changes follow.
 
 Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.
@@ -408,7 +435,7 @@ The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative
 | `validation/core-validation/` | Deterministic multi-node scenario harness |
 | `validation/memory/` | The memory tier, a counting allocator in a binary of its own |
 | `validation/protocol-validation/` | Convergence sweeps and the in-process protocol cluster |
-| `validation/system-tests/` | Convergence, joining, addition, liveness and removal across spawn and transport, and the infrastructure beneath them |
+| `validation/system-tests/` | Convergence, joining, addition, liveness, removal and rejoin across spawn and transport, and the infrastructure beneath them |
 | `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores |
 
 ---

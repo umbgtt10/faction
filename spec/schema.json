@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:faction:spec:0.4.1:schema",
-  "title": "faction 0.4.1 -- the data model",
+  "$id": "urn:faction:spec:0.5.0:schema",
+  "title": "faction 0.5.0 -- the data model",
   "description": "Every command, result, outcome and view, and the forms of a conformance vector and of the decision table. Normative with SPEC.md.",
   "$ref": "#/$defs/vector",
   "$defs": {
@@ -14,6 +14,10 @@
       "description": "A u64 of one or more, as a string of decimal digits: no sign, no leading zero, no exponent.",
       "type": "string",
       "pattern": "^[1-9][0-9]{0,19}$"
+    },
+    "epoch": {
+      "description": "The version of a membership: a u64 of one or more, as a string of decimal digits. Epoch 0 is omitted wherever it would stand.",
+      "$ref": "#/$defs/positive_u64"
     },
     "nothing": {
       "description": "The payload of a value that carries nothing.",
@@ -30,7 +34,7 @@
       }
     },
     "configuration": {
-      "description": "What a node is created from: its own peer id, its genesis peers, the required count and the suspicion threshold.",
+      "description": "What a node is created from: its own peer id, its genesis peers, the required count, the suspicion threshold and, unless 0, the epoch of its membership.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -51,6 +55,9 @@
         },
         "suspicion_threshold": {
           "$ref": "#/$defs/positive_u64"
+        },
+        "epoch": {
+          "$ref": "#/$defs/epoch"
         }
       }
     },
@@ -71,6 +78,7 @@
         "RemovalCommitted",
         "RemovalAborted",
         "RequiredCountChanged",
+        "MembershipReceived",
         "ProbeDue",
         "PeerHeard",
         "ProbeMissed",
@@ -96,6 +104,9 @@
               "properties": {
                 "peer_id": {
                   "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -117,6 +128,9 @@
               "properties": {
                 "peer_id": {
                   "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -246,6 +260,9 @@
               "properties": {
                 "peer_id": {
                   "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -267,6 +284,9 @@
               "properties": {
                 "peer_id": {
                   "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -330,6 +350,9 @@
               "properties": {
                 "peer_id": {
                   "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -372,6 +395,37 @@
               "properties": {
                 "required_count": {
                   "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "MembershipReceived"
+          ],
+          "properties": {
+            "MembershipReceived": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "members",
+                "required_count"
+              ],
+              "properties": {
+                "members": {
+                  "$ref": "#/$defs/peers"
+                },
+                "required_count": {
+                  "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -1181,6 +1235,112 @@
               "$ref": "#/$defs/nothing"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "StaleEpochIgnored"
+          ],
+          "properties": {
+            "StaleEpochIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "CommitIgnored"
+          ],
+          "properties": {
+            "CommitIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "epoch"
+              ],
+              "properties": {
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "MembershipIgnored"
+          ],
+          "properties": {
+            "MembershipIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [],
+              "properties": {
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "MembershipAdopted"
+          ],
+          "properties": {
+            "MembershipAdopted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "epoch"
+              ],
+              "properties": {
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ChangeAbandoned"
+          ],
+          "properties": {
+            "ChangeAbandoned": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reconfiguration"
+              ],
+              "properties": {
+                "reconfiguration": {
+                  "$ref": "#/$defs/reconfiguration"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1493,6 +1653,9 @@
         },
         "quorum": {
           "$ref": "#/$defs/quorum"
+        },
+        "epoch": {
+          "$ref": "#/$defs/epoch"
         }
       }
     },
@@ -1832,7 +1995,12 @@
                     "AlreadySuspected",
                     "SelfIgnored",
                     "QuorumLost",
-                    "QuorumRestored"
+                    "QuorumRestored",
+                    "StaleEpochIgnored",
+                    "CommitIgnored",
+                    "MembershipIgnored",
+                    "MembershipAdopted",
+                    "ChangeAbandoned"
                   ]
                 }
               },
@@ -1854,22 +2022,56 @@
       }
     },
     "released": {
-      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them.",
+      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them; and every command a released version names, by its name and the first released version to name it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["vectors"],
+      "required": [
+        "commands",
+        "vectors"
+      ],
       "properties": {
+        "commands": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/command_name"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "vectors": {
           "type": "array",
           "uniqueItems": true,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "version", "sha256"],
+            "required": [
+              "id",
+              "version",
+              "sha256"
+            ],
             "properties": {
-              "id": { "type": "string" },
-              "version": { "type": "string" },
-              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+              "id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
             }
           }
         }

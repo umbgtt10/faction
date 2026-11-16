@@ -24,9 +24,11 @@
 
 extern crate alloc;
 
+pub mod adoption;
 pub mod answer;
 pub mod command;
 pub mod configuration;
+pub mod epoch;
 pub mod liveness;
 pub mod model;
 pub mod node_state;

@@ -7,7 +7,7 @@ use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
-use faction_system_tests::committer::Committer;
+use faction_system_tests::join::committer::Committer;
 use faction_system_tests::spawn::Spawn;
 use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;

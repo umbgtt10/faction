@@ -27,6 +27,7 @@ fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
         vec![],
         None,
         Quorum::Held,
+        0,
     );
 
     // Assert
@@ -50,6 +51,7 @@ fn new_missed_deadline_after_removal_stays_removed() {
         vec![],
         None,
         Quorum::NotTracked,
+        0,
     );
 
     // Assert
@@ -76,9 +78,11 @@ fn new_stores_every_field() {
         }],
         Some(5),
         Quorum::Lost,
+        3,
     );
 
     // Assert
+    assert_eq!(view.epoch(), 3);
     assert_eq!(view.peer_state(), PeerState::TimedOut);
     assert!(!view.is_pinging_completed());
     assert_eq!(view.pinging_peers(), &[4]);

@@ -10,6 +10,7 @@ use crate::config::Config;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
+use crate::quorum::Quorum;
 use crate::quorum_policy::QuorumPolicy;
 use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
@@ -18,7 +19,9 @@ use crate::states::membership_decision::MembershipDecision;
 use crate::states::membership_step::MembershipStep;
 use crate::states::pinging::Pinging;
 use crate::states::removed::Removed;
+use crate::types::Epoch;
 
+#[derive(Debug, Clone)]
 pub struct Initial {
     members: Members,
     quorum_policy: QuorumPolicy,
@@ -42,18 +45,29 @@ impl State for Initial {
             .with_pinging_peers(Vec::new())
             .with_collecting_peers(Vec::new())
             .with_required_count(self.quorum_policy.threshold())
+            .with_deadline_missed(false)
             .with_members(self.members.clone())
             .with_reconfiguration(Reconfiguration::None)
+            .with_suspected(Vec::new())
+            .with_misses(Vec::new())
+            .with_last_probed(None)
+            .with_quorum(Quorum::NotTracked)
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        if command
-            == (Command::RemovalCommitted {
-                peer_id: config.peer_id(),
-            })
-        {
-            Some(Removed::own_removal(config.peer_id()))
+    fn step(
+        &self,
+        command: Command,
+        config: &Config,
+        epoch: Epoch,
+    ) -> Option<(Vec<Outcome>, Stage)> {
+        if let Some(departure) = Removed::departure(
+            &command,
+            config.peer_id(),
+            &self.members,
+            self.quorum_policy,
+        ) {
+            Some(departure)
         } else if let Some(decision) = MembershipDecision::of(&command) {
             let membership =
                 MembershipStep::new(self.members.clone(), self.quorum_policy, decision);
@@ -67,7 +81,8 @@ impl State for Initial {
         } else {
             match command {
                 Command::DeadlineExpired => None,
-                _ => Pinging::new(self.members.clone(), self.quorum_policy).step(command, config),
+                _ => Pinging::new(self.members.clone(), self.quorum_policy)
+                    .step(command, config, epoch),
             }
         }
     }

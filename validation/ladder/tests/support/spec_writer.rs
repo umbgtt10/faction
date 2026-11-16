@@ -10,6 +10,7 @@ use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 use serde_json::Value;
 use serde_json::json;
@@ -22,26 +23,43 @@ pub struct SpecWriter;
 impl SpecWriter {
     pub fn command(command: &Command) -> Value {
         match command {
-            Command::ParticipationObserved { peer_id }
-            | Command::ReadyObserved { peer_id }
-            | Command::JoinRequested { peer_id }
+            Command::ParticipationObserved { peer_id, epoch }
+            | Command::ReadyObserved { peer_id, epoch }
+            | Command::MembershipAcknowledged { peer_id, epoch }
+            | Command::AdditionCommitted { peer_id, epoch }
+            | Command::RemovalCommitted { peer_id, epoch } => json!({
+                Self::name(command): Self::stated(json!({ "peer_id": Self::number(*peer_id) }), *epoch)
+            }),
+            Command::JoinRequested { peer_id }
             | Command::JoinApproved { peer_id }
             | Command::JoinRejected { peer_id }
             | Command::AdditionRequested { peer_id }
-            | Command::MembershipAcknowledged { peer_id }
-            | Command::AdditionCommitted { peer_id }
             | Command::AdditionAborted { peer_id }
             | Command::RemovalRequested { peer_id }
-            | Command::RemovalCommitted { peer_id }
             | Command::RemovalAborted { peer_id }
             | Command::PeerHeard { peer_id }
             | Command::ProbeMissed { peer_id }
             | Command::IndirectProbesMissed { peer_id } => {
                 json!({ Self::name(command): { "peer_id": Self::number(*peer_id) } })
             }
-            Command::RequiredCountChanged { required_count } => {
-                json!({ Self::name(command): { "required_count": Self::number(*required_count) } })
-            }
+            Command::RequiredCountChanged {
+                required_count,
+                epoch,
+            } => json!({ Self::name(command): Self::stated(
+                json!({ "required_count": Self::number(*required_count) }),
+                *epoch,
+            ) }),
+            Command::MembershipReceived {
+                members,
+                required_count,
+                epoch,
+            } => json!({ Self::name(command): Self::stated(
+                json!({
+                    "members": Self::peers(members),
+                    "required_count": Self::number(*required_count),
+                }),
+                *epoch,
+            ) }),
             Command::LocalParticipationCompleted
             | Command::DeadlineExpired
             | Command::ProbeDue
@@ -50,12 +68,15 @@ impl SpecWriter {
     }
 
     pub fn configuration(config: &Config) -> Value {
-        json!({
-            "peer_id": Self::number(config.peer_id()),
-            "peers": Self::peers(config.peers()),
-            "required_count": Self::number(config.required_count()),
-            "suspicion_threshold": Self::number(config.suspicion_threshold()),
-        })
+        Self::stated(
+            json!({
+                "peer_id": Self::number(config.peer_id()),
+                "peers": Self::peers(config.peers()),
+                "required_count": Self::number(config.required_count()),
+                "suspicion_threshold": Self::number(config.suspicion_threshold()),
+            }),
+            config.epoch(),
+        )
     }
 
     pub fn result(result: &ProcessResult) -> Value {
@@ -116,6 +137,7 @@ impl SpecWriter {
             Command::RemovalCommitted { .. } => "RemovalCommitted",
             Command::RemovalAborted { .. } => "RemovalAborted",
             Command::RequiredCountChanged { .. } => "RequiredCountChanged",
+            Command::MembershipReceived { .. } => "MembershipReceived",
             Command::ProbeDue => "ProbeDue",
             Command::PeerHeard { .. } => "PeerHeard",
             Command::ProbeMissed { .. } => "ProbeMissed",
@@ -189,6 +211,20 @@ impl SpecWriter {
             Outcome::SelfIgnored { peer_id } => Self::peer("SelfIgnored", *peer_id),
             Outcome::QuorumLost => json!({ "QuorumLost": {} }),
             Outcome::QuorumRestored => json!({ "QuorumRestored": {} }),
+            Outcome::StaleEpochIgnored { peer_id, epoch } => json!({ "StaleEpochIgnored":
+                Self::stated(json!({ "peer_id": Self::number(*peer_id) }), *epoch) }),
+            Outcome::CommitIgnored { epoch } => {
+                json!({ "CommitIgnored": Self::stated(json!({}), *epoch) })
+            }
+            Outcome::MembershipIgnored { epoch } => {
+                json!({ "MembershipIgnored": Self::stated(json!({}), *epoch) })
+            }
+            Outcome::MembershipAdopted { epoch } => {
+                json!({ "MembershipAdopted": Self::stated(json!({}), *epoch) })
+            }
+            Outcome::ChangeAbandoned { reconfiguration } => json!({ "ChangeAbandoned": {
+                "reconfiguration": Self::reconfiguration(*reconfiguration),
+            } }),
         }
     }
 
@@ -236,29 +272,40 @@ impl SpecWriter {
         json!({ name: {} })
     }
 
+    // A payload with the epoch among its members, unless it is 0 (§1).
+    fn stated(mut payload: Value, epoch: Epoch) -> Value {
+        if epoch > 0 {
+            payload["epoch"] = Self::number(epoch);
+        }
+        payload
+    }
+
     fn view(view: &ClusterView) -> Value {
-        json!({
-            "peer_state": Self::peer_state(view.peer_state()),
-            "is_pinging_completed": view.is_pinging_completed(),
-            "pinging_peers": Self::peers(view.pinging_peers()),
-            "collecting_peers": Self::peers(view.collecting_peers()),
-            "required_count": Self::number(view.required_count()),
-            "deadline_missed": view.deadline_missed(),
-            "members": Self::peers(view.members().as_slice()),
-            "reconfiguration": Self::reconfiguration(view.reconfiguration()),
-            "suspected": Self::peers(view.suspected()),
-            "misses": view
-                .misses()
-                .iter()
-                .map(|miss| json!({
-                    "peer_id": Self::number(miss.peer_id),
-                    "misses": Self::number(miss.misses),
-                }))
-                .collect::<Vec<Value>>(),
-            "last_probed": view
-                .last_probed()
-                .map_or(json!({ "None": {} }), |peer_id| Self::peer("Probed", peer_id)),
-            "quorum": Self::quorum(view.quorum()),
-        })
+        Self::stated(
+            json!({
+                "peer_state": Self::peer_state(view.peer_state()),
+                "is_pinging_completed": view.is_pinging_completed(),
+                "pinging_peers": Self::peers(view.pinging_peers()),
+                "collecting_peers": Self::peers(view.collecting_peers()),
+                "required_count": Self::number(view.required_count()),
+                "deadline_missed": view.deadline_missed(),
+                "members": Self::peers(view.members().as_slice()),
+                "reconfiguration": Self::reconfiguration(view.reconfiguration()),
+                "suspected": Self::peers(view.suspected()),
+                "misses": view
+                    .misses()
+                    .iter()
+                    .map(|miss| json!({
+                        "peer_id": Self::number(miss.peer_id),
+                        "misses": Self::number(miss.misses),
+                    }))
+                    .collect::<Vec<Value>>(),
+                "last_probed": view
+                    .last_probed()
+                    .map_or(json!({ "None": {} }), |peer_id| Self::peer("Probed", peer_id)),
+                "quorum": Self::quorum(view.quorum()),
+            }),
+            view.epoch(),
+        )
     }
 }

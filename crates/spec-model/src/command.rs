@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::string::String;
+use alloc::vec::Vec;
 
 use crate::vocabulary::command_name::CommandName;
 
@@ -10,4 +11,6 @@ pub struct Command {
     pub name: CommandName,
     pub peer_id: Option<String>,
     pub required_count: Option<u64>,
+    pub epoch: u64,
+    pub members: Vec<String>,
 }

@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 56] = [
+const RULES: [(&str, Rule); 70] = [
     (
         "probed",
         Rule {
@@ -33,6 +33,20 @@ const RULES: [(&str, Rule); 56] = [
         "non-member",
         Rule {
             situation: Situation::PeerIsNotMember,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "claim-behind-before-completion",
+        Rule {
+            situation: Situation::ClaimIsBehind,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "claim-behind",
+        Rule {
+            situation: Situation::ClaimIsBehind,
             change: Change::Nothing,
         },
     ),
@@ -163,6 +177,13 @@ const RULES: [(&str, Rule); 56] = [
         },
     ),
     (
+        "acknowledgement-behind",
+        Rule {
+            situation: Situation::ClaimIsBehind,
+            change: Change::Nothing,
+        },
+    ),
+    (
         "acknowledgement-accepted",
         Rule {
             situation: Situation::Always,
@@ -188,6 +209,13 @@ const RULES: [(&str, Rule); 56] = [
         Rule {
             situation: Situation::Always,
             change: Change::RemovalWithdrawn,
+        },
+    ),
+    (
+        "commit-held",
+        Rule {
+            situation: Situation::CommitIsHeld,
+            change: Change::Nothing,
         },
     ),
     (
@@ -314,6 +342,76 @@ const RULES: [(&str, Rule); 56] = [
         Rule {
             situation: Situation::Always,
             change: Change::CountSet,
+        },
+    ),
+    (
+        "membership-held",
+        Rule {
+            situation: Situation::MembershipIsHeld,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "membership-rejoined",
+        Rule {
+            situation: Situation::MembershipNamesNode,
+            change: Change::NodeRejoins,
+        },
+    ),
+    (
+        "membership-removes-node",
+        Rule {
+            situation: Situation::MembershipOmitsNode,
+            change: Change::MembershipRemovesNode,
+        },
+    ),
+    (
+        "membership-concludes",
+        Rule {
+            situation: Situation::MembershipConcludes,
+            change: Change::MembershipAdopted,
+        },
+    ),
+    (
+        "abandonment-loses-quorum",
+        Rule {
+            situation: Situation::LosesQuorum(Change::MembershipAdopted),
+            change: Change::MembershipAdopted,
+        },
+    ),
+    (
+        "abandonment-restores-quorum",
+        Rule {
+            situation: Situation::RestoresQuorum(Change::MembershipAdopted),
+            change: Change::MembershipAdopted,
+        },
+    ),
+    (
+        "change-abandoned",
+        Rule {
+            situation: Situation::Always,
+            change: Change::MembershipAdopted,
+        },
+    ),
+    (
+        "adoption-loses-quorum",
+        Rule {
+            situation: Situation::LosesQuorum(Change::MembershipAdopted),
+            change: Change::MembershipAdopted,
+        },
+    ),
+    (
+        "adoption-restores-quorum",
+        Rule {
+            situation: Situation::RestoresQuorum(Change::MembershipAdopted),
+            change: Change::MembershipAdopted,
+        },
+    ),
+    (
+        "membership-adopted",
+        Rule {
+            situation: Situation::Always,
+            change: Change::MembershipAdopted,
         },
     ),
     (

@@ -17,9 +17,11 @@ use std::time::Duration;
 
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use crate::faction_node::FactionNode;
+use crate::membership::Membership;
 use crate::node_command::NodeCommand;
 use crate::node_snapshot::NodeSnapshot;
 use crate::process_node::process_channel::ProcessChannel;
@@ -34,6 +36,7 @@ const FRESH: NodeSnapshot = NodeSnapshot {
     reconfiguration: Reconfiguration::None,
     suspected: Vec::new(),
     quorum: Quorum::NotTracked,
+    epoch: 0,
 };
 
 pub enum Node {
@@ -129,37 +132,47 @@ impl Node {
         }
     }
 
-    pub fn change_required_count(&self, required_count: usize) {
+    pub fn change_required_count(&self, required_count: usize, epoch: Epoch) {
         match self {
-            Self::Task { node } => node.borrow_mut().change_required_count(required_count),
+            Self::Task { node } => node
+                .borrow_mut()
+                .change_required_count(required_count, epoch),
             Self::Thread { commands, .. } => {
                 Self::send_command(commands, |ack| {
-                    NodeCommand::ChangeRequiredCount(required_count, ack)
+                    NodeCommand::ChangeRequiredCount(required_count, epoch, ack)
                 });
             }
             Self::Process { channel, .. } => {
-                channel.send(&format!("required-count {required_count}"))
+                channel.send(&format!("required-count {required_count} {epoch}"))
             }
         }
     }
 
-    pub fn commit_addition(&self, peer_id: PeerId) {
+    pub fn commit_addition(&self, peer_id: PeerId, epoch: Epoch) {
         match self {
-            Self::Task { node } => node.borrow_mut().commit_addition(peer_id),
+            Self::Task { node } => node.borrow_mut().commit_addition(peer_id, epoch),
             Self::Thread { commands, .. } => {
-                Self::send_command(commands, |ack| NodeCommand::CommitAddition(peer_id, ack));
+                Self::send_command(commands, |ack| {
+                    NodeCommand::CommitAddition(peer_id, epoch, ack)
+                });
             }
-            Self::Process { channel, .. } => channel.send(&format!("commit-addition {peer_id}")),
+            Self::Process { channel, .. } => {
+                channel.send(&format!("commit-addition {peer_id} {epoch}"));
+            }
         }
     }
 
-    pub fn commit_removal(&self, peer_id: PeerId) {
+    pub fn commit_removal(&self, peer_id: PeerId, epoch: Epoch) {
         match self {
-            Self::Task { node } => node.borrow_mut().commit_removal(peer_id),
+            Self::Task { node } => node.borrow_mut().commit_removal(peer_id, epoch),
             Self::Thread { commands, .. } => {
-                Self::send_command(commands, |ack| NodeCommand::CommitRemoval(peer_id, ack));
+                Self::send_command(commands, |ack| {
+                    NodeCommand::CommitRemoval(peer_id, epoch, ack)
+                });
             }
-            Self::Process { channel, .. } => channel.send(&format!("commit-removal {peer_id}")),
+            Self::Process { channel, .. } => {
+                channel.send(&format!("commit-removal {peer_id} {epoch}"));
+            }
         }
     }
 
@@ -250,6 +263,27 @@ impl Node {
                 Self::send_command(commands, |ack| NodeCommand::RequestRemoval(peer_id, ack));
             }
             Self::Process { channel, .. } => channel.send(&format!("request-removal {peer_id}")),
+        }
+    }
+
+    // The node created again at `membership`, in place: its state gone, its
+    // link kept. A process takes it as a line: the epoch, the count, then the
+    // peers comma separated.
+    pub fn restart(&self, membership: Membership) {
+        match self {
+            Self::Task { node } => node.borrow_mut().restart(&membership),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::Restart(membership, ack));
+            }
+            Self::Process { channel, .. } => {
+                let peers: Vec<String> = membership.peers.iter().map(PeerId::to_string).collect();
+                channel.send(&format!(
+                    "restart {} {} {}",
+                    membership.epoch,
+                    membership.required_count,
+                    peers.join(",")
+                ));
+            }
         }
     }
 

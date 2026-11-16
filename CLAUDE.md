@@ -146,7 +146,10 @@ A phase only adds: commands, outcomes, stages, configuration, fields of the view
 changes what an earlier release answers: the specification's growth rule (§1) omits a new
 member at its initial value and names a new command in no earlier vector's admissible
 commands, so every released vector passes unchanged, and `spec/released.json` fails the
-conformance tier on one removed or edited. Before the rule the encoding grew in place,
+conformance tier on one removed or edited. It lists the commands each released version
+names too: both conformance tiers compare a released vector's admissible commands among
+those its version names (`validation/ladder/tests/support/growth.rs`). Specification
+0.5.0 was the first to grow by the rule. Before the rule the encoding grew in place,
 rewriting vectors -- never an outcome -- and the view's `addition` became
 `reconfiguration`. Phase 0's tests pass unchanged at Phase 6 (`docs/ROADMAP.md`).
 

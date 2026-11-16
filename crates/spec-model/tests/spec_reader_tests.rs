@@ -60,6 +60,30 @@ fn command_of_a_command_carrying_nothing_names_no_peer() {
             name: CommandName::DeadlineExpired,
             peer_id: None,
             required_count: None,
+            epoch: 0,
+            members: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn command_of_a_membership_reads_its_members_its_count_and_its_epoch() {
+    // Arrange & Act
+    let command = SpecReader::command(&json!({"MembershipReceived": {
+        "members": ["2", "3", "1"],
+        "required_count": "2",
+        "epoch": "4",
+    }}));
+
+    // Assert
+    assert_eq!(
+        command,
+        Command {
+            name: CommandName::MembershipReceived,
+            peer_id: None,
+            required_count: Some(2),
+            epoch: 4,
+            members: NodeStates::peers(&["2", "3", "1"]),
         }
     );
 }
@@ -76,6 +100,8 @@ fn command_of_a_new_required_count_reads_the_count() {
             name: CommandName::RequiredCountChanged,
             peer_id: None,
             required_count: Some(3),
+            epoch: 0,
+            members: Vec::new(),
         }
     );
 }
@@ -93,8 +119,44 @@ fn command_of_a_peer_s_signal_names_the_command_and_its_peer() {
             name: CommandName::ReadyObserved,
             peer_id: Some(String::from("18446744073709551615")),
             required_count: None,
+            epoch: 0,
+            members: Vec::new(),
         }
     );
+}
+
+#[test]
+fn command_of_a_signal_reads_its_epoch() {
+    // Arrange & Act
+    let command =
+        SpecReader::command(&json!({"ParticipationObserved": {"peer_id": "2", "epoch": "3"}}));
+
+    // Assert
+    assert_eq!(command.epoch, 3);
+}
+
+#[test]
+fn command_of_a_signal_with_no_epoch_is_at_epoch_0() {
+    // Arrange & Act
+    let command = SpecReader::command(&json!({"ReadyObserved": {"peer_id": "2"}}));
+
+    // Assert
+    assert_eq!(command.epoch, 0);
+}
+
+#[test]
+fn configuration_of_a_configuration_at_an_epoch_reads_it() {
+    // Arrange & Act
+    let configuration = SpecReader::configuration(&json!({
+        "peer_id": "1",
+        "peers": ["1", "2"],
+        "required_count": "1",
+        "suspicion_threshold": "1",
+        "epoch": "7",
+    }));
+
+    // Assert
+    assert_eq!(configuration.epoch, 7);
 }
 
 #[test]
@@ -115,6 +177,7 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
             peers: NodeStates::peers(&["3", "1", "2"]),
             required_count: u64::MAX,
             suspicion_threshold: 3,
+            epoch: 0,
         }
     );
 }

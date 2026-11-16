@@ -4,6 +4,7 @@
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,4 +15,5 @@ pub struct NodeSnapshot {
     pub reconfiguration: Reconfiguration,
     pub suspected: Vec<PeerId>,
     pub quorum: Quorum,
+    pub epoch: Epoch,
 }

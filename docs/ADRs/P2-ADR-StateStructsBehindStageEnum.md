@@ -55,9 +55,12 @@ know `Stage`'s variants — the price of returning owned data instead of a trait
 object. What two states answer alike lives in one struct they share rather than
 in a state of its own: `Reconfiguring` wraps `Bootstrapped`, and both answer
 liveness through `Liveness` — `Probing` and `Suspicion` under `states/` — so its
-rows are written once. A node's own removal, answered alike by every stage but
-`Removed`, is each of those stages' to take, through `Removed::own_removal`:
-`Stage` still only delegates.
+rows are written once. What removes a node -- its own removal committed, or a
+membership not naming it -- answered alike by every stage but `Removed`, is each
+of those stages' to take, through `Removed::departure`. Phase 5 gives `Stage` one
+rule of its own, which no stage could answer alone: a commit or a membership the
+node holds already is ignored, once the stage has admitted it (`EpochRule`,
+`P1-ADR-TheEpochComesWithTheCommit`). Otherwise `Stage` only delegates.
 
 ## Enforcement
 `crates/core/src/states/` holds one file per state, each an `impl State`;

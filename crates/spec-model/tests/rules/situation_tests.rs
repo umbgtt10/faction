@@ -16,11 +16,30 @@ fn acknowledged(peer_id: &str) -> Reconfiguration {
     Reconfiguration::AdditionAcknowledged(String::from(peer_id))
 }
 
+fn at(epoch: u64) -> NodeState {
+    NodeState {
+        epoch,
+        ..NodeStates::concluded()
+    }
+}
+
+fn at_epoch(name: CommandName, epoch: u64, members: &[&str]) -> Command {
+    Command {
+        name,
+        peer_id: Some(String::from("2")),
+        required_count: Some(2),
+        epoch,
+        members: NodeStates::peers(members),
+    }
+}
+
 fn completion() -> Command {
     Command {
         name: CommandName::LocalParticipationCompleted,
         peer_id: None,
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -29,6 +48,8 @@ fn naming(name: CommandName, peer_id: &str) -> Command {
         name,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -37,6 +58,8 @@ fn new_count(required_count: u64) -> Command {
         name: CommandName::RequiredCountChanged,
         peer_id: None,
         required_count: Some(required_count),
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -45,6 +68,8 @@ fn readiness_from(peer_id: &str) -> Command {
         name: CommandName::ReadyObserved,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -121,6 +146,30 @@ fn holds_always_in_any_situation_is_true() {
 
     // Assert
     assert!(holds);
+}
+
+#[test]
+fn holds_claim_is_behind_below_the_node_s_epoch_only() {
+    // Arrange
+    let claims = [0, 1, 2].map(|epoch| at_epoch(CommandName::ReadyObserved, epoch, &[]));
+
+    // Act
+    let held = claims.map(|claim| Situation::ClaimIsBehind.holds(&claim, &at(1), &ADMITTED));
+
+    // Assert
+    assert_eq!(held, [true, false, false]);
+}
+
+#[test]
+fn holds_commit_is_held_from_1_to_the_node_s_epoch_only() {
+    // Arrange
+    let commits = [0, 1, 2, 3].map(|epoch| at_epoch(CommandName::AdditionCommitted, epoch, &[]));
+
+    // Act
+    let held = commits.map(|commit| Situation::CommitIsHeld.holds(&commit, &at(2), &ADMITTED));
+
+    // Assert
+    assert_eq!(held, [false, true, true, false]);
 }
 
 #[test]
@@ -245,6 +294,59 @@ fn holds_loses_quorum_when_the_quorum_stays_held_is_false() {
 
     // Assert
     assert!(!holds);
+}
+
+#[test]
+fn holds_membership_concludes_once_the_collecting_peers_reach_its_count() {
+    // Arrange
+    let collecting = NodeState {
+        epoch: 1,
+        ..NodeStates::of(Stage::Collecting, &[], &["1", "2"])
+    };
+    let reached = at_epoch(CommandName::MembershipReceived, 2, &["1", "2", "3"]);
+    let missed = Command {
+        required_count: Some(3),
+        ..reached.clone()
+    };
+
+    // Act
+    let held = [reached, missed].map(|membership| {
+        Situation::MembershipConcludes.holds(&membership, &collecting, &ADMITTED)
+    });
+
+    // Assert
+    assert_eq!(held, [true, false]);
+}
+
+#[test]
+fn holds_membership_is_held_at_or_below_the_node_s_epoch() {
+    // Arrange
+    let memberships = [0, 2, 3].map(|epoch| at_epoch(CommandName::MembershipReceived, epoch, &[]));
+
+    // Act
+    let held = memberships
+        .map(|membership| Situation::MembershipIsHeld.holds(&membership, &at(2), &ADMITTED));
+
+    // Assert
+    assert_eq!(held, [true, true, false]);
+}
+
+#[test]
+fn holds_membership_names_the_node_when_its_members_list_it() {
+    // Arrange
+    let naming = at_epoch(CommandName::MembershipReceived, 1, &["3", "1"]);
+    let omitting = at_epoch(CommandName::MembershipReceived, 1, &["2", "3"]);
+
+    // Act
+    let held = [&naming, &omitting].map(|membership| {
+        (
+            Situation::MembershipNamesNode.holds(membership, &at(0), &ADMITTED),
+            Situation::MembershipOmitsNode.holds(membership, &at(0), &ADMITTED),
+        )
+    });
+
+    // Assert
+    assert_eq!(held, [(true, false), (false, true)]);
 }
 
 #[test]

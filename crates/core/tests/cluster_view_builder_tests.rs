@@ -35,6 +35,22 @@ fn deadline_missed_resolves_to_timed_out_at_build() {
 }
 
 #[test]
+fn from_view_at_moves_the_view_to_the_epoch_and_from_view_keeps_it() {
+    // Arrange
+    let view = base().build();
+
+    // Act
+    let moved = ClusterViewBuilder::from_view_at(&view, 4).build();
+    let copy = ClusterViewBuilder::from_view(&moved).build();
+
+    // Assert
+    assert_eq!(view.epoch(), 0);
+    assert_eq!(moved.epoch(), 4);
+    assert_eq!(moved.members(), view.members());
+    assert_eq!(copy, moved);
+}
+
+#[test]
 fn from_view_copies_every_field() {
     // Arrange
     let view = base()

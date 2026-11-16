@@ -32,7 +32,7 @@ use rstest::rstest;
 fn cluster_converges_when_a_ready_is_dropped(#[case] size: usize, #[case] quorum: usize) {
     // Arrange
     let mut cluster = Cluster::new(size, quorum, 1);
-    cluster.drop_message(0, 1, TransportMessage::Ready { from: 0 }, 1);
+    cluster.drop_message(0, 1, TransportMessage::Ready { from: 0, epoch: 0 }, 1);
     cluster.start_all();
 
     // Act
