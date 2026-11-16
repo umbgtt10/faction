@@ -8,20 +8,28 @@ use crate::process::command_runner::CommandRunner;
 const BINARY: &str = "cargo-dry4rust";
 const CEILING_EXCEEDED: i32 = 1;
 
-// Faction carries no duplication and records none: zero ceilings, no
-// baseline, at the floor the *4rust tools use, over what dry4rust.toml leaves
-// in.
+// Duplication in the library's source, over what dry4rust.toml leaves in, at
+// the floor the sibling bookkeepers use: zero ceilings against the baseline,
+// the duplication already there when the floor came down to it, so a change
+// fails on what it adds and passes on what it removes.
 pub struct DryGate<'a> {
     runner: &'a dyn CommandRunner,
     path: String,
+    baseline: String,
     min_nodes: String,
 }
 
 impl<'a> DryGate<'a> {
-    pub fn new(runner: &'a dyn CommandRunner, path: String, min_nodes: String) -> Self {
+    pub fn new(
+        runner: &'a dyn CommandRunner,
+        path: String,
+        baseline: String,
+        min_nodes: String,
+    ) -> Self {
         Self {
             runner,
             path,
+            baseline,
             min_nodes,
         }
     }
@@ -39,10 +47,15 @@ impl Gate for DryGate<'_> {
             });
         }
 
+        // Zero ceilings against the baseline: what the baseline records was here
+        // before the gate was, and anything beyond it is what a change added. The
+        // baseline was recorded at this floor and only matches at this floor.
         let args = vec![
             String::from("dry4rust"),
             String::from("--path"),
             self.path.clone(),
+            String::from("--baseline"),
+            self.baseline.clone(),
             String::from("--min-nodes"),
             self.min_nodes.clone(),
             String::from("check"),
@@ -52,11 +65,13 @@ impl Gate for DryGate<'_> {
             String::from("0"),
         ];
 
-        // 1 is the tool's own "a ceiling was exceeded"; 2 is a configuration it
-        // refused, which means it measured nothing.
+        // 1 is the tool's own "a ceiling was exceeded"; 2 is a configuration or a
+        // baseline it refused, which means it measured nothing.
         match self.runner.run_streaming("cargo", &args)? {
             Some(0) => Ok(()),
-            Some(CEILING_EXCEEDED) => Err(GateFailure::Duplicated),
+            Some(CEILING_EXCEEDED) => Err(GateFailure::DuplicationAdded {
+                baseline: self.baseline.clone(),
+            }),
             code => Err(GateFailure::CouldNotRun { exit_code: code }),
         }
     }

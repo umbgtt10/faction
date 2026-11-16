@@ -15,7 +15,7 @@
 //!
 //! **Phases 1 to 4 of six are built** -- bootstrapping, dynamic joining,
 //! single-node addition, failure detection and single-node removal --
-//! conformant to version 0.4.0 of the specification in the repository's
+//! conformant to version 0.4.1 of the specification in the repository's
 //! `spec/`.
 //!
 //! # What it does

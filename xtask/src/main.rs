@@ -45,7 +45,8 @@ const LOG_RUN: &str = "FACTION_LOG_RUN";
 const ALL_TESTS: &str = "all_tests";
 const CRAP_THRESHOLD: &str = "15";
 const ICEBERG_THRESHOLD: &str = "5";
-const DRY_MIN_NODES: &str = "25";
+const DRY_BASELINE: &str = "dry4rust-baseline.json";
+const DRY_MIN_NODES: &str = "10";
 const MAX_PARALLEL: &str = "6";
 const TIMEOUT_SECS: &str = "300";
 const RUNS_TO_KEEP: usize = 50;
@@ -133,6 +134,7 @@ fn stage2() -> Result<&'static str, String> {
     let dry = DryGate::new(
         &runner,
         root.to_string_lossy().into_owned(),
+        root.join(DRY_BASELINE).to_string_lossy().into_owned(),
         String::from(DRY_MIN_NODES),
     );
     // The library: the bill paid here is the library's.

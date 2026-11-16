@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:faction:spec:0.4.0:schema",
-  "title": "faction 0.4.0 -- the data model",
+  "$id": "urn:faction:spec:0.4.1:schema",
+  "title": "faction 0.4.1 -- the data model",
   "description": "Every command, result, outcome and view, and the forms of a conformance vector and of the decision table. Normative with SPEC.md.",
   "$ref": "#/$defs/vector",
   "$defs": {
@@ -1848,6 +1848,28 @@
                   "unchanged"
                 ]
               }
+            }
+          }
+        }
+      }
+    },
+    "released": {
+      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vectors"],
+      "properties": {
+        "vectors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "version", "sha256"],
+            "properties": {
+              "id": { "type": "string" },
+              "version": { "type": "string" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
             }
           }
         }

@@ -290,7 +290,7 @@ for.
 
 | Metric | Value |
 |---|---|
-| Specification | 0.4.0 — 56 rows, 93 vectors, every row exercised |
+| Specification | 0.4.1 — 56 rows, 93 vectors, every row exercised, each vector kept as released |
 | Property invariant | A removal proposed exactly when the quorum can spare the member |
 | In-process scenarios | 7 |
 | System scenarios | 5, in all 10 spawn and transport cases |

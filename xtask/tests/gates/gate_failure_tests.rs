@@ -149,6 +149,20 @@ fn to_string_of_a_tool_that_could_not_run_names_its_exit_code() {
 }
 
 #[test]
+fn to_string_of_added_duplication_names_the_baseline() {
+    // Arrange
+    let failure = GateFailure::DuplicationAdded {
+        baseline: String::from("dry4rust-baseline.json"),
+    };
+
+    // Act
+    let shown = failure.to_string();
+
+    // Assert
+    assert_eq!(shown, "duplication was added beyond dry4rust-baseline.json");
+}
+
+#[test]
 fn to_string_of_an_unread_report_carries_what_the_tool_left() {
     // Arrange
     let failure = GateFailure::Unreported {
@@ -189,18 +203,6 @@ fn to_string_of_crappy_functions_agrees_with_their_number() {
             String::from("3 crappy functions detected")
         ]
     );
-}
-
-#[test]
-fn to_string_of_duplication_says_it_was_found() {
-    // Arrange
-    let failure = GateFailure::Duplicated;
-
-    // Act
-    let shown = failure.to_string();
-
-    // Assert
-    assert_eq!(shown, "duplicated code was found");
 }
 
 #[test]

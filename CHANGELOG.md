@@ -5,6 +5,18 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Changed
+- The specification is 0.4.1: it answers every command as 0.4.0 does, and keeps a release's vectors as released, as
+  beggar's and cartel's do. The growth rule omits a member a later version adds at its initial value and names a
+  command a later version adds in no earlier vector's admissible commands; `spec/released.json` lists all 93 vectors
+  by the version that released their bytes and the SHA-256 of them, and a test fails on one removed or changed.
+  Before the rule the encoding grew in place -- 0.2.0 to 0.4.0 rewrote the vectors released before them, never an
+  outcome -- which the specification records.
+- The conformance tier checks that no public name of the crate and no name of the schema holds a word the
+  vocabulary leaves out, as cartel's does: cartel's list less `view`, `commit`, `committed` and `epoch`, faction's
+  own (`docs/ARCHITECTURE.md`). The gates' duplication check comes down to the floor its siblings use, 10 nodes,
+  against a baseline of the nine groups already there.
+
 ## [0.8.2] — 2026-11-16
 
 ### Published on crates.io

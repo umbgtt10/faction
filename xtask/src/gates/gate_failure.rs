@@ -24,7 +24,9 @@ pub enum GateFailure {
     Crappy {
         count: u32,
     },
-    Duplicated,
+    DuplicationAdded {
+        baseline: String,
+    },
     JobsFile {
         path: String,
         reason: String,
@@ -79,7 +81,9 @@ impl fmt::Display for GateFailure {
             // than as a finding about the code.
             Self::Crappy { count: 1 } => write!(formatter, "1 crappy function detected"),
             Self::Crappy { count } => write!(formatter, "{count} crappy functions detected"),
-            Self::Duplicated => write!(formatter, "duplicated code was found"),
+            Self::DuplicationAdded { baseline } => {
+                write!(formatter, "duplication was added beyond {baseline}")
+            }
             Self::JobsFile { path, reason } => {
                 write!(
                     formatter,

@@ -512,6 +512,25 @@ above: a TLA+ model would check the Mealy machine's logic exhaustively; the
 specification and its vectors check that independent implementations agree
 with this one.
 
+### Words left out
+
+No public name of the crate and no name of the specification's schema holds one
+of these words; the ladder's conformance tier checks both, as cartel's does,
+from cartel's list less four of faction's own.
+
+| left out | why | faction says |
+|---|---|---|
+| term, height, slot | each is one protocol's | stage |
+| leader, candidate, proposer, validator | roles | peer, member |
+| prepare, prevote | phases' names | stage |
+| block, log, entry, index | what consensus decides | -- |
+| majority, supermajority | rules | quorum, required count |
+| certificate, signature, proof | evidence | -- |
+| elected, prepared, decided, value | what a quorum means to one protocol | concluded |
+
+Kept, though cartel leaves them out: `view`, the cluster view; `commit` and
+`committed`, the layer above that commits a change; and `epoch`, Phase 5's.
+
 ---
 
 ## Design decisions

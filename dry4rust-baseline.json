@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "kind": "exact",
+      "fingerprint": "00c8e51c72bf7bf1",
+      "members": 10,
+      "names": [
+        "Protocol::abort_addition",
+        "Protocol::abort_removal",
+        "Protocol::admit",
+        "Protocol::change_required_count",
+        "Protocol::commit_addition",
+        "Protocol::commit_removal",
+        "Protocol::deny",
+        "Protocol::request_addition",
+        "Protocol::request_join",
+        "Protocol::request_removal"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "0579faa8a8f314e2",
+      "members": 2,
+      "names": [
+        "ClusterView::members",
+        "MembershipStep::members"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "1d62fae72e33de7c",
+      "members": 4,
+      "names": [
+        "ClusterViewBuilder::with_collecting_peers",
+        "ClusterViewBuilder::with_deadline_missed",
+        "ClusterViewBuilder::with_is_pinging_completed",
+        "ClusterViewBuilder::with_pinging_peers"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "3a2d0b5974fda8c5",
+      "members": 2,
+      "names": [
+        "Members::is_member",
+        "Suspicion::is_suspected"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "583b8e11699dc121",
+      "members": 8,
+      "names": [
+        "ClusterViewBuilder::with_last_probed",
+        "ClusterViewBuilder::with_members",
+        "ClusterViewBuilder::with_misses",
+        "ClusterViewBuilder::with_peer_state",
+        "ClusterViewBuilder::with_quorum",
+        "ClusterViewBuilder::with_reconfiguration",
+        "ClusterViewBuilder::with_required_count",
+        "ClusterViewBuilder::with_suspected"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "786170e7ed026e05",
+      "members": 4,
+      "names": [
+        "CommandName::of",
+        "OutcomeName::of",
+        "Stage::of",
+        "ResultName::of"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "b3df0f0d0ed90f8f",
+      "members": 2,
+      "names": [
+        "Liveness::last_probed",
+        "Config::required_count"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "cccf62d6f64bd154",
+      "members": 17,
+      "names": [
+        "ClusterView::collecting_peers",
+        "ClusterView::misses",
+        "ClusterView::pinging_peers",
+        "ClusterView::suspected",
+        "Members::as_slice",
+        "ReadyStep::confirmed_peers",
+        "ReadyStep::outcomes",
+        "LocalCompletionStep::confirmed_peers",
+        "LocalCompletionStep::outcomes",
+        "ReadyBeforeCompletionStep::collecting_peers",
+        "ReadyBeforeCompletionStep::outcomes",
+        "MembershipStep::outcomes",
+        "PingingStep::confirmed_peers",
+        "PingingStep::outcomes",
+        "Suspicion::misses",
+        "Suspicion::suspected",
+        "Config::peers"
+      ]
+    },
+    {
+      "kind": "exact",
+      "fingerprint": "ed2bd83078277aac",
+      "members": 2,
+      "names": [
+        "Liveness::misses",
+        "Liveness::suspected"
+      ]
+    }
+  ]
+}

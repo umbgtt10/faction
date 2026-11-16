@@ -46,7 +46,7 @@ code. It runs, in this order:
 | gate | asks |
 |---|---|
 | `cargo stern4rust` | do the house coding rules hold, in every package (`stern4rust.toml`) |
-| `cargo dry4rust` | is any code duplicated in the library's source (`dry4rust.toml`, floor 25 nodes, no baseline) |
+| `cargo dry4rust` | did this change add duplicated code to the library's source (`dry4rust.toml`, floor 10 nodes, as beggar's and cartel's, against `dry4rust-baseline.json`: the nine groups there when the floor came down, one-line accessors most of them; re-record only to drop groups that are gone, at the same floor: `cargo dry4rust --path "$PWD" --min-nodes 10 --baseline "$PWD/dry4rust-baseline.json" baseline`) |
 | `cargo crap4rust` | is any function of the library -- `faction`, `faction-protocol`, `faction-spec-model` -- complex and untested (threshold 15) |
 | `cargo llvm-cov` | is every line, region and function of the library covered, the ladder's tiers counted |
 | `cargo llvm-cov`, conformance alone | is every line, region and function of `faction` and of the specification's model reached by the specification's vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`) |
@@ -142,12 +142,13 @@ conformance tier fails; a command, an outcome or a stage the vocabulary gains is
 
 ### Additive releases
 
-A phase only adds: commands, outcomes, stages, configuration, fields of the view. No
-outcome an earlier release answers ever changes. What grows is the encoding: the view
-gains fields and a stage admits new commands, so an earlier vector is rewritten where its
-view or its admissible commands grow -- and once, when removal arrived, the view's
-`addition` became `reconfiguration`. Phase 0's tests pass unchanged at Phase 6
-(`docs/ROADMAP.md`).
+A phase only adds: commands, outcomes, stages, configuration, fields of the view. It never
+changes what an earlier release answers: the specification's growth rule (§1) omits a new
+member at its initial value and names a new command in no earlier vector's admissible
+commands, so every released vector passes unchanged, and `spec/released.json` fails the
+conformance tier on one removed or edited. Before the rule the encoding grew in place,
+rewriting vectors -- never an outcome -- and the view's `addition` became
+`reconfiguration`. Phase 0's tests pass unchanged at Phase 6 (`docs/ROADMAP.md`).
 
 ## Orthogonality, trait surface and cognitive complexity
 

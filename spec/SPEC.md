@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.4.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.4.1.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -12,7 +12,8 @@ the conclusion, with the deadline; joining, a newcomer admitted or denied in eve
 growing by one through the layer that commits changes above it; removal, a concluded cluster shrinking by one through
 the same layer, and a node removed from its own; the required count in effect; liveness, a concluded
 node probing its members and suspecting those it cannot reach; quorum, its members not suspected against the count;
-and the probe. Each command with every row it has.
+and the probe. Each command with every row it has. 0.4.1 answers every command as 0.4.0 does, and adds what keeps a
+release's vectors as released: the growth rule (§1) and `released.json` (§16).
 
 ## 1. Conventions
 
@@ -43,6 +44,15 @@ identical, and a list never holds a peer twice
 ([`P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder`](../docs/ADRs/P2-ADR-EffectSequenceOrderingAndCanonicalCollectionOrder.md)).
 
 **Outcomes are a sequence**: their order is part of the answer.
+
+**Growth.** A member a later version adds to a form is omitted wherever it holds the value that keeps the earlier
+version's behaviour, and a command a later version adds is named in no earlier vector's admissible commands: an
+implementation conforms to a vector of an earlier version when the commands it admits, among those that version
+names, are the vector's. Every answer this version gives is therefore given the same by every later version, and
+every vector released here passes unchanged there. Before the rule was written the encoding grew in place: 0.2.0,
+0.3.0 and 0.4.0 each added fields to the view and the configuration, and commands to what earlier stages admit,
+rewriting the vectors released before them -- never an outcome -- and 0.4.0 renamed the view's `addition` to
+`reconfiguration`.
 
 ## 2. A node
 
@@ -348,7 +358,11 @@ admissible commands it is `Probed` with. A vector states nothing of an implement
 state the way a caller would.
 
 **Each vector names the rows of the matrix it exercises.** Every vector is valid against the schema's `vector`; the
-matrix is valid against its `matrix`; and every row of the matrix is exercised by at least one vector.
+matrix is valid against its `matrix`; [`released.json`](released.json) is valid against its `released`; and every
+row of the matrix is exercised by at least one vector.
+
+**Released vectors are kept.** `released.json` lists every vector of every released version by its file's name, the
+version that released its bytes and the SHA-256 digest of them. A listed vector is never removed or edited.
 
 **An implementation conforms** when, created from each vector's configuration with an observer that does nothing
 and given each step's command in turn, it answers each with the step's result, and the closing `Probe` with the

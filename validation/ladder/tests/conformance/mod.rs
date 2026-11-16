@@ -3,3 +3,4 @@
 
 pub mod faction_tests;
 pub mod spec_model_tests;
+pub mod specification_tests;

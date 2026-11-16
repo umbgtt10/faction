@@ -111,6 +111,24 @@ specification's form needs nothing more of it.
 
 ---
 
+## Numbered results, as the siblings' receipts are
+
+Beggar and cartel answer every call with a receipt numbered by the bookkeeper, one
+more than the last, so a gap in a log's numbers proves a line lost; faction's
+`ProcessResult` carries no number, and its replay (`P0-ADR-DeterministicReplayable`)
+rebuilds state from the input log without telling a lost line from none. Numbering
+would add that to faction too, and is the one difference of shape the 2026-11-16
+consistency check found between the three that is not faction's state machine.
+
+Not now: a number in every result changes the crate's API and the specification's
+every vector, and every consumer with them -- Raft's `raft-faction`, IBFT's
+integration and their Embassy builds. It is a candidate for the next phase that
+breaks the encoding anyway, specified first (a `number` in each result, an
+instance id to tell two runs' numbers apart, as the siblings' are), with the
+growth rule deciding how released vectors carry it.
+
+---
+
 ## Deferred
 
 - `PeerId` genericization (currently `u64`) — deferred to post-Phase-6.

@@ -6,7 +6,12 @@ use xtask::gates::dry_gate::DryGate;
 use xtask::gates::gate::Gate;
 
 fn gate(runner: &FakeCommandRunner) -> DryGate<'_> {
-    DryGate::new(runner, String::from("/repo"), String::from("25"))
+    DryGate::new(
+        runner,
+        String::from("/repo/crates/core/src"),
+        String::from("/repo/dry4rust-baseline.json"),
+        String::from("20"),
+    )
 }
 
 #[test]
@@ -21,10 +26,12 @@ fn label_names_the_duplication_gate() {
     assert_eq!(label, "Duplication");
 }
 
-// Zero ceilings and no baseline: Faction carries no duplication, so a check
-// against nothing recorded fails on any.
+// The baseline is what turns a zero ceiling into a gate on what a change adds
+// rather than a wall made of what was already there. The floor keeps out the
+// one-line accessors every rule has to write, which would otherwise grow a
+// recorded group with each rule added.
 #[test]
-fn run_checks_the_path_above_the_floor_with_zero_ceilings_and_no_baseline() {
+fn run_checks_the_path_above_the_floor_against_the_baseline_with_zero_ceilings() {
     // Arrange
     let runner = FakeCommandRunner::new();
 
@@ -37,9 +44,11 @@ fn run_checks_the_path_above_the_floor_with_zero_ceilings_and_no_baseline() {
         vec![
             String::from("dry4rust"),
             String::from("--path"),
-            String::from("/repo"),
+            String::from("/repo/crates/core/src"),
+            String::from("--baseline"),
+            String::from("/repo/dry4rust-baseline.json"),
             String::from("--min-nodes"),
-            String::from("25"),
+            String::from("20"),
             String::from("check"),
             String::from("--max-exact"),
             String::from("0"),
@@ -62,9 +71,9 @@ fn run_with_a_zero_exit_code_returns_ok() {
 }
 
 // 1 is dry4rust's own "a ceiling was exceeded", which has to read as
-// duplication found rather than as the tool failing to run.
+// duplication added rather than as the tool failing to run.
 #[test]
-fn run_with_exit_code_one_reports_duplication_found() {
+fn run_with_exit_code_one_reports_duplication_beyond_the_baseline() {
     // Arrange
     let runner = FakeCommandRunner::new().with_streaming_code(Some(1));
 
@@ -74,12 +83,14 @@ fn run_with_exit_code_one_reports_duplication_found() {
     // Assert
     assert_eq!(
         result.map_err(|failure| failure.to_string()),
-        Err(String::from("duplicated code was found"))
+        Err(String::from(
+            "duplication was added beyond /repo/dry4rust-baseline.json"
+        ))
     );
 }
 
-// 2 is a configuration dry4rust refused: the tool did not get as far as
-// measuring anything.
+// 2 is a configuration dry4rust refused, or a baseline it could not read --
+// the tool did not get as far as measuring anything.
 #[test]
 fn run_with_exit_code_two_reports_the_exit_code() {
     // Arrange

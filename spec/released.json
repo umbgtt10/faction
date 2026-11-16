@@ -1,0 +1,469 @@
+{
+ "vectors": [
+  {
+   "id": "01-probe-on-a-fresh-node",
+   "version": "0.4.0",
+   "sha256": "91e1b7a61fd139f28f0c64c1d61765528b358fc9feb414750697fe056263e239"
+  },
+  {
+   "id": "02-deadline-before-anything",
+   "version": "0.4.0",
+   "sha256": "21ff5ad315cf864f6fa40f02ea70f05130078fbc2c326fcab3f2b9b9e4ec61b0"
+  },
+  {
+   "id": "03-participation-accepted",
+   "version": "0.4.0",
+   "sha256": "7de90e8f3e84023afcf5de527549ba4e729ff0bf64fe019c9cc4156cfb64bc26"
+  },
+  {
+   "id": "04-participation-in-arrival-order",
+   "version": "0.4.0",
+   "sha256": "cdcb12b6e0e2bf45ecca7047b073a5bca091cc746e2659c12a0575dcd1307960"
+  },
+  {
+   "id": "05-participation-duplicate",
+   "version": "0.4.0",
+   "sha256": "64cc9dcb8784db7b5325294ba7a54d64c32af870c780063f7aafb1937abaa418"
+  },
+  {
+   "id": "06-non-member-participation-from-initial",
+   "version": "0.4.0",
+   "sha256": "0030e5565c37b705f7de194b4cccb8ebd0ec42b6b7a322a49e0149add422bc7d"
+  },
+  {
+   "id": "07-non-member-readiness-while-pinging",
+   "version": "0.4.0",
+   "sha256": "75796cd5ca2d20a018474699ce9551a2ad44adc0cf12715131bf1ffec4323249"
+  },
+  {
+   "id": "08-readiness-accumulates-before-completion",
+   "version": "0.4.0",
+   "sha256": "27c0203dd9239e2ac1643f1790856ab389f27269380355bcd90f392955b11cff"
+  },
+  {
+   "id": "09-readiness-duplicate-before-completion",
+   "version": "0.4.0",
+   "sha256": "1e3c68401647f25b87461c348f4a57b5ca88371609ac78e6429456592ea2d1fd"
+  },
+  {
+   "id": "10-local-completion-below-the-required-count",
+   "version": "0.4.0",
+   "sha256": "eb6b5aeda8b660fff415665b26a1ee5d93b120f47dd3fef727c227255b3de953"
+  },
+  {
+   "id": "11-local-completion-straight-from-initial",
+   "version": "0.4.0",
+   "sha256": "5aa7361140486f294606d267e87b825ede92cc6a9845ed9b4a9961b47eb64c2a"
+  },
+  {
+   "id": "12-local-completion-counts-earlier-readiness",
+   "version": "0.4.0",
+   "sha256": "db81d7fdeff737e59dc399c1e1ae5c233cf152cdec63ed33df0dbb21bfb445c4"
+  },
+  {
+   "id": "13-own-readiness-before-completion",
+   "version": "0.4.0",
+   "sha256": "57f87e1d0da010de4779c8687f3143eb6aa84ea832b1a75531861562be42fae2"
+  },
+  {
+   "id": "14-local-completion-at-a-required-count-of-one",
+   "version": "0.4.0",
+   "sha256": "a9954e9ad58baa6faad005df597ec7239d47de3a4a7e632196496e050a526fa7"
+  },
+  {
+   "id": "15-local-completion-at-a-required-count-of-zero",
+   "version": "0.4.0",
+   "sha256": "8bbe7ec8a05618997a8c8fa7058719724afd9a896941533d223ffa2b24b726c1"
+  },
+  {
+   "id": "16-readiness-while-collecting",
+   "version": "0.4.0",
+   "sha256": "6a4869c7f1272044543dbefeda45f9dae26dfc22a9263eedbfc31cc8dec489c0"
+  },
+  {
+   "id": "17-readiness-concludes",
+   "version": "0.4.0",
+   "sha256": "a9999c9193cb1e72f2338d7426e3ca8e9645fdbd122ba45148c4ae39fc18ab24"
+  },
+  {
+   "id": "18-readiness-duplicate-while-collecting",
+   "version": "0.4.0",
+   "sha256": "ed0c465e64679c9ebab1b295d3ca2e9df6606780d61dbf1fe6a84948fd57e1ee"
+  },
+  {
+   "id": "19-completing-twice",
+   "version": "0.4.0",
+   "sha256": "77971db6cd571b58c9d4c89d575ab387ff0c3e55452deb9ec17e5b02a75280c2"
+  },
+  {
+   "id": "20-non-member-while-collecting",
+   "version": "0.4.0",
+   "sha256": "fef0f4b3dfb35b5cbae2a2e85e73416d718931997f1a00352355aa3e21eb16d1"
+  },
+  {
+   "id": "21-rejoin-while-collecting",
+   "version": "0.4.0",
+   "sha256": "fd7554c35a664e150ea0494cbdf07496a3d9693b98d3f3734f76baa7d7739fc8"
+  },
+  {
+   "id": "22-rejoin-when-bootstrapped",
+   "version": "0.4.0",
+   "sha256": "d750ef044ac1d54341728c1591e4234ebcc8deb3f5b102b8a7a5aa5220a914bd"
+  },
+  {
+   "id": "23-non-member-when-bootstrapped",
+   "version": "0.4.0",
+   "sha256": "d48e9d6d99c5c5c85dba127945f6642e733ebbff1c6ad2b0647e2f8914833293"
+  },
+  {
+   "id": "24-bootstrapped-rejects-the-rest",
+   "version": "0.4.0",
+   "sha256": "8c3ae16cde46744a132ed99d657efc7dc911e31a22a9f6d1bcf107df6d9f107d"
+  },
+  {
+   "id": "25-deadline-missed-while-pinging",
+   "version": "0.4.0",
+   "sha256": "e38b40f4f9c5c3590485142a6e9b8c0cebb089a3503abfeeb3a65169bd1743e5"
+  },
+  {
+   "id": "26-deadline-missed-counts-collecting-peers",
+   "version": "0.4.0",
+   "sha256": "4c0326d5619bf1d188ac317bbd76e1f41769eaa0bd5ee3ed9b68f515f37b5810"
+  },
+  {
+   "id": "27-timed-out-node-completes",
+   "version": "0.4.0",
+   "sha256": "1f84490bc0b3d5e4915c8600e91cd7bba75133e33d957d70210edf2dd0626c63"
+  },
+  {
+   "id": "28-deadline-missed-while-collecting",
+   "version": "0.4.0",
+   "sha256": "bdd826641105e6cc4d6c0f5f59cd5efd536c011a88d69d162096a22eab708f41"
+  },
+  {
+   "id": "29-timed-out-node-concludes",
+   "version": "0.4.0",
+   "sha256": "238b860734fdde280c7f3ec5a71b0501f393e8bc565ef58399c250ca5ed8afee"
+  },
+  {
+   "id": "30-join-request-forwarded-each-time",
+   "version": "0.4.0",
+   "sha256": "b66dcb7812000e8bbb353cce34ccac60c1779e9e8d5e9d93da9179571490da8d"
+  },
+  {
+   "id": "31-join-approved-admits",
+   "version": "0.4.0",
+   "sha256": "29bf2ec83f714ae9a6d471d63f130a2d46004ab1ab23142cca4a9dd705abbf2f"
+  },
+  {
+   "id": "32-approving-a-member",
+   "version": "0.4.0",
+   "sha256": "6ac2c8e47f1603dd2cf18365e5516eabe810a3eb8df043591237bd62708f58bc"
+  },
+  {
+   "id": "33-join-rejected",
+   "version": "0.4.0",
+   "sha256": "4eea99a093087712f93f284a664b1953d712607e25c026b1006a0b01ac1f6e36"
+  },
+  {
+   "id": "34-admitted-peer-is-counted",
+   "version": "0.4.0",
+   "sha256": "529d6e1bfcebcbbc4ace5449b7782d355ed35112901698b741381e6d2c8f8ede"
+  },
+  {
+   "id": "35-admission-does-not-count-earlier-signals",
+   "version": "0.4.0",
+   "sha256": "53846b8b9adcf65ce69830bac343638e671e5fb47d6c5286f258a5e4fc3e7570"
+  },
+  {
+   "id": "36-admission-keeps-the-required-count",
+   "version": "0.4.0",
+   "sha256": "3da36272be8db1af4b3dc708a0a21acb6c8e3272b40fc77fec28f4d69e7847f1"
+  },
+  {
+   "id": "37-joins-while-collecting",
+   "version": "0.4.0",
+   "sha256": "29f37c5d9d333341fb90f69a3f6ba7ce663f6b7a3153ad9d6874d9669b815a04"
+  },
+  {
+   "id": "38-newcomer-rejoins-a-bootstrapped-node",
+   "version": "0.4.0",
+   "sha256": "bcbb9f8afee366e82278a9db223c5fd8c74b10f99b8f01b9fe40945568f9cf8a"
+  },
+  {
+   "id": "39-probe-changes-nothing",
+   "version": "0.4.0",
+   "sha256": "3fa625c45bf7ce8dfd4fd5ae9f369bb4c80fc229a0f2d45b97f1600cf554a85f"
+  },
+  {
+   "id": "40-rejected-deadline-is-not-recorded",
+   "version": "0.4.0",
+   "sha256": "8194d6e76cdc1654bd2a4fdfd845d0601ec0ee46495edd1f97d6228640fa56b1"
+  },
+  {
+   "id": "41-five-node-convergence",
+   "version": "0.4.0",
+   "sha256": "523a8727491783ed6cd51caed27031d8549da709ad1a7a17b18dc29f1daf569a"
+  },
+  {
+   "id": "42-addition-requested",
+   "version": "0.4.0",
+   "sha256": "f0b85f9036f76c35885c912822c3a0f74399cfc7b7b83650107ba20f102f2c6f"
+  },
+  {
+   "id": "43-addition-of-a-member",
+   "version": "0.4.0",
+   "sha256": "c967d099379d8f24a4a06f801df7b3a1fba4a6604b09493c7a14963d697e90a3"
+  },
+  {
+   "id": "44-addition-acknowledged",
+   "version": "0.4.0",
+   "sha256": "d1658ca7b85d090628b4d80f9322e4e46213b13d6600192be3e6fa656f6dc527"
+  },
+  {
+   "id": "45-acknowledgement-ignored",
+   "version": "0.4.0",
+   "sha256": "befeb800b0753fdfcc288992d996ee643cbb385d97289ad658ed98bea59a700b"
+  },
+  {
+   "id": "46-addition-aborted",
+   "version": "0.4.0",
+   "sha256": "8f52bebc4920a76ca2aa9ab9bbb49c25fbe3ab01cf23700dfe3fc604b377ee0f"
+  },
+  {
+   "id": "47-addition-completed",
+   "version": "0.4.0",
+   "sha256": "018630d2e5ed137d3137727853ff21904a29a569d740b13cd8e4e10cc022ad39"
+  },
+  {
+   "id": "48-reconfiguring-rejects-the-rest",
+   "version": "0.4.0",
+   "sha256": "0854bb8b5a54b438dfaacd7f0091bf37cfd17807b640f093e39ffd4dc5968d27"
+  },
+  {
+   "id": "49-commit-of-another-peer-while-reconfiguring",
+   "version": "0.4.0",
+   "sha256": "58419d39a2cd67b2418510048640e79995be27c5ad48cd0045fb3a9955feffae"
+  },
+  {
+   "id": "50-commit-on-a-node-that-coordinated-nothing",
+   "version": "0.4.0",
+   "sha256": "eab342c22a3a469f8c74fbad8653e2381ce3b7efae9be3b032e92140d8e7fd76"
+  },
+  {
+   "id": "51-commit-while-bootstrapping",
+   "version": "0.4.0",
+   "sha256": "36cac323aae6ebed6f0f852e2a9b64b3cc7fdf2f3141252ebd6927ef7790fa84"
+  },
+  {
+   "id": "52-commit-of-a-member",
+   "version": "0.4.0",
+   "sha256": "aa962ae774d8abbcea52987a6c402239acc3b8255b700d899fea9c54a955ad95"
+  },
+  {
+   "id": "53-required-count-set",
+   "version": "0.4.0",
+   "sha256": "c0a5a8c4de86b1bb08c9196d70d97b691960c8d5dea214e77b7020fee186e001"
+  },
+  {
+   "id": "54-required-count-concludes-while-collecting",
+   "version": "0.4.0",
+   "sha256": "d6710210bee5990c0b4d62cf2e6048d33267a3e988e23ed0ffa08cb6bbab716c"
+  },
+  {
+   "id": "55-raised-required-count-holds-a-collecting-node",
+   "version": "0.4.0",
+   "sha256": "e10ca26514c71dfc4e3fb181a9c75e94272db3f56f1b9a96ee08bbd3718e2bcf"
+  },
+  {
+   "id": "56-required-count-checked-at-completion",
+   "version": "0.4.0",
+   "sha256": "dae84309603ee65a7e785fbdbf99754fd125ec91b91fef67c85c48f180957363"
+  },
+  {
+   "id": "57-required-count-on-a-concluded-node",
+   "version": "0.4.0",
+   "sha256": "fa297f5a167bfe39074650d376249e4ebf794e16e96d56849dc16fce06336b04"
+  },
+  {
+   "id": "58-reconfiguring-answers-peers-and-joins",
+   "version": "0.4.0",
+   "sha256": "01778a960b9adfe92f8f8f62c82f6c059d21441e3c7e628c4da67c0246d5b0e7"
+  },
+  {
+   "id": "59-timed-out-node-reconfigures",
+   "version": "0.4.0",
+   "sha256": "153edcb86a8c4abba448050842888cf901528f831027b8b9d45bf2850499f918"
+  },
+  {
+   "id": "60-additions-one-after-another",
+   "version": "0.4.0",
+   "sha256": "64a5d01d39630f650f7dde21e10a1ac6b8bf9da390e43b88fb9cf198e9bbbdf8"
+  },
+  {
+   "id": "61-commit-before-acknowledgement",
+   "version": "0.4.0",
+   "sha256": "5642c90ec00b1d6796fe0f8842678364ad53ccc819d3c2968020574171ae2d47"
+  },
+  {
+   "id": "62-newcomer-answered-once-added",
+   "version": "0.4.0",
+   "sha256": "2c6bd3c7a35c96b6731e2e182c01b37c702c272809cb853a34dfca7817237c71"
+  },
+  {
+   "id": "63-probe-round-robin",
+   "version": "0.4.0",
+   "sha256": "65b8cd0a48998b2c5117dafc831d7207c802b915c631d3f0444cd758d6e2c6b6"
+  },
+  {
+   "id": "64-probe-alone",
+   "version": "0.4.0",
+   "sha256": "4e33037a1f2a422b950233aef39c25662dfe446d8be5761684d241ede8452026"
+  },
+  {
+   "id": "65-probe-reaches-a-member-admitted-mid-round",
+   "version": "0.4.0",
+   "sha256": "4b8c220b751e33f06a64b0daf9a7eb84241e4b0fbb885b80d1810205ae709466"
+  },
+  {
+   "id": "66-heard-alive",
+   "version": "0.4.0",
+   "sha256": "e7d96ab73e03e036f591423ed899c70e8902fa8140ad5fbf47bf01f3c62e6541"
+  },
+  {
+   "id": "67-liveness-of-the-node-itself-and-of-a-non-member",
+   "version": "0.4.0",
+   "sha256": "646e30983705df73dc8858b629edba553817212b0b308acac56005d9ef955e24"
+  },
+  {
+   "id": "68-probe-missed-lists-the-others",
+   "version": "0.4.0",
+   "sha256": "d6a44b6499e1048a5f833316b0c44324154899c2e84721ca9e2bbe871b3e48b5"
+  },
+  {
+   "id": "69-suspected-at-the-first-missed-period",
+   "version": "0.4.0",
+   "sha256": "8dd299c2a7a835035308e28e2156315819149ddd7f91df318fd2039665c2a3ef"
+  },
+  {
+   "id": "70-suspect-revived",
+   "version": "0.4.0",
+   "sha256": "d910f98432d140cf8b61479d83633952a685588c2c8269ea80516d30eaab81d9"
+  },
+  {
+   "id": "71-missed-periods-counted-to-the-threshold",
+   "version": "0.4.0",
+   "sha256": "90bca7568517d19431b98fe4cb22c55147e0879cba3004b8e13656564f94024a"
+  },
+  {
+   "id": "72-suspicion-loses-the-quorum-and-revival-restores-it",
+   "version": "0.4.0",
+   "sha256": "d02abc78743f2f7d9485da875b7f9a6ceae34821cee41b8d6ae4da150f3756bc"
+  },
+  {
+   "id": "73-count-loses-and-restores-the-quorum",
+   "version": "0.4.0",
+   "sha256": "9e857c455cbafb01177a267a5b71d482b5c476b2580e94d2a83082a3466da08f"
+  },
+  {
+   "id": "74-admission-restores-the-quorum",
+   "version": "0.4.0",
+   "sha256": "2002b839326ab9ddc6fb1d55adab561b0adb2bd5850cffe399f5109d283ef314"
+  },
+  {
+   "id": "75-commit-restores-the-quorum",
+   "version": "0.4.0",
+   "sha256": "585ba790c23545ba896f232b7867defa3e590c48a4863d22e4c1eb21cf58680b"
+  },
+  {
+   "id": "76-completed-addition-restores-the-quorum",
+   "version": "0.4.0",
+   "sha256": "3184285a5abb7dee2a233b2686a127590cd3aea0db842b099e8917f8411e4a3d"
+  },
+  {
+   "id": "77-liveness-before-the-conclusion",
+   "version": "0.4.0",
+   "sha256": "4734e7614a6c343fbc32d41c355d84f4c03a316d3c861ea161af1ce63afdd836"
+  },
+  {
+   "id": "78-liveness-while-reconfiguring",
+   "version": "0.4.0",
+   "sha256": "8ab02ae186c46bfd835da3490540d8d1477e121b061d2e7355e22f4443773686"
+  },
+  {
+   "id": "79-removal-of-a-suspect",
+   "version": "0.4.0",
+   "sha256": "932b64a77d32cccca94a9dba128f14e0561dca1ff24aca55c25470c39ba81fe5"
+  },
+  {
+   "id": "80-removal-refused-for-the-quorum",
+   "version": "0.4.0",
+   "sha256": "03b2bffdfcb44d257c4d0dcf6cd647e79937898d25c20628b4c1af81b48abb2d"
+  },
+  {
+   "id": "81-removal-of-a-non-member-and-one-change-at-a-time",
+   "version": "0.4.0",
+   "sha256": "b54875dc4c4abb2fada55e8c47f4374e9ec3861c4d526d7f7c5ad8c41e92a9ba"
+  },
+  {
+   "id": "82-removal-aborted",
+   "version": "0.4.0",
+   "sha256": "a5211919233b7aa1c2b441a0f0cb5216beb883f7026f63a67817bf523d8db30a"
+  },
+  {
+   "id": "83-removal-committed-while-bootstrapping",
+   "version": "0.4.0",
+   "sha256": "bcec494ef72646f748f3a601264ce4c8301bdbfc02033e26029e566c6d09add8"
+  },
+  {
+   "id": "84-removal-committed-on-a-fresh-node",
+   "version": "0.4.0",
+   "sha256": "4ca1895ff3cda3545d6a11a6a3cf56f911c1fc8c53982918c93c23d5e034967c"
+  },
+  {
+   "id": "85-own-removal-of-a-concluded-node",
+   "version": "0.4.0",
+   "sha256": "5bfed2f26e23a4cabc4452ad20f0bb23ccf84990251d37e263eaf8b312f48e1e"
+  },
+  {
+   "id": "86-removal-completion-loses-the-quorum",
+   "version": "0.4.0",
+   "sha256": "13e7b97294cfc6a0f7ccc97b2c3937f5c3cac7a04556718fa8b3511755e01767"
+  },
+  {
+   "id": "87-removal-loses-the-quorum-and-a-lowered-count-restores-it",
+   "version": "0.4.0",
+   "sha256": "b4d461c7c3ef7c238f9a9d26499c21884f1e495aa2ecf69a81cccb4961b3627b"
+  },
+  {
+   "id": "88-removal-committed-while-an-addition-is-in-flight",
+   "version": "0.4.0",
+   "sha256": "8517b4e1408c7c1fe190f0fdd41ca473e4357c137b82c1e14d513268bb2ce291"
+  },
+  {
+   "id": "89-removal-of-the-member-probed-last",
+   "version": "0.4.0",
+   "sha256": "b3a160317a0cf7a0a8b2adbfd1b26c4a52b26bca3d8650af9fdded2d4e1620e7"
+  },
+  {
+   "id": "90-own-removal-coordinated",
+   "version": "0.4.0",
+   "sha256": "bf72852b9dd7fd09e3a0745005ae7516d8822e4a4cdfa070458750130a533011"
+  },
+  {
+   "id": "91-own-removal-before-concluding",
+   "version": "0.4.0",
+   "sha256": "4293a6dd4f6bde5fe9afcf48ffd39cd61707fae3851812f5294d2b6210749bb3"
+  },
+  {
+   "id": "92-own-removal-while-pinging",
+   "version": "0.4.0",
+   "sha256": "2862474ffbf0e01006e040c115d91b7dbb8863b11179ca45d2993090de5f383c"
+  },
+  {
+   "id": "93-own-removal-while-collecting-past-the-deadline",
+   "version": "0.4.0",
+   "sha256": "27b666fedccd01b0d87dbdb2b0d4adf46c1a78054993eab1118bada797cbc29a"
+  }
+ ]
+}

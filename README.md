@@ -22,7 +22,7 @@ consensus begins?
 that answers the question deterministically, observably, and provably.
 
 **Phases 1 to 4 of six are built** (2026-11-13): bootstrapping, dynamic joining, single-node addition, failure
-detection and single-node removal, conformant to version 0.4.0 of the specification in [`spec/`](spec/SPEC.md).
+detection and single-node removal, conformant to version 0.4.1 of the specification in [`spec/`](spec/SPEC.md).
 Version 0.8.2 is on [crates.io](https://crates.io/crates/faction).
 
 ---
@@ -269,7 +269,7 @@ The caller owns the network. `faction` owns the state.
 | [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 56 rows and 93 conformance vectors | — |
 | `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 157 |
 | `crates/core/` unit tests | Each type and each step in isolation | 253 |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed | 209 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed | 211 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 97 |
 | `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, and removal | 193 |
@@ -299,8 +299,8 @@ across all combinations.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~1,970 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.4.0 — its independent model and the crate answer all 93 vectors as written |
-| Total tests | 1,587 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.4.1 — its independent model and the crate answer all 93 vectors as written, each kept as released |
+| Total tests | 1,589 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
