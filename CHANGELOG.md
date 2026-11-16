@@ -5,14 +5,58 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### Phase 5: every membership carries its epoch
+
 #### Added
+- [`spec/`](./spec/SPEC.md) 0.5.0: the epoch, the version of the membership a node holds
+  (`P1-ADR-TheEpochComesWithTheCommit`), the first growth under the specification's own rule.
+  The layer above numbers its changes, strictly increasing, and a commit brings its number:
+  a commit at or below the node's epoch is held already, `CommitIgnored`; any other moves the
+  epoch. A member's participation or readiness, or the awaited acknowledgement, from behind
+  is refused, `StaleEpochIgnored`, and answered with the membership, `SendMembership`;
+  liveness carries no epoch. A new command, `MembershipReceived`, admitted in every stage: at
+  or below the epoch, `MembershipIgnored`; above it, adopted, `MembershipAdopted` -- the
+  stage kept and its lists kept to the new members, a collecting node concluding on the new
+  count, a change in flight given up, `ChangeAbandoned`, a removed node it names back to
+  `Initial`, a node it does not name removed. The configuration and the view carry the epoch.
+  Fourteen rows (70 in all); fifteen vectors (108 in all). Epoch 0 is omitted wherever it
+  would stand, and the 93 vectors of 0.4.0 pass unchanged; `spec/released.json` lists the
+  commands each released version names, and a released vector's admissible commands are
+  compared among them.
+- The specification's independent model answers 0.5.0 before the crate does.
+- The crate: `faction::types::Epoch`, `Config::epoch`, `ClusterView::epoch`,
+  `ClusterViewBuilder::from_view_at`, `faction::states::epoch_rule::EpochRule`,
+  `faction::states::adoption::Adoption`, `Removed::departure`, `MembershipDecision::Adopted`,
+  `Bootstrapped::changed` and `Bootstrapped::departure`.
+- `faction-protocol`: the epoch on `Ping`, `Ready`, `Membership` and
+  `MembershipAcknowledged`, and on the broadcasts; a running node takes a membership a peer
+  sends as a newcomer does, through `faction_protocol::offer::Offer`, and acknowledges it at
+  its new epoch; `Protocol::invites`, for whoever runs a removed node to make it a newcomer
+  again; `Protocol::commit(Commit)`, the layer above's commit and its epoch.
+- The matrix tier covers the fourteen rows; the property tier draws epochs and memberships,
+  and holds that a node's epoch never decreases and that a claim from behind never counts;
+  the in-process cluster restarts a node and runs five scenarios; the system tests restart
+  nodes in place, re-add a removed one, partition one behind and set one ahead, in every
+  spawn and transport (50 tests), the harness numbering its commits as the layer above.
 - A memory tier, `validation/memory/`, as beggar's and cartel's: a counting allocator in a test binary of its own
   holds the README's claim that the machine is slim by construction. A conclusion holds more for more peers and
   nothing for the duplicates and probes between its signals; a thousand probe periods, each suspecting a member and
   reviving it, hold what one does; a hundred membership changes, each a newcomer added and removed, hold what one
   does; and nothing is left once the machine is gone.
 
+#### Changed — breaking
+- `Command` gains `MembershipReceived` and an `epoch` on six variants, and is no longer `Copy`;
+  `Outcome` gains its five variants; `Config::new` takes the epoch; `ClusterView::new` takes it.
+- `State::step` takes the node's epoch, and `Stage::admissible_commands` with it.
+- `Removed::new` takes the membership it holds; `Removed::own_removal` takes the members and
+  the count.
+- `faction-protocol`: `commit(Commit)` in place of `commit_addition`, `commit_removal` and
+  `change_required_count`; `OutputMessage::BroadcastPing` and `BroadcastReady` carry the
+  epoch; `MessageTranslator::to_command` takes the node's epoch; `Protocol::initialize` takes
+  `&mut self`.
+
 #### Changed
+- A removed node no longer retries its pings or its readiness.
 - The system tests' indirect-probe scenario waits the generous probe stretch in its one case, processes over gRPC,
   that twice suspected its cut member under the gates' parallel load.
 

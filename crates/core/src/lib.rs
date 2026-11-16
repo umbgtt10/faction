@@ -13,10 +13,10 @@
 //! The terminal answer is `Bootstrapped`. A blown deadline is recorded as
 //! `TimedOut` but is never terminal — the node keeps trying.
 //!
-//! **Phases 1 to 4 of six are built** -- bootstrapping, dynamic joining,
-//! single-node addition, failure detection and single-node removal --
-//! conformant to version 0.4.1 of the specification in the repository's
-//! `spec/`.
+//! **Phases 1 to 5 of six are built** -- bootstrapping, dynamic joining,
+//! single-node addition, failure detection, single-node removal, and epochs
+//! and rejoin -- conformant to version 0.5.0 of the specification in the
+//! repository's `spec/`.
 //!
 //! # What it does
 //!
@@ -31,7 +31,7 @@
 //! | `Collecting` | Collecting and pinged peer sets |
 //! | `Bootstrapped` | Terminal — quorum reached |
 //! | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` |
-//! | `Removed` | Removed from its own cluster — admits a probe alone |
+//! | `Removed` | Removed from its own cluster — admits a membership and a probe alone |
 //!
 //! `Bootstrapped` is the only conclusion. A missed deadline is recorded as
 //! a fact — surfaced as `PeerState::TimedOut` — without leaving the current
@@ -45,7 +45,15 @@
 //! every node applies, or the abort. It refuses to coordinate a removal its
 //! quorum cannot spare: a member not suspected, without whom the members not
 //! suspected would fall below the count. A node whose own removal commits is
-//! `Removed`, and admits nothing but a probe.
+//! `Removed`, and admits nothing but a membership and a probe.
+//!
+//! Every membership carries an epoch, the layer above's own number for the
+//! change that made it, which a commit brings: a commit the node holds
+//! already is ignored, a member's participation or readiness from behind is
+//! refused and answered with the membership, and a membership above the
+//! node's epoch is adopted in every stage -- a removed node it names coming
+//! back as a fresh one. Liveness carries no epoch. A caller that numbers
+//! nothing gives epoch 0, and is answered as before.
 //!
 //! A concluded node also tracks its members' liveness, the caller keeping the
 //! clock: at each probe period it names the member to probe, round-robin; a

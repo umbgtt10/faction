@@ -2,8 +2,8 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-11-13  
-**Current status:** Phase 4 — single-node removal landed (specification 0.4.0, released in 0.8.0)
+**Last updated:** 2026-11-16  
+**Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -301,29 +301,52 @@ for.
 
 ## Phase 5 — Membership epochs and rejoin
 
-**Status:** Planned  
-**Depends on:** Phase 4 complete  
-**Removes limitation:** L5 — no epochs, no rejoin handling  
+**Status:** ✅ Complete — specification 0.5.0, for the crate's 0.9.0
+**Depends on:** Phase 4 complete
+**Removes limitation:** L5 — no epochs, no rejoin handling
 
-`faction` answers: *"Can the cluster survive membership changes across restarts
-and prevent stale nodes from causing split-brain?"*
+`faction` answers: *"Can the cluster survive membership changes across restarts,
+and keep a stale node from counting?"*
 
-The machine gains a monotonic epoch counter, stale-epoch rejection, and explicit
-rejoin handling for previously-removed nodes.
+Every membership a node holds carries an epoch: the number the layer above gave the
+change that made it, which the commit brings (`P1-ADR-TheEpochComesWithTheCommit`). The
+node takes it and never counts, since commits reach nodes at different moments, and a
+commit at or below its epoch is one it holds already. A member's participation,
+readiness or an addition's acknowledgement from behind is refused, and answered with the
+membership; liveness carries no epoch, so a slow member is never suspected for being
+slow. A membership above the node's epoch is adopted in every stage — a change in flight
+given up, a removed node it names taken back to `Initial`, a node it does not name
+removed. It is the first growth under the specification's own rule: epoch 0 is omitted
+wherever it would stand, and every vector released at 0.4.0 passes unchanged.
 
-**Membership epochs.** Every committed change increments a monotonic epoch counter.
-All membership messages carry the epoch. Stale-epoch inputs produce a defined
-`StaleEpoch` transition — not a crash, not a silent ignore.
+**Settled in the proposal, against the drafts above:**
+- The epoch is the commit's, not a counter `faction` keeps.
+- `StaleEpoch` is `StaleEpochIgnored`, for claims alone; liveness is never refused.
+- No `SplitSuspected` or `Rejoining` stage: a node behind learns it only when handed the
+  membership, and adopts it in the same call; rejoining is `Initial` and bootstrapping
+  again. The epoch each node last confirmed is each signal's own.
+- Whether a membership is genuine is the caller's, the Notary bookkeeper's once built.
 
-**Rejoin handling.** A previously-removed node can request to rejoin. The machine
-distinguishes a new join from a rejoin — the state transitions differ explicitly.
+**New command:** `MembershipReceived { members, required_count, epoch }`; the epoch on
+`ParticipationObserved`, `ReadyObserved`, `MembershipAcknowledged`, `AdditionCommitted`,
+`RemovalCommitted` and `RequiredCountChanged`, and on the configuration and the view.
 
-**Split-brain prevention.** A node claiming quorum with a stale epoch is explicitly
-rejected. The machine tracks the epoch at which each node last confirmed membership.
+**New outcomes:** `StaleEpochIgnored`, `CommitIgnored`, `MembershipIgnored`,
+`MembershipAdopted`, `ChangeAbandoned`.
 
-**New states:**
-- `SplitSuspected` — minority partition suspected
-- `Rejoining(PeerId)` — previously-removed node being re-admitted
+**In the reference protocol,** the epoch rides `Ping`, `Ready`, `Membership` and
+`MembershipAcknowledged`; a running node takes a membership as a newcomer does, and a
+removed node a coordinator invites back is made a newcomer again — the owner's choice
+over an invitation that would guess the layer above's next number.
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| Specification | 0.5.0 — 70 rows, 108 vectors, every row exercised, the 93 of 0.4.0 unchanged |
+| Property invariants | A node's epoch never decreases; a claim from behind never counts |
+| In-process scenarios | 5 |
+| System scenarios | 5, in all 10 spawn and transport cases |
 
 **Gate:** 100% `(state, input)` coverage. Phase 6 does not begin until this gate is green.
 
@@ -367,11 +390,11 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.4.0 written |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.5.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0, released in 0.8.0) |
-| 5 | Membership epochs and rejoin | After Phase 4 | Planned |
+| 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 
 ---

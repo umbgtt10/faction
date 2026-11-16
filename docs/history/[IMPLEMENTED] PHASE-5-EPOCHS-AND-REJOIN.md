@@ -1,8 +1,35 @@
-# [PROPOSAL] Phase 5 — epochs and rejoin
+# [IMPLEMENTED] Phase 5 — epochs and rejoin
 
-**Status:** accepted 2026-11-16, every decision, D1 to D10, as proposed: the owner's "Agreed!" to §12's four points
--- the commit's epoch, claims refused and liveness never, no new stages, a membership not naming a node removing it.
-Built on the branch `phase-5`.
+**Status:** implemented on the branch `phase-5`, 2026-11-16, every decision, D1 to D10, as accepted at the owner's
+"Agreed!" to §12's four points, and the plan as accepted, but for these departures, each found while building:
+
+- **`ChangeAbandoned` carries the change, not its peer.** It carries the reconfiguration as the view showed it: the
+  caller learns which change it gave up, of which kind and at which step, and no line covers a change that cannot be
+  in flight, which the conformance-alone coverage gate refuses.
+- **A non-member's signal is ignored before any epoch check.** Answering it with the membership would remove a
+  newcomer pinging before its admission; only a member's claim, or the awaited acknowledgement, is refused.
+- **A commit at epoch 0 is never held, and moves nothing.** D8's reading made exact: no commit of the layer above is
+  epoch 0, so a commit with none is a caller's that numbers nothing, answered as before.
+- **§3's second flow takes the newcomer path.** A coordinator invites with its own membership, which does not yet
+  name the newcomer, at its own epoch -- for a removed node, usually the one it was removed at -- so a removed node
+  holds it already. The owner chose: whoever runs a removed node a membership invites makes it a newcomer again
+  (`Protocol::invites`), and it joins as any newcomer does. `Removed` left by adoption, D5, serves a caller whose layer
+  above hands a removed node a later membership naming it.
+- **Fourteen rows and fifteen vectors** (70 and 108 in all), where §5 counted about twelve; `released.json` lists the
+  commands each released version names, so the conformance tiers compare a released vector's admissible commands
+  among them.
+- **The crate's shape.** An adoption naming the node is a membership decision, `MembershipDecision::Adopted`, applied
+  by each stage as a commit is; what removes a node, `Removed::departure`, every live stage asks first; `EpochRule`
+  holds the epoch's rules, and `Stage` applies the held check once a stage has admitted the command -- its one rule of
+  its own (`P2-ADR-StateStructsBehindStageEnum` amended). No stage's complexity grew.
+- **The protocol's commits are one call,** `Protocol::commit(Commit)`, and a running node takes a membership through
+  `Offer`, the newcomer's own reading of one.
+- **The fourth system scenario's node is concluded.** A concluded node behind sends no claim, so the layer above
+  catches it up -- the harness reports the commits it missed -- and it is heard again, behind, never suspected for it.
+  The harness restarts a node in place, its link kept; its commits are numbered as the layer above's.
+
+Built in five commits: the proposal; the specification, its model and the crate; the protocol; the harness's epochs;
+the scenarios.
 
 **Releases:** specification 0.5.0, then the crate 0.9.0.
 **Order:** after Phase 4; before Phase 6, which needs the epoch to order the changes it queues.

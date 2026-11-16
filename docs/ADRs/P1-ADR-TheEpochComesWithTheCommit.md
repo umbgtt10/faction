@@ -55,6 +55,13 @@ members. Whether a membership is genuine is the caller's to check before reporti
 built; faction adopts what it is handed. `P1-ADR-TerminalStatesAreNotSinks` is amended: `Removed` is left by
 adoption alone.
 
+The reference protocol carries the epoch on `Ping`, `Ready`, `Membership` and `MembershipAcknowledged`. A coordinator
+inviting a newcomer sends its own membership, which does not yet name the newcomer, at its own epoch -- for a node
+removed and invited back, usually the epoch it was removed at -- so a removed node would hold that membership already.
+The owner chose the newcomer path: a removed node a membership invites is made a newcomer again by whoever runs it, and
+joins from the membership and itself, as any newcomer does. `Removed` left by adoption serves a caller whose layer above
+hands a removed node a later membership naming it.
+
 ## Enforcement
 Specification 0.5.0: vectors 94 to 108 and the fourteen rows they exercise, the independent model answering every
 vector before the crate runs one; the transition matrix's cases for each new row; and two properties over random
