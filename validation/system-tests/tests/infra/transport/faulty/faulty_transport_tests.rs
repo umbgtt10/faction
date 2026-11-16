@@ -45,8 +45,38 @@ fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) 
 
 type Forwarded = Arc<Mutex<Vec<(PeerId, TransportMessage)>>>;
 
+fn live_faulty(policy: FaultPolicy) -> (FaultyTransport, Forwarded, LivePolicy<FaultPolicy>) {
+    let forwarded: Forwarded = Arc::new(Mutex::new(Vec::new()));
+    let live = LivePolicy::new(policy);
+    let inner = RecordingTransport {
+        forwarded: forwarded.clone(),
+    };
+    (
+        FaultyTransport::new(0, live.clone(), LinkCuts::default(), None, Box::new(inner)),
+        forwarded,
+        live,
+    )
+}
+
 fn ping(from: PeerId) -> TransportMessage {
     TransportMessage::Ping { from, epoch: 0 }
+}
+
+fn receiving(policy: FaultPolicy) -> (FaultyTransport, InMemoryTransport, LivePolicy<FaultPolicy>) {
+    let mut mesh = InMemoryTransport::new_mesh(&[0, 1]);
+    let peer_one = mesh.remove(1);
+    let live = LivePolicy::new(policy);
+    (
+        FaultyTransport::new(
+            0,
+            live.clone(),
+            LinkCuts::default(),
+            None,
+            Box::new(mesh.remove(0)),
+        ),
+        peer_one,
+        live,
+    )
 }
 
 struct RecordingTransport {
@@ -143,7 +173,7 @@ fn loss_is_deterministic_for_a_fixed_seed() {
     };
 
     // Act
-    let first = delivered_count(policy);
+    let first = delivered_count(policy.clone());
     let second = delivered_count(policy);
 
     // Assert
@@ -201,6 +231,66 @@ fn recv_from_a_peer_cut_off_drops_what_it_sent() {
 
     // Assert
     assert_eq!(received, None);
+}
+
+#[test]
+fn recv_of_a_deaf_node_receives_nothing() {
+    // Arrange
+    let (mut faulty, mut peer_one, _) = receiving(FaultPolicy {
+        deaf: true,
+        ..FaultPolicy::default()
+    });
+    peer_one.send(0, ping(1));
+
+    // Act
+    let received = faulty.recv();
+
+    // Assert
+    assert_eq!(received, None);
+}
+
+#[test]
+fn recv_of_a_starved_node_receives_nothing_until_fed() {
+    // Arrange
+    let (mut faulty, mut peer_one, live) = receiving(FaultPolicy {
+        starved: true,
+        ..FaultPolicy::default()
+    });
+    peer_one.send(0, ping(1));
+    let starved = faulty.recv();
+    live.set(FaultPolicy::default());
+
+    // Act
+    let fed = faulty.recv();
+
+    // Assert
+    assert_eq!(starved, None);
+    assert_eq!(fed, Some(ping(1)));
+}
+
+#[test]
+fn recv_past_a_full_inbox_drops_the_tail() {
+    // Arrange
+    let (mut faulty, mut peer_one, _) = receiving(FaultPolicy {
+        inbox: 2,
+        ..FaultPolicy::default()
+    });
+    for epoch in 1..=3 {
+        peer_one.send(0, TransportMessage::Ping { from: 1, epoch });
+    }
+
+    // Act
+    let received: Vec<Option<TransportMessage>> = (0..3).map(|_| faulty.recv()).collect();
+
+    // Assert
+    assert_eq!(
+        received,
+        vec![
+            Some(TransportMessage::Ping { from: 1, epoch: 1 }),
+            Some(TransportMessage::Ping { from: 1, epoch: 2 }),
+            None,
+        ]
+    );
 }
 
 #[test]
@@ -277,6 +367,76 @@ fn send_after_its_policy_is_healed_forwards_again() {
 }
 
 #[test]
+fn send_misdelivered_reaches_another_peer_sent_to_before() {
+    // Arrange
+    let (mut faulty, forwarded, _) = live_faulty(FaultPolicy {
+        misdelivery: 100,
+        ..FaultPolicy::default()
+    });
+    faulty.send(2, ping(0));
+
+    // Act
+    faulty.send(1, ping(0));
+
+    // Assert
+    assert_eq!(*forwarded.lock().unwrap(), vec![(2, ping(0)), (2, ping(0))]);
+}
+
+#[test]
+fn send_of_a_mute_node_forwards_nothing() {
+    // Arrange
+    let (mut faulty, forwarded, _) = live_faulty(FaultPolicy {
+        mute: true,
+        ..FaultPolicy::default()
+    });
+
+    // Act
+    faulty.send(1, ping(0));
+
+    // Assert
+    assert!(forwarded.lock().unwrap().is_empty());
+}
+
+#[test]
+fn send_of_a_starved_node_holds_its_sends_until_fed() {
+    // Arrange
+    let (mut faulty, forwarded, live) = live_faulty(FaultPolicy {
+        starved: true,
+        ..FaultPolicy::default()
+    });
+    faulty.send(1, ping(0));
+    let starved = forwarded.lock().unwrap().len();
+    live.set(FaultPolicy::default());
+
+    // Act
+    faulty.send(2, ping(0));
+
+    // Assert
+    assert_eq!(starved, 0);
+    assert_eq!(*forwarded.lock().unwrap(), vec![(1, ping(0)), (2, ping(0))]);
+}
+
+#[test]
+fn send_of_the_first_contacts_with_a_peer_loses_them() {
+    // Arrange
+    let (mut faulty, forwarded, _) = live_faulty(FaultPolicy {
+        first_contact_lost: 2,
+        ..FaultPolicy::default()
+    });
+
+    // Act
+    for epoch in 1..=3 {
+        faulty.send(1, TransportMessage::Ping { from: 0, epoch });
+    }
+
+    // Assert
+    assert_eq!(
+        *forwarded.lock().unwrap(),
+        vec![(1, TransportMessage::Ping { from: 0, epoch: 3 })]
+    );
+}
+
+#[test]
 fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
     // Arrange
     let path = temp_dir().join(format!("faulty-transport-tests-{}.jsonl", id()));
@@ -305,4 +465,44 @@ fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
         log.contains("\"event\":\"fault\"") && log.contains("\"to\":1"),
         "{log}"
     );
+}
+
+#[test]
+fn send_to_an_unreachable_peer_loses_that_send_alone() {
+    // Arrange
+    let (mut faulty, forwarded, _) = live_faulty(FaultPolicy {
+        unreachable: vec![2],
+        ..FaultPolicy::default()
+    });
+
+    // Act
+    faulty.send(2, ping(0));
+    faulty.send(1, ping(0));
+
+    // Assert
+    assert_eq!(*forwarded.lock().unwrap(), vec![(1, ping(0))]);
+}
+
+#[test]
+fn send_to_an_unreachable_peer_under_head_of_line_wedges_every_send_after_it() {
+    // Arrange
+    let (mut faulty, forwarded, live) = live_faulty(FaultPolicy {
+        unreachable: vec![2],
+        head_of_line: true,
+        ..FaultPolicy::default()
+    });
+    faulty.send(2, ping(0));
+    faulty.send(1, ping(0));
+    let wedged = forwarded.lock().unwrap().len();
+    live.set(FaultPolicy {
+        head_of_line: true,
+        ..FaultPolicy::default()
+    });
+
+    // Act
+    faulty.send(1, ping(0));
+
+    // Assert
+    assert_eq!(wedged, 0);
+    assert_eq!(*forwarded.lock().unwrap(), vec![(1, ping(0))]);
 }
