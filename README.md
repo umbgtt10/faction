@@ -1,6 +1,6 @@
 # faction
 
-**A `no_std`, 0-unsafe Mealy machine for distributed cluster bootstrapping.**
+**A `no_std`, zero-`unsafe`, protocol-independent cluster membership state machine.**
 
 Every distributed system needs to answer one question before it can do anything else:
 *"Is the cluster ready to proceed?"*
@@ -20,6 +20,10 @@ consensus begins?
 
 `faction` replaces that with a **formally specified, fully tested Mealy state machine**
 that answers the question deterministically, observably, and provably.
+
+**Phases 1 to 4 of six are built** (2026-11-13): bootstrapping, dynamic joining, single-node addition, failure
+detection and single-node removal, conformant to version 0.4.0 of the specification in [`spec/`](spec/SPEC.md).
+Version 0.8.0 is on [crates.io](https://crates.io/crates/faction).
 
 ---
 
@@ -187,45 +191,13 @@ and a suspect stays a member — only a removal, which the layer above commits, 
 one away. How tolerant a node is, is its deployment's: the period and timeouts, the
 helpers asked, and the threshold it is created with.
 
-### Validation harness
-
-`faction` ships with a multi-layered validation harness:
-
-| Harness | What it tests |
-|---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 56 rows and 93 conformance vectors |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate — 157 tests |
-| `crates/core/` unit tests | Each type and each step in isolation — 249 tests |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed — 209 tests |
-| `validation/core-validation/` | Multi-node deterministic scenarios — 39 tests |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it — 97 tests |
-| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, and removal — 193 tests |
-| `validation/system-tests/` convergence | Bootstrapping across spawn/transport — 20 tests |
-| `validation/system-tests/` joining | Dynamic joining across spawn/transport — 61 tests |
-| `validation/system-tests/` addition | A node added to a running cluster across spawn/transport — 50 tests |
-| `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport — 50 tests |
-| `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport — 50 tests |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself — 242 tests |
-
-The system test matrix covers every valid combination of spawn model and transport:
-
-| Spawn | Transport | Timer |
-|---|---|---|
-| Task | In-memory, Channels, TCP, gRPC | Real, In-memory |
-| Thread | In-memory, Channels, TCP, gRPC | Real, In-memory |
-| Process | TCP, gRPC | Real |
-
-These are not simulated tests. Process-based cases spawn real OS processes communicating
-over real TCP and gRPC connections. The machine's correctness is verified end-to-end
-across all combinations.
-
 ---
 
 ## Quick start
 
 ```toml
 [dependencies]
-faction = "0.3"
+faction = "0.8"
 ```
 
 ```rust
@@ -248,11 +220,11 @@ let config = Config::new(
 
 let mut machine = Faction::new(config, Box::new(NoOpObserver));
 
-machine.process(Command::ParticipationObserved { peer_id: 1 });
-machine.process(Command::ParticipationObserved { peer_id: 2 });
-machine.process(Command::LocalParticipationCompleted);
-machine.process(Command::ReadyObserved { peer_id: 1 });
-machine.process(Command::ReadyObserved { peer_id: 2 });
+let _ = machine.process(Command::ParticipationObserved { peer_id: 1 });
+let _ = machine.process(Command::ParticipationObserved { peer_id: 2 });
+let _ = machine.process(Command::LocalParticipationCompleted);
+let _ = machine.process(Command::ReadyObserved { peer_id: 1 });
+let _ = machine.process(Command::ReadyObserved { peer_id: 2 });
 
 // Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
 let result = machine.process(Command::ReadyObserved { peer_id: 3 });
@@ -288,20 +260,54 @@ The caller owns the network. `faction` owns the state.
 
 ---
 
+## Validation
+
+`faction` ships with a multi-layered validation harness:
+
+| Package | What it tests | Tests |
+|---|---|---|
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 56 rows and 93 conformance vectors | — |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 157 |
+| `crates/core/` unit tests | Each type and each step in isolation | 253 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed | 209 |
+| `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 97 |
+| `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, and removal | 193 |
+| `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
+| `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
+| `validation/system-tests/` addition | A node added to a running cluster across spawn/transport | 50 |
+| `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport | 50 |
+| `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself | 242 |
+
+The system test matrix covers every valid combination of spawn model and transport:
+
+| Spawn | Transport | Timer |
+|---|---|---|
+| Task | In-memory, Channels, TCP, gRPC | Real, In-memory |
+| Thread | In-memory, Channels, TCP, gRPC | Real, In-memory |
+| Process | TCP, gRPC | Real |
+
+These are not simulated tests. Process-based cases spawn real OS processes communicating
+over real TCP and gRPC connections. The machine's correctness is verified end-to-end
+across all combinations.
+
+---
+
 ## Project status
 
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~1,970 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.4.0 — its independent model and the crate answer all 93 vectors as written |
-| Total tests | 1,580 |
+| Total tests | 1,584 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
-| `no_std` | Verified |
+| `no_std` | Verified on `thumbv7em-none-eabihf` |
 | System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
-| Published | [crates.io](https://crates.io/crates/faction) |
+| Published | [crates.io](https://crates.io/crates/faction) 0.8.0 |
 
 ---
 
@@ -326,8 +332,8 @@ The caller owns the network. `faction` owns the state.
   Nothing is written to disk; state is rebuilt by replaying the input log. Durability
   is the caller's.
 
-Each principle above is recorded as an Architecture Decision Record — see
-[docs/ADRs/](./docs/ADRs/) for the authoritative rationale.
+Each principle above is recorded as an Architecture Decision Record — twenty-nine, in
+[docs/ADRs/](./docs/ADRs/), the authoritative rationale.
 
 ---
 
@@ -391,20 +397,34 @@ for the complete technical specification.
 The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative specification,
 `crates/` the library, `validation/` everything that checks it, and `xtask/` the gates.
 
-| Crate | Role | Tests |
-|---|---|---|
-| `crates/core/` | State machine | 208 |
-| `crates/protocol/` | Message translator and protocol runtime | 87 |
-| `crates/spec-model/` | The specification's independent model, `no_std` | 130 |
-| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers | 155 |
-| `validation/core-validation/` | Deterministic multi-node scenario harness | 39 |
-| `validation/protocol-validation/` | Convergence sweeps + in-process protocol cluster | 186 |
-| `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
-| `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
-| `validation/system-tests/` addition | A node added to a running cluster across spawn/transport | 50 |
-| `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport | 50 |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers, faults, the process node and the harness itself | 223 |
-| `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores | 163 |
+| Package | Role |
+|---|---|
+| `crates/core/` | The state machine: `faction`, the crate on crates.io |
+| `crates/protocol/` | Message translator and protocol runtime |
+| `crates/spec-model/` | The specification's independent model, `no_std` |
+| `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers |
+| `validation/core-validation/` | Deterministic multi-node scenario harness |
+| `validation/protocol-validation/` | Convergence sweeps and the in-process protocol cluster |
+| `validation/system-tests/` | Convergence, joining, addition, liveness and removal across spawn and transport, and the infrastructure beneath them |
+| `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores |
+
+---
+
+## Siblings
+
+`faction` is one of four bookkeepers a consensus protocol orchestrates, none aware of the others:
+
+| Bookkeeper | Keeps |
+|---|---|
+| [`faction`](https://crates.io/crates/faction) | Membership: whether the cluster is ready, who joins and leaves, who still answers |
+| [`beggar`](https://crates.io/crates/beggar) | Recovery: which chunks of a transfer have moved, at both ends |
+| `notary` | Credentials — not yet built |
+| [`cartel`](https://crates.io/crates/cartel) | Consensus: who voted for what, and when a threshold is reached |
+
+All are `no_std`, protocol-independent and specified, each with one entry point and an observer; the protocol
+translates for each at one integration point. `faction` alone is a state machine: membership has genuine states a
+node moves between, so it is tested by transition coverage, where the registries beside it are tested by
+invariants.
 
 ---
 
