@@ -258,6 +258,7 @@ impl Roles for NodeRecipe {
             QuorumPolicy::new(membership.required_count),
             self.suspicion_threshold,
             membership.epoch,
+            false,
         );
         Role::Running(Box::new(Protocol::new(
             Faction::new(config, Box::new(watched)),

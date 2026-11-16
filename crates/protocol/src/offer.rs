@@ -85,7 +85,8 @@ impl Offer {
         }
     }
 
-    // The configuration a newcomer `peer_id` is created from.
+    // The configuration a newcomer `peer_id` is created from: its membership
+    // provisional, its own addition yet to commit.
     #[must_use]
     pub fn config(&self, peer_id: PeerId, suspicion_threshold: usize) -> Config {
         Config::new(
@@ -94,6 +95,7 @@ impl Offer {
             QuorumPolicy::new(self.required_count),
             suspicion_threshold,
             self.epoch,
+            true,
         )
     }
 }

@@ -10,6 +10,7 @@ use serde_json::json;
 use crate::epoch::Epoch;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
+use crate::provisional::Provisional;
 use crate::reconfiguration::Reconfiguration;
 use crate::vocabulary::stage::Stage;
 use crate::vocabulary::variant::Variant;
@@ -33,7 +34,7 @@ pub struct View;
 impl View {
     #[must_use]
     pub fn of(state: &NodeState) -> Value {
-        Epoch::stated(
+        let stated = Epoch::stated(
             json!({
                 "peer_state": Variant::unit(Self::peer_state(state)),
                 "is_pinging_completed": matches!(
@@ -52,7 +53,8 @@ impl View {
                 "quorum": Variant::unit(Self::quorum(state)),
             }),
             state.epoch,
-        )
+        );
+        Provisional::stated(stated, state.provisional)
     }
 
     #[must_use]

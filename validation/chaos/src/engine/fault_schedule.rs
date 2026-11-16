@@ -13,8 +13,10 @@ use crate::model::restart_from::RestartFrom;
 use crate::model::restart_plan::RestartPlan;
 
 // A scenario's faults, round by round, on the board its nodes read: on each
-// layer of a node, the fault of the last window opened over it; a node down
-// muted, deafened and its timer side dead; a node under head-of-line
+// layer of a node, the fault of the last window opened over it, but that a
+// timer side stays dead through every window that kills it, whatever opens
+// after it, a restart alone healing it; a node down muted, deafened and its
+// timer side dead; a node under head-of-line
 // blocking wedged behind the peers that cannot answer -- down, mute or deaf.
 // A node whose timer side died is restarted, which is what heals it; healed,
 // every layer is faithful.
@@ -155,8 +157,13 @@ impl FaultSchedule {
                 _ => None,
             })
             .unwrap_or_default();
+        let killed = self.windows.iter().any(|window| {
+            window.peer_id == peer_id
+                && (window.from..window.until).contains(&round)
+                && matches!(window.fault, Fault::Timer(policy) if policy.dead)
+        });
         TimerFaultPolicy {
-            dead: policy.dead || down.contains(&peer_id),
+            dead: killed || down.contains(&peer_id),
             ..policy
         }
     }

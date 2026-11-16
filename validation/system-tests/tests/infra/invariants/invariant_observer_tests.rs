@@ -71,7 +71,7 @@ fn removed() -> ClusterView {
 
 // The view of node 0 of three, all required, at `epoch`.
 fn view(epoch: Epoch) -> ClusterView {
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, epoch);
+    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, epoch, false);
     let ProcessResult::Probed { cluster_view, .. } =
         Faction::new(config, Box::new(NoOpObserver)).process(Command::Probe)
     else {
@@ -257,7 +257,7 @@ fn observe_of_a_conclusion_short_of_the_required_count_reports_it() {
 fn observe_of_a_faithful_bootstrap_reports_nothing() {
     // Arrange
     let breaches = Breaches::default();
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 0);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 0, false);
     let mut faction = Faction::new(config, Box::new(observer(0, &breaches)));
     let commands = [
         Command::ParticipationObserved {

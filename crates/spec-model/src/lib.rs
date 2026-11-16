@@ -32,6 +32,7 @@ pub mod epoch;
 pub mod liveness;
 pub mod model;
 pub mod node_state;
+pub mod provisional;
 pub mod reconfiguration;
 pub mod rules;
 pub mod spec_reader;

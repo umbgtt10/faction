@@ -17,5 +17,6 @@ pub mod suspicion_tests;
 
 pub mod initial_tests;
 pub mod pinging_tests;
+pub mod provisional_rule_tests;
 pub mod reconfiguring_tests;
 pub mod removed_tests;

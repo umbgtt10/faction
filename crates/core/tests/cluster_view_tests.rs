@@ -28,6 +28,7 @@ fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
         None,
         Quorum::Held,
         0,
+        false,
     );
 
     // Assert
@@ -52,6 +53,7 @@ fn new_missed_deadline_after_removal_stays_removed() {
         None,
         Quorum::NotTracked,
         0,
+        false,
     );
 
     // Assert
@@ -79,6 +81,7 @@ fn new_stores_every_field() {
         Some(5),
         Quorum::Lost,
         3,
+        false,
     );
 
     // Assert

@@ -26,6 +26,7 @@ pub struct ClusterView {
     last_probed: Option<PeerId>,
     quorum: Quorum,
     epoch: Epoch,
+    provisional: bool,
 }
 
 impl ClusterView {
@@ -45,6 +46,7 @@ impl ClusterView {
         last_probed: Option<PeerId>,
         quorum: Quorum,
         epoch: Epoch,
+        provisional: bool,
     ) -> Self {
         let peer_state = if deadline_missed
             && !matches!(peer_state, PeerState::Bootstrapped | PeerState::Removed)
@@ -68,6 +70,7 @@ impl ClusterView {
             last_probed,
             quorum,
             epoch,
+            provisional,
         }
     }
 
@@ -89,6 +92,12 @@ impl ClusterView {
     #[must_use]
     pub fn is_pinging_completed(&self) -> bool {
         self.is_pinging_completed
+    }
+
+    // Whether the node's membership is provisional (§16).
+    #[must_use]
+    pub fn is_provisional(&self) -> bool {
+        self.provisional
     }
 
     #[must_use]

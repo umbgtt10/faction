@@ -13,6 +13,7 @@ pub struct Config {
     quorum_policy: QuorumPolicy,
     suspicion_threshold: usize,
     epoch: Epoch,
+    provisional: bool,
 }
 
 impl Config {
@@ -23,6 +24,7 @@ impl Config {
         quorum_policy: QuorumPolicy,
         suspicion_threshold: usize,
         epoch: Epoch,
+        provisional: bool,
     ) -> Self {
         Self {
             peer_id,
@@ -30,12 +32,20 @@ impl Config {
             quorum_policy,
             suspicion_threshold,
             epoch,
+            provisional,
         }
     }
 
     #[must_use]
     pub const fn epoch(&self) -> Epoch {
         self.epoch
+    }
+
+    // Whether the membership the node is created with is provisional: a
+    // newcomer's, offered by its coordinator, before its own addition commits.
+    #[must_use]
+    pub const fn is_provisional(&self) -> bool {
+        self.provisional
     }
 
     #[must_use]

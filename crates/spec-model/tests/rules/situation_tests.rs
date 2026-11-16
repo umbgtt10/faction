@@ -760,6 +760,30 @@ fn holds_peer_is_suspected_for_a_suspect_is_true() {
 }
 
 #[test]
+fn holds_provisional_claim_is_behind_below_the_epoch_of_a_provisional_node_only() {
+    // Arrange
+    let behind = at_epoch(CommandName::ReadyObserved, 0, &[]);
+    let provisional = NodeState {
+        provisional: true,
+        ..at(1)
+    };
+
+    // Act
+    let held = [
+        Situation::ProvisionalClaimIsBehind.holds(&behind, &provisional, &ADMITTED),
+        Situation::ProvisionalClaimIsBehind.holds(&behind, &at(1), &ADMITTED),
+        Situation::ProvisionalClaimIsBehind.holds(
+            &at_epoch(CommandName::ReadyObserved, 1, &[]),
+            &provisional,
+            &ADMITTED,
+        ),
+    ];
+
+    // Assert
+    assert_eq!(held, [true, false, false]);
+}
+
+#[test]
 fn holds_quorum_cannot_spare_a_member_once_the_quorum_is_lost_is_true() {
     // Arrange
     let state = NodeState {

@@ -48,7 +48,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
 // Node 0 of members 0 to 3, requiring one, concluded by its own completion,
 // asking one helper.
 fn of_four() -> Protocol {
-    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1, 0, false);
     let mut protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1, 2, 3],
@@ -67,7 +67,7 @@ fn protocol() -> Protocol {
 
 // Node 0 of members 0 and 1, requiring two, created at `epoch`.
 fn protocol_at(epoch: u64) -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, epoch);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, epoch, false);
     Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1],

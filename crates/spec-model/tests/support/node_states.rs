@@ -27,6 +27,7 @@ impl NodeStates {
             misses: BTreeMap::new(),
             last_probed: None,
             epoch: 0,
+            provisional: false,
         }
     }
 

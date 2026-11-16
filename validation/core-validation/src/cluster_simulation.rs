@@ -46,6 +46,7 @@ impl ClusterSimulation {
                         QuorumPolicy::new(required_count),
                         1,
                         0,
+                        false,
                     ),
                     observer,
                 )

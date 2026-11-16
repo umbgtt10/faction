@@ -83,6 +83,10 @@ impl SpecReader {
             QuorumPolicy::new(required),
             threshold,
             value.get("epoch").map_or(0, Self::number),
+            value
+                .get("provisional")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
         )
     }
 

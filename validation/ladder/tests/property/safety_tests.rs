@@ -144,5 +144,5 @@ proptest! {
 }
 
 fn test_config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0)
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false)
 }

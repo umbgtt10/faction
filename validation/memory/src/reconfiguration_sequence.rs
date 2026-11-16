@@ -35,6 +35,7 @@ impl<'a> ReconfigurationSequence<'a> {
                 QuorumPolicy::new(1),
                 1,
                 0,
+                false,
             ),
             Box::new(NoOpObserver),
         );

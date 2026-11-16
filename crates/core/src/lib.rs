@@ -15,7 +15,7 @@
 //!
 //! **Phases 1 to 5 of six are built** -- bootstrapping, dynamic joining,
 //! single-node addition, failure detection, single-node removal, and epochs
-//! and rejoin -- conformant to version 0.5.1 of the specification in the
+//! and rejoin -- conformant to version 0.6.0 of the specification in the
 //! repository's `spec/`.
 //!
 //! # What it does
@@ -96,6 +96,7 @@
 //!     QuorumPolicy::new(4),              // quorum threshold
 //!     1,                                 // missed probe periods before suspicion
 //!     0,                                 // the epoch of this membership
+//!     false,                             // whether it is a newcomer's, provisional
 //! );
 //!
 //! let mut machine = Faction::new(config, Box::new(NoOpObserver));

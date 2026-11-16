@@ -47,7 +47,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
     let peer_one = mesh.remove(1);
     let peers = vec![0, 1, 2];
     let cuts = LinkCuts::default();
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1, 0);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1, 0, false);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
@@ -114,7 +114,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
 fn node() -> (FactionNode, Arc<SimulatedClock>) {
     let (time, clock) = fake_time();
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0, false);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
@@ -145,7 +145,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     let (time, _) = fake_time();
     let commands = Arc::new(Mutex::new(Vec::new()));
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0, false);
     let protocol = Protocol::new(
         Faction::new(
             config,

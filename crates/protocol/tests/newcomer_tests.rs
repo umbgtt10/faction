@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use faction::no_op_observer::NoOpObserver;
+use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::output_message::OutputMessage;
@@ -146,6 +147,32 @@ fn join_of_a_membership_becomes_a_node_of_it_acknowledges_and_starts() {
     let view = protocol.cluster_view();
     assert_eq!(view.members().as_slice(), &[0, 1, 5]);
     assert_eq!(view.required_count(), 2);
+}
+
+#[test]
+fn join_of_a_membership_holds_it_provisionally_until_its_own_addition_commits() {
+    // Arrange
+    let membership = TransportMessage::Membership {
+        from: 0,
+        to: 5,
+        members: vec![0, 1],
+        required_count: 2,
+        epoch: 2,
+    };
+
+    // Act
+    let Ok((mut protocol, _)) = newcomer().join(membership) else {
+        panic!("a newcomer joins from its membership");
+    };
+    let provisional = protocol.cluster_view().is_provisional();
+    let _ = protocol.commit(Commit::Addition {
+        peer_id: 5,
+        epoch: 3,
+    });
+
+    // Assert
+    assert!(provisional);
+    assert!(!protocol.cluster_view().is_provisional());
 }
 
 #[test]

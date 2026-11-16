@@ -23,7 +23,7 @@ extern crate alloc;
 
 fn fresh() -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false),
         Box::new(NoOpObserver),
     )
 }
@@ -81,7 +81,7 @@ fn process(faction: &mut Faction, command: Command) -> Vec<Outcome> {
 fn recording_faction() -> (Faction, Observations) {
     let observations: Observations = Arc::new(Mutex::new(Vec::new()));
     let faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false),
         Box::new(RecordingObserver::new(Arc::clone(&observations))),
     );
     (faction, observations)
@@ -102,6 +102,52 @@ fn reported_view(result: &ProcessResult) -> ClusterView {
         | ProcessResult::Rejected { cluster_view, .. }
         | ProcessResult::Probed { cluster_view, .. } => cluster_view,
     }
+}
+
+#[test]
+fn a_provisional_newcomer_withholds_its_membership_until_its_own_addition_commits() {
+    // Arrange
+    let mut newcomer = Faction::new(
+        Config::new(5, vec![0, 5], QuorumPolicy::new(2), 1, 2, true),
+        Box::new(NoOpObserver),
+    );
+    let behind = Command::ParticipationObserved {
+        peer_id: 0,
+        epoch: 1,
+    };
+    let withheld = process(&mut newcomer, behind.clone());
+    let provisional = probe(&mut newcomer).is_provisional();
+
+    // Act
+    process(
+        &mut newcomer,
+        Command::AdditionCommitted {
+            peer_id: 5,
+            epoch: 3,
+        },
+    );
+    let sent = process(&mut newcomer, behind);
+
+    // Assert
+    assert_eq!(
+        withheld,
+        vec![Outcome::StaleEpochIgnored {
+            peer_id: 0,
+            epoch: 1
+        }]
+    );
+    assert!(provisional);
+    assert!(!probe(&mut newcomer).is_provisional());
+    assert_eq!(
+        sent,
+        vec![
+            Outcome::StaleEpochIgnored {
+                peer_id: 0,
+                epoch: 1
+            },
+            Outcome::SendMembership { peer_id: 0 },
+        ]
+    );
 }
 
 #[test]
@@ -235,7 +281,7 @@ fn participation_from_an_admitted_peer_is_accepted() {
 #[test]
 fn process_accepted_admissible_equals_subsequent_probe() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1, 0, false);
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
 
     // Act
@@ -258,7 +304,7 @@ fn process_accepted_admissible_equals_subsequent_probe() {
 #[test]
 fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1, 0, false);
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
     let _ = faction.process(Command::ParticipationObserved {
         peer_id: 99,
@@ -329,7 +375,7 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
 #[test]
 fn process_accepted_into_pinging_reports_pinging_s_admissible_set() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(5), 1, 0, false);
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
 
     // Act
@@ -865,7 +911,7 @@ fn process_observes_timely_ready_from_collecting_no_quorum() {
 fn process_of_a_commit_above_the_epoch_moves_it_and_one_held_already_does_not() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 0),
+        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 0, false),
         Box::new(NoOpObserver),
     );
 
@@ -888,7 +934,7 @@ fn process_of_a_commit_above_the_epoch_moves_it_and_one_held_already_does_not() 
 fn process_of_a_probe_shows_the_epoch_the_node_was_created_at() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 4),
+        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 4, false),
         Box::new(NoOpObserver),
     );
 
@@ -905,7 +951,7 @@ fn process_of_a_probe_shows_the_epoch_the_node_was_created_at() {
 #[test]
 fn process_probe_does_not_mutate_state() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false);
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
 
@@ -927,7 +973,7 @@ fn process_probe_does_not_mutate_state() {
 #[test]
 fn process_probe_returns_cluster_view_with_initial_state() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false);
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
 
@@ -949,7 +995,7 @@ fn process_probe_returns_cluster_view_with_initial_state() {
 #[test]
 fn process_probe_works_after_valid_inputs() {
     // Arrange
-    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false);
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
     let _ = faction.process(Command::ParticipationObserved {

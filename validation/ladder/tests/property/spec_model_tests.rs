@@ -26,7 +26,7 @@ proptest! {
         commands in RandomCommands::sequence(40),
     ) {
         // Arrange
-        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0);
+        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0, false);
         let mut model = Model::new(
             SpecReader::table(&SpecFiles::matrix()),
             SpecReader::configuration(&SpecWriter::configuration(&config)),

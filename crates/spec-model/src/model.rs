@@ -10,6 +10,7 @@ use crate::answer::Answer;
 use crate::configuration::Configuration;
 use crate::epoch::Epoch;
 use crate::node_state::NodeState;
+use crate::provisional::Provisional;
 use crate::reconfiguration::Reconfiguration;
 use crate::rules::rule_book::RuleBook;
 use crate::spec_reader::SpecReader;
@@ -45,6 +46,7 @@ impl Model {
                 misses: BTreeMap::new(),
                 last_probed: None,
                 epoch: configuration.epoch,
+                provisional: configuration.provisional,
             },
         }
     }
@@ -63,6 +65,7 @@ impl Model {
         let state = NodeState {
             stage: row.next.unwrap_or(changed.stage),
             epoch: Epoch::after(&command, row.result, changed.epoch),
+            provisional: Provisional::after(&command, &row.outcomes, &self.state),
             ..changed
         };
         let admissible: Value = self

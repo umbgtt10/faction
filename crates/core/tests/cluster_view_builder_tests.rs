@@ -35,12 +35,26 @@ fn deadline_missed_resolves_to_timed_out_at_build() {
 }
 
 #[test]
+fn from_view_at_makes_the_membership_provisional_and_from_view_keeps_it() {
+    // Arrange
+    let view = ClusterViewBuilder::from_view_at(&base().build(), 0, true).build();
+
+    // Act
+    let copy = ClusterViewBuilder::from_view(&view).build();
+
+    // Assert
+    assert!(view.is_provisional());
+    assert!(copy.is_provisional());
+    assert!(!base().build().is_provisional());
+}
+
+#[test]
 fn from_view_at_moves_the_view_to_the_epoch_and_from_view_keeps_it() {
     // Arrange
     let view = base().build();
 
     // Act
-    let moved = ClusterViewBuilder::from_view_at(&view, 4).build();
+    let moved = ClusterViewBuilder::from_view_at(&view, 4, false).build();
     let copy = ClusterViewBuilder::from_view(&moved).build();
 
     // Assert

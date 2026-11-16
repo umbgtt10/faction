@@ -73,6 +73,7 @@ impl Cluster {
                     QuorumPolicy::new(required),
                     suspicion_threshold,
                     0,
+                    false,
                 );
                 Protocol::new(
                     Faction::new(config, Box::new(NoOpObserver)),
@@ -249,6 +250,7 @@ impl Cluster {
             QuorumPolicy::new(required),
             self.suspicion_threshold,
             epoch,
+            false,
         );
         self.protocols[index] = Protocol::new(
             Faction::new(config, Box::new(NoOpObserver)),

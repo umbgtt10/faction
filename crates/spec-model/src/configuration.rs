@@ -11,4 +11,5 @@ pub struct Configuration {
     pub required_count: u64,
     pub suspicion_threshold: u64,
     pub epoch: u64,
+    pub provisional: bool,
 }

@@ -403,7 +403,7 @@ fn removed_peer(outputs: &[Outcome]) -> Option<u64> {
 }
 
 fn test_config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0)
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false)
 }
 
 fn without(peers: &[u64], peer_id: u64) -> Vec<u64> {

@@ -24,4 +24,5 @@ pub struct NodeState {
     pub misses: BTreeMap<String, u64>,
     pub last_probed: Option<String>,
     pub epoch: u64,
+    pub provisional: bool,
 }

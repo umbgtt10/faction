@@ -12,7 +12,7 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::states::liveness::Liveness;
 
 fn config(threshold: usize) -> Config {
-    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), threshold, 0)
+    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), threshold, 0, false)
 }
 
 extern crate alloc;

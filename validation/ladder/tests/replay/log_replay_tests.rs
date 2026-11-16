@@ -30,6 +30,7 @@ fn config(required_count: usize) -> Config {
         QuorumPolicy::new(required_count),
         1,
         0,
+        false,
     )
 }
 

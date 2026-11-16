@@ -135,6 +135,26 @@ fn of_a_node_at_epoch_0_omits_it() {
 }
 
 #[test]
+fn of_a_node_holding_its_membership_provisionally_says_so() {
+    // Arrange
+    let state = NodeState {
+        provisional: true,
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["provisional"], json!(true));
+    assert!(
+        View::of(&NodeStates::concluded())
+            .get("provisional")
+            .is_none()
+    );
+}
+
+#[test]
 fn of_a_node_lists_its_missed_periods_in_the_members_order() {
     // Arrange
     let state = NodeState {

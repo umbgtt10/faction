@@ -52,6 +52,32 @@ fn window(peer_id: u64, from: u64, until: u64, fault: Fault) -> FaultWindow {
 }
 
 #[test]
+fn apply_keeps_a_timer_side_dead_under_a_timer_fault_opened_after_it() {
+    // Arrange
+    let late = TimerFaultPolicy {
+        late: 40,
+        ..TimerFaultPolicy::default()
+    };
+    let (schedule, board) = schedule(
+        vec![
+            window(1, 10, 100, dead()),
+            window(1, 50, 80, Fault::Timer(late)),
+        ],
+        Vec::new(),
+    );
+
+    // Act
+    schedule.apply(60);
+
+    // Assert
+    assert_eq!(
+        board.node(1).timer.current(),
+        TimerFaultPolicy { dead: true, ..late }
+    );
+    assert_eq!(schedule.healed_by_restart(60), vec![1]);
+}
+
+#[test]
 fn apply_leaves_a_node_outside_every_window_faithful() {
     // Arrange
     let (schedule, board) = schedule(
