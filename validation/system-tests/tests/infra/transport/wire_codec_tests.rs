@@ -6,20 +6,25 @@ use faction_system_tests::infra::transport::wire_codec::WireCodec;
 
 fn every_message() -> Vec<TransportMessage> {
     vec![
-        TransportMessage::Ping { from: 1 },
-        TransportMessage::Ready { from: u64::MAX },
+        TransportMessage::Ping { from: 1, epoch: 3 },
+        TransportMessage::Ready {
+            from: u64::MAX,
+            epoch: u64::MAX,
+        },
         TransportMessage::Bootstrapped { from: 7 },
         TransportMessage::Membership {
             from: 0,
             members: vec![0, 1, u64::MAX],
             required_count: 2,
+            epoch: 9,
         },
         TransportMessage::Membership {
             from: 4,
             members: vec![],
             required_count: 0,
+            epoch: 0,
         },
-        TransportMessage::MembershipAcknowledged { from: 5 },
+        TransportMessage::MembershipAcknowledged { from: 5, epoch: 2 },
         TransportMessage::Probe {
             from: 1,
             relay_for: None,
@@ -47,7 +52,7 @@ fn every_message() -> Vec<TransportMessage> {
 #[test]
 fn decode_of_a_frame_cut_short_is_none() {
     // Arrange
-    let frame = WireCodec::encode(&TransportMessage::Ready { from: 3 });
+    let frame = WireCodec::encode(&TransportMessage::Ready { from: 3, epoch: 0 });
 
     // Act
     let decoded = WireCodec::decode(&frame[..frame.len() - 1]);
@@ -59,7 +64,7 @@ fn decode_of_a_frame_cut_short_is_none() {
 #[test]
 fn decode_of_a_frame_with_an_unknown_tag_is_none() {
     // Arrange
-    let mut frame = WireCodec::encode(&TransportMessage::Ping { from: 3 });
+    let mut frame = WireCodec::encode(&TransportMessage::Ping { from: 3, epoch: 0 });
     frame[12] = 0xff;
 
     // Act
@@ -76,8 +81,9 @@ fn decode_of_a_membership_whose_members_overrun_the_frame_is_none() {
         from: 0,
         members: vec![1],
         required_count: 1,
+        epoch: 0,
     });
-    frame[21] = 2;
+    frame[29] = 2;
 
     // Act
     let decoded = WireCodec::decode(&frame);

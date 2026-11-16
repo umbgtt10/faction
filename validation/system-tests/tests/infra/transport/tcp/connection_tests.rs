@@ -44,8 +44,8 @@ fn messages_of_two_frames_delivered_at_once_returns_both_in_order() {
     // Arrange
     let (writer, mut reader) = connected();
     let frames = [
-        WireCodec::encode(&TransportMessage::Ping { from: 1 }),
-        WireCodec::encode(&TransportMessage::Ready { from: 2 }),
+        WireCodec::encode(&TransportMessage::Ping { from: 1, epoch: 0 }),
+        WireCodec::encode(&TransportMessage::Ready { from: 2, epoch: 0 }),
     ]
     .concat();
     reader.write_all(&frames).unwrap();
@@ -63,8 +63,8 @@ fn messages_of_two_frames_delivered_at_once_returns_both_in_order() {
     assert_eq!(
         messages,
         vec![
-            TransportMessage::Ping { from: 1 },
-            TransportMessage::Ready { from: 2 },
+            TransportMessage::Ping { from: 1, epoch: 0 },
+            TransportMessage::Ready { from: 2, epoch: 0 },
         ]
     );
 }

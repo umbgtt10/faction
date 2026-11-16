@@ -144,7 +144,7 @@ fn node_observer_on_step_writes_step_event_with_decision_count() {
     let input = InputMessage::Timer(TimerMessage::RetryPing);
     let decisions = vec![
         OutputMessage::Noop,
-        OutputMessage::BroadcastReady,
+        OutputMessage::BroadcastReady { epoch: 0 },
         OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
     ];
 

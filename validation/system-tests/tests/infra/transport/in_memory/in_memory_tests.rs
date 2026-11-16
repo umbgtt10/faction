@@ -7,11 +7,11 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 
 fn msg_ping(from: PeerId) -> TransportMessage {
-    TransportMessage::Ping { from }
+    TransportMessage::Ping { from, epoch: 0 }
 }
 
 fn msg_ready(from: PeerId) -> TransportMessage {
-    TransportMessage::Ready { from }
+    TransportMessage::Ready { from, epoch: 0 }
 }
 
 #[test]
@@ -73,18 +73,18 @@ fn send_all_message_types() {
     let mut transports = InMemoryTransport::new_mesh(&[0, 1]);
 
     // Act
-    transports[0].send(1, TransportMessage::Ping { from: 0 });
-    transports[0].send(1, TransportMessage::Ready { from: 0 });
+    transports[0].send(1, TransportMessage::Ping { from: 0, epoch: 0 });
+    transports[0].send(1, TransportMessage::Ready { from: 0, epoch: 0 });
     transports[0].send(1, TransportMessage::Bootstrapped { from: 0 });
 
     // Assert
     assert_eq!(
         transports[1].recv(),
-        Some(TransportMessage::Ping { from: 0 })
+        Some(TransportMessage::Ping { from: 0, epoch: 0 })
     );
     assert_eq!(
         transports[1].recv(),
-        Some(TransportMessage::Ready { from: 0 })
+        Some(TransportMessage::Ready { from: 0, epoch: 0 })
     );
     assert_eq!(
         transports[1].recv(),

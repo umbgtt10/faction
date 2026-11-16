@@ -307,11 +307,11 @@ impl Cluster {
         let index = self.peer_ids.iter().position(|&p| p == from).unwrap();
 
         match msg {
-            OutputMessage::BroadcastPing => {
+            OutputMessage::BroadcastPing { epoch } => {
                 let peers = self.peer_ids.clone();
                 for &to in &peers {
                     if to != from {
-                        let transport_msg = TransportMessage::Ping { from };
+                        let transport_msg = TransportMessage::Ping { from, epoch };
                         if self.should_drop(from, to, &transport_msg) {
                             continue;
                         }
@@ -319,11 +319,11 @@ impl Cluster {
                     }
                 }
             }
-            OutputMessage::BroadcastReady => {
+            OutputMessage::BroadcastReady { epoch } => {
                 let peers = self.peer_ids.clone();
                 for &to in &peers {
                     if to != from {
-                        let transport_msg = TransportMessage::Ready { from };
+                        let transport_msg = TransportMessage::Ready { from, epoch };
                         if self.should_drop(from, to, &transport_msg) {
                             continue;
                         }

@@ -16,6 +16,7 @@ use faction::types::PeerId;
 use crate::commit::Commit;
 use crate::input_message::InputMessage;
 use crate::message_translator::MessageTranslator;
+use crate::offer::Offer;
 use crate::output_message::OutputMessage;
 use crate::probe_relay::ProbeRelay;
 use crate::result_view::ResultView;
@@ -70,12 +71,8 @@ impl Protocol {
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
         match input_message {
-            InputMessage::Timer(TimerMessage::RetryPing) => {
-                self.retry(OutputMessage::BroadcastPing, TimerMessage::RetryPing)
-            }
-            InputMessage::Timer(TimerMessage::RetryReady) => {
-                self.retry(OutputMessage::BroadcastReady, TimerMessage::RetryReady)
-            }
+            InputMessage::Timer(TimerMessage::RetryPing) => self.retry(TimerMessage::RetryPing),
+            InputMessage::Timer(TimerMessage::RetryReady) => self.retry(TimerMessage::RetryReady),
             InputMessage::Timer(TimerMessage::RetryMembership { peer_id }) => {
                 self.resend_membership(peer_id)
             }
@@ -87,16 +84,15 @@ impl Protocol {
                     relay_for: Some(_), ..
                 }),
             ) => ProbeRelay::reply(self.local_peer_id, &message),
-            InputMessage::Transport(TransportMessage::Membership { from, .. }) => {
-                vec![OutputMessage::Send {
-                    to: from,
-                    message: TransportMessage::MembershipAcknowledged {
-                        from: self.local_peer_id,
-                    },
-                }]
+            InputMessage::Transport(message @ TransportMessage::Membership { .. }) => {
+                let offer = Offer::of(&message, self.local_peer_id).expect("a membership");
+                let taken = self.apply(offer.command());
+                let epoch = self.cluster_view().epoch();
+                offer.acknowledged(taken, self.local_peer_id, epoch)
             }
             other => {
-                let command = self.translator.to_command(other);
+                let epoch = self.cluster_view().epoch();
+                let command = self.translator.to_command(other, epoch);
                 self.apply(command)
             }
         }
@@ -110,7 +106,8 @@ impl Protocol {
         self.apply(Command::DeadlineExpired)
     }
 
-    pub fn initialize(&self) -> Vec<OutputMessage> {
+    pub fn initialize(&mut self) -> Vec<OutputMessage> {
+        let epoch = self.cluster_view().epoch();
         let mut actions = Vec::new();
 
         for peer in &self.peers {
@@ -125,12 +122,20 @@ impl Protocol {
             TimerMessage::LocalParticipationCompleted,
         )));
 
-        actions.push(OutputMessage::BroadcastPing);
+        actions.push(OutputMessage::BroadcastPing { epoch });
         actions.push(OutputMessage::Schedule(TimerEvent::Fire(
             TimerMessage::RetryPing,
         )));
 
         actions
+    }
+
+    // Whether `message` invites this node, removed from its cluster, to join
+    // it again: a membership, which a removed node takes as a newcomer does,
+    // created again from it.
+    pub fn invites(&mut self, message: &TransportMessage) -> bool {
+        matches!(message, TransportMessage::Membership { .. })
+            && self.cluster_view().peer_state() == PeerState::Removed
     }
 
     pub fn request_addition(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
@@ -191,12 +196,21 @@ impl Protocol {
         }
     }
 
-    // A broadcast repeated, and its retry with it, until the node concludes.
-    fn retry(&mut self, broadcast: OutputMessage, retry: TimerMessage) -> Vec<OutputMessage> {
-        if self.cluster_view().peer_state() == PeerState::Bootstrapped {
-            vec![OutputMessage::Noop]
-        } else {
-            vec![broadcast, OutputMessage::Schedule(TimerEvent::Fire(retry))]
+    // A broadcast repeated at the node's epoch, and its retry with it, until
+    // the node concludes or is removed.
+    fn retry(&mut self, retry: TimerMessage) -> Vec<OutputMessage> {
+        let view = self.cluster_view();
+        let epoch = view.epoch();
+        match (view.peer_state(), &retry) {
+            (PeerState::Bootstrapped | PeerState::Removed, _) => vec![OutputMessage::Noop],
+            (_, TimerMessage::RetryPing) => vec![
+                OutputMessage::BroadcastPing { epoch },
+                OutputMessage::Schedule(TimerEvent::Fire(retry)),
+            ],
+            _ => vec![
+                OutputMessage::BroadcastReady { epoch },
+                OutputMessage::Schedule(TimerEvent::Fire(retry)),
+            ],
         }
     }
 }

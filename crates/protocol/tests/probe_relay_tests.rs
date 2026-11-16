@@ -74,7 +74,7 @@ fn reply_of_an_indirect_probe_probes_the_target_for_the_node_that_asked() {
 #[test]
 fn reply_of_anything_else_is_noop() {
     // Arrange
-    let ping = TransportMessage::Ping { from: 3 };
+    let ping = TransportMessage::Ping { from: 3, epoch: 0 };
 
     // Act
     let outputs = ProbeRelay::reply(1, &ping);

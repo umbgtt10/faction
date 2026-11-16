@@ -163,7 +163,7 @@ impl FactionNode {
 
     pub fn start(&mut self) {
         self.observer.on_start();
-        let decisions = match &self.role {
+        let decisions = match &mut self.role {
             Role::Running(protocol) => Self::opening(protocol.initialize()),
             Role::Waiting(_) => Vec::new(),
         };
@@ -223,19 +223,29 @@ impl FactionNode {
 
     fn dispatch(&mut self, decision: OutputMessage) {
         match decision {
-            OutputMessage::BroadcastPing => {
+            OutputMessage::BroadcastPing { epoch } => {
                 for to in &self.peers {
                     if *to != self.peer_id {
-                        self.transport
-                            .send(*to, TransportMessage::Ping { from: self.peer_id });
+                        self.transport.send(
+                            *to,
+                            TransportMessage::Ping {
+                                from: self.peer_id,
+                                epoch,
+                            },
+                        );
                     }
                 }
             }
-            OutputMessage::BroadcastReady => {
+            OutputMessage::BroadcastReady { epoch } => {
                 for to in &self.peers {
                     if *to != self.peer_id {
-                        self.transport
-                            .send(*to, TransportMessage::Ready { from: self.peer_id });
+                        self.transport.send(
+                            *to,
+                            TransportMessage::Ready {
+                                from: self.peer_id,
+                                epoch,
+                            },
+                        );
                     }
                 }
             }

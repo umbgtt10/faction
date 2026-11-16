@@ -25,7 +25,7 @@ fn of_a_bootstrapped_message_is_bootstrapped() {
 #[test]
 fn of_a_membership_acknowledgement_is_membership_acknowledged() {
     // Arrange & Act
-    let kind = MessageKind::of(&TransportMessage::MembershipAcknowledged { from: 1 });
+    let kind = MessageKind::of(&TransportMessage::MembershipAcknowledged { from: 1, epoch: 0 });
 
     // Assert
     assert_eq!(kind, MessageKind::MembershipAcknowledged);
@@ -38,6 +38,7 @@ fn of_a_membership_is_membership() {
         from: 1,
         members: vec![1],
         required_count: 1,
+        epoch: 0,
     });
 
     // Assert
@@ -47,7 +48,7 @@ fn of_a_membership_is_membership() {
 #[test]
 fn of_a_ping_is_ping() {
     // Arrange & Act
-    let kind = MessageKind::of(&TransportMessage::Ping { from: 1 });
+    let kind = MessageKind::of(&TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Assert
     assert_eq!(kind, MessageKind::Ping);
@@ -80,7 +81,7 @@ fn of_a_probe_is_probe() {
 #[test]
 fn of_a_ready_is_ready() {
     // Arrange & Act
-    let kind = MessageKind::of(&TransportMessage::Ready { from: 1 });
+    let kind = MessageKind::of(&TransportMessage::Ready { from: 1, epoch: 0 });
 
     // Assert
     assert_eq!(kind, MessageKind::Ready);

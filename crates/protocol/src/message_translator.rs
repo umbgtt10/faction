@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::outcome::Outcome;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
@@ -37,23 +38,25 @@ impl Default for MessageTranslator {
 }
 
 impl MessageTranslator {
+    // The command a message is, a peer's signal at the epoch it carries; a
+    // signal of the node's own timers at `epoch`, the node's.
     #[must_use]
-    pub fn to_command(&self, message: InputMessage) -> Command {
+    pub fn to_command(&self, message: InputMessage, epoch: Epoch) -> Command {
         match message {
             InputMessage::Transport(msg) => match msg {
-                TransportMessage::Ping { from } => Command::ParticipationObserved {
+                TransportMessage::Ping { from, epoch } => Command::ParticipationObserved {
                     peer_id: from,
-                    epoch: 0,
+                    epoch,
                 },
-                TransportMessage::Ready { from } => Command::ReadyObserved {
+                TransportMessage::Ready { from, epoch } => Command::ReadyObserved {
                     peer_id: from,
-                    epoch: 0,
+                    epoch,
                 },
                 TransportMessage::Bootstrapped { .. } => Command::Probe,
-                TransportMessage::MembershipAcknowledged { from } => {
+                TransportMessage::MembershipAcknowledged { from, epoch } => {
                     Command::MembershipAcknowledged {
                         peer_id: from,
-                        epoch: 0,
+                        epoch,
                     }
                 }
                 TransportMessage::Membership { .. } => unreachable!("handled in decide()"),
@@ -70,7 +73,7 @@ impl MessageTranslator {
             },
             InputMessage::Timer(msg) => match msg {
                 TimerMessage::ParticipationObserved { peer_id } => {
-                    Command::ParticipationObserved { peer_id, epoch: 0 }
+                    Command::ParticipationObserved { peer_id, epoch }
                 }
                 TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
                 TimerMessage::RetryPing => unreachable!("handled in decide()"),
@@ -87,8 +90,9 @@ impl MessageTranslator {
     }
 
     // Every outcome of a result, in order, each turned into what the caller
-    // must do -- the membership a newcomer is sent read from the result's view,
-    // as the node `local_peer_id` sends it; a result asking nothing is a no-op.
+    // must do -- the membership a peer is sent, and the epoch a broadcast
+    // carries, read from the result's view, as the node `local_peer_id` sends
+    // them; a result asking nothing is a no-op.
     #[must_use]
     pub fn to_output_messages(
         &self,
@@ -115,7 +119,9 @@ impl MessageTranslator {
     ) -> Vec<OutputMessage> {
         match outcome {
             Outcome::BroadcastLocalReady => vec![
-                OutputMessage::BroadcastReady,
+                OutputMessage::BroadcastReady {
+                    epoch: view.epoch(),
+                },
                 OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
             ],
             Outcome::Concluded { .. } => vec![
@@ -156,7 +162,9 @@ impl MessageTranslator {
                     peer_id,
                 })),
             ],
-            Outcome::AcknowledgeRejoin { .. } => vec![OutputMessage::BroadcastReady],
+            Outcome::AcknowledgeRejoin { .. } => vec![OutputMessage::BroadcastReady {
+                epoch: view.epoch(),
+            }],
             Outcome::SendMembership { peer_id } => vec![
                 OutputMessage::Send {
                     to: peer_id,
@@ -164,6 +172,7 @@ impl MessageTranslator {
                         from: local_peer_id,
                         members: view.members().as_slice().to_vec(),
                         required_count: view.required_count(),
+                        epoch: view.epoch(),
                     },
                 },
                 OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryMembership {

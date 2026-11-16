@@ -8,7 +8,7 @@ use faction_system_tests::infra::transport::wire_codec::WireCodec;
 #[test]
 fn next_frame_of_a_frame_pushed_in_two_parts_waits_for_the_whole() {
     // Arrange
-    let frame = WireCodec::encode(&TransportMessage::Ping { from: 4 });
+    let frame = WireCodec::encode(&TransportMessage::Ping { from: 4, epoch: 0 });
     let mut buffer = FrameBuffer::new();
     buffer.push(&frame[..6]);
     let before = buffer.next_frame();
@@ -37,8 +37,8 @@ fn next_frame_of_an_empty_buffer_is_none() {
 #[test]
 fn next_frame_of_two_frames_pushed_at_once_returns_each_in_turn() {
     // Arrange
-    let first = WireCodec::encode(&TransportMessage::Ping { from: 1 });
-    let second = WireCodec::encode(&TransportMessage::Ready { from: 2 });
+    let first = WireCodec::encode(&TransportMessage::Ping { from: 1, epoch: 0 });
+    let second = WireCodec::encode(&TransportMessage::Ready { from: 2, epoch: 0 });
     let mut buffer = FrameBuffer::new();
     buffer.push(&[first.clone(), second.clone()].concat());
 

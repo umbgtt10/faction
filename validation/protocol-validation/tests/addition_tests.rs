@@ -23,6 +23,7 @@ fn membership_from_node_0() -> TransportMessage {
         from: 0,
         members: vec![0, 1, 2],
         required_count: 2,
+        epoch: 0,
     }
 }
 
@@ -54,7 +55,13 @@ fn a_commit_reaching_nodes_still_bootstrapping_admits_the_peer_and_counts_it() {
 
     // Act
     for index in 0..3 {
-        cluster.inject_transport(index, TransportMessage::Ready { from: NEWCOMER });
+        cluster.inject_transport(
+            index,
+            TransportMessage::Ready {
+                from: NEWCOMER,
+                epoch: 0,
+            },
+        );
     }
     cluster.run(ROUNDS);
 
@@ -70,7 +77,10 @@ fn a_lost_acknowledgement_is_recovered_from_the_membership_sent_again() {
     cluster.drop_message(
         NEWCOMER,
         0,
-        TransportMessage::MembershipAcknowledged { from: NEWCOMER },
+        TransportMessage::MembershipAcknowledged {
+            from: NEWCOMER,
+            epoch: 0,
+        },
         1,
     );
     cluster.request_addition(0, NEWCOMER);

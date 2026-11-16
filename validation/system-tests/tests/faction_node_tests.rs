@@ -264,7 +264,7 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Arrange
     let (mut node, mut peer_one, mut outsider, _) = concluded();
     node.commit_addition(7);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Act
     for _ in 0..4 {
@@ -274,7 +274,7 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        received.contains(&TransportMessage::Ready { from: 0 }),
+        received.contains(&TransportMessage::Ready { from: 0, epoch: 0 }),
         "{received:?}"
     );
 }
@@ -285,7 +285,7 @@ fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     let (mut node, mut peer_one, mut outsider, _) = concluded();
     node.commit_addition(7);
     node.commit_removal(7);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Act
     for _ in 0..4 {
@@ -295,7 +295,7 @@ fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        !received.contains(&TransportMessage::Ready { from: 0 }),
+        !received.contains(&TransportMessage::Ready { from: 0, epoch: 0 }),
         "{received:?}"
     );
 }
@@ -330,7 +330,7 @@ fn cut_keeps_everything_from_crossing_the_link() {
     let (mut node, mut peer_one, _, _) = concluded();
     let _ = from_fn(|| peer_one.recv()).count();
     node.cut(1);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Act
     for _ in 0..4 {
@@ -403,7 +403,7 @@ fn mend_lets_messages_cross_the_link_again() {
     let (mut node, mut peer_one, _, _) = concluded();
     node.cut(1);
     node.mend(1);
-    peer_one.send(0, TransportMessage::Ping { from: 1 });
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
 
     // Act
     for _ in 0..4 {
@@ -413,7 +413,7 @@ fn mend_lets_messages_cross_the_link_again() {
     // Assert
     assert!(
         from_fn(|| peer_one.recv())
-            .any(|message| matches!(message, TransportMessage::Ready { from: 0 }))
+            .any(|message| matches!(message, TransportMessage::Ready { from: 0, .. }))
     );
 }
 
@@ -467,6 +467,7 @@ fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
             from: 0,
             members: vec![0, 1, 2],
             required_count: 1,
+            epoch: 0
         })
     );
 }
@@ -582,7 +583,7 @@ fn start_schedules_participation_that_a_due_step_applies() {
 fn step_of_a_waiting_newcomer_given_anything_else_keeps_waiting() {
     // Arrange
     let (mut newcomer, mut coordinator) = newcomer();
-    coordinator.send(5, TransportMessage::Ping { from: 0 });
+    coordinator.send(5, TransportMessage::Ping { from: 0, epoch: 0 });
 
     // Act
     let worked = [newcomer.step(), newcomer.step()];
@@ -603,6 +604,7 @@ fn step_of_a_waiting_newcomer_given_its_membership_becomes_a_node_of_it() {
             from: 0,
             members: vec![0, 1],
             required_count: 2,
+            epoch: 0,
         },
     );
 
@@ -615,7 +617,7 @@ fn step_of_a_waiting_newcomer_given_its_membership_becomes_a_node_of_it() {
     assert_eq!(newcomer.snapshot().required_count, 2);
     assert_eq!(
         coordinator.recv(),
-        Some(TransportMessage::MembershipAcknowledged { from: 5 })
+        Some(TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 })
     );
 }
 

@@ -10,6 +10,7 @@ pub mod commit;
 pub mod input_message;
 pub mod message_translator;
 pub mod newcomer;
+pub mod offer;
 pub mod output_message;
 pub mod probe_relay;
 pub mod protocol;

@@ -21,6 +21,7 @@ fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
         from: 0,
         members: vec![0],
         required_count: 1,
+        epoch: 0,
     };
 
     // Act
@@ -47,6 +48,7 @@ fn join_of_a_membership_already_naming_the_newcomer_lists_it_once() {
         from: 0,
         members: vec![0, 1, 5],
         required_count: 2,
+        epoch: 0,
     };
 
     // Act
@@ -59,12 +61,40 @@ fn join_of_a_membership_already_naming_the_newcomer_lists_it_once() {
 }
 
 #[test]
+fn join_of_a_membership_at_an_epoch_starts_at_it_and_acknowledges_with_it() {
+    // Arrange
+    let membership = TransportMessage::Membership {
+        from: 0,
+        members: vec![0, 1],
+        required_count: 2,
+        epoch: 6,
+    };
+
+    // Act
+    let Ok((mut protocol, decisions)) = newcomer().join(membership) else {
+        panic!("a newcomer joins from its membership");
+    };
+
+    // Assert
+    assert_eq!(protocol.cluster_view().epoch(), 6);
+    assert_eq!(
+        decisions[0],
+        OutputMessage::Send {
+            to: 0,
+            message: TransportMessage::MembershipAcknowledged { from: 5, epoch: 6 },
+        }
+    );
+    assert!(decisions.contains(&OutputMessage::BroadcastPing { epoch: 6 }));
+}
+
+#[test]
 fn join_of_a_membership_becomes_a_node_of_it_acknowledges_and_starts() {
     // Arrange
     let membership = TransportMessage::Membership {
         from: 0,
         members: vec![0, 1],
         required_count: 2,
+        epoch: 0,
     };
 
     // Act
@@ -78,7 +108,7 @@ fn join_of_a_membership_becomes_a_node_of_it_acknowledges_and_starts() {
         vec![
             OutputMessage::Send {
                 to: 0,
-                message: TransportMessage::MembershipAcknowledged { from: 5 },
+                message: TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 },
             },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ParticipationObserved {
                 peer_id: 0
@@ -87,7 +117,7 @@ fn join_of_a_membership_becomes_a_node_of_it_acknowledges_and_starts() {
                 peer_id: 1
             })),
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::LocalParticipationCompleted)),
-            OutputMessage::BroadcastPing,
+            OutputMessage::BroadcastPing { epoch: 0 },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
         ]
     );
@@ -99,7 +129,7 @@ fn join_of_a_membership_becomes_a_node_of_it_acknowledges_and_starts() {
 #[test]
 fn join_of_any_other_message_keeps_waiting() {
     // Arrange & Act
-    let joined = newcomer().join(TransportMessage::Ping { from: 0 });
+    let joined = newcomer().join(TransportMessage::Ping { from: 0, epoch: 0 });
 
     // Assert
     assert!(joined.is_err());
