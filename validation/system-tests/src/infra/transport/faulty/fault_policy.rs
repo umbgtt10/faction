@@ -5,7 +5,7 @@ use crate::infra::transport::faulty::message_kind::MessageKind;
 
 /// One `0..=100` percentage per transport fault, plus the seed that makes every
 /// misbehaving decision reproducible.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct FaultPolicy {
     pub loss: u8,
     pub duplication: u8,

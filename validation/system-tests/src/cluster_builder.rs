@@ -18,6 +18,7 @@ use faction_protocol::transport::Transport;
 
 use crate::cluster::Cluster;
 use crate::constants::DEFAULT_DEADLINE_CYCLES;
+use crate::infra::fault_board::FaultBoard;
 use crate::infra::network::port_allocator::PortAllocator;
 use crate::infra::network::tcp_readiness::TcpReadiness;
 use crate::infra::transport::channels::channels_transport::ChannelsTransport;
@@ -55,6 +56,7 @@ pub struct ClusterBuilder {
     suspicion_threshold: usize,
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
+    faults: FaultBoard,
 }
 
 impl ClusterBuilder {
@@ -71,6 +73,7 @@ impl ClusterBuilder {
             suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
+            faults: FaultBoard::default(),
         }
     }
 
@@ -92,6 +95,7 @@ impl ClusterBuilder {
             self.probe_stretch.factor(),
             self.log_dir.clone(),
             self.time.clone(),
+            self.faults.clone(),
         );
 
         let nodes: Vec<Node> = peer_ids
@@ -117,6 +121,15 @@ impl ClusterBuilder {
             self.log_dir,
             self.time,
         )
+    }
+
+    // The board its in-process nodes read their faults from, which the caller
+    // keeps to switch them while the cluster runs; a process node's are its
+    // own.
+    #[must_use]
+    pub fn faults(mut self, board: FaultBoard) -> Self {
+        self.faults = board;
+        self
     }
 
     #[must_use]

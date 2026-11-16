@@ -7,6 +7,8 @@ use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
+use crate::infra::dice::Dice;
+use crate::infra::live_policy::LivePolicy;
 use crate::infra::logging::shared_writer::SharedWriter;
 use crate::infra::transport::faulty::fault_policy::FaultPolicy;
 use crate::infra::transport::faulty::link_cuts::LinkCuts;
@@ -17,9 +19,11 @@ const ASYMMETRIC_SALT: u64 = 0x4153_594D_4D00_0000;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01B3;
 const DELAY_STEPS: u64 = 3;
 const REORDER_MAX_STEPS: u64 = 4;
+const SEED_MIX: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// A [`Transport`] decorator that injects transport faults per a seeded [`FaultPolicy`],
-/// and drops what crosses a link a test has cut.
+/// read live, so a test switches a fault on and heals it while a cluster runs, and
+/// drops what crosses a link a test has cut.
 ///
 /// Per-message faults (loss, duplication, delay, reorder, selective) are rolled per
 /// `send` against a seeded RNG. The structural faults (partition, asymmetric) are
@@ -30,10 +34,10 @@ const REORDER_MAX_STEPS: u64 = 4;
 pub struct FaultyTransport {
     inner: Box<dyn Transport>,
     peer_id: PeerId,
-    policy: FaultPolicy,
+    policy: LivePolicy<FaultPolicy>,
     cuts: LinkCuts,
     log: Option<SharedWriter>,
-    rng: u64,
+    dice: Dice,
     held: Vec<(u64, PeerId, TransportMessage)>,
 }
 
@@ -41,19 +45,19 @@ impl FaultyTransport {
     #[must_use]
     pub fn new(
         peer_id: PeerId,
-        policy: FaultPolicy,
+        policy: LivePolicy<FaultPolicy>,
         cuts: LinkCuts,
         log: Option<SharedWriter>,
         inner: Box<dyn Transport>,
     ) -> FaultyTransport {
-        let seed = policy.seed ^ peer_id.wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        let dice = Dice::new(policy.current().seed ^ peer_id.wrapping_mul(SEED_MIX));
         FaultyTransport {
             inner,
             peer_id,
             policy,
             cuts,
             log,
-            rng: seed | 1,
+            dice,
             held: Vec::new(),
         }
     }
@@ -74,37 +78,34 @@ impl FaultyTransport {
         eprintln!();
     }
 
-    fn is_asymmetric_cut(&self, to: PeerId) -> bool {
-        self.link_is_cut(ASYMMETRIC_SALT, self.peer_id, to, self.policy.asymmetric)
+    fn is_asymmetric_cut(&self, to: PeerId, policy: &FaultPolicy) -> bool {
+        Self::link_is_cut(policy, ASYMMETRIC_SALT, self.peer_id, to, policy.asymmetric)
     }
 
-    fn is_partitioned(&self, to: PeerId) -> bool {
+    fn is_partitioned(&self, to: PeerId, policy: &FaultPolicy) -> bool {
         let low = self.peer_id.min(to);
         let high = self.peer_id.max(to);
-        self.link_is_cut(PARTITION_SALT, low, high, self.policy.partition)
+        Self::link_is_cut(policy, PARTITION_SALT, low, high, policy.partition)
     }
 
-    fn link_is_cut(&self, salt: u64, first: PeerId, second: PeerId, percent: u8) -> bool {
+    fn link_is_cut(
+        policy: &FaultPolicy,
+        salt: u64,
+        first: PeerId,
+        second: PeerId,
+        percent: u8,
+    ) -> bool {
         if percent == 0 {
             return false;
         }
         if percent >= 100 {
             return true;
         }
-        let mut hash = self.policy.seed ^ salt;
+        let mut hash = policy.seed ^ salt;
         hash = (hash ^ first).wrapping_mul(FNV_PRIME);
         hash = (hash ^ second).wrapping_mul(FNV_PRIME);
         hash ^= hash >> 29;
         (hash % 100) < u64::from(percent)
-    }
-
-    fn next_rand(&mut self) -> u64 {
-        let mut x = self.rng;
-        x ^= x << 13;
-        x ^= x >> 7;
-        x ^= x << 17;
-        self.rng = x;
-        x
     }
 
     fn release_due(&mut self) {
@@ -118,16 +119,6 @@ impl FaultyTransport {
                 self.held.push((countdown - 1, to, message));
             }
         }
-    }
-
-    fn rolls(&mut self, percent: u8) -> bool {
-        if percent == 0 {
-            return false;
-        }
-        if percent >= 100 {
-            return true;
-        }
-        (self.next_rand() % 100) < u64::from(percent)
     }
 
     fn sender(message: &TransportMessage) -> PeerId {
@@ -147,42 +138,42 @@ impl FaultyTransport {
 
 impl Transport for FaultyTransport {
     fn send(&mut self, to: PeerId, message: TransportMessage) {
+        let policy = self.policy.current();
         self.release_due();
 
         if self.cuts.is_cut(to) {
             self.announce("CUT (link cut by the test)", to, &message);
             return;
         }
-        if self.is_partitioned(to) {
+        if self.is_partitioned(to, &policy) {
             self.announce("PARTITION (link cut)", to, &message);
             return;
         }
-        if self.is_asymmetric_cut(to) {
+        if self.is_asymmetric_cut(to, &policy) {
             self.announce("ASYMMETRIC (one-way link cut)", to, &message);
             return;
         }
-        if MessageKind::of(&message) == self.policy.selective_target
-            && self.rolls(self.policy.selective)
+        if MessageKind::of(&message) == policy.selective_target && self.dice.rolls(policy.selective)
         {
             self.announce("SELECTIVE DROP", to, &message);
             return;
         }
-        if self.rolls(self.policy.loss) {
+        if self.dice.rolls(policy.loss) {
             self.announce("LOSS (dropped)", to, &message);
             return;
         }
-        if self.rolls(self.policy.delay) {
+        if self.dice.rolls(policy.delay) {
             self.announce("DELAY (held)", to, &message);
             self.held.push((DELAY_STEPS, to, message));
             return;
         }
-        if self.rolls(self.policy.reorder) {
-            let lag = 1 + (self.next_rand() % REORDER_MAX_STEPS);
+        if self.dice.rolls(policy.reorder) {
+            let lag = 1 + self.dice.below(REORDER_MAX_STEPS);
             self.announce("REORDER (held out of order)", to, &message);
             self.held.push((lag, to, message));
             return;
         }
-        if self.rolls(self.policy.duplication) {
+        if self.dice.rolls(policy.duplication) {
             self.announce("DUPLICATION (sent twice)", to, &message);
             self.inner.send(to, message.clone());
             self.inner.send(to, message);

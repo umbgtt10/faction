@@ -5,6 +5,7 @@ use crate::traits::pause_tests::FakePause;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::types::PeerId;
 use faction_system_tests::faction_node::FactionNode;
+use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
@@ -65,6 +66,7 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
         ProbeStretch::Minimal.factor(),
         None,
         time.clone(),
+        FaultBoard::default(),
     )
 }
 

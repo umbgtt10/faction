@@ -4,6 +4,7 @@
 use crate::support::fake_time;
 use crate::support::recipe;
 use faction::peer_state::PeerState;
+use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
 use faction_system_tests::node_recipe::NodeRecipe;
@@ -58,6 +59,7 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
         ProbeStretch::Minimal.factor(),
         Some(dir.clone()),
         time,
+        FaultBoard::default(),
     );
     let transport = InMemoryTransport::new_mesh(&[0]).remove(0);
 

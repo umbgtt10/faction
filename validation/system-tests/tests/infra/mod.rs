@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 pub mod dice_tests;
+pub mod fault_board_tests;
 pub mod live_policy_tests;
 pub mod logging;
 pub mod network;

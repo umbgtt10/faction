@@ -2,12 +2,16 @@
 // SPDX-License-Identifier: MIT
 
 use crate::constants::HELPERS;
-use crate::infra::transport::faulty::fault_policy::FaultPolicy;
+use crate::infra::fault_board::FaultBoard;
+use crate::infra::node_faults::NodeFaults;
+use crate::infra::timer::faulty::faulty_clock::FaultyClock;
+use crate::infra::timer::faulty::faulty_timer::FaultyTimer;
 use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
 use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use faction::config::Config;
@@ -19,6 +23,7 @@ use faction::types::PeerId;
 
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
+use faction_protocol::timer::Timer;
 use faction_protocol::transport::Transport;
 
 use crate::faction_node::FactionNode;
@@ -43,9 +48,12 @@ pub struct NodeRecipe {
     probe_stretch: u32,
     log_dir: Option<PathBuf>,
     time: TimePorts,
+    faults: FaultBoard,
 }
 
 impl NodeRecipe {
+    // `faults`: the board each node it builds reads its faults from.
+    #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
         required: usize,
@@ -55,6 +63,7 @@ impl NodeRecipe {
         probe_stretch: u32,
         log_dir: Option<PathBuf>,
         time: TimePorts,
+        faults: FaultBoard,
     ) -> Self {
         Self {
             required,
@@ -64,6 +73,7 @@ impl NodeRecipe {
             probe_stretch,
             log_dir,
             time,
+            faults,
         }
     }
 
@@ -127,17 +137,19 @@ impl NodeRecipe {
         }
     }
 
-    // The node's transport behind the faults a test injects: no seeded fault,
-    // the links its cuts name cut, every fault one line of the node's log.
+    // The node's transport behind the faults a test injects: those its board
+    // holds for it, the links its cuts name cut, every fault one line of the
+    // node's log.
     fn faulty(
         &self,
         peer_id: PeerId,
         transport: Box<dyn Transport>,
         cuts: &LinkCuts,
+        faults: &NodeFaults,
     ) -> Box<dyn Transport> {
         Box::new(FaultyTransport::new(
             peer_id,
-            FaultPolicy::default(),
+            faults.transport.clone(),
             cuts.clone(),
             self.writer(peer_id),
             transport,
@@ -148,11 +160,12 @@ impl NodeRecipe {
     fn node_of(&self, peer_id: PeerId, role: Role, transport: Box<dyn Transport>) -> FactionNode {
         let (_, node_observer) = self.observers(peer_id);
         let cuts = LinkCuts::default();
+        let faults = self.faults.node(peer_id);
         FactionNode::new(
             peer_id,
             role,
-            self.faulty(peer_id, transport, &cuts),
-            self.timer(),
+            self.faulty(peer_id, transport, &cuts, &faults),
+            self.timer(peer_id, &faults),
             node_observer,
             cuts,
             Box::new(self.clone()),
@@ -180,12 +193,22 @@ impl NodeRecipe {
         (faction_observer, node_observer)
     }
 
-    fn timer(&self) -> Box<RealTimer> {
-        Box::new(RealTimer::with_delays(
+    // The node's timer behind the faults its board holds for it: its firings',
+    // and its clock's.
+    fn timer(&self, peer_id: PeerId, faults: &NodeFaults) -> Box<dyn Timer> {
+        let clock = Arc::new(FaultyClock::new(
+            faults.clock.clone(),
             self.time.clock.clone(),
-            self.delay,
-            self.deadline_delay,
-            self.probe_stretch,
+        ));
+        Box::new(FaultyTimer::new(
+            peer_id,
+            faults.timer.clone(),
+            Box::new(RealTimer::with_delays(
+                clock,
+                self.delay,
+                self.deadline_delay,
+                self.probe_stretch,
+            )),
         ))
     }
 

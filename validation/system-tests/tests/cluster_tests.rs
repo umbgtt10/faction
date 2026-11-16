@@ -9,7 +9,11 @@ use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
+use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
+use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
+use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
 use faction_system_tests::poll_expired::PollExpired;
@@ -111,6 +115,90 @@ fn new_holds_the_nodes_it_is_given() {
     // Assert
     assert_eq!(cluster.node_count(), 2);
     assert_eq!(cluster.node_state(0), PeerState::Fresh);
+}
+
+#[test]
+fn poll_within_a_cluster_healed_of_a_lossy_link_concludes() {
+    // Arrange
+    let (time, _) = fake_time();
+    let board = FaultBoard::default();
+    let mut cluster = ClusterBuilder::new(3, 3, time)
+        .faults(board.clone())
+        .build();
+    board.node(0).transport.set(FaultPolicy {
+        loss: 100,
+        ..FaultPolicy::default()
+    });
+    cluster.settle(100);
+    let stalled = cluster.is_bootstrapped();
+    board.node(0).transport.set(FaultPolicy::default());
+
+    // Act
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every node bootstrapped",
+        |cluster| cluster.is_bootstrapped(),
+    );
+
+    // Assert
+    assert!(!stalled);
+    assert_eq!(polled, Ok(()));
+}
+
+#[test]
+fn poll_within_a_cluster_whose_starved_timer_side_is_fed_concludes() {
+    // Arrange
+    let (time, _) = fake_time();
+    let board = FaultBoard::default();
+    let mut cluster = ClusterBuilder::new(3, 3, time)
+        .faults(board.clone())
+        .build();
+    board.node(0).timer.set(TimerFaultPolicy {
+        starved: true,
+        ..TimerFaultPolicy::default()
+    });
+    cluster.settle(100);
+    let stalled = cluster.is_bootstrapped();
+    board.node(0).timer.set(TimerFaultPolicy::default());
+
+    // Act
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every node bootstrapped",
+        |cluster| cluster.is_bootstrapped(),
+    );
+
+    // Assert
+    assert!(!stalled);
+    assert_eq!(polled, Ok(()));
+}
+
+#[test]
+fn poll_within_a_cluster_whose_stopped_clock_runs_again_concludes() {
+    // Arrange
+    let (time, _) = fake_time();
+    let board = FaultBoard::default();
+    let mut cluster = ClusterBuilder::new(3, 3, time)
+        .faults(board.clone())
+        .build();
+    board.node(0).clock.set(ClockFault {
+        drift_ppm: -1_000_000,
+        ..ClockFault::default()
+    });
+    cluster.settle(100);
+    let stalled = cluster.is_bootstrapped();
+    board.node(0).clock.set(ClockFault::default());
+
+    // Act
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every node bootstrapped",
+        |cluster| cluster.is_bootstrapped(),
+    );
+
+    // Assert
+    assert!(!stalled);
+    assert_eq!(polled, Ok(()));
 }
 
 #[test]

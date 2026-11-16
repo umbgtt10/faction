@@ -4,6 +4,7 @@
 use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
+use faction_system_tests::infra::live_policy::LivePolicy;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
@@ -31,7 +32,13 @@ fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) 
         forwarded: forwarded.clone(),
     };
     (
-        FaultyTransport::new(peer_id, policy, LinkCuts::default(), None, Box::new(inner)),
+        FaultyTransport::new(
+            peer_id,
+            LivePolicy::new(policy),
+            LinkCuts::default(),
+            None,
+            Box::new(inner),
+        ),
         forwarded,
     )
 }
@@ -181,7 +188,7 @@ fn recv_from_a_peer_cut_off_drops_what_it_sent() {
     let cuts = LinkCuts::default();
     let mut faulty = FaultyTransport::new(
         0,
-        FaultPolicy::default(),
+        LivePolicy::default(),
         cuts.clone(),
         None,
         Box::new(mesh.remove(0)),
@@ -241,6 +248,35 @@ fn selective_at_100_percent_drops_only_the_target_kind() {
 }
 
 #[test]
+fn send_after_its_policy_is_healed_forwards_again() {
+    // Arrange
+    let forwarded: Forwarded = Arc::new(Mutex::new(Vec::new()));
+    let live = LivePolicy::new(FaultPolicy {
+        loss: 100,
+        ..FaultPolicy::default()
+    });
+    let mut faulty = FaultyTransport::new(
+        0,
+        live.clone(),
+        LinkCuts::default(),
+        None,
+        Box::new(RecordingTransport {
+            forwarded: forwarded.clone(),
+        }),
+    );
+    faulty.send(1, ping(0));
+    let lost = forwarded.lock().unwrap().len();
+    live.set(FaultPolicy::default());
+
+    // Act
+    faulty.send(1, ping(0));
+
+    // Assert
+    assert_eq!(lost, 0);
+    assert_eq!(*forwarded.lock().unwrap(), vec![(1, ping(0))]);
+}
+
+#[test]
 fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
     // Arrange
     let path = temp_dir().join(format!("faulty-transport-tests-{}.jsonl", id()));
@@ -249,7 +285,7 @@ fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
     let cuts = LinkCuts::default();
     let mut faulty = FaultyTransport::new(
         0,
-        FaultPolicy::default(),
+        LivePolicy::default(),
         cuts.clone(),
         Some(SharedWriter::open(&path)),
         Box::new(RecordingTransport {

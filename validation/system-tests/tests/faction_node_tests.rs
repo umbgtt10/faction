@@ -20,9 +20,9 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::constants::DEFAULT_SUSPICION_THRESHOLD;
 use faction_system_tests::constants::HELPERS;
 use faction_system_tests::faction_node::FactionNode;
+use faction_system_tests::infra::live_policy::LivePolicy;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
-use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -64,7 +64,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         Role::Running(Box::new(protocol)),
         Box::new(FaultyTransport::new(
             0,
-            FaultPolicy::default(),
+            LivePolicy::default(),
             cuts.clone(),
             None,
             Box::new(mesh.remove(0)),
