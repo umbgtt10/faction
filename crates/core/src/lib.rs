@@ -1,9 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-//! # faction
-//!
-//! **A deterministic, `no_std` Mealy state machine for cluster bootstrapping.**
+//! **A `no_std`, zero-`unsafe`, protocol-independent cluster membership state machine.**
 //!
 //! Every distributed system has a moment where it stops being a pile of processes
 //! and starts being a cluster. That moment is *bootstrapping* — and it's usually
@@ -15,10 +13,53 @@
 //! The terminal answer is `Bootstrapped`. A blown deadline is recorded as
 //! `TimedOut` but is never terminal — the node keeps trying.
 //!
-//! ## The pitch
+//! **Phases 1 to 4 of six are built** -- bootstrapping, dynamic joining,
+//! single-node addition, failure detection and single-node removal --
+//! conformant to version 0.4.0 of the specification in the repository's
+//! `spec/`.
+//!
+//! # What it does
+//!
+//! ```text
+//! Initial → Pinging → Collecting → Bootstrapped
+//! ```
+//!
+//! | State | Carries |
+//! |---|---|
+//! | `Initial` | Nothing — unit struct |
+//! | `Pinging` | Active pinging and collecting peer sets |
+//! | `Collecting` | Collecting and pinged peer sets |
+//! | `Bootstrapped` | Terminal — quorum reached |
+//! | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` |
+//! | `Removed` | Removed from its own cluster — admits a probe alone |
+//!
+//! `Bootstrapped` is the only conclusion. A missed deadline is recorded as
+//! a fact — surfaced as `PeerState::TimedOut` — without leaving the current
+//! state, so the node stays receptive and can still converge. And a
+//! bootstrapped node answers a still-pinging peer with its readiness, so a
+//! concluded node is never a silent sink.
+//!
+//! A concluded node grows or shrinks by one through the layer that commits
+//! changes above it: asked for an addition or a removal, it is `Reconfiguring`
+//! — one change in flight — until the layer above reports the commit, which
+//! every node applies, or the abort. It refuses to coordinate a removal its
+//! quorum cannot spare: a member not suspected, without whom the members not
+//! suspected would fall below the count. A node whose own removal commits is
+//! `Removed`, and admits nothing but a probe.
+//!
+//! A concluded node also tracks its members' liveness, the caller keeping the
+//! clock: at each probe period it names the member to probe, round-robin; a
+//! member that misses its probe is probed through others; one that misses as
+//! many periods running as the configuration's suspicion threshold is
+//! suspected, and one heard from again is revived. Its view says when the
+//! members not suspected fall below the required count, and when they reach it
+//! again. A suspect stays a member until its removal commits: liveness is
+//! reported, never a stage.
+//!
+//! # Why faction
 //!
 //! You bring the network, the transport, and the definition of "ready."
-//! `faction` brings the state transitions — every single one of them tested,
+//! `faction` brings the state transitions -- every single one of them tested,
 //! observable, and replayable from an input log.
 //!
 //! * **Protocol-agnostic** — no opinion on what a peer *is* or how messages move
@@ -27,10 +68,7 @@
 //! * **Zero unsafe** — `#![forbid(unsafe_code)]`
 //! * **`no_std + alloc`** — runs on bare metal, WASM, embedded, and cloud
 //!
-//! Design rationale is recorded as Architecture Decision Records in
-//! [`docs/ADRs/`](https://github.com/umbgtt10/faction/tree/main/docs/ADRs).
-//!
-//! ## Example
+//! # Example
 //!
 //! ```rust
 //! use faction::command::Command;
@@ -88,45 +126,7 @@
 //! }
 //! ```
 //!
-//! ## State machine
-//!
-//! ```text
-//! Initial → Pinging → Collecting → Bootstrapped
-//! ```
-//!
-//! | State | Carries |
-//! |---|---|
-//! | `Initial` | Nothing — unit struct |
-//! | `Pinging` | Active pinging and collecting peer sets |
-//! | `Collecting` | Collecting and pinged peer sets |
-//! | `Bootstrapped` | Terminal — quorum reached |
-//! | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` |
-//! | `Removed` | Removed from its own cluster — admits a probe alone |
-//!
-//! `Bootstrapped` is the only conclusion. A missed deadline is recorded as
-//! a fact — surfaced as `PeerState::TimedOut` — without leaving the current
-//! state, so the node stays receptive and can still converge. And a
-//! bootstrapped node answers a still-pinging peer with its readiness, so a
-//! concluded node is never a silent sink.
-//!
-//! A concluded node grows or shrinks by one through the layer that commits
-//! changes above it: asked for an addition or a removal, it is `Reconfiguring`
-//! — one change in flight — until the layer above reports the commit, which
-//! every node applies, or the abort. It refuses to coordinate a removal its
-//! quorum cannot spare: a member not suspected, without whom the members not
-//! suspected would fall below the count. A node whose own removal commits is
-//! `Removed`, and admits nothing but a probe.
-//!
-//! A concluded node also tracks its members' liveness, the caller keeping the
-//! clock: at each probe period it names the member to probe, round-robin; a
-//! member that misses its probe is probed through others; one that misses as
-//! many periods running as the configuration's suspicion threshold is
-//! suspected, and one heard from again is revived. Its view says when the
-//! members not suspected fall below the required count, and when they reach it
-//! again. A suspect stays a member until its removal commits: liveness is
-//! reported, never a stage.
-//!
-//! ## Observer
+//! # Observer
 //!
 //! Every call — an accepted command, a rejected one, a probe — is reported once
 //! to the [`Observer`], with the command and its result. Wire it to telemetry,
@@ -134,12 +134,23 @@
 //! machine doesn't care. [`NoOpObserver`] is provided for the common "just drive
 //! the machine" case.
 //!
-//! ## Further reading
+//! # Siblings
 //!
-//! * [README](https://crates.io/crates/faction) — project overview and design principles
-//! * [Specification](https://github.com/umbgtt10/faction/blob/main/spec/SPEC.md) — normative: this crate is one implementation of it
-//! * [Architecture](https://github.com/umbgtt10/faction/blob/main/docs/ARCHITECTURE.md)
-//! * [Transition matrix tests](https://github.com/umbgtt10/faction/blob/main/validation/ladder/tests/matrix/) — exhaustive `(state × command)` coverage
+//! Faction is one of four bookkeepers a consensus protocol orchestrates, none
+//! aware of the others: [`faction`](https://crates.io/crates/faction) keeps
+//! membership, [`beggar`](https://crates.io/crates/beggar) recovery, `notary`
+//! credentials (not yet built), and [`cartel`](https://crates.io/crates/cartel)
+//! consensus. All are `no_std`, protocol-independent and specified, each with one
+//! entry point and an observer.
+//! Faction alone is a state machine: membership has genuine states a node moves
+//! between, where the registries beside it have none.
+//!
+//! # Further reading
+//!
+//! * [README](https://github.com/umbgtt10/faction#readme) -- the overview: how it works, validation, project status
+//! * [Specification](https://github.com/umbgtt10/faction/blob/main/spec/SPEC.md) -- normative: this crate is one implementation of it
+//! * [Architecture](https://github.com/umbgtt10/faction/blob/main/docs/ARCHITECTURE.md) -- the design
+//! * [ADRs](https://github.com/umbgtt10/faction/tree/main/docs/ADRs) -- the decisions, one per file
 
 #![no_std]
 #![forbid(unsafe_code)]
