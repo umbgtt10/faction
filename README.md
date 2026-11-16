@@ -23,7 +23,7 @@ that answers the question deterministically, observably, and provably.
 
 **Phases 1 to 4 of six are built** (2026-11-13): bootstrapping, dynamic joining, single-node addition, failure
 detection and single-node removal, conformant to version 0.4.0 of the specification in [`spec/`](spec/SPEC.md).
-Version 0.8.0 is on [crates.io](https://crates.io/crates/faction).
+Version 0.8.1 is on [crates.io](https://crates.io/crates/faction).
 
 ---
 
@@ -307,7 +307,7 @@ across all combinations.
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified on `thumbv7em-none-eabihf` |
 | System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
-| Published | [crates.io](https://crates.io/crates/faction) 0.8.0 |
+| Published | [crates.io](https://crates.io/crates/faction) 0.8.1 |
 
 ---
 

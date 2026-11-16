@@ -5,7 +5,15 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-11-16
+
+### Published on crates.io
+
+A patch release: nothing the crate does changes. Conforms to the specification's version 0.4.0.
+
 #### Changed
+- The crate's description and keywords name what `faction` now is, a cluster membership state machine, where they
+  said readiness and startup coordination.
 - The README and the crate's front page follow the outline the three bookkeepers now share; the tagline names what
   `faction` now is, a cluster membership state machine. The quick start asks for 0.8 and runs as written.
 - The agent rules carry the strict rules beggar's and cartel's do: tests first, never removing a test or relaxing an
