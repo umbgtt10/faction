@@ -4,21 +4,22 @@
 use crate::support::fake_time;
 use crate::support::real_time;
 use crate::support::recipe;
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
+use faction_system_tests::poll_expired::PollExpired;
 use faction_system_tests::spawn::Spawn;
 use faction_system_tests::timer_delay::TimerDelay;
 use faction_system_tests::traits::monotonic_clock::MonotonicClock;
 use std::sync::Arc;
 use std::time::Duration;
 
-fn cluster() -> (Cluster, Arc<FakeMonotonicClock>) {
+fn cluster() -> (Cluster, Arc<SimulatedClock>) {
     let (time, clock) = fake_time();
     let recipe = recipe(2, &time);
     let nodes: Vec<Node> = InMemoryTransport::new_mesh(&[0, 1])
@@ -33,7 +34,7 @@ fn cluster() -> (Cluster, Arc<FakeMonotonicClock>) {
         TimerDelay::Minimal,
         None,
         None,
-        time.pause.clone(),
+        time,
     );
     (cluster, clock)
 }
@@ -110,6 +111,43 @@ fn new_holds_the_nodes_it_is_given() {
     // Assert
     assert_eq!(cluster.node_count(), 2);
     assert_eq!(cluster.node_state(0), PeerState::Fresh);
+}
+
+#[test]
+fn poll_within_a_condition_met_returns_before_the_deadline() {
+    // Arrange
+    let (mut cluster, clock) = cluster();
+
+    // Act
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every node bootstrapped",
+        |cluster| cluster.is_bootstrapped(),
+    );
+
+    // Assert
+    assert_eq!(polled, Ok(()));
+    assert!(cluster.is_bootstrapped());
+    assert!(clock.now() < Duration::from_secs(10));
+}
+
+#[test]
+fn poll_within_a_condition_never_met_gives_up_at_the_deadline_naming_it() {
+    // Arrange
+    let (mut cluster, clock) = cluster();
+
+    // Act
+    let polled = cluster.poll_within(Duration::from_millis(100), "the impossible", |_| false);
+
+    // Assert
+    assert_eq!(
+        polled,
+        Err(PollExpired {
+            waiting_for: String::from("the impossible"),
+            deadline: Duration::from_millis(100),
+        })
+    );
+    assert_eq!(clock.now(), Duration::from_millis(100));
 }
 
 #[test]

@@ -115,7 +115,7 @@ impl ClusterBuilder {
             self.timer_delay,
             joining,
             self.log_dir,
-            self.time.pause,
+            self.time,
         )
     }
 
@@ -219,7 +219,7 @@ impl ClusterBuilder {
             self.timer_delay,
             Some(joining),
             self.log_dir,
-            self.time.pause,
+            self.time,
         )
     }
 

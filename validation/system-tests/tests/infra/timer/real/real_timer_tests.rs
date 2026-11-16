@@ -1,18 +1,18 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction_protocol::timer::Timer;
 use faction_protocol::timer_event::TimerEvent;
 use faction_protocol::timer_message::TimerMessage;
 use faction_system_tests::constants::DEFAULT_DEADLINE_CYCLES;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::probe_stretch::ProbeStretch;
 use std::sync::Arc;
 use std::time::Duration;
 
-fn clock() -> Arc<FakeMonotonicClock> {
-    Arc::new(FakeMonotonicClock::at(Duration::ZERO))
+fn clock() -> Arc<SimulatedClock> {
+    Arc::new(SimulatedClock::at(Duration::ZERO))
 }
 
 fn other_event() -> TimerEvent {

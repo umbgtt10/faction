@@ -5,9 +5,9 @@ use crate::support::fake_time;
 use crate::support::in_memory_node;
 use crate::support::real_time;
 use crate::support::recipe;
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::peer_state::PeerState;
 use faction_system_tests::infra::network::tcp_readiness::TcpReadiness;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::membership::Membership;
 use faction_system_tests::node::Node;
@@ -62,7 +62,7 @@ fn spec() -> ProcessSpec {
     )
 }
 
-fn task_node() -> (Node, Arc<FakeMonotonicClock>) {
+fn task_node() -> (Node, Arc<SimulatedClock>) {
     let (time, clock) = fake_time();
     let node = in_memory_node(&[0, 1, 2], 2, &time);
     (Node::task(Rc::new(RefCell::new(node))), clock)

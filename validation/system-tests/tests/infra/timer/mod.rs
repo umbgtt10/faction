@@ -2,3 +2,4 @@
 // SPDX-License-Identifier: MIT
 
 pub mod real;
+pub mod simulated;

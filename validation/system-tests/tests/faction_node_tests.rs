@@ -3,7 +3,6 @@
 
 use crate::support::fake_time;
 use crate::support::recipe;
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -22,6 +21,7 @@ use faction_system_tests::constants::DEFAULT_SUSPICION_THRESHOLD;
 use faction_system_tests::constants::HELPERS;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
@@ -110,7 +110,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
     (node, mesh.remove(0))
 }
 
-fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
+fn node() -> (FactionNode, Arc<SimulatedClock>) {
     let (time, clock) = fake_time();
     let peers = vec![0, 1, 2];
     let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0);

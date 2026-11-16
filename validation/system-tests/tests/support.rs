@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use crate::traits::pause_tests::FakePause;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::types::PeerId;
@@ -9,6 +8,7 @@ use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node_recipe::NodeRecipe;
 use faction_system_tests::probe_stretch::ProbeStretch;
@@ -25,8 +25,8 @@ use std::time::Duration;
 
 const LOG_RUN: &str = "FACTION_LOG_RUN";
 
-pub fn fake_time() -> (TimePorts, Arc<FakeMonotonicClock>) {
-    let clock = Arc::new(FakeMonotonicClock::at(Duration::ZERO));
+pub fn fake_time() -> (TimePorts, Arc<SimulatedClock>) {
+    let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
     let time = TimePorts {
         clock: clock.clone(),
         pause: Arc::new(FakePause::advancing(clock.clone())),
