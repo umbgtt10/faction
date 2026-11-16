@@ -5,6 +5,18 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.8.2] — 2026-11-16
+
+### Published on crates.io
+
+A patch release: nothing the crate does changes. Conforms to the specification's version 0.4.0.
+
+#### Changed
+- Edition 2024, as the three bookkeepers now are; `rust-version` stays 1.85. rustfmt's 2024 style reflows the
+  source. A crate's edition is its own, so no caller is touched.
+- The specification's model returns its members' iterator `+ use<'a>`, as 2024's capture rule asks. The gates hand
+  the system tests their run's name through the process runner rather than setting it in their own environment.
+
 ## [0.8.1] — 2026-11-16
 
 ### Published on crates.io

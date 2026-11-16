@@ -23,7 +23,7 @@ that answers the question deterministically, observably, and provably.
 
 **Phases 1 to 4 of six are built** (2026-11-13): bootstrapping, dynamic joining, single-node addition, failure
 detection and single-node removal, conformant to version 0.4.0 of the specification in [`spec/`](spec/SPEC.md).
-Version 0.8.1 is on [crates.io](https://crates.io/crates/faction).
+Version 0.8.2 is on [crates.io](https://crates.io/crates/faction).
 
 ---
 
@@ -300,14 +300,14 @@ across all combinations.
 |---|---|
 | Core productive LOC | ~1,970 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.4.0 — its independent model and the crate answer all 93 vectors as written |
-| Total tests | 1,584 |
+| Total tests | 1,587 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified on `thumbv7em-none-eabihf` |
 | System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
-| Published | [crates.io](https://crates.io/crates/faction) 0.8.1 |
+| Published | [crates.io](https://crates.io/crates/faction) 0.8.2 |
 
 ---
 
