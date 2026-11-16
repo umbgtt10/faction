@@ -3,4 +3,11 @@
 
 pub mod chaos_run;
 pub mod fault_schedule;
+pub mod regression;
+pub mod regressions;
+pub mod regressions_error;
 pub mod replay;
+pub mod shrinker;
+pub mod shrunk;
+pub mod soak;
+pub mod soak_limit;

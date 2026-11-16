@@ -3,7 +3,10 @@
 
 // What a node restarts from: its genesis, or a snapshot of a membership it
 // held, `behind` commits short of the last it applied.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use serde::Deserialize;
+use serde::Serialize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RestartFrom {
     Genesis,
     Snapshot { behind: usize },

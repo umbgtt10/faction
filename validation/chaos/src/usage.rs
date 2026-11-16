@@ -12,7 +12,11 @@ pub struct Usage;
 
 impl Display for Usage {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> FmtResult {
-        write!(formatter, "usage: faction-chaos replay <seed>")
+        write!(
+            formatter,
+            "usage: faction-chaos replay <seed> | faction-chaos soak \
+             (CHAOS_SCENARIOS, or CHAOS_DURATION in s, m or h; CHAOS_SEED)"
+        )
     }
 }
 

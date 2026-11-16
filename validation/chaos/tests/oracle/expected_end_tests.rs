@@ -43,6 +43,19 @@ fn removed(epoch: u64) -> NodeSnapshot {
     }
 }
 
+fn waiting() -> NodeSnapshot {
+    NodeSnapshot {
+        peer_state: PeerState::Fresh,
+        member_count: 0,
+        members: Vec::new(),
+        required_count: 0,
+        reconfiguration: Reconfiguration::None,
+        suspected: Vec::new(),
+        quorum: Quorum::NotTracked,
+        epoch: 0,
+    }
+}
+
 #[test]
 fn departure_of_a_member_at_the_end_state_is_none() {
     // Arrange
@@ -101,6 +114,30 @@ fn departure_of_a_member_still_suspecting_names_the_end_state() {
 
     // Assert
     assert!(departure.is_some());
+}
+
+#[test]
+fn departure_of_a_newcomer_the_log_never_adds_and_running_names_its_waiting() {
+    // Arrange
+    let expected = expected();
+
+    // Act
+    let departure = expected.departure(4, &member());
+
+    // Assert
+    assert_eq!(departure, Some(format!("{:?}", waiting())));
+}
+
+#[test]
+fn departure_of_a_newcomer_the_log_never_adds_still_waiting_is_none() {
+    // Arrange
+    let expected = expected();
+
+    // Act
+    let departure = expected.departure(4, &waiting());
+
+    // Assert
+    assert_eq!(departure, None);
 }
 
 #[test]

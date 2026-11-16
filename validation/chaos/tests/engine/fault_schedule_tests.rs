@@ -197,6 +197,18 @@ fn heal_makes_every_layer_of_every_node_faithful() {
 }
 
 #[test]
+fn healed_by_restart_names_a_node_whose_downtime_or_dead_timer_ends_at_the_heal() {
+    // Arrange
+    let (schedule, _) = schedule(vec![window(0, 50, 100, dead())], vec![down(2, 90, 10)]);
+
+    // Act
+    let restarted = schedule.healed_by_restart(100);
+
+    // Assert
+    assert_eq!(restarted, vec![0, 2]);
+}
+
+#[test]
 fn healed_by_restart_names_the_nodes_down_or_with_their_timer_side_dead() {
     // Arrange
     let (schedule, _) = schedule(vec![window(1, 50, 150, dead())], vec![down(2, 90, 20)]);

@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use serde::Deserialize;
+use serde::Serialize;
+
 use faction::types::PeerId;
 
 use crate::infra::transport::faulty::message_kind::MessageKind;
@@ -16,7 +19,7 @@ use crate::infra::transport::faulty::message_kind::MessageKind;
 /// ring, none at 0, and the percentages a busy ring loses a message at, per
 /// fragment of it and per message waiting. And a node mute, deaf, or starved --
 /// its sends held and nothing received until it is fed.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FaultPolicy {
     pub loss: u8,
     pub duplication: u8,

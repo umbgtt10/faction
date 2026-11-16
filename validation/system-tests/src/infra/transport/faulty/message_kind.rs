@@ -1,9 +1,12 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use serde::Deserialize;
+use serde::Serialize;
+
 use faction_protocol::transport_message::TransportMessage;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum MessageKind {
     Ping,
     #[default]

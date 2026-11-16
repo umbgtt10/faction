@@ -19,6 +19,8 @@ chrono.workspace = true
 faction.workspace = true
 faction-protocol.workspace = true
 faction-system-tests.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
 rstest.workspace = true

@@ -53,6 +53,24 @@ fn scenario_of_another_seed_is_another() {
 }
 
 #[test]
+fn scenario_of_each_seed_differs_from_its_neighbour_s() {
+    // Arrange
+    let unseeded = |seed: u64| Scenario {
+        seed: 0,
+        ..Generator::new(seed).scenario()
+    };
+
+    // Act
+    let alike: Vec<u64> = (0..100)
+        .map(|half| 2 * half)
+        .filter(|even| unseeded(*even) == unseeded(*even + 1))
+        .collect();
+
+    // Assert
+    assert_eq!(alike, Vec::<u64>::new());
+}
+
+#[test]
 fn scenario_of_one_seed_is_drawn_alike() {
     // Arrange
     let first = Generator::new(42).scenario();

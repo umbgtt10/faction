@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use serde::Deserialize;
+use serde::Serialize;
+
 use crate::model::fault_window::FaultWindow;
 use crate::model::planned_change::PlannedChange;
 use crate::model::restart_plan::RestartPlan;
@@ -11,7 +14,7 @@ use crate::model::restart_plan::RestartPlan;
 // reaching a node up to `delivery_lag` rounds late and, at `duplicates`
 // percent, twice. The chaos lasts `chaos_rounds`; quiescence then has
 // `quiescence_rounds` to reach the end state the committed log implies.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scenario {
     pub seed: u64,
     pub nodes: usize,

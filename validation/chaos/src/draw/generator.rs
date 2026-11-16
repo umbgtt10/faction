@@ -22,10 +22,13 @@ const MIN_NODES: u64 = 3;
 const NODE_SPAN: u64 = 4;
 const QUIESCENCE_ROUNDS: u64 = 3_000;
 const RESTART_SALT: u64 = 0x5245_5354_4152_5400;
+const SEED_MIX: u64 = 0x9E37_79B9_7F4A_7C15;
 
 // The scenario a seed draws: a cluster of three to six, its required count
 // and suspicion threshold, its changes, faults and crashes, and the commits'
-// lateness and duplicates. The same seed draws the same scenario.
+// lateness and duplicates. The same seed draws the same scenario; the seed is
+// mixed before it is drawn from, so neighbouring seeds -- which a xorshift
+// would take alike, being never even -- draw scenarios of their own.
 pub struct Generator {
     seed: u64,
 }
@@ -38,21 +41,21 @@ impl Generator {
 
     #[must_use]
     pub fn scenario(&self) -> Scenario {
-        let mut dice = Dice::new(self.seed);
+        let mixed = self.seed.wrapping_mul(SEED_MIX);
+        let mut dice = Dice::new(mixed);
         let nodes = (MIN_NODES + dice.below(NODE_SPAN)) as usize;
         let required_count = 1 + dice.below(nodes as u64) as usize;
         let suspicion_threshold = 1 + dice.below(MAX_THRESHOLD) as usize;
         let chaos_rounds = MIN_CHAOS_ROUNDS + dice.below(CHAOS_SPAN);
         let changes =
-            ChangeDraw::new(self.seed ^ CHANGE_SALT).changes(nodes, required_count, chaos_rounds);
+            ChangeDraw::new(mixed ^ CHANGE_SALT).changes(nodes, required_count, chaos_rounds);
         let restartable = Self::stable(nodes, &changes);
-        let faults = FaultDraw::new(self.seed ^ FAULT_SALT).windows(
+        let faults = FaultDraw::new(mixed ^ FAULT_SALT).windows(
             &Self::peers(nodes, &changes),
             &restartable,
             chaos_rounds,
         );
-        let restarts =
-            RestartDraw::new(self.seed ^ RESTART_SALT).restarts(&restartable, chaos_rounds);
+        let restarts = RestartDraw::new(mixed ^ RESTART_SALT).restarts(&restartable, chaos_rounds);
         Scenario {
             seed: self.seed,
             nodes,

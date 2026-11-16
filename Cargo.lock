@@ -325,6 +325,8 @@ dependencies = [
  "faction-protocol",
  "faction-system-tests",
  "rstest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -390,6 +392,7 @@ dependencies = [
  "faction-protocol",
  "prost",
  "rstest",
+ "serde",
  "tokio",
  "tokio-stream",
  "tonic",

@@ -17,6 +17,7 @@ use crate::model::scenario::Scenario;
 const BACKOFF_ROUNDS: u64 = 20;
 const COMMIT_GAP: u64 = 3;
 const DICE_SALT: u64 = 0x4C41_5945_5200_0000;
+const SEED_MIX: u64 = 0x9E37_79B9_7F4A_7C15;
 
 // Where a planned change stands with the layer above.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,7 +71,7 @@ impl LayerAbove {
             }),
             coordinators,
             due: Vec::new(),
-            dice: Dice::new(scenario.seed ^ DICE_SALT),
+            dice: Dice::new(scenario.seed.wrapping_mul(SEED_MIX) ^ DICE_SALT),
             delivery_lag: scenario.delivery_lag,
             duplicates: scenario.duplicates,
             next_commit: 0,

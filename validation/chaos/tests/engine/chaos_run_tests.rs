@@ -3,6 +3,7 @@
 
 use faction_chaos::draw::generator::Generator;
 use faction_chaos::engine::chaos_run::ChaosRun;
+use faction_chaos::engine::regressions::Regressions;
 use faction_chaos::model::change::Change;
 use faction_chaos::model::planned_change::PlannedChange;
 use faction_chaos::model::scenario::Scenario;
@@ -167,6 +168,29 @@ fn run_of_a_scenario_given_no_time_fails_diverged() {
         ),
         "{ended:?}"
     );
+}
+
+#[test]
+fn run_of_each_regression_recorded_reaches_its_end_state() {
+    // Arrange
+    let recorded =
+        Regressions::new(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("chaos-regressions.json"))
+            .load()
+            .unwrap();
+
+    // Act
+    let failures: Vec<String> = recorded
+        .into_iter()
+        .filter_map(|regression| {
+            ChaosRun::new(regression.scenario, None)
+                .run()
+                .err()
+                .map(|failure| format!("seed {}: {failure}", regression.seed))
+        })
+        .collect();
+
+    // Assert
+    assert!(failures.is_empty(), "{failures:#?}");
 }
 
 #[test]

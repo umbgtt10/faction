@@ -66,14 +66,17 @@ impl FaultSchedule {
     }
 
     // The nodes a heal at `round` restarts: those down, and those whose
-    // timer side is dead.
+    // timer side is dead, at it or until it.
     #[must_use]
     pub fn healed_by_restart(&self, round: u64) -> Vec<PeerId> {
+        let ending = self.restarts_at(round);
         self.peers
             .iter()
             .copied()
             .filter(|peer_id| {
-                self.down(round).contains(peer_id) || self.timer(*peer_id, round, &[]).dead
+                self.down(round).contains(peer_id)
+                    || self.timer(*peer_id, round, &[]).dead
+                    || ending.iter().any(|plan| plan.peer_id == *peer_id)
             })
             .collect()
     }

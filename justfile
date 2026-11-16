@@ -37,6 +37,18 @@ stage1:
     cargo test -p faction-system-tests --lib --bins
     cargo xtask system-tests
 
+# The chaos validation once: the deterministic engine's single run of seeds,
+# and every regression recorded. Stage 1 runs it too.
+chaos:
+    cargo test -q -p faction-chaos
+
+# Chaos seeds played on the deterministic engine, one after another: for an
+# hour, or as long as CHAOS_DURATION says (seconds, or with s, m or h), or for
+# CHAOS_SCENARIOS scenarios, from a fresh seed or from CHAOS_SEED. Each failure
+# is shrunk and recorded in validation/chaos/chaos-regressions.json.
+chaos-soak:
+    cargo run -q --release -p faction-chaos -- soak
+
 # One chaos seed replayed on the deterministic engine, every node's log
 # written under logs/chaos/<seed>/ with their consolidation: the run a failure
 # reported, to be read.

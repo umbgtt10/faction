@@ -5,7 +5,10 @@
 // choice on a reschedule -- replace the pending firing, or add one beside it
 // -- the timer side's health, and the seed that makes every misbehaving
 // decision reproducible. The default is a faithful runtime.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+use serde::Deserialize;
+use serde::Serialize;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimerFaultPolicy {
     pub late: u8,
     pub reorder: u8,

@@ -15,9 +15,10 @@ use crate::harness::committed_log::CommittedLog;
 // member concluded at the log's membership -- its members, its required
 // count, its last epoch -- with no change in flight, no suspect, and its
 // quorum held; every node the log removed and never took back `Removed`, at
-// the epoch of its removal.
+// the epoch of its removal; and a newcomer it never added still waiting.
 pub struct ExpectedEnd {
     member: NodeSnapshot,
+    named: Vec<PeerId>,
     removals: Vec<(PeerId, Epoch)>,
 }
 
@@ -38,6 +39,15 @@ impl ExpectedEnd {
                 quorum: Quorum::Held,
                 epoch: membership.epoch,
             },
+            named: log
+                .membership_at(0)
+                .peers
+                .into_iter()
+                .chain(log.commits().iter().filter_map(|commit| match *commit {
+                    Commit::Addition { peer_id, .. } => Some(peer_id),
+                    _ => None,
+                }))
+                .collect(),
             removals: log
                 .commits()
                 .iter()
@@ -63,8 +73,27 @@ impl ExpectedEnd {
             let removed = snapshot.peer_state == PeerState::Removed && snapshot.epoch == epoch;
             return (!removed).then(|| format!("Removed at epoch {epoch}"));
         }
+        let expected = if self.named.contains(&peer_id) {
+            self.member.clone()
+        } else {
+            Self::waiting()
+        };
         let mut found = snapshot.clone();
         found.members.sort_unstable();
-        (found != self.member).then(|| format!("{:?}", self.member))
+        (found != expected).then(|| format!("{expected:?}"))
+    }
+
+    // A newcomer that has received no membership.
+    fn waiting() -> NodeSnapshot {
+        NodeSnapshot {
+            peer_state: PeerState::Fresh,
+            member_count: 0,
+            members: Vec::new(),
+            required_count: 0,
+            reconfiguration: Reconfiguration::None,
+            suspected: Vec::new(),
+            quorum: Quorum::NotTracked,
+            epoch: 0,
+        }
     }
 }
