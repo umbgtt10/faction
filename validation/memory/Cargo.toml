@@ -1,0 +1,21 @@
+# The testing ladder's memory tier, in a package of its own because a
+# `#[global_allocator]` is per binary. The instrument -- a counting allocator
+# -- and the runs it measures are in `src/`, their tests in `tests/`, one binary
+# that installs the allocator.
+[package]
+name = "faction-memory"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+autotests = false
+
+[dependencies]
+faction.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[test]]
+name = "all_tests"
+path = "tests/all_tests.rs"

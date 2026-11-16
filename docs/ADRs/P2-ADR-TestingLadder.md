@@ -41,6 +41,12 @@ all run by one gate:
    transport/timer (`core-validation`, `protocol-validation`).
 7. **System** — end-to-end over the real transports (in-memory, channels, TCP, gRPC)
    and spawn models (task, thread, process) (`system-tests`).
+8. **Memory** — a counting allocator in a test binary of its own, holding the
+   README's claim that the machine is slim by construction: a conclusion holds
+   more for more peers and nothing for the duplicates and probes between its
+   signals, a thousand probe periods hold what one does, a hundred membership
+   changes hold what one does, and nothing is left once the machine is gone
+   (`validation/memory/`), as beggar's and cartel's tiers are.
 
 "Tested" means every tier passes under the gate; "done" means the gate is green.
 

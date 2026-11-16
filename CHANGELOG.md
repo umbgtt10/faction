@@ -5,6 +5,17 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Added
+- A memory tier, `validation/memory/`, as beggar's and cartel's: a counting allocator in a test binary of its own
+  holds the README's claim that the machine is slim by construction. A conclusion holds more for more peers and
+  nothing for the duplicates and probes between its signals; a thousand probe periods, each suspecting a member and
+  reviving it, hold what one does; a hundred membership changes, each a newcomer added and removed, hold what one
+  does; and nothing is left once the machine is gone.
+
+#### Changed
+- The system tests' indirect-probe scenario waits the generous probe stretch in its one case, processes over gRPC,
+  that twice suspected its cut member under the gates' parallel load.
+
 ## [0.8.3] — 2026-11-16
 
 ### Published on crates.io

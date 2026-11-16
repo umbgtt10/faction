@@ -5,6 +5,7 @@ members = [
     "crates/spec-model",
     "validation/core-validation",
     "validation/ladder",
+    "validation/memory",
     "validation/protocol-validation",
     "validation/system-tests",
     "xtask",

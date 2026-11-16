@@ -33,6 +33,7 @@ const CORE_PACKAGE: &str = "faction";
 const CORE_VALIDATION_PACKAGE: &str = "faction-core-validation";
 const CONFORMANCE_TIER: &str = "conformance";
 const LADDER_PACKAGE: &str = "faction-ladder";
+const MEMORY_PACKAGE: &str = "faction-memory";
 const PROTOCOL_PACKAGE: &str = "faction-protocol";
 const PROTOCOL_VALIDATION_PACKAGE: &str = "faction-protocol-validation";
 const SPEC_MODEL_PACKAGE: &str = "faction-spec-model";
@@ -110,6 +111,7 @@ fn stage2() -> Result<&'static str, String> {
         String::from(CORE_PACKAGE),
         String::from(CORE_VALIDATION_PACKAGE),
         String::from(LADDER_PACKAGE),
+        String::from(MEMORY_PACKAGE),
         String::from(PROTOCOL_PACKAGE),
         String::from(PROTOCOL_VALIDATION_PACKAGE),
         String::from(SPEC_MODEL_PACKAGE),

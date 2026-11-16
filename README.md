@@ -67,7 +67,8 @@ reproduce and expensive to diagnose.
 - **Queryable** — probe the machine at any time for the current cluster view and the
   set of admissible commands. Zero side effects.
 - **Slim by construction** — each state carries only its active data. The terminal
-  state carries no heap allocation beyond what it received.
+  state carries no heap allocation beyond what it received, and the memory tier
+  measures it: duplicates, probes, probe periods and changes undone hold nothing.
 
 ---
 
@@ -271,6 +272,7 @@ The caller owns the network. `faction` owns the state.
 | `crates/core/` unit tests | Each type and each step in isolation | 253 |
 | `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants and removal's; logs replayed | 211 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
+| `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
 | `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 97 |
 | `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, and removal | 193 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
@@ -300,7 +302,7 @@ across all combinations.
 |---|---|
 | Core productive LOC | ~1,970 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.4.1 — its independent model and the crate answer all 93 vectors as written, each kept as released |
-| Total tests | 1,589 |
+| Total tests | 1,599 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -404,6 +406,7 @@ The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative
 | `crates/spec-model/` | The specification's independent model, `no_std` |
 | `validation/ladder/` | Conformance, the decision-table matrix, property and replay tiers |
 | `validation/core-validation/` | Deterministic multi-node scenario harness |
+| `validation/memory/` | The memory tier, a counting allocator in a binary of its own |
 | `validation/protocol-validation/` | Convergence sweeps and the in-process protocol cluster |
 | `validation/system-tests/` | Convergence, joining, addition, liveness and removal across spawn and transport, and the infrastructure beneath them |
 | `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores |

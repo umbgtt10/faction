@@ -29,7 +29,7 @@ allow-wildcard-paths = true
 # mistakes, so it reads the specification alone and meets the crate only in
 # the specification's encoding, in the ladder.
 deny = [
-    { crate = "faction", wrappers = ["faction-core-validation", "faction-ladder", "faction-protocol", "faction-protocol-validation", "faction-system-tests"], reason = "the specification's model is independent of the crate" },
+    { crate = "faction", wrappers = ["faction-core-validation", "faction-ladder", "faction-memory", "faction-protocol", "faction-protocol-validation", "faction-system-tests"], reason = "the specification's model is independent of the crate" },
 ]
 
 [sources]

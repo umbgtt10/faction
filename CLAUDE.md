@@ -92,7 +92,7 @@ The workspace is laid out by role (`docs/ADRs/P2-ADR-WorkspaceLaidOutByRole.md`)
 |---|---|
 | `spec/` | the normative specification: data and prose, read by the ladder and the model, never built |
 | `crates/` | the library -- `core/` (`faction`, published), `protocol/` (`faction-protocol`) and `spec-model/` (`faction-spec-model`) -- every gate at full strength, scored on every commit |
-| `validation/` | everything that checks the library -- `ladder/`, `core-validation/`, `protocol-validation/` and `system-tests/` |
+| `validation/` | everything that checks the library -- `ladder/`, `core-validation/`, `memory/`, `protocol-validation/` and `system-tests/` |
 | `xtask/` | the gates |
 
 A crate the library gains goes under `crates/`, and joins the gates' and the

@@ -340,6 +340,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "faction-memory"
+version = "0.0.0"
+dependencies = [
+ "faction",
+]
+
+[[package]]
 name = "faction-protocol"
 version = "0.8.0"
 dependencies = [
