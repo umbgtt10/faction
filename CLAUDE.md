@@ -17,25 +17,9 @@ That means:
 - do not pull assumptions from sibling repositories or crates
 - do not propose cross-repository changes by default
 
-## Layout
-
-The workspace is laid out by role (`docs/ADRs/P2-ADR-WorkspaceLaidOutByRole.md`):
-
-| directory | holds |
-|---|---|
-| `spec/` | the normative specification: data and prose, read by the ladder and the model, never built |
-| `crates/` | the library -- `core/` (`faction`, published), `protocol/` (`faction-protocol`) and `spec-model/` (`faction-spec-model`) -- every gate at full strength, scored on every commit |
-| `validation/` | everything that checks the library -- `ladder/`, `core-validation/`, `protocol-validation/` and `system-tests/` |
-| `xtask/` | the gates |
-
-A crate the library gains goes under `crates/`, and joins the gates' and the
-scorer's lists of the library; a package that checks the library goes under
-`validation/`. A directory is named for its package without the `faction-`
-prefix, `core/` holding `faction` itself.
-
 ## Quality Gates
 
-### Mandatory after every change to `src/` or `tests/` of any crate in the workspace
+### Mandatory after every change
 
 Run gates:
 
@@ -100,38 +84,39 @@ clone asks it to: `just hooks`, once a clone, on each machine.
 `cargo install cargo-grip4rust`
 `cargo install cargo-braintax4rust`
 
-### Orthogonality, trait surface and cognitive complexity
+## Layout
 
-**When changing productive code, always maximize orthogonality and testable surface through traits, and minimize cognitive complexity.**
+The workspace is laid out by role (`docs/ADRs/P2-ADR-WorkspaceLaidOutByRole.md`):
 
-Specifically:
-- prefer extracting behavior behind traits so individual pieces can be tested and swapped independently
-- prefer small, focused methods with a single responsibility over large methods with many branches
-- prefer named structs with methods over free functions operating on external state
-- when `crap4rust` or a reviewer flags a function as too complex, reduce it by extracting internal structs with methods and adding integration coverage — not by extracting standalone helper functions
-- never increase cognitive complexity to pass a test; find the root cause and fix it there
-- when introducing a new protocol dependency seam, place the contract in `traits/`, place the protocol-facing state/data model parallel to the protocol, and place the concrete implementation in its own dedicated implementation area
-- make constructors depend on traits, not directly on concrete implementations
-- ALL dependencies are injected through the SINGLE constructor and stored in the struct
-- apply the same split recursively to nested dependencies: trait first, state/data model second, concrete implementation third
+| directory | holds |
+|---|---|
+| `spec/` | the normative specification: data and prose, read by the ladder and the model, never built |
+| `crates/` | the library -- `core/` (`faction`, published), `protocol/` (`faction-protocol`) and `spec-model/` (`faction-spec-model`) -- every gate at full strength, scored on every commit |
+| `validation/` | everything that checks the library -- `ladder/`, `core-validation/`, `protocol-validation/` and `system-tests/` |
+| `xtask/` | the gates |
 
-### User coding standards
+A crate the library gains goes under `crates/`, and joins the gates' and the
+scorer's lists of the library; a package that checks the library goes under
+`validation/`. A directory is named for its package without the `faction-`
+prefix, `core/` holding `faction` itself.
 
-- **one struct per file** — each struct gets its own file
-- **do not use fully qualified paths** — use `use` imports instead
-- **no unit tests** — only integration tests are allowed
-- **no unnecessary comments** — code should be self-documenting
-- **consolidate functions** — place scattered functions inside structs
-- **no `&mut` parameters** — prefer return values over mutation
-- **`pub mod` only in `mod.rs` and `lib.rs`** — no nested `pub mod`
-- **test file naming** — one test file per source file, named `<source file name>_tests.rs`
-- **`all_tests.rs`** — reference test files one by one, no `#[path = ...]`
-- **AAA structure** — arrange tests with `Arrange`, `Act`, `Assert` sections separated by blank lines
-- **`// Arrange & Act`** — use if there is no separate `Arrange`
-- **`// Act & Assert`** — use if there is no separate `Act`
-- **copyright header** — add the repository copyright and license header to every Rust source file
-- **test naming**: `<method>_<description>_<outcome>` where `<method>` is the function called in the Act section. Property tests are exempt.
-- **variable naming**: match the type. `<StructName>` → `<name>`, `Config` → `config`. No single-letter vars. No legacy or cryptic names.
+## Strict Rules
+
+### Test-driven
+
+Tests are written first and seen failing before any implementation.
+
+### Test preservation
+
+**NEVER remove a test without explicitly asking the user first.**
+
+### Assertion integrity
+
+**NEVER relax a test assertion without explicitly asking the user first.**
+
+### No re-export shims
+
+Every `use` points directly to the module where the symbol is defined.
 
 ### The specification comes first
 
@@ -155,7 +140,49 @@ situation and change. A row the matrix gains needs its rule there, or the model'
 conformance tier fails; a command, an outcome or a stage the vocabulary gains is named in
 `vocabulary/`.
 
-### State transition test coverage — invariant
+### Additive releases
+
+A phase only adds: commands, outcomes, stages, configuration, fields of the view. No
+outcome an earlier release answers ever changes. What grows is the encoding: the view
+gains fields and a stage admits new commands, so an earlier vector is rewritten where its
+view or its admissible commands grow -- and once, when removal arrived, the view's
+`addition` became `reconfiguration`. Phase 0's tests pass unchanged at Phase 6
+(`docs/ROADMAP.md`).
+
+## Orthogonality, trait surface and cognitive complexity
+
+**When changing productive code, always maximize orthogonality and testable surface through traits, and minimize cognitive complexity.**
+
+Specifically:
+- prefer extracting behavior behind traits so individual pieces can be tested and swapped independently
+- prefer small, focused methods with a single responsibility over large methods with many branches
+- prefer named structs with methods over free functions operating on external state
+- when `crap4rust` or a reviewer flags a function as too complex, reduce it by extracting internal structs with methods and adding integration coverage — not by extracting standalone helper functions
+- never increase cognitive complexity to pass a test; find the root cause and fix it there
+- when introducing a new protocol dependency seam, place the contract in `traits/`, place the protocol-facing state/data model parallel to the protocol, and place the concrete implementation in its own dedicated implementation area
+- make constructors depend on traits, not directly on concrete implementations
+- ALL dependencies are injected through the SINGLE constructor and stored in the struct
+- apply the same split recursively to nested dependencies: trait first, state/data model second, concrete implementation third
+
+## User coding standards
+
+- **one struct per file** — each struct gets its own file
+- **do not use fully qualified paths** — use `use` imports instead
+- **no unit tests** — only integration tests are allowed
+- **no unnecessary comments** — code should be self-documenting
+- **consolidate functions** — place scattered functions inside structs
+- **no `&mut` parameters** — prefer return values over mutation
+- **`pub mod` only in `mod.rs` and `lib.rs`** — no nested `pub mod`
+- **test file naming** — one test file per source file, named `<source file name>_tests.rs`
+- **`all_tests.rs`** — reference test files one by one, no `#[path = ...]`
+- **AAA structure** — arrange tests with `Arrange`, `Act`, `Assert` sections separated by blank lines
+- **`// Arrange & Act`** — use if there is no separate `Arrange`
+- **`// Act & Assert`** — use if there is no separate `Act`
+- **copyright header** — add the repository copyright and license header to every Rust source file
+- **test naming**: `<method>_<description>_<outcome>` where `<method>` is the function called in the Act section. Property tests are exempt.
+- **variable naming**: match the type. `<StructName>` → `<name>`, `Config` → `config`. No single-letter vars. No legacy or cryptic names.
+
+## State transition test coverage — invariant
 
 `spec/matrix.json` gives every (stage × command) pair its row: what each stage admits,
 and the rows in check order. The conformance tier (`validation/ladder/tests/conformance/`) runs
@@ -186,7 +213,7 @@ gaps.
   -- a removal proposed exactly when the quorum can spare the member
   (`property/liveness_tests.rs`).
 
-### State transition model
+## State transition model
 
 Every `punch` arm MUST follow this exact pipeline in order:
 
