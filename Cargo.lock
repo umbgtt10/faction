@@ -393,6 +393,7 @@ dependencies = [
  "prost",
  "rstest",
  "serde",
+ "serde_json",
  "tokio",
  "tokio-stream",
  "tonic",

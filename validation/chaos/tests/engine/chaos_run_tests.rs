@@ -2,18 +2,28 @@
 // SPDX-License-Identifier: MIT
 
 use faction_chaos::draw::generator::Generator;
+use faction_chaos::engine::chaos_engine::ChaosEngine;
 use faction_chaos::engine::chaos_run::ChaosRun;
+use faction_chaos::engine::deterministic_engine::DeterministicEngine;
+use faction_chaos::engine::real_engine::RealEngine;
 use faction_chaos::engine::regressions::Regressions;
 use faction_chaos::model::change::Change;
 use faction_chaos::model::planned_change::PlannedChange;
 use faction_chaos::model::scenario::Scenario;
 use faction_chaos::oracle::failure::Failure;
+use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
+use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
+use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
+use faction_system_tests::spawn::Spawn;
+use faction_system_tests::time_ports::TimePorts;
+use faction_system_tests::transport_kind::TransportKind;
 use rstest::rstest;
 use std::env::temp_dir;
 use std::fs::read_to_string;
 use std::fs::remove_dir_all;
 use std::path::PathBuf;
 use std::process::id;
+use std::sync::Arc;
 
 const SEEDS_PER_CASE: u64 = 30;
 
@@ -36,6 +46,10 @@ fn calm(
         chaos_rounds,
         quiescence_rounds,
     }
+}
+
+fn deterministic() -> Box<dyn ChaosEngine> {
+    Box::new(DeterministicEngine::new())
 }
 
 fn folder(label: &str) -> PathBuf {
@@ -70,7 +84,7 @@ fn run_of_each_single_run_seed_reaches_its_end_state(#[case] case: u64) {
     // Act
     let failures: Vec<String> = seeds
         .filter_map(|seed| {
-            ChaosRun::new(Generator::new(seed).scenario(), None)
+            ChaosRun::new(Generator::new(seed).scenario(), deterministic(), None)
                 .run()
                 .err()
                 .map(|failure| format!("seed {seed}: {failure}"))
@@ -92,6 +106,7 @@ fn run_given_a_log_folder_writes_each_node_s_log_and_their_consolidation() {
             50,
             2_000,
         ),
+        deterministic(),
         Some(folder.clone()),
     );
 
@@ -123,6 +138,7 @@ fn run_of_a_calm_scenario_reaches_its_end_state() {
             50,
             2_000,
         ),
+        deterministic(),
         None,
     );
 
@@ -138,6 +154,7 @@ fn run_of_a_change_that_never_commits_fails_uncommitted() {
     // Arrange
     let run = ChaosRun::new(
         calm(3, vec![planned(Change::Removal { peer_id: 2 }, 0)], 0, 300),
+        deterministic(),
         None,
     );
 
@@ -151,7 +168,7 @@ fn run_of_a_change_that_never_commits_fails_uncommitted() {
 #[test]
 fn run_of_a_scenario_given_no_time_fails_diverged() {
     // Arrange
-    let run = ChaosRun::new(calm(3, Vec::new(), 0, 0), None);
+    let run = ChaosRun::new(calm(3, Vec::new(), 0, 0), deterministic(), None);
 
     // Act
     let ended = run.run();
@@ -182,7 +199,7 @@ fn run_of_each_regression_recorded_reaches_its_end_state() {
     let failures: Vec<String> = recorded
         .into_iter()
         .filter_map(|regression| {
-            ChaosRun::new(regression.scenario, None)
+            ChaosRun::new(regression.scenario, deterministic(), None)
                 .run()
                 .err()
                 .map(|failure| format!("seed {}: {failure}", regression.seed))
@@ -196,10 +213,10 @@ fn run_of_each_regression_recorded_reaches_its_end_state() {
 #[test]
 fn run_of_one_seed_twice_ends_alike() {
     // Arrange
-    let first = ChaosRun::new(Generator::new(5).scenario(), None).run();
+    let first = ChaosRun::new(Generator::new(5).scenario(), deterministic(), None).run();
 
     // Act
-    let second = ChaosRun::new(Generator::new(5).scenario(), None).run();
+    let second = ChaosRun::new(Generator::new(5).scenario(), deterministic(), None).run();
 
     // Assert
     assert_eq!(first, second);
@@ -209,14 +226,22 @@ fn run_of_one_seed_twice_ends_alike() {
 fn run_of_one_seed_twice_writes_the_same_logs() {
     // Arrange
     let (first, second) = (folder("first"), folder("second"));
-    ChaosRun::new(Generator::new(11).scenario(), Some(first.clone()))
-        .run()
-        .ok();
+    ChaosRun::new(
+        Generator::new(11).scenario(),
+        deterministic(),
+        Some(first.clone()),
+    )
+    .run()
+    .ok();
 
     // Act
-    ChaosRun::new(Generator::new(11).scenario(), Some(second.clone()))
-        .run()
-        .ok();
+    ChaosRun::new(
+        Generator::new(11).scenario(),
+        deterministic(),
+        Some(second.clone()),
+    )
+    .run()
+    .ok();
 
     // Assert
     let logs =
@@ -225,4 +250,34 @@ fn run_of_one_seed_twice_writes_the_same_logs() {
     remove_dir_all(&second).ok();
     assert!(!logs[0].is_empty());
     assert_eq!(logs[0], logs[1]);
+}
+
+#[test]
+fn run_on_the_real_engine_of_a_calm_scenario_reaches_its_end_state() {
+    // Arrange
+    let time = TimePorts {
+        clock: Arc::new(StdMonotonicClock::new()),
+        pause: Arc::new(ThreadPause),
+        wall_clock: Arc::new(SystemWallClock),
+    };
+    let run = ChaosRun::new(
+        calm(
+            2,
+            vec![planned(Change::Addition { peer_id: 3 }, 0)],
+            20,
+            1_000,
+        ),
+        Box::new(RealEngine::new(
+            Spawn::Thread,
+            TransportKind::InMemory,
+            time,
+        )),
+        None,
+    );
+
+    // Act
+    let ended = run.run();
+
+    // Assert
+    assert!(ended.is_ok(), "{ended:?}");
 }

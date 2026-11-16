@@ -10,7 +10,6 @@ use std::time::Duration;
 
 use faction::reconfiguration::Reconfiguration;
 
-use crate::constants::NODE_LIFETIME;
 use crate::faction_node::FactionNode;
 use crate::infra::network::address_book::AddressBook;
 use crate::process_node::process_command::ProcessCommand;
@@ -23,6 +22,7 @@ pub struct ProcessRunner {
     out: Box<dyn Write + Send>,
     time: TimePorts,
     idle_delay: Duration,
+    lifetime: Duration,
 }
 
 impl ProcessRunner {
@@ -34,6 +34,7 @@ impl ProcessRunner {
         out: Box<dyn Write + Send>,
         time: TimePorts,
         idle_delay: Duration,
+        lifetime: Duration,
     ) -> Self {
         Self {
             node,
@@ -42,13 +43,14 @@ impl ProcessRunner {
             out,
             time,
             idle_delay,
+            lifetime,
         }
     }
 
     pub fn run(mut self) {
         self.node.start();
         self.emit_state();
-        let deadline = self.time.clock.now() + NODE_LIFETIME;
+        let deadline = self.time.clock.now() + self.lifetime;
         while self.drain_commands() {
             let had_work = self.node.step();
             self.emit_state();
@@ -87,6 +89,7 @@ impl ProcessRunner {
                 self.address_book.lock().unwrap().push((peer_id, addr));
             }
             ProcessCommand::Restart(membership) => self.node.restart(&membership),
+            ProcessCommand::Faults(settings) => self.node.set_faults(&settings),
             ProcessCommand::Shutdown => {}
         }
     }

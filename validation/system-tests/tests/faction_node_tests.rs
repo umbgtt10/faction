@@ -20,10 +20,12 @@ use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::constants::DEFAULT_SUSPICION_THRESHOLD;
 use faction_system_tests::constants::HELPERS;
 use faction_system_tests::faction_node::FactionNode;
-use faction_system_tests::infra::live_policy::LivePolicy;
+use faction_system_tests::infra::fault_settings::FaultSettings;
 use faction_system_tests::infra::logging::no_op_fault_report::NoOpFaultReport;
+use faction_system_tests::infra::node_faults::NodeFaults;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
+use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -47,6 +49,10 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
     let peer_one = mesh.remove(1);
     let peers = vec![0, 1, 2];
     let cuts = LinkCuts::default();
+    let faults = NodeFaults {
+        cuts: cuts.clone(),
+        ..NodeFaults::default()
+    };
     let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1, 0, false);
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
@@ -65,14 +71,14 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         Role::Running(Box::new(protocol)),
         Box::new(FaultyTransport::new(
             0,
-            LivePolicy::default(),
+            faults.transport.clone(),
             cuts.clone(),
             Box::new(NoOpFaultReport),
             Box::new(mesh.remove(0)),
         )),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
-        cuts.clone(),
+        faults,
         Box::new(recipe(1, &time)),
     );
     node.start();
@@ -105,7 +111,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
-        LinkCuts::default(),
+        NodeFaults::default(),
         Box::new(recipe(1, &time)),
     );
     (node, mesh.remove(0))
@@ -134,7 +140,7 @@ fn node() -> (FactionNode, Arc<SimulatedClock>) {
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
-        LinkCuts::default(),
+        NodeFaults::default(),
         Box::new(recipe(1, &time)),
     );
     (node, clock)
@@ -169,7 +175,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         Box::new(InMemoryTransport::new_mesh(&peers).remove(0)),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
-        LinkCuts::default(),
+        NodeFaults::default(),
         Box::new(recipe(1, &time)),
     );
     (node, commands)
@@ -555,6 +561,25 @@ fn restart_creates_a_started_node_again_at_the_membership_and_opens_it() {
 }
 
 #[test]
+fn set_faults_reaches_the_layers_the_node_was_built_on() {
+    // Arrange
+    let (mut node, _, mut outsider, _) = concluded();
+
+    // Act
+    node.set_faults(&FaultSettings {
+        transport: FaultPolicy {
+            mute: true,
+            ..FaultPolicy::default()
+        },
+        ..FaultSettings::default()
+    });
+    node.request_addition(7);
+
+    // Assert
+    assert_eq!(outsider.recv(), None);
+}
+
+#[test]
 fn snapshot_after_admitting_reports_the_new_member() {
     // Arrange
     let (mut node, _) = node();
@@ -648,6 +673,46 @@ fn step_of_a_waiting_newcomer_given_its_membership_becomes_a_node_of_it() {
         coordinator.recv(),
         Some(TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 })
     );
+}
+
+#[test]
+fn step_with_its_timer_quiet_reads_the_message_its_transport_holds() {
+    // Arrange
+    let (mut newcomer, mut coordinator) = newcomer();
+    newcomer.start();
+    coordinator.send(
+        5,
+        TransportMessage::Membership {
+            from: 0,
+            to: 5,
+            members: vec![0, 1],
+            required_count: 2,
+            epoch: 0,
+        },
+    );
+
+    // Act
+    let had_work = newcomer.step();
+
+    // Assert
+    assert!(had_work);
+    assert_eq!(newcomer.member_count(), 3);
+}
+
+#[test]
+fn step_with_its_transport_quiet_fires_the_timer_due() {
+    // Arrange
+    let (mut node, clock) = node();
+    node.start();
+    clock.advance(Duration::from_millis(10));
+    node.step();
+    clock.advance(Duration::from_secs(1));
+
+    // Act
+    let had_work = node.step();
+
+    // Assert
+    assert!(had_work);
 }
 
 #[test]

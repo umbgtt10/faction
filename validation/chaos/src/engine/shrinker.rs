@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::engine::chaos_run::ChaosRun;
+use crate::engine::deterministic_engine::DeterministicEngine;
 use crate::engine::shrunk::Shrunk;
 use crate::model::scenario::Scenario;
 
@@ -24,7 +25,13 @@ impl Shrinker {
     // the scenario does not fail.
     #[must_use]
     pub fn shrink(self) -> Option<Shrunk> {
-        let failure = ChaosRun::new(self.failing.clone(), None).run().err()?;
+        let failure = ChaosRun::new(
+            self.failing.clone(),
+            Box::new(DeterministicEngine::new()),
+            None,
+        )
+        .run()
+        .err()?;
         let mut shrunk = Shrunk {
             scenario: self.failing,
             failure,
@@ -33,13 +40,17 @@ impl Shrinker {
             Self::candidates(&shrunk.scenario)
                 .into_iter()
                 .find_map(|candidate| {
-                    ChaosRun::new(candidate.clone(), None)
-                        .run()
-                        .err()
-                        .map(|failure| Shrunk {
-                            scenario: candidate,
-                            failure,
-                        })
+                    ChaosRun::new(
+                        candidate.clone(),
+                        Box::new(DeterministicEngine::new()),
+                        None,
+                    )
+                    .run()
+                    .err()
+                    .map(|failure| Shrunk {
+                        scenario: candidate,
+                        failure,
+                    })
                 })
         {
             shrunk = smaller;

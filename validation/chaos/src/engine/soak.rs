@@ -9,6 +9,7 @@ use faction_system_tests::traits::monotonic_clock::MonotonicClock;
 
 use crate::draw::scenario_source::ScenarioSource;
 use crate::engine::chaos_run::ChaosRun;
+use crate::engine::deterministic_engine::DeterministicEngine;
 use crate::engine::regression::Regression;
 use crate::engine::regressions::Regressions;
 use crate::engine::shrinker::Shrinker;
@@ -80,11 +81,18 @@ impl Soak {
     // reported.
     fn passes(&mut self, seed: u64) -> bool {
         let scenario = self.source.scenario(seed);
-        let Err(failure) = ChaosRun::new(scenario.clone(), None).run() else {
+        let Err(failure) =
+            ChaosRun::new(scenario.clone(), Box::new(DeterministicEngine::new()), None).run()
+        else {
             return true;
         };
         let folder = self.logs.join(seed.to_string());
-        let _ = ChaosRun::new(scenario.clone(), Some(folder.clone())).run();
+        let _ = ChaosRun::new(
+            scenario.clone(),
+            Box::new(DeterministicEngine::new()),
+            Some(folder.clone()),
+        )
+        .run();
         let _ = writeln!(
             self.out,
             "seed {seed} failed: {failure}; logs in {}",
@@ -94,7 +102,12 @@ impl Soak {
             return false;
         };
         let shrunk_folder = folder.join("shrunk");
-        let _ = ChaosRun::new(shrunk.scenario.clone(), Some(shrunk_folder.clone())).run();
+        let _ = ChaosRun::new(
+            shrunk.scenario.clone(),
+            Box::new(DeterministicEngine::new()),
+            Some(shrunk_folder.clone()),
+        )
+        .run();
         let _ = writeln!(
             self.out,
             "seed {seed} shrunk: {}; logs in {}",

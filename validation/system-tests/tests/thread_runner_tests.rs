@@ -6,6 +6,7 @@ use crate::support::in_memory_node;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::node_command::NodeCommand;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::thread_runner::ThreadRunner;
@@ -42,6 +43,7 @@ fn new_publishes_nothing_until_run() {
         published.clone(),
         time,
         Duration::from_millis(10),
+        NODE_LIFETIME,
     );
 
     // Assert
@@ -63,6 +65,7 @@ fn run_applies_a_cut_and_a_mend_and_acknowledges_each() {
         snapshot(),
         time,
         Duration::from_millis(10),
+        NODE_LIFETIME,
     );
 
     // Act
@@ -98,6 +101,7 @@ fn run_applies_the_addition_commands_and_acknowledges_each() {
         published.clone(),
         time,
         Duration::from_millis(10),
+        NODE_LIFETIME,
     );
 
     // Act
@@ -125,6 +129,7 @@ fn run_applies_the_commands_before_a_shutdown_and_acknowledges_them() {
         published.clone(),
         time,
         Duration::from_millis(10),
+        NODE_LIFETIME,
     );
 
     // Act
@@ -156,6 +161,7 @@ fn run_applies_the_removal_commands_and_acknowledges_each() {
         published.clone(),
         time,
         Duration::from_millis(10),
+        NODE_LIFETIME,
     );
 
     // Act
@@ -178,6 +184,7 @@ fn run_without_commands_ends_once_its_lifetime_is_over() {
         published.clone(),
         time,
         Duration::from_secs(10),
+        NODE_LIFETIME,
     );
 
     // Act
@@ -185,5 +192,29 @@ fn run_without_commands_ends_once_its_lifetime_is_over() {
 
     // Assert
     assert!(clock.now() >= Duration::from_secs(30), "{:?}", clock.now());
+    assert_eq!(published.lock().unwrap().member_count, 3);
+}
+
+#[test]
+fn run_without_commands_ends_once_the_lifetime_it_was_given_is_over() {
+    // Arrange
+    let (time, clock) = fake_time();
+    let (_commands, receiver) = channel();
+    let published = snapshot();
+    let runner = ThreadRunner::new(
+        in_memory_node(&[0, 1, 2], 2, &time),
+        receiver,
+        published.clone(),
+        time,
+        Duration::from_secs(10),
+        Duration::from_secs(2),
+    );
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert!(clock.now() >= Duration::from_secs(2), "{:?}", clock.now());
+    assert!(clock.now() < NODE_LIFETIME, "{:?}", clock.now());
     assert_eq!(published.lock().unwrap().member_count, 3);
 }

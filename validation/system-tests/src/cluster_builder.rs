@@ -18,6 +18,7 @@ use faction_protocol::transport::Transport;
 
 use crate::cluster::Cluster;
 use crate::constants::DEFAULT_DEADLINE_CYCLES;
+use crate::constants::NODE_LIFETIME;
 use crate::infra::fault_board::FaultBoard;
 use crate::infra::invariants::breaches::Breaches;
 use crate::infra::logging::logs::Logs;
@@ -59,6 +60,7 @@ pub struct ClusterBuilder {
     suspicion_threshold: usize,
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
+    lifetime: Duration,
     silent: bool,
     faults: FaultBoard,
     breaches: Breaches,
@@ -78,6 +80,7 @@ impl ClusterBuilder {
             suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
+            lifetime: NODE_LIFETIME,
             silent: false,
             faults: FaultBoard::default(),
             breaches: Breaches::default(),
@@ -109,6 +112,7 @@ impl ClusterBuilder {
                 delay,
                 deadline_delay: delay * self.freshness_margin,
                 probe_stretch: self.probe_stretch.factor(),
+                lifetime: self.lifetime,
             },
             self.logs(),
             self.time.clone(),
@@ -153,6 +157,15 @@ impl ClusterBuilder {
     #[must_use]
     pub fn freshness_margin(mut self, cycles: u32) -> Self {
         self.freshness_margin = cycles;
+        self
+    }
+
+    // How long each node that runs on its own -- a thread's, a process's --
+    // runs before it stops, as a backstop against one its cluster never
+    // drops: thirty seconds unless set.
+    #[must_use]
+    pub fn lifetime(mut self, lifetime: Duration) -> Self {
+        self.lifetime = lifetime;
         self
     }
 
@@ -237,6 +250,7 @@ impl ClusterBuilder {
             self.freshness_margin,
             self.probe_stretch.factor(),
             self.log_dir.clone(),
+            self.lifetime,
             TcpReadiness::new(self.time.clone(), PROCESS_READINESS_TIMEOUT),
         );
 
@@ -272,15 +286,27 @@ impl ClusterBuilder {
         }
     }
 
+    // The process node's binary: beside the running one -- a binary's, as
+    // the chaos binary is -- or a folder above it -- a test binary's, which
+    // runs from deps/.
     fn node_binary() -> String {
         env_var("CARGO_BIN_EXE_faction_node")
             .ok()
             .unwrap_or_else(|| {
-                let mut path = current_exe().expect("cannot determine current executable path");
-                path.pop();
-                path.pop();
-                path.push("faction-node");
-                path.set_extension(EXE_EXTENSION);
+                let exe = current_exe().expect("cannot determine current executable path");
+                let beside = exe
+                    .with_file_name("faction-node")
+                    .with_extension(EXE_EXTENSION);
+                let path = if beside.exists() {
+                    beside
+                } else {
+                    let mut above = exe;
+                    above.pop();
+                    above.pop();
+                    above.push("faction-node");
+                    above.set_extension(EXE_EXTENSION);
+                    above
+                };
                 path.to_string_lossy().to_string()
             })
     }

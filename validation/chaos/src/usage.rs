@@ -15,7 +15,7 @@ impl Display for Usage {
         write!(
             formatter,
             "usage: faction-chaos replay <seed> | faction-chaos soak \
-             (CHAOS_SCENARIOS, or CHAOS_DURATION in s, m or h; CHAOS_SEED)"
+             (CHAOS_SCENARIOS, or CHAOS_DURATION in s, m or h; CHAOS_SEED) | faction-chaos real"
         )
     }
 }

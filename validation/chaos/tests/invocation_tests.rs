@@ -41,6 +41,18 @@ fn parse_of_anything_else_is_the_usage() {
 }
 
 #[test]
+fn parse_of_real_is_the_real_engine_s_list() {
+    // Arrange
+    let words = args(&["real"]);
+
+    // Act
+    let invocation = Invocation::parse(&words, &|_| None);
+
+    // Assert
+    assert_eq!(invocation, Ok(Invocation::Real));
+}
+
+#[test]
 fn parse_of_replay_and_a_seed_is_a_replay_of_it() {
     // Arrange
     let words = args(&["replay", "81"]);
@@ -139,6 +151,6 @@ fn to_string_of_the_usage_names_every_command() {
     assert_eq!(
         text,
         "usage: faction-chaos replay <seed> | faction-chaos soak \
-         (CHAOS_SCENARIOS, or CHAOS_DURATION in s, m or h; CHAOS_SEED)"
+         (CHAOS_SCENARIOS, or CHAOS_DURATION in s, m or h; CHAOS_SEED) | faction-chaos real"
     );
 }

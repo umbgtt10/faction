@@ -4,6 +4,7 @@
 use crate::traits::pause_tests::FakePause;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::types::PeerId;
+use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
@@ -68,6 +69,7 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
             delay: Duration::from_millis(10),
             deadline_delay: Duration::from_secs(10),
             probe_stretch: ProbeStretch::Minimal.factor(),
+            lifetime: NODE_LIFETIME,
         },
         Logs::Stderr,
         time.clone(),

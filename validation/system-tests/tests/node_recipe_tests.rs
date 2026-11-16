@@ -4,6 +4,7 @@
 use crate::support::fake_time;
 use crate::support::recipe;
 use faction::peer_state::PeerState;
+use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::logging::logs::Logs;
@@ -61,6 +62,7 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
             delay: Duration::from_millis(10),
             deadline_delay: Duration::from_secs(10),
             probe_stretch: ProbeStretch::Minimal.factor(),
+            lifetime: NODE_LIFETIME,
         },
         Logs::Files(dir.clone()),
         time,

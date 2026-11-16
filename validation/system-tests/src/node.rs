@@ -19,8 +19,10 @@ use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
 use faction::types::PeerId;
+use serde_json::to_string;
 
 use crate::faction_node::FactionNode;
+use crate::infra::fault_settings::FaultSettings;
 use crate::membership::Membership;
 use crate::node_command::NodeCommand;
 use crate::node_snapshot::NodeSnapshot;
@@ -83,12 +85,21 @@ impl Node {
         build: impl FnOnce() -> FactionNode + Send + 'static,
         time: TimePorts,
         idle_delay: Duration,
+        lifetime: Duration,
     ) -> Self {
         let snapshot = Arc::new(Mutex::new(FRESH));
         let thread_snapshot = snapshot.clone();
         let (commands, command_receiver) = channel();
         let handle = spawn(move || {
-            ThreadRunner::new(build(), command_receiver, thread_snapshot, time, idle_delay).run();
+            ThreadRunner::new(
+                build(),
+                command_receiver,
+                thread_snapshot,
+                time,
+                idle_delay,
+                lifetime,
+            )
+            .run();
         });
         Self::Thread {
             snapshot,
@@ -285,6 +296,23 @@ impl Node {
                     peers.join(",")
                 ));
             }
+        }
+    }
+
+    // The node's faults set to `settings`: in place for a task's node, by
+    // command for a thread's, and on its command stream, as JSON, for a
+    // process's.
+    pub fn set_faults(&self, settings: &FaultSettings) {
+        match self {
+            Self::Task { node } => node.borrow_mut().set_faults(settings),
+            Self::Thread { commands, .. } => {
+                let settings = Box::new(settings.clone());
+                Self::send_command(commands, |ack| NodeCommand::SetFaults(settings, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!(
+                "faults {}",
+                to_string(settings).expect("fault settings written as JSON")
+            )),
         }
     }
 

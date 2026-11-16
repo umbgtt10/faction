@@ -22,6 +22,7 @@ pub struct ProcessSpec {
     freshness_margin: u32,
     probe_stretch: u32,
     log_dir: Option<PathBuf>,
+    lifetime: Duration,
     readiness: TcpReadiness,
 }
 
@@ -37,6 +38,7 @@ impl ProcessSpec {
         freshness_margin: u32,
         probe_stretch: u32,
         log_dir: Option<PathBuf>,
+        lifetime: Duration,
         readiness: TcpReadiness,
     ) -> Self {
         Self {
@@ -48,6 +50,7 @@ impl ProcessSpec {
             freshness_margin,
             probe_stretch,
             log_dir,
+            lifetime,
             readiness,
         }
     }
@@ -122,6 +125,8 @@ impl ProcessSpec {
             .arg(transport_arg)
             .arg("--timer-delay")
             .arg(self.timer_delay.as_millis().to_string())
+            .arg("--lifetime-ms")
+            .arg(self.lifetime.as_millis().to_string())
             .arg("--listen-addr")
             .arg(listen_addr.to_string())
             .arg("--peer-addrs")

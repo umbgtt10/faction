@@ -2,22 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::Duration;
-
-use chrono::TimeZone;
-use chrono::Utc;
 
 use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
-use faction_system_tests::cluster_builder::ClusterBuilder;
-use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
-use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
-use faction_system_tests::infra::timer::simulated::simulated_wall_clock::SimulatedWallClock;
-use faction_system_tests::time_ports::TimePorts;
-use faction_system_tests::timer_delay::TimerDelay;
 
+use crate::engine::chaos_engine::ChaosEngine;
 use crate::engine::fault_schedule::FaultSchedule;
 use crate::harness::layer_above::LayerAbove;
 use crate::model::change::Change;
@@ -27,23 +17,16 @@ use crate::model::scenario::Scenario;
 use crate::oracle::expected_end::ExpectedEnd;
 use crate::oracle::failure::Failure;
 
-const STEPS_PER_ROUND: usize = 16;
-
-// A scenario played on the deterministic engine: task nodes over the
-// in-memory transport, on a simulated clock each round advances by a timer
-// delay, every fault and every draw from the scenario's seed -- so a seed
-// replays exactly. Each round the faults in force are set, the layer above
-// acts, and each node takes the inputs it has, up to a budget. Once the
+// A scenario played on an engine: each round the faults in force are set on
+// the nodes, the layer above acts, and the engine plays the round. Once the
 // chaos ends every fault heals -- a node down, or with its timer side dead,
-// restarted -- and the run waits for the end state the committed log
-// implies, every invariant watched throughout. It announces no fault it
-// injects, and logs nothing unless given a folder: a seed that fails is
-// replayed into one to be read, its logs stamped with the time it simulates
-// from the first of January 2026, alike on every replay.
+// restarted -- and the run waits for the end state the committed log implies,
+// every invariant of a node it runs in-process watched throughout. It
+// announces no fault it injects, and logs nothing unless given a folder.
 pub struct ChaosRun {
     scenario: Scenario,
     cluster: Cluster,
-    clock: Arc<SimulatedClock>,
+    engine: Box<dyn ChaosEngine>,
     breaches: Breaches,
     schedule: FaultSchedule,
     layer: LayerAbove,
@@ -51,22 +34,11 @@ pub struct ChaosRun {
 
 impl ChaosRun {
     #[must_use]
-    pub fn new(scenario: Scenario, log_dir: Option<PathBuf>) -> Self {
-        let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
-        let origin = Utc
-            .with_ymd_and_hms(2026, 1, 1, 0, 0, 0)
-            .single()
-            .unwrap_or_default();
-        let time = TimePorts {
-            clock: clock.clone(),
-            pause: clock.clone(),
-            wall_clock: Arc::new(SimulatedWallClock::new(clock.clone(), origin)),
-        };
-        let board = FaultBoard::default();
+    pub fn new(scenario: Scenario, engine: Box<dyn ChaosEngine>, log_dir: Option<PathBuf>) -> Self {
         let breaches = Breaches::default();
-        let builder = ClusterBuilder::new(scenario.nodes, scenario.required_count, time)
+        let builder = engine
+            .builder(&scenario)
             .suspicion_threshold(scenario.suspicion_threshold)
-            .faults(board.clone())
             .breaches(breaches.clone())
             .silent();
         let mut cluster = match log_dir {
@@ -79,17 +51,13 @@ impl ChaosRun {
         for peer_id in peers[scenario.nodes..].iter().copied() {
             cluster.add_newcomer(peer_id);
         }
-        let schedule = FaultSchedule::new(
-            scenario.faults.clone(),
-            scenario.restarts.clone(),
-            peers,
-            board,
-        );
+        let schedule =
+            FaultSchedule::new(scenario.faults.clone(), scenario.restarts.clone(), peers);
         let layer = LayerAbove::new(&scenario);
         Self {
             scenario,
             cluster,
-            clock,
+            engine,
             breaches,
             schedule,
             layer,
@@ -103,10 +71,7 @@ impl ChaosRun {
         for round in 0..=deadline {
             self.disturb(round);
             self.layer.act(round, &self.cluster);
-            for index in 0..self.cluster.node_count() {
-                self.step(index);
-            }
-            self.clock.advance(TimerDelay::Minimal.duration());
+            self.engine.round(&self.cluster);
             if let Some(breach) = self.breaches.first() {
                 return Err(Failure::Breach { round, breach });
             }
@@ -135,12 +100,12 @@ impl ChaosRun {
     // every fault healed and the commits reported at once.
     fn disturb(&mut self, round: u64) {
         if round < self.scenario.chaos_rounds {
-            self.schedule.apply(round);
+            self.schedule.apply(round, &self.cluster);
             for plan in self.schedule.restarts_at(round) {
                 self.restart(plan);
             }
         } else if round == self.scenario.chaos_rounds {
-            self.schedule.heal();
+            self.schedule.heal(&self.cluster);
             for peer_id in self.schedule.healed_by_restart(round) {
                 self.restart(RestartPlan {
                     peer_id,
@@ -192,21 +157,5 @@ impl ChaosRun {
         };
         self.cluster
             .restart(plan.peer_id, log.membership_at(prefix));
-    }
-
-    // The inputs the node at `index` has taken, up to the round's budget: it
-    // stops once both its timer and its transport have nothing.
-    fn step(&self, index: usize) {
-        let mut idle = 0;
-        for _ in 0..STEPS_PER_ROUND {
-            idle = if self.cluster.step(index) {
-                0
-            } else {
-                idle + 1
-            };
-            if idle == 2 {
-                return;
-            }
-        }
     }
 }

@@ -3,6 +3,7 @@
 
 pub mod dice;
 pub mod fault_board;
+pub mod fault_settings;
 pub mod invariants;
 pub mod live_policy;
 pub mod logging;

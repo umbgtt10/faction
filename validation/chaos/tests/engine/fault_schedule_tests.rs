@@ -6,10 +6,17 @@ use faction_chaos::model::fault::Fault;
 use faction_chaos::model::fault_window::FaultWindow;
 use faction_chaos::model::restart_from::RestartFrom;
 use faction_chaos::model::restart_plan::RestartPlan;
+use faction_system_tests::cluster::Cluster;
+use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
 use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
+use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
+use faction_system_tests::time_ports::TimePorts;
+use std::sync::Arc;
+use std::time::Duration;
 
 fn dead() -> Fault {
     Fault::Timer(TimerFaultPolicy {
@@ -34,11 +41,25 @@ fn lossy(loss: u8) -> FaultPolicy {
     }
 }
 
-fn schedule(windows: Vec<FaultWindow>, restarts: Vec<RestartPlan>) -> (FaultSchedule, FaultBoard) {
+// A schedule over the three nodes of a cluster whose nodes read their faults
+// from the board it hands back.
+fn schedule(
+    windows: Vec<FaultWindow>,
+    restarts: Vec<RestartPlan>,
+) -> (FaultSchedule, FaultBoard, Cluster) {
     let board = FaultBoard::default();
+    let time = TimePorts {
+        clock: Arc::new(SimulatedClock::at(Duration::ZERO)),
+        pause: Arc::new(SimulatedClock::at(Duration::ZERO)),
+        wall_clock: Arc::new(SystemWallClock),
+    };
+    let cluster = ClusterBuilder::new(3, 2, time)
+        .faults(board.clone())
+        .build();
     (
-        FaultSchedule::new(windows, restarts, vec![0, 1, 2], board.clone()),
+        FaultSchedule::new(windows, restarts, vec![0, 1, 2]),
         board,
+        cluster,
     )
 }
 
@@ -58,7 +79,7 @@ fn apply_keeps_a_timer_side_dead_under_a_timer_fault_opened_after_it() {
         late: 40,
         ..TimerFaultPolicy::default()
     };
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![
             window(1, 10, 100, dead()),
             window(1, 50, 80, Fault::Timer(late)),
@@ -67,7 +88,7 @@ fn apply_keeps_a_timer_side_dead_under_a_timer_fault_opened_after_it() {
     );
 
     // Act
-    schedule.apply(60);
+    schedule.apply(60, &cluster);
 
     // Assert
     assert_eq!(
@@ -80,13 +101,13 @@ fn apply_keeps_a_timer_side_dead_under_a_timer_fault_opened_after_it() {
 #[test]
 fn apply_leaves_a_node_outside_every_window_faithful() {
     // Arrange
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![window(1, 5, 15, Fault::Transport(lossy(40)))],
         Vec::new(),
     );
 
     // Act
-    schedule.apply(15);
+    schedule.apply(15, &cluster);
 
     // Assert
     assert_eq!(board.node(1).transport.current(), FaultPolicy::default());
@@ -96,10 +117,10 @@ fn apply_leaves_a_node_outside_every_window_faithful() {
 #[test]
 fn apply_mutes_deafens_and_kills_the_timer_side_of_a_node_down() {
     // Arrange
-    let (schedule, board) = schedule(Vec::new(), vec![down(2, 5, 10)]);
+    let (mut schedule, board, cluster) = schedule(Vec::new(), vec![down(2, 5, 10)]);
 
     // Act
-    schedule.apply(8);
+    schedule.apply(8, &cluster);
 
     // Assert
     let transport = board.node(2).transport.current();
@@ -115,7 +136,7 @@ fn apply_sets_the_fault_of_each_layer_in_force() {
         drift_ppm: 1_000_000,
         ..ClockFault::default()
     };
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![
             window(1, 5, 15, Fault::Transport(lossy(40))),
             window(1, 0, 15, Fault::Clock(fast)),
@@ -125,7 +146,7 @@ fn apply_sets_the_fault_of_each_layer_in_force() {
     );
 
     // Act
-    schedule.apply(10);
+    schedule.apply(10, &cluster);
 
     // Assert
     assert_eq!(board.node(1).transport.current(), lossy(40));
@@ -136,7 +157,7 @@ fn apply_sets_the_fault_of_each_layer_in_force() {
 #[test]
 fn apply_takes_the_window_last_opened() {
     // Arrange
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![
             window(1, 10, 50, Fault::Transport(lossy(30))),
             window(1, 0, 50, Fault::Transport(lossy(10))),
@@ -145,7 +166,7 @@ fn apply_takes_the_window_last_opened() {
     );
 
     // Act
-    schedule.apply(20);
+    schedule.apply(20, &cluster);
 
     // Assert
     assert_eq!(board.node(1).transport.current(), lossy(30));
@@ -162,7 +183,7 @@ fn apply_wedges_a_node_under_head_of_line_behind_a_peer_that_cannot_answer() {
         deaf: true,
         ..FaultPolicy::default()
     };
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![
             window(0, 0, 50, Fault::Transport(blocking)),
             window(1, 0, 50, Fault::Transport(deaf)),
@@ -171,7 +192,7 @@ fn apply_wedges_a_node_under_head_of_line_behind_a_peer_that_cannot_answer() {
     );
 
     // Act
-    schedule.apply(8);
+    schedule.apply(8, &cluster);
 
     // Assert
     assert_eq!(board.node(0).transport.current().unreachable, vec![1]);
@@ -184,13 +205,13 @@ fn apply_wedges_a_node_under_head_of_line_behind_the_peers_down() {
         head_of_line: true,
         ..FaultPolicy::default()
     };
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![window(0, 0, 50, Fault::Transport(blocking))],
         vec![down(2, 5, 10)],
     );
 
     // Act
-    schedule.apply(8);
+    schedule.apply(8, &cluster);
 
     // Assert
     assert_eq!(board.node(0).transport.current().unreachable, vec![2]);
@@ -199,14 +220,14 @@ fn apply_wedges_a_node_under_head_of_line_behind_the_peers_down() {
 #[test]
 fn heal_makes_every_layer_of_every_node_faithful() {
     // Arrange
-    let (schedule, board) = schedule(
+    let (mut schedule, board, cluster) = schedule(
         vec![window(1, 0, 50, Fault::Transport(lossy(40)))],
         vec![down(2, 0, 50)],
     );
-    schedule.apply(10);
+    schedule.apply(10, &cluster);
 
     // Act
-    schedule.heal();
+    schedule.heal(&cluster);
 
     // Assert
     for peer_id in 0..3 {
@@ -225,7 +246,7 @@ fn heal_makes_every_layer_of_every_node_faithful() {
 #[test]
 fn healed_by_restart_names_a_node_whose_downtime_or_dead_timer_ends_at_the_heal() {
     // Arrange
-    let (schedule, _) = schedule(vec![window(0, 50, 100, dead())], vec![down(2, 90, 10)]);
+    let (schedule, _, _) = schedule(vec![window(0, 50, 100, dead())], vec![down(2, 90, 10)]);
 
     // Act
     let restarted = schedule.healed_by_restart(100);
@@ -237,7 +258,7 @@ fn healed_by_restart_names_a_node_whose_downtime_or_dead_timer_ends_at_the_heal(
 #[test]
 fn healed_by_restart_names_the_nodes_down_or_with_their_timer_side_dead() {
     // Arrange
-    let (schedule, _) = schedule(vec![window(1, 50, 150, dead())], vec![down(2, 90, 20)]);
+    let (schedule, _, _) = schedule(vec![window(1, 50, 150, dead())], vec![down(2, 90, 20)]);
 
     // Act
     let restarted = schedule.healed_by_restart(100);
@@ -249,7 +270,7 @@ fn healed_by_restart_names_the_nodes_down_or_with_their_timer_side_dead() {
 #[test]
 fn restarts_at_the_end_of_a_dead_timer_window_restart_its_node_from_what_it_holds() {
     // Arrange
-    let (schedule, _) = schedule(vec![window(1, 5, 20, dead())], Vec::new());
+    let (schedule, _, _) = schedule(vec![window(1, 5, 20, dead())], Vec::new());
 
     // Act
     let restarts = schedule.restarts_at(20);
@@ -269,7 +290,7 @@ fn restarts_at_the_end_of_a_dead_timer_window_restart_its_node_from_what_it_hold
 #[test]
 fn restarts_at_the_end_of_a_downtime_restart_its_node() {
     // Arrange
-    let (schedule, _) = schedule(Vec::new(), vec![down(2, 5, 10)]);
+    let (schedule, _, _) = schedule(Vec::new(), vec![down(2, 5, 10)]);
 
     // Act
     let restarts = [schedule.restarts_at(14), schedule.restarts_at(15)];

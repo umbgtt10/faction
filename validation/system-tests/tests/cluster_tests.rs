@@ -11,6 +11,7 @@ use faction_protocol::commit::Commit;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::fault_settings::FaultSettings;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
 use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
@@ -297,6 +298,79 @@ fn report_commit_reports_the_commit_to_that_node_alone() {
 }
 
 #[test]
+fn set_faults_of_a_node_holds_the_cluster_back_until_healed() {
+    // Arrange
+    let (time, _) = fake_time();
+    let mut cluster = ClusterBuilder::new(3, 3, time).build();
+    cluster.set_faults(
+        0,
+        &FaultSettings {
+            transport: FaultPolicy {
+                mute: true,
+                ..FaultPolicy::default()
+            },
+            ..FaultSettings::default()
+        },
+    );
+    cluster.settle(100);
+    let stalled = cluster.is_bootstrapped();
+
+    // Act
+    cluster.set_faults(0, &FaultSettings::default());
+
+    // Assert
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every node bootstrapped",
+        |cluster| cluster.is_bootstrapped(),
+    );
+    assert!(!stalled);
+    assert_eq!(polled, Ok(()));
+}
+
+#[test]
+fn set_faults_of_a_thread_node_holds_the_cluster_back_until_healed() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 3, real_time())
+        .spawn(Spawn::Thread)
+        .build();
+    cluster.set_faults(
+        1,
+        &FaultSettings {
+            transport: FaultPolicy {
+                mute: true,
+                ..FaultPolicy::default()
+            },
+            ..FaultSettings::default()
+        },
+    );
+    cluster.settle(20);
+    let stalled = cluster.is_bootstrapped();
+
+    // Act
+    cluster.set_faults(1, &FaultSettings::default());
+
+    // Assert
+    cluster.poll_until_bootstrapped();
+    assert!(!stalled);
+}
+
+#[test]
+fn settle_of_a_thread_cluster_past_the_lifetime_it_was_given_leaves_it_unconcluded() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 3, real_time())
+        .spawn(Spawn::Thread)
+        .lifetime(Duration::from_millis(1))
+        .build();
+
+    // Act
+    cluster.settle(10);
+
+    // Assert
+    assert!(!cluster.is_bootstrapped());
+}
+
+#[test]
 fn settle_pauses_once_a_round() {
     // Arrange
     let (mut cluster, clock) = cluster();
@@ -382,6 +456,7 @@ fn step_of_a_node_with_nothing_due_does_nothing() {
     // Arrange
     let (mut cluster, _) = cluster();
     cluster.start_all();
+    while cluster.step(0) {}
 
     // Act
     let stepped = cluster.step(0);

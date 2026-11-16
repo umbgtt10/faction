@@ -14,6 +14,7 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use faction_chaos::draw::generated_scenarios::GeneratedScenarios;
+use faction_chaos::engine::real_list::RealList;
 use faction_chaos::engine::regressions::Regressions;
 use faction_chaos::engine::replay::Replay;
 use faction_chaos::engine::soak::Soak;
@@ -21,7 +22,11 @@ use faction_chaos::invocation::Invocation;
 use faction_chaos::tee::Tee;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
+use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
+use faction_system_tests::time_ports::TimePorts;
 use faction_system_tests::traits::wall_clock::WallClock;
+
+const REAL_SEEDS: u64 = 3;
 
 // Every log of a run in one folder, logs/chaos/<run>/, named for the run the
 // xtask hands down, or for the moment it began when run on its own: the
@@ -72,6 +77,23 @@ fn main() -> ExitCode {
                 Regressions::new(package.join("chaos-regressions.json")),
                 folder,
                 Arc::new(StdMonotonicClock::new()),
+                Box::new(out),
+            )
+            .run();
+            failed == 0
+        }
+        Ok(Invocation::Real) => {
+            let time = TimePorts {
+                clock: Arc::new(StdMonotonicClock::new()),
+                pause: Arc::new(ThreadPause),
+                wall_clock: Arc::new(SystemWallClock),
+            };
+            let seeds = (0..REAL_SEEDS).collect();
+            let failed = RealList::new(
+                seeds,
+                Box::new(GeneratedScenarios),
+                folder,
+                time,
                 Box::new(out),
             )
             .run();

@@ -37,10 +37,13 @@ stage1:
     cargo test -p faction-system-tests --lib --bins
     cargo xtask system-tests
 
-# The chaos validation once: the deterministic engine's single run of seeds,
-# and every regression recorded. Stage 1 runs it too.
+# The chaos validation once: the deterministic engine's single run of seeds
+# and every regression recorded, as stage 1 runs them; then the real engine's
+# list -- three seeds in each of the six thread and process cases, on the
+# machine's clock -- its logs in logs/chaos/<run>/, the newest 50 runs kept.
 chaos:
     cargo test -q -p faction-chaos
+    cargo xtask chaos real
 
 # Chaos seeds played on the deterministic engine, one after another: for an
 # hour, or as long as CHAOS_DURATION says (seconds, or with s, m or h), or for

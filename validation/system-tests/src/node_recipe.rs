@@ -10,7 +10,6 @@ use crate::infra::timer::faulty::faulty_clock::FaultyClock;
 use crate::infra::timer::faulty::faulty_timer::FaultyTimer;
 use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
-use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use std::cell::RefCell;
 use std::io::stderr;
 use std::rc::Rc;
@@ -113,6 +112,7 @@ impl NodeRecipe {
                     move || recipe.build_newcomer(peer_id, transport),
                     self.time.clone(),
                     self.delays.delay,
+                    self.delays.lifetime,
                 )
             }
             Spawn::Process => panic!("a recipe builds in-process nodes only"),
@@ -135,6 +135,7 @@ impl NodeRecipe {
                     move || recipe.build(peer_id, peers, transport),
                     self.time.clone(),
                     self.delays.delay,
+                    self.delays.lifetime,
                 )
             }
             Spawn::Process => panic!("a recipe builds in-process nodes only"),
@@ -148,13 +149,12 @@ impl NodeRecipe {
         &self,
         peer_id: PeerId,
         transport: Box<dyn Transport>,
-        cuts: &LinkCuts,
         faults: &NodeFaults,
     ) -> Box<dyn Transport> {
         Box::new(FaultyTransport::new(
             peer_id,
             faults.transport.clone(),
-            cuts.clone(),
+            faults.cuts.clone(),
             self.report(peer_id),
             transport,
         ))
@@ -163,15 +163,14 @@ impl NodeRecipe {
     // A node of `role`, its roles made anew by this recipe.
     fn node_of(&self, peer_id: PeerId, role: Role, transport: Box<dyn Transport>) -> FactionNode {
         let (_, node_observer) = self.observers(peer_id);
-        let cuts = LinkCuts::default();
         let faults = self.faults.node(peer_id);
         FactionNode::new(
             peer_id,
             role,
-            self.faulty(peer_id, transport, &cuts, &faults),
+            self.faulty(peer_id, transport, &faults),
             self.timer(peer_id, &faults),
             node_observer,
-            cuts,
+            faults,
             Box::new(self.clone()),
         )
     }

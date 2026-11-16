@@ -1,8 +1,11 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::collections::BTreeMap;
+
 use faction::types::PeerId;
-use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::cluster::Cluster;
+use faction_system_tests::infra::fault_settings::FaultSettings;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
 use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
@@ -12,7 +15,8 @@ use crate::model::fault_window::FaultWindow;
 use crate::model::restart_from::RestartFrom;
 use crate::model::restart_plan::RestartPlan;
 
-// A scenario's faults, round by round, on the board its nodes read: on each
+// A scenario's faults, round by round, set on its cluster's nodes -- each
+// node sent its settings when they change -- on each
 // layer of a node, the fault of the last window opened over it, but that a
 // timer side stays dead through every window that kills it, whatever opens
 // after it, a restart alone healing it; a node down muted, deafened and its
@@ -24,46 +28,38 @@ pub struct FaultSchedule {
     windows: Vec<FaultWindow>,
     restarts: Vec<RestartPlan>,
     peers: Vec<PeerId>,
-    board: FaultBoard,
+    applied: BTreeMap<PeerId, FaultSettings>,
 }
 
 impl FaultSchedule {
     #[must_use]
-    pub fn new(
-        windows: Vec<FaultWindow>,
-        restarts: Vec<RestartPlan>,
-        peers: Vec<PeerId>,
-        board: FaultBoard,
-    ) -> Self {
+    pub fn new(windows: Vec<FaultWindow>, restarts: Vec<RestartPlan>, peers: Vec<PeerId>) -> Self {
         Self {
             windows,
             restarts,
             peers,
-            board,
+            applied: BTreeMap::new(),
         }
     }
 
-    // The faults in force at `round` set on the board.
-    pub fn apply(&self, round: u64) {
+    // The faults in force at `round` set on the cluster's nodes.
+    pub fn apply(&mut self, round: u64, cluster: &Cluster) {
         let down = self.down(round);
         let unreachable = self.unreachable(round, &down);
-        for peer_id in self.peers.iter().copied() {
-            let faults = self.board.node(peer_id);
-            faults
-                .transport
-                .set(self.transport(peer_id, round, &down, &unreachable));
-            faults.timer.set(self.timer(peer_id, round, &down));
-            faults.clock.set(self.clock(peer_id, round));
+        for peer_id in self.peers.clone() {
+            let settings = FaultSettings {
+                transport: self.transport(peer_id, round, &down, &unreachable),
+                timer: self.timer(peer_id, round, &down),
+                clock: self.clock(peer_id, round),
+            };
+            self.set(peer_id, settings, cluster);
         }
     }
 
-    // Every layer of every node faithful again.
-    pub fn heal(&self) {
-        for peer_id in self.peers.iter().copied() {
-            let faults = self.board.node(peer_id);
-            faults.transport.set(FaultPolicy::default());
-            faults.timer.set(TimerFaultPolicy::default());
-            faults.clock.set(ClockFault::default());
+    // Every layer of every node of the cluster faithful again.
+    pub fn heal(&mut self, cluster: &Cluster) {
+        for peer_id in self.peers.clone() {
+            self.set(peer_id, FaultSettings::default(), cluster);
         }
     }
 
@@ -148,6 +144,14 @@ impl FaultSchedule {
             _ => None,
         })
         .unwrap_or_default()
+    }
+
+    // `settings` sent to the node `peer_id`, unless they are what it holds.
+    fn set(&mut self, peer_id: PeerId, settings: FaultSettings, cluster: &Cluster) {
+        if self.applied.get(&peer_id) != Some(&settings) {
+            cluster.set_faults(peer_id, &settings);
+            self.applied.insert(peer_id, settings);
+        }
     }
 
     fn timer(&self, peer_id: PeerId, round: u64, down: &[PeerId]) -> TimerFaultPolicy {

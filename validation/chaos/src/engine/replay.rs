@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use crate::draw::generator::Generator;
 use crate::engine::chaos_run::ChaosRun;
+use crate::engine::deterministic_engine::DeterministicEngine;
 use crate::oracle::failure::Failure;
 
 // A seed replayed on the deterministic engine, every node's log written in a
@@ -29,6 +30,11 @@ impl Replay {
     // The seed's scenario played again: the round its end state was reached
     // at, or how it failed.
     pub fn run(&self) -> Result<u64, Failure> {
-        ChaosRun::new(Generator::new(self.seed).scenario(), Some(self.folder())).run()
+        ChaosRun::new(
+            Generator::new(self.seed).scenario(),
+            Box::new(DeterministicEngine::new()),
+            Some(self.folder()),
+        )
+        .run()
     }
 }

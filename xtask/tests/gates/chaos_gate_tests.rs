@@ -50,7 +50,9 @@ fn label_names_the_chaos_command_it_runs() {
 #[test]
 fn run_of_a_chaos_run_that_fails_names_its_exit_code() {
     // Arrange
-    let runner = FakeCommandRunner::new().with_streaming_code(Some(1));
+    let runner = FakeCommandRunner::new()
+        .with_streaming_code(Some(1))
+        .with_capturing_codes(&[Some(0)]);
     let root = log_root();
     let logs = RunLogDirectory::new(root.clone(), 50);
 
@@ -63,7 +65,7 @@ fn run_of_a_chaos_run_that_fails_names_its_exit_code() {
 }
 
 #[test]
-fn run_prepares_the_run_directory_then_runs_the_chaos_binary_with_its_arguments() {
+fn run_prepares_the_run_directory_builds_the_node_binary_then_runs_the_chaos_binary() {
     // Arrange
     let runner = FakeCommandRunner::new();
     let root = log_root();
@@ -77,10 +79,24 @@ fn run_prepares_the_run_directory_then_runs_the_chaos_binary_with_its_arguments(
     remove_dir_all(&root).ok();
     assert_eq!(ran, Ok(()));
     assert!(prepared);
-    assert_eq!(runner.programs(), vec![String::from("cargo")]);
+    assert_eq!(
+        runner.programs(),
+        vec![String::from("cargo"), String::from("cargo")]
+    );
     assert_eq!(
         runner.calls(),
         vec![
+            [
+                "build",
+                "-q",
+                "--release",
+                "-p",
+                "faction-system-tests",
+                "--bin",
+                "faction-node"
+            ]
+            .map(String::from)
+            .to_vec(),
             [
                 "run",
                 "-q",
@@ -92,7 +108,7 @@ fn run_prepares_the_run_directory_then_runs_the_chaos_binary_with_its_arguments(
                 "81"
             ]
             .map(String::from)
-            .to_vec()
+            .to_vec(),
         ]
     );
 }
@@ -116,4 +132,25 @@ fn run_when_cargo_will_not_launch_fails_with_the_launch_failure() {
             "refused by the fake"
         )))
     );
+}
+
+#[test]
+fn run_when_the_node_binary_will_not_build_fails_without_running_the_chaos() {
+    // Arrange
+    let runner = FakeCommandRunner::new().with_capturing_code(Some(101));
+    let root = log_root();
+    let logs = RunLogDirectory::new(root.clone(), 50);
+
+    // Act
+    let ran = gate(&runner, &logs).run();
+
+    // Assert
+    remove_dir_all(&root).ok();
+    assert_eq!(
+        ran,
+        Err(GateFailure::CouldNotRun {
+            exit_code: Some(101)
+        })
+    );
+    assert_eq!(runner.calls().len(), 1);
 }

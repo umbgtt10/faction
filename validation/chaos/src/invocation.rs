@@ -13,11 +13,13 @@ const SECONDS_A_MINUTE: u64 = 60;
 // What the chaos binary is asked: to replay one seed, its nodes' logs
 // written; or to soak, for as many scenarios as `CHAOS_SCENARIOS` says, else
 // for as long as `CHAOS_DURATION` says -- seconds, or with `s`, `m` or `h` --
-// else for an hour, from the seed `CHAOS_SEED` says, else a fresh one.
+// else for an hour, from the seed `CHAOS_SEED` says, else a fresh one; or to
+// play the real engine's list.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Invocation {
     Replay { seed: u64 },
     Soak { from: Option<u64>, limit: SoakLimit },
+    Real,
 }
 
 impl Invocation {
@@ -32,6 +34,7 @@ impl Invocation {
                 .parse()
                 .map(|seed| Self::Replay { seed })
                 .map_err(|_| Usage),
+            [command] if command == "real" => Ok(Self::Real),
             [command] if command == "soak" => Ok(Self::Soak {
                 from: Self::seed(variable)?,
                 limit: Self::limit(variable)?,

@@ -1,8 +1,11 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction_system_tests::infra::fault_settings::FaultSettings;
+use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::membership::Membership;
 use faction_system_tests::process_node::process_command::ProcessCommand;
+use serde_json::to_string;
 use std::io::Cursor;
 use std::net::SocketAddr;
 
@@ -85,6 +88,25 @@ fn parse_expire_is_expire_deadline() {
 
     // Assert
     assert_eq!(command, Some(ProcessCommand::ExpireDeadline));
+}
+
+#[test]
+fn parse_faults_reads_the_settings_written_as_json() {
+    // Arrange
+    let settings = FaultSettings {
+        transport: FaultPolicy {
+            mute: true,
+            ..FaultPolicy::default()
+        },
+        ..FaultSettings::default()
+    };
+    let line = format!("faults {}", to_string(&settings).unwrap());
+
+    // Act
+    let command = ProcessCommand::parse(&line);
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::Faults(Box::new(settings))));
 }
 
 #[test]

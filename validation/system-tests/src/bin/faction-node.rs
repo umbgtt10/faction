@@ -19,20 +19,21 @@ use faction_protocol::transport::Transport;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
-use faction_system_tests::infra::live_policy::LivePolicy;
 use faction_system_tests::infra::logging::banner_fault_report::BannerFaultReport;
 use faction_system_tests::infra::logging::logs::Logs;
 use faction_system_tests::infra::logging::shared_file_fault_report::SharedFileFaultReport;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
 use faction_system_tests::infra::network::address_book::AddressBook;
+use faction_system_tests::infra::node_faults::NodeFaults;
+use faction_system_tests::infra::timer::faulty::faulty_clock::FaultyClock;
+use faction_system_tests::infra::timer::faulty::faulty_timer::FaultyTimer;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
 use faction_system_tests::infra::timer::timer_delays::TimerDelays;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
-use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::grpc::grpc_transport::GrpcTransport;
 use faction_system_tests::infra::transport::tcp::tcp_transport::TcpTransport;
 use faction_system_tests::membership::Membership;
@@ -89,11 +90,16 @@ fn main() {
 
     let delay = Duration::from_millis(config.timer_delay_ms);
     let deadline_delay = delay * (config.freshness_margin as u32);
-    let timer = Box::new(RealTimer::with_delays(
-        time.clock.clone(),
-        delay,
-        deadline_delay,
-        config.probe_stretch,
+    let faults = NodeFaults::default();
+    let timer = Box::new(FaultyTimer::new(
+        config.peer_id,
+        faults.timer.clone(),
+        Box::new(RealTimer::with_delays(
+            Arc::new(FaultyClock::new(faults.clock.clone(), time.clock.clone())),
+            delay,
+            deadline_delay,
+            config.probe_stretch,
+        )),
     ));
 
     let recipe = NodeRecipe::new(
@@ -103,6 +109,7 @@ fn main() {
             delay,
             deadline_delay,
             probe_stretch: config.probe_stretch,
+            lifetime: Duration::from_millis(config.lifetime_ms),
         },
         config
             .log_path
@@ -123,11 +130,10 @@ fn main() {
         };
         recipe.running(config.peer_id, &genesis)
     };
-    let cuts = LinkCuts::default();
     let faulty = Box::new(FaultyTransport::new(
         config.peer_id,
-        LivePolicy::default(),
-        cuts.clone(),
+        faults.transport.clone(),
+        faults.cuts.clone(),
         match config.log_path.as_deref() {
             Some(path) => Box::new(SharedFileFaultReport::new(
                 SharedWriter::open(path),
@@ -143,7 +149,7 @@ fn main() {
         faulty,
         timer,
         node_observer,
-        cuts,
+        faults,
         Box::new(recipe),
     );
 
@@ -155,6 +161,7 @@ fn main() {
         Box::new(stdout()),
         time,
         delay,
+        Duration::from_millis(config.lifetime_ms),
     )
     .run();
     exit(0);

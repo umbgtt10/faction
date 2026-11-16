@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::NODE_LIFETIME;
 use crate::probe_stretch::ProbeStretch;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -34,6 +35,7 @@ impl Args {
         let mut peer_addrs: Option<Vec<(PeerId, SocketAddr)>> = None;
         let mut log_path: Option<PathBuf> = None;
         let mut timer_delay_ms: Option<u64> = None;
+        let mut lifetime_ms: Option<u64> = None;
         let mut newcomer = false;
 
         let mut i = 1;
@@ -83,6 +85,10 @@ impl Args {
                     i += 1;
                     timer_delay_ms = Some(self.args[i].parse().expect("invalid --timer-delay"));
                 }
+                "--lifetime-ms" => {
+                    i += 1;
+                    lifetime_ms = Some(self.args[i].parse().expect("invalid --lifetime-ms"));
+                }
                 "--listen-addr" => {
                     i += 1;
                     listen_addr = Some(self.args[i].parse().expect("invalid --listen-addr"));
@@ -127,6 +133,8 @@ impl Args {
             peer_addrs: peer_addrs.expect("missing --peer-addrs"),
             log_path,
             timer_delay_ms: timer_delay_ms.expect("missing --timer-delay"),
+            lifetime_ms: lifetime_ms
+                .unwrap_or_else(|| u64::try_from(NODE_LIFETIME.as_millis()).unwrap_or(u64::MAX)),
             newcomer,
         }
     }

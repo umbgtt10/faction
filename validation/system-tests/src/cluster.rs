@@ -17,6 +17,7 @@ use faction::types::Epoch;
 use faction::types::PeerId;
 use faction_protocol::commit::Commit;
 
+use crate::infra::fault_settings::FaultSettings;
 use crate::join::approver::Approver;
 use crate::join::committer::Committer;
 use crate::join::joining::Joining;
@@ -337,6 +338,11 @@ impl Cluster {
     // genesis, or from a snapshot of a membership it held.
     pub fn restart(&self, peer_id: PeerId, membership: Membership) {
         self.node_of(peer_id).restart(membership);
+    }
+
+    // The faults of the node `peer_id` set to `settings`, whatever runs it.
+    pub fn set_faults(&self, peer_id: PeerId, settings: &FaultSettings) {
+        self.node_of(peer_id).set_faults(settings);
     }
 
     pub fn settle(&mut self, rounds: usize) {

@@ -3,6 +3,7 @@
 
 pub mod chaos_run_tests;
 pub mod fault_schedule_tests;
+pub mod real_list_tests;
 pub mod regressions_tests;
 pub mod replay_tests;
 pub mod shrinker_tests;
