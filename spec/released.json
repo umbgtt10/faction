@@ -79,6 +79,10 @@
   {
    "name": "Probe",
    "version": "0.4.0"
+  },
+  {
+   "name": "MembershipReceived",
+   "version": "0.5.0"
   }
  ],
  "vectors": [
@@ -546,6 +550,81 @@
    "id": "93-own-removal-while-collecting-past-the-deadline",
    "version": "0.4.0",
    "sha256": "27b666fedccd01b0d87dbdb2b0d4adf46c1a78054993eab1118bada797cbc29a"
+  },
+  {
+   "id": "94-epoch-moved-by-commits",
+   "version": "0.5.0",
+   "sha256": "a30ccdf1d54d053cff49e5db7485acdc3f45bc5310ae16c2b2a2e575e958cf38"
+  },
+  {
+   "id": "95-configuration-at-an-epoch-and-memberships-held",
+   "version": "0.5.0",
+   "sha256": "c901a9751405572690eee65c2cbc596d5aa49d94c3af1529f288d92b026510ed"
+  },
+  {
+   "id": "96-claims-from-behind-before-completion",
+   "version": "0.5.0",
+   "sha256": "8607cd5068cc57a9fe8d5f22cdf3bb894c7819ca2088d66154b183562546907c"
+  },
+  {
+   "id": "97-claims-from-behind-after-completion",
+   "version": "0.5.0",
+   "sha256": "1092387458f2da3d00e263e5cb334eafa971bcc097b8e7f89cf87445613f2ca0"
+  },
+  {
+   "id": "98-acknowledgement-from-behind",
+   "version": "0.5.0",
+   "sha256": "cda20991e8935589b9995cd75d097d145fbcd302996f1c3c820d4edcf81fc955"
+  },
+  {
+   "id": "99-membership-adopted-while-bootstrapping",
+   "version": "0.5.0",
+   "sha256": "660a068e54c46b5a7efc6ee3096558ded14d18ed815a92ca7aae3d4020219999"
+  },
+  {
+   "id": "100-membership-adopted-while-collecting",
+   "version": "0.5.0",
+   "sha256": "d6b89122922550faf9d6d2a6cef1cfc2b03491df4ea0d164ccdc6ca893b3eb43"
+  },
+  {
+   "id": "101-adoption-crosses-the-quorum",
+   "version": "0.5.0",
+   "sha256": "36ad066dc02416d8fc762de4cab09ab8187db5973c95b60f9b081d988cad28e5"
+  },
+  {
+   "id": "102-change-abandoned-for-a-later-membership",
+   "version": "0.5.0",
+   "sha256": "4a7f6235c841c925cd26358b9838bc71ead38bd686ba119889efd025480726f7"
+  },
+  {
+   "id": "103-abandonment-crosses-the-quorum",
+   "version": "0.5.0",
+   "sha256": "9d317566a66c2cc73b98c1170b1ef410a57f06f767a4364984f67695dbf4f176"
+  },
+  {
+   "id": "104-membership-without-the-node-removes-it",
+   "version": "0.5.0",
+   "sha256": "47897c4fbae3556c63cc79bc4a61f984979b99381d2b9fac07f2378383870e31"
+  },
+  {
+   "id": "105-membership-without-the-node-while-pinging",
+   "version": "0.5.0",
+   "sha256": "7f91bfac2f887fe0465f4432ca1d47669801aa2a79461503f5163fe9e8415c4d"
+  },
+  {
+   "id": "106-removed-node-takes-a-membership-back",
+   "version": "0.5.0",
+   "sha256": "ad8aa1ef52facf9c69d1009b470926ddaf4c9086a6d03a2c86feffad9130c74f"
+  },
+  {
+   "id": "107-restarted-node-catches-up",
+   "version": "0.5.0",
+   "sha256": "719b6ff17dabacb637386221daa2708c18124683cfc175b35a6dae19cc18a318"
+  },
+  {
+   "id": "108-partitioned-node-catches-up",
+   "version": "0.5.0",
+   "sha256": "10971764b05b5b37d2337367412304f12af6a876c71f74af045a023a81848bc1"
   }
  ]
 }

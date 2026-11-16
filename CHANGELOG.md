@@ -5,6 +5,13 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-16
+
+### Published on crates.io
+
+Conforms to the specification's version 0.5.0, the first to grow by its own rule: its 108 vectors are released and
+kept, and the 93 of 0.4.0 pass unchanged.
+
 ### Phase 5: every membership carries its epoch
 
 #### Added
