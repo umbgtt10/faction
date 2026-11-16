@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: MIT
 
 #![forbid(unsafe_code)]
-pub mod approver;
 pub mod cluster;
 pub mod cluster_builder;
-pub mod committer;
 pub mod constants;
 pub mod faction_node;
 pub mod infra;
 pub mod join;
+pub mod membership;
 pub mod no_op_node_observer;
 pub mod node;
 pub mod node_command;

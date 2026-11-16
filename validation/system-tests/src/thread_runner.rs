@@ -111,6 +111,10 @@ impl ThreadRunner {
                     self.node.change_required_count(required_count, epoch);
                     ack
                 }
+                Ok(NodeCommand::Restart(membership, ack)) => {
+                    self.node.restart(&membership);
+                    ack
+                }
                 Ok(NodeCommand::Shutdown) | Err(TryRecvError::Disconnected) => return false,
                 Err(TryRecvError::Empty) => return true,
             };

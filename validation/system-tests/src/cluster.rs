@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::cell::Cell;
+use std::cell::RefCell;
 use std::fs::read_dir;
 use std::fs::read_to_string;
 use std::fs::write;
@@ -15,10 +16,12 @@ use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
 use faction::types::PeerId;
+use faction_protocol::commit::Commit;
 
-use crate::approver::Approver;
-use crate::committer::Committer;
+use crate::join::approver::Approver;
+use crate::join::committer::Committer;
 use crate::join::joining::Joining;
+use crate::membership::Membership;
 use crate::node::Node;
 use crate::node_snapshot::NodeSnapshot;
 use crate::spawn::Spawn;
@@ -36,6 +39,7 @@ pub struct Cluster {
     pause: Arc<dyn Pause>,
     added_addrs: Vec<(PeerId, SocketAddr)>,
     epoch: Cell<Epoch>,
+    missed: RefCell<Vec<(PeerId, Commit)>>,
 }
 
 impl Cluster {
@@ -60,6 +64,7 @@ impl Cluster {
             pause,
             added_addrs: Vec::new(),
             epoch: Cell::new(0),
+            missed: RefCell::new(Vec::new()),
         }
     }
 
@@ -128,6 +133,20 @@ impl Cluster {
         }
     }
 
+    // Every commit `peer_id` missed reported to it now, in the order they were
+    // committed: the layer above catching a node up once it reaches it again.
+    pub fn catch_up(&self, peer_id: PeerId) {
+        let (caught, still): (Vec<_>, Vec<_>) = self
+            .missed
+            .take()
+            .into_iter()
+            .partition(|(missing, _)| *missing == peer_id);
+        self.missed.replace(still);
+        for (_, commit) in caught {
+            Self::report(self.node_of(peer_id), commit);
+        }
+    }
+
     // The commit reported to every node, the newcomer first -- the members
     // ignore it until they hold the commit, so it never concludes on the old
     // count -- with the new required count, if one is given: each a change of
@@ -147,13 +166,40 @@ impl Cluster {
     // them -- with the new required count first, if one is given, so that no
     // node shows its quorum lost between the two: each at its own epoch.
     pub fn commit_removal(&self, peer_id: PeerId, required_count: Option<usize>) {
+        self.commit_removal_missed_by(peer_id, required_count, &[]);
+    }
+
+    // The removal committed as `commit_removal` commits it, but reported to no
+    // node of `missed`: the layer above has not reached them.
+    pub fn commit_removal_missed_by(
+        &self,
+        peer_id: PeerId,
+        required_count: Option<usize>,
+        missed: &[PeerId],
+    ) {
         let count = required_count.map(|required_count| (required_count, self.next_epoch()));
         let removal = self.next_epoch();
-        for node in &self.nodes {
-            if let Some((required_count, epoch)) = count {
-                node.change_required_count(required_count, epoch);
+        let commits: Vec<Commit> = count
+            .map(|(required_count, epoch)| Commit::RequiredCount {
+                required_count,
+                epoch,
+            })
+            .into_iter()
+            .chain([Commit::Removal {
+                peer_id,
+                epoch: removal,
+            }])
+            .collect();
+        for (node, id) in self.nodes.iter().zip(&self.peer_ids) {
+            if missed.contains(id) {
+                self.missed
+                    .borrow_mut()
+                    .extend(commits.iter().map(|commit| (*id, *commit)));
+            } else {
+                for commit in &commits {
+                    Self::report(node, *commit);
+                }
             }
-            node.commit_removal(peer_id, removal);
         }
     }
 
@@ -256,6 +302,12 @@ impl Cluster {
 
     pub fn request_removal(&self, coordinator: usize, peer_id: PeerId) {
         self.nodes[coordinator].request_removal(peer_id);
+    }
+
+    // The node `peer_id` created again at `membership`, in place: from
+    // genesis, or from a snapshot of a membership it held.
+    pub fn restart(&self, peer_id: PeerId, membership: Membership) {
+        self.node_of(peer_id).restart(membership);
     }
 
     pub fn settle(&mut self, rounds: usize) {
@@ -386,6 +438,18 @@ impl Cluster {
             .copied()
             .filter(|other| *other != peer_id)
             .collect()
+    }
+
+    // A commit reported to one node.
+    fn report(node: &Node, commit: Commit) {
+        match commit {
+            Commit::Addition { peer_id, epoch } => node.commit_addition(peer_id, epoch),
+            Commit::Removal { peer_id, epoch } => node.commit_removal(peer_id, epoch),
+            Commit::RequiredCount {
+                required_count,
+                epoch,
+            } => node.change_required_count(required_count, epoch),
+        }
     }
 }
 

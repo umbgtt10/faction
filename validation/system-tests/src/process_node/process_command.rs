@@ -10,7 +10,9 @@ use std::thread::spawn;
 use faction::types::Epoch;
 use faction::types::PeerId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use crate::membership::Membership;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessCommand {
     RequestJoin(PeerId),
     Admit(PeerId),
@@ -26,6 +28,7 @@ pub enum ProcessCommand {
     Cut(PeerId),
     Mend(PeerId),
     Peer(PeerId, SocketAddr),
+    Restart(Membership),
     Shutdown,
 }
 
@@ -61,6 +64,15 @@ impl ProcessCommand {
                 let addr = parts.next()?.parse().ok()?;
                 Some(Self::Peer(id, addr))
             }
+            "restart" => Some(Self::Restart(Membership {
+                epoch: parts.next()?.parse().ok()?,
+                required_count: parts.next()?.parse().ok()?,
+                peers: parts
+                    .next()?
+                    .split(',')
+                    .map(|peer| peer.parse().ok())
+                    .collect::<Option<Vec<PeerId>>>()?,
+            })),
             "shutdown" => Some(Self::Shutdown),
             _ => None,
         }

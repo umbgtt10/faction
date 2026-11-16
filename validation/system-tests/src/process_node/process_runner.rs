@@ -86,6 +86,7 @@ impl ProcessRunner {
             ProcessCommand::Peer(peer_id, addr) => {
                 self.address_book.lock().unwrap().push((peer_id, addr));
             }
+            ProcessCommand::Restart(membership) => self.node.restart(&membership),
             ProcessCommand::Shutdown => {}
         }
     }

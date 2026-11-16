@@ -3,4 +3,5 @@
 
 pub mod monotonic_clock;
 pub mod pause;
+pub mod roles;
 pub mod wall_clock;

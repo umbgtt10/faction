@@ -11,6 +11,7 @@ use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
@@ -164,6 +165,10 @@ impl Cluster {
         })
     }
 
+    pub fn epoch(&mut self, index: usize) -> Epoch {
+        self.protocols[index].cluster_view().epoch()
+    }
+
     pub fn inject_timer(&mut self, index: usize, message: TimerMessage) {
         self.timers[index].schedule(TimerEvent::Fire(message));
     }
@@ -233,6 +238,28 @@ impl Cluster {
         self.route_all(decisions, index);
     }
 
+    // The node at `index` created again at a membership -- `peers`, the count
+    // they require and their epoch -- its timers gone with its state; a test
+    // starts it as it starts any node.
+    pub fn restart(&mut self, index: usize, peers: Vec<PeerId>, required: usize, epoch: Epoch) {
+        let peer_id = self.peer_ids[index];
+        let config = Config::new(
+            peer_id,
+            peers.clone(),
+            QuorumPolicy::new(required),
+            self.suspicion_threshold,
+            epoch,
+        );
+        self.protocols[index] = Protocol::new(
+            Faction::new(config, Box::new(NoOpObserver)),
+            peers,
+            peer_id,
+            HELPERS,
+        );
+        self.timers[index] = InMemoryTimer::new();
+        self.held[index].clear();
+    }
+
     pub fn run(&mut self, rounds: usize) {
         for _ in 0..rounds {
             for index in 0..self.peer_ids.len() {
@@ -267,10 +294,17 @@ impl Cluster {
         }
     }
 
+    // A message the node at `index` has received decided -- a removed node a
+    // membership invites back joining from it as a newcomer.
     pub fn step_transport_node(&mut self, index: usize) -> bool {
         if let Some(msg) = self.transports[index].recv() {
             let source = self.peer_ids[index];
-            for decision in self.protocols[index].decide(InputMessage::Transport(msg)) {
+            let decisions = if self.protocols[index].invites(&msg) {
+                self.rejoined(index, msg)
+            } else {
+                self.protocols[index].decide(InputMessage::Transport(msg))
+            };
+            for decision in decisions {
                 self.route(decision, source);
             }
             true
@@ -290,6 +324,26 @@ impl Cluster {
                 | TimerMessage::ProbeMissed { .. }
                 | TimerMessage::IndirectProbesMissed { .. }
         )
+    }
+
+    // The removed node at `index` a newcomer again, joined from the membership
+    // that invites it, with timers of its own.
+    fn rejoined(&mut self, index: usize, membership: TransportMessage) -> Vec<OutputMessage> {
+        let newcomer = Newcomer::new(
+            self.peer_ids[index],
+            self.suspicion_threshold,
+            HELPERS,
+            Box::new(NoOpObserver),
+        );
+        match newcomer.join(membership) {
+            Ok((protocol, decisions)) => {
+                self.protocols[index] = protocol;
+                self.timers[index] = InMemoryTimer::new();
+                self.held[index].clear();
+                decisions
+            }
+            Err(_) => Vec::new(),
+        }
     }
 
     fn route(&mut self, msg: OutputMessage, from: PeerId) {

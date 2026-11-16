@@ -6,6 +6,8 @@ use std::sync::mpsc::Sender;
 use faction::types::Epoch;
 use faction::types::PeerId;
 
+use crate::membership::Membership;
+
 pub enum NodeCommand {
     RequestJoin(PeerId, Sender<()>),
     Admit(PeerId, Sender<()>),
@@ -20,5 +22,6 @@ pub enum NodeCommand {
     ChangeRequiredCount(usize, Epoch, Sender<()>),
     Cut(PeerId, Sender<()>),
     Mend(PeerId, Sender<()>),
+    Restart(Membership, Sender<()>),
     Shutdown,
 }

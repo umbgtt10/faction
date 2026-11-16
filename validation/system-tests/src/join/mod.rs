@@ -1,7 +1,9 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod approver;
 pub mod channels_join_mesh;
+pub mod committer;
 pub mod grpc_join_mesh;
 pub mod in_memory_join_mesh;
 pub mod join_context;

@@ -24,14 +24,18 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
+use crate::membership::Membership;
 use crate::node_observer::NodeObserver;
 use crate::node_snapshot::NodeSnapshot;
 use crate::role::Role;
+use crate::traits::roles::Roles;
 
 // A node's loop: its timer and its transport polled in turn, every decision
 // carried out. A newcomer waits for its membership and becomes a running node
 // of it; a node broadcasts to the members its view shows, read again when an
-// admission or a commit changes them.
+// admission, a commit or a membership changes them. A removed node a
+// membership invites back becomes a newcomer again, and a restarted node is
+// created again at a membership; its roles made anew by `roles`.
 pub struct FactionNode {
     peer_id: PeerId,
     peers: Vec<PeerId>,
@@ -40,6 +44,8 @@ pub struct FactionNode {
     timer: Box<dyn Timer>,
     observer: Box<dyn NodeObserver>,
     cuts: LinkCuts,
+    roles: Box<dyn Roles>,
+    started: bool,
     toggle_timer_and_transport: bool,
 }
 
@@ -47,23 +53,27 @@ impl FactionNode {
     #[must_use]
     pub fn new(
         peer_id: PeerId,
-        peers: Vec<PeerId>,
         role: Role,
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
         observer: Box<dyn NodeObserver>,
         cuts: LinkCuts,
+        roles: Box<dyn Roles>,
     ) -> Self {
-        Self {
+        let mut node = Self {
             peer_id,
-            peers,
+            peers: Vec::new(),
             role,
             transport,
             timer,
             observer,
             cuts,
+            roles,
+            started: false,
             toggle_timer_and_transport: true,
-        }
+        };
+        node.read_members();
+        node
     }
 
     pub fn abort_addition(&mut self, peer_id: PeerId) {
@@ -137,6 +147,22 @@ impl FactionNode {
         self.command(|protocol| protocol.request_removal(peer_id));
     }
 
+    // The node created again at `membership`, its state gone but its link: a
+    // started node opens again at once, one not yet started when it starts.
+    pub fn restart(&mut self, membership: &Membership) {
+        self.role = self.roles.running(self.peer_id, membership);
+        self.read_members();
+        if self.started {
+            let decisions = match &mut self.role {
+                Role::Running(protocol) => Self::opening(protocol.initialize()),
+                Role::Waiting(_) => Vec::new(),
+            };
+            for decision in decisions {
+                self.dispatch(decision);
+            }
+        }
+    }
+
     #[must_use]
     pub fn snapshot(&mut self) -> NodeSnapshot {
         match &mut self.role {
@@ -165,6 +191,7 @@ impl FactionNode {
     }
 
     pub fn start(&mut self) {
+        self.started = true;
         self.observer.on_start();
         let decisions = match &mut self.role {
             Role::Running(protocol) => Self::opening(protocol.initialize()),
@@ -216,12 +243,29 @@ impl FactionNode {
         }
     }
 
+    // A message decided: a removed node a membership invites back made a
+    // newcomer that joins from it, and the members read again after any
+    // membership a running node takes.
     fn decide(&mut self, message: InputMessage) -> Vec<OutputMessage> {
-        match (&mut self.role, message) {
+        if let (Role::Running(protocol), InputMessage::Transport(transport)) =
+            (&mut self.role, &message)
+            && protocol.invites(transport)
+        {
+            self.role = self.roles.waiting(self.peer_id);
+        }
+        let membership = matches!(
+            message,
+            InputMessage::Transport(TransportMessage::Membership { .. })
+        );
+        let decisions = match (&mut self.role, message) {
             (Role::Running(protocol), message) => protocol.decide(message),
             (Role::Waiting(_), InputMessage::Transport(message)) => self.join(message),
             (Role::Waiting(_), InputMessage::Timer(_)) => Vec::new(),
+        };
+        if membership {
+            self.read_members();
         }
+        decisions
     }
 
     fn dispatch(&mut self, decision: OutputMessage) {

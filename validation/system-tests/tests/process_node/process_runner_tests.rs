@@ -38,7 +38,7 @@ fn runner(
 fn sent(commands: &[ProcessCommand]) -> (Sender<ProcessCommand>, Receiver<ProcessCommand>) {
     let (sender, receiver) = channel();
     for command in commands {
-        sender.send(*command).unwrap();
+        sender.send(command.clone()).unwrap();
     }
     (sender, receiver)
 }

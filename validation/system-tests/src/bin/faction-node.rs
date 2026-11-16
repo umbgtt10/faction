@@ -8,21 +8,13 @@ use std::fs::create_dir_all;
 use std::io::BufReader;
 use std::io::stdin;
 use std::io::stdout;
+use std::path::Path;
 use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 
-use faction::config::Config;
-use faction::faction::Faction;
-use faction::no_op_observer::NoOpObserver;
-use faction::observer::Observer;
-use faction::quorum_policy::QuorumPolicy;
-
-use faction_protocol::newcomer::Newcomer;
-use faction_protocol::protocol::Protocol;
 use faction_protocol::transport::Transport;
 
-use faction_system_tests::constants::HELPERS;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
@@ -36,13 +28,15 @@ use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTran
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::grpc::grpc_transport::GrpcTransport;
 use faction_system_tests::infra::transport::tcp::tcp_transport::TcpTransport;
+use faction_system_tests::membership::Membership;
 use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
 use faction_system_tests::node_observer::NodeObserver;
+use faction_system_tests::node_recipe::NodeRecipe;
 use faction_system_tests::process_node::args::Args;
 use faction_system_tests::process_node::process_command::ProcessCommand;
 use faction_system_tests::process_node::process_runner::ProcessRunner;
-use faction_system_tests::role::Role;
 use faction_system_tests::time_ports::TimePorts;
+use faction_system_tests::traits::roles::Roles;
 use faction_system_tests::transport_kind::TransportKind;
 
 fn main() {
@@ -53,27 +47,19 @@ fn main() {
         wall_clock: Arc::new(SystemWallClock),
     };
 
-    let (observer, node_observer): (Box<dyn Observer>, Box<dyn NodeObserver>) =
-        match &config.log_path {
-            Some(path) => {
-                if let Some(parent) = path.parent() {
-                    let _ = create_dir_all(parent);
-                }
-                let writer = SharedWriter::open(path);
-                let observer = Box::new(SharedFileObserver::new(
-                    writer.clone(),
-                    config.peer_id,
-                    time.wall_clock.clone(),
-                ));
-                let node_observer = Box::new(SharedFileObserver::new(
-                    writer,
-                    config.peer_id,
-                    time.wall_clock.clone(),
-                ));
-                (observer, node_observer)
+    let node_observer: Box<dyn NodeObserver> = match &config.log_path {
+        Some(path) => {
+            if let Some(parent) = path.parent() {
+                let _ = create_dir_all(parent);
             }
-            None => (Box::new(NoOpObserver), Box::new(NoOpNodeObserver)),
-        };
+            Box::new(SharedFileObserver::new(
+                SharedWriter::open(path),
+                config.peer_id,
+                time.wall_clock.clone(),
+            ))
+        }
+        None => Box::new(NoOpNodeObserver),
+    };
 
     let (transport, address_book): (Box<dyn Transport>, AddressBook) = match config.transport {
         TransportKind::Grpc => {
@@ -103,31 +89,28 @@ fn main() {
         config.probe_stretch,
     ));
 
-    let (peers, role) = if config.newcomer {
-        (
-            Vec::new(),
-            Role::Waiting(Newcomer::new(
-                config.peer_id,
-                config.suspicion_threshold,
-                HELPERS,
-                observer,
-            )),
-        )
+    let recipe = NodeRecipe::new(
+        config.required,
+        config.suspicion_threshold,
+        delay,
+        deadline_delay,
+        config.probe_stretch,
+        config
+            .log_path
+            .as_deref()
+            .and_then(Path::parent)
+            .map(Path::to_path_buf),
+        time.clone(),
+    );
+    let role = if config.newcomer {
+        recipe.waiting(config.peer_id)
     } else {
-        let faction_config = Config::new(
-            config.peer_id,
-            config.peers.clone(),
-            QuorumPolicy::new(config.required),
-            config.suspicion_threshold,
-            0,
-        );
-        let protocol = Protocol::new(
-            Faction::new(faction_config, observer),
-            config.peers.clone(),
-            config.peer_id,
-            HELPERS,
-        );
-        (config.peers, Role::Running(Box::new(protocol)))
+        let genesis = Membership {
+            peers: config.peers.clone(),
+            required_count: config.required,
+            epoch: 0,
+        };
+        recipe.running(config.peer_id, &genesis)
     };
     let cuts = LinkCuts::default();
     let faulty = Box::new(FaultyTransport::new(
@@ -139,12 +122,12 @@ fn main() {
     ));
     let node = FactionNode::new(
         config.peer_id,
-        peers,
         role,
         faulty,
         timer,
         node_observer,
         cuts,
+        Box::new(recipe),
     );
 
     let commands = ProcessCommand::read_lines(BufReader::new(stdin()));

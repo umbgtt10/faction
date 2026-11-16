@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction_system_tests::membership::Membership;
 use faction_system_tests::process_node::process_command::ProcessCommand;
 use std::io::Cursor;
 use std::net::SocketAddr;
@@ -141,6 +142,22 @@ fn parse_required_count_reads_the_count_and_the_epoch() {
 
     // Assert
     assert_eq!(command, Some(ProcessCommand::RequiredCount(3, 4)));
+}
+
+#[test]
+fn parse_restart_reads_the_epoch_the_count_and_the_peers() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("restart 3 2 0,5");
+
+    // Assert
+    assert_eq!(
+        command,
+        Some(ProcessCommand::Restart(Membership {
+            peers: vec![0, 5],
+            required_count: 2,
+            epoch: 3,
+        }))
+    );
 }
 
 #[test]

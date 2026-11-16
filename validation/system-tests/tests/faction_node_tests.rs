@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::fake_time;
+use crate::support::recipe;
 use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::command::Command;
 use faction::config::Config;
@@ -25,6 +26,7 @@ use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
+use faction_system_tests::membership::Membership;
 use faction_system_tests::no_op_node_observer::NoOpNodeObserver;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::probe_stretch::ProbeStretch;
@@ -59,7 +61,6 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
     );
     let mut node = FactionNode::new(
         0,
-        peers,
         Role::Running(Box::new(protocol)),
         Box::new(FaultyTransport::new(
             0,
@@ -71,6 +72,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         cuts.clone(),
+        Box::new(recipe(1, &time)),
     );
     node.start();
     while node.peer_state() != PeerState::Bootstrapped {
@@ -93,7 +95,6 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
     );
     let node = FactionNode::new(
         5,
-        Vec::new(),
         Role::Waiting(Newcomer::new(
             5,
             DEFAULT_SUSPICION_THRESHOLD,
@@ -104,6 +105,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         LinkCuts::default(),
+        Box::new(recipe(1, &time)),
     );
     (node, mesh.remove(0))
 }
@@ -127,12 +129,12 @@ fn node() -> (FactionNode, Arc<FakeMonotonicClock>) {
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
         0,
-        peers,
         Role::Running(Box::new(protocol)),
         Box::new(transport),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         LinkCuts::default(),
+        Box::new(recipe(1, &time)),
     );
     (node, clock)
 }
@@ -162,12 +164,12 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     );
     let node = FactionNode::new(
         0,
-        peers.clone(),
         Role::Running(Box::new(protocol)),
         Box::new(InMemoryTransport::new_mesh(&peers).remove(0)),
         Box::new(timer),
         Box::new(NoOpNodeObserver),
         LinkCuts::default(),
+        Box::new(recipe(1, &time)),
     );
     (node, commands)
 }
@@ -526,6 +528,26 @@ fn request_removal_of_a_concluded_node_proposes_it() {
     assert_eq!(
         node.snapshot().reconfiguration,
         Reconfiguration::RemovalRequested { peer_id: 2 }
+    );
+}
+
+#[test]
+fn restart_creates_a_started_node_again_at_the_membership_and_opens_it() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+
+    // Act
+    node.restart(&Membership {
+        peers: vec![0, 1],
+        required_count: 2,
+        epoch: 3,
+    });
+
+    // Assert
+    let snapshot = node.snapshot();
+    assert_eq!(
+        (snapshot.peer_state, snapshot.member_count, snapshot.epoch),
+        (PeerState::Fresh, 2, 3)
     );
 }
 
