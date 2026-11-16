@@ -5,6 +5,13 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.8.3] — 2026-11-16
+
+### Published on crates.io
+
+A patch release: nothing the crate does changes. Conforms to the specification's version 0.4.1, which answers every
+command as 0.4.0 does and keeps its 93 vectors as released.
+
 #### Changed
 - The specification is 0.4.1: it answers every command as 0.4.0 does, and keeps a release's vectors as released, as
   beggar's and cartel's do. The growth rule omits a member a later version adds at its initial value and names a
