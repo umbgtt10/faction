@@ -25,6 +25,11 @@ const NEWCOMER: PeerId = 3;
 const SETTLE_ROUNDS_PER_STRETCH: usize = 60;
 const SUSPICION_THRESHOLD: usize = 2;
 
+// Five processes over gRPC answer an indirect probe late under the gates'
+// parallel load: twice, 2026-11-13 and 2026-11-16, the cut member was
+// suspected at the minimal stretch before its helpers' answers arrived, and
+// passed alone and on rerun. That case waits the generous stretch; the
+// scenario and its assertion are as they were.
 #[rstest]
 #[case::task_real_inmemory(Spawn::Task, TransportKind::InMemory, ProbeStretch::Generous)]
 #[case::task_real_channels(Spawn::Task, TransportKind::Channels, ProbeStretch::Generous)]
@@ -35,7 +40,7 @@ const SUSPICION_THRESHOLD: usize = 2;
 #[case::thread_real_tcp(Spawn::Thread, TransportKind::Tcp, ProbeStretch::Minimal)]
 #[case::thread_real_grpc(Spawn::Thread, TransportKind::Grpc, ProbeStretch::Minimal)]
 #[case::process_real_tcp(Spawn::Process, TransportKind::Tcp, ProbeStretch::Minimal)]
-#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Minimal)]
+#[case::process_real_grpc(Spawn::Process, TransportKind::Grpc, ProbeStretch::Generous)]
 fn a_member_cut_off_from_one_node_is_saved_by_indirect_probes(
     #[case] spawn: Spawn,
     #[case] transport: TransportKind,

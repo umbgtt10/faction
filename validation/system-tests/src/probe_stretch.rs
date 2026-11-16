@@ -3,7 +3,8 @@
 
 // How many times over a node waits the probe period and its timeouts: no more
 // than their own for a node that keeps up with its probes, threefold for a
-// task's, which reads one input a step.
+// task's, which reads one input a step, and for a case whose indirect probes
+// arrive late under the gates' parallel load.
 #[derive(Debug, Clone, Copy)]
 pub enum ProbeStretch {
     Minimal,
