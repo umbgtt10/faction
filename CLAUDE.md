@@ -34,11 +34,14 @@ Stage 1 is formatting, clippy over every target, the `no_std` check of the five
 tests: `cargo xtask system-tests` lists every test the `all_tests` binary holds
 (the cases `rstest` expands among them) and runs each in a process of its own,
 in parallel, through `slotgate`. A run's logs -- slotgate's for each test and the
-scenarios' for each node -- share one folder under `logs/`, named for the moment
-the run began (`2026-11-13_06-19-57`), and only the newest 50 runs are kept: the
-run's name reaches the scenarios as `FACTION_LOG_RUN`. A test run outside the
-xtask writes one folder named the same way, which the next run prunes with the
-rest.
+scenarios' for each node -- share one folder under `logs/system/`, named for the
+moment the run began (`2026-11-13_06-19-57`), and only the newest 50 runs are
+kept: the run's name reaches the scenarios as `FACTION_LOG_RUN`. A test run
+outside the xtask writes one folder named the same way, which the next run
+prunes with the rest. A chaos run -- `just chaos-replay <seed>` or
+`just chaos-soak`, through `cargo xtask chaos` -- keeps its logs the same way
+under `logs/chaos/`: its report in `chaos.log`, and each seed it replays in a
+folder of its own, its nodes' logs and their consolidation.
 
 Stage 2 is `cargo xtask stage2` -- a crate under `xtask/`, gated like any other
 code. It runs, in this order:

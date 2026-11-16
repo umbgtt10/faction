@@ -18,6 +18,9 @@ pub enum GateFailure {
     AboveCeiling {
         ceiling: String,
     },
+    ChaosFailed {
+        exit_code: Option<i32>,
+    },
     CouldNotRun {
         exit_code: Option<i32>,
     },
@@ -72,6 +75,9 @@ impl fmt::Display for GateFailure {
         match self {
             Self::AboveCeiling { ceiling } => {
                 write!(formatter, "a file is at or above the ceiling of {ceiling}")
+            }
+            Self::ChaosFailed { exit_code } => {
+                write!(formatter, "a chaos run failed, exit code {exit_code:?}")
             }
             Self::CouldNotRun { exit_code } => {
                 write!(formatter, "could not run, exit code {exit_code:?}")

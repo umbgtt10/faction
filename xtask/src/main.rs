@@ -14,6 +14,7 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use xtask::artifacts::run_log_directory::RunLogDirectory;
 use xtask::artifacts::run_stamp::RunStamp;
+use xtask::gates::chaos_gate::ChaosGate;
 use xtask::gates::coverage_gate::CoverageGate;
 use xtask::gates::crap_gate::CrapGate;
 use xtask::gates::deny_gate::DenyGate;
@@ -41,8 +42,8 @@ const SPEC_MODEL_PACKAGE: &str = "faction-spec-model";
 const SYSTEM_TESTS_PACKAGE: &str = "faction-system-tests";
 const XTASK_PACKAGE: &str = "xtask";
 
-// The variable naming the run whose folder the system tests' scenarios write
-// their nodes' logs into.
+// The variable naming the run whose folder the system tests' scenarios, and
+// the chaos binary, write their logs into.
 const LOG_RUN: &str = "FACTION_LOG_RUN";
 const ALL_TESTS: &str = "all_tests";
 const CRAP_THRESHOLD: &str = "15";
@@ -58,6 +59,7 @@ const RUNS_TO_KEEP: usize = 50;
 fn main() -> ExitCode {
     let outcome = match args().nth(1).as_deref() {
         Some("stage2") => stage2(),
+        Some("chaos") => chaos(),
         Some("system-tests") => system_tests(),
         Some("grip-braintax") => {
             return match grip_braintax() {
@@ -69,7 +71,7 @@ fn main() -> ExitCode {
             };
         }
         _ => {
-            eprintln!("usage: cargo xtask <stage2|system-tests|grip-braintax>");
+            eprintln!("usage: cargo xtask <stage2|system-tests|chaos <args>|grip-braintax>");
             return ExitCode::FAILURE;
         }
     };
@@ -200,12 +202,35 @@ fn stage2() -> Result<&'static str, String> {
         .map_err(|failure| failure.to_string())
 }
 
+// The chaos binary run once with the arguments after `chaos` -- a seed
+// replayed, or a soak -- every log of the run in one folder under
+// logs/chaos/, the newest RUNS_TO_KEEP kept.
+fn chaos() -> Result<&'static str, String> {
+    let root = workspace_root();
+    let log_directory = RunLogDirectory::new(root.join("logs").join("chaos"), RUNS_TO_KEEP);
+    let run_name = RunStamp::new(seconds_since_epoch()).to_directory_name();
+    // The binary is handed the run's name, as the system tests are, and
+    // writes its logs into the run's folder.
+    let runner = SystemCommandRunner::new(vec![(String::from(LOG_RUN), run_name.clone())]);
+    let chaos = ChaosGate::new(
+        &runner,
+        &log_directory,
+        run_name,
+        String::from(CHAOS_PACKAGE),
+        args().skip(2).collect(),
+    );
+    GateSequence::new(vec![&chaos])
+        .run()
+        .map(|()| "faction chaos")
+        .map_err(|failure| failure.to_string())
+}
+
 // The system tests, each in a process of its own with ports of its own, run
 // in parallel by slotgate; every run's logs -- slotgate's and the scenarios'
-// -- in one folder under logs/, the newest RUNS_TO_KEEP kept.
+// -- in one folder under logs/system/, the newest RUNS_TO_KEEP kept.
 fn system_tests() -> Result<&'static str, String> {
     let root = workspace_root();
-    let log_directory = RunLogDirectory::new(root.join("logs"), RUNS_TO_KEEP);
+    let log_directory = RunLogDirectory::new(root.join("logs").join("system"), RUNS_TO_KEEP);
     let run_name = RunStamp::new(seconds_since_epoch()).to_directory_name();
     // Every test process slotgate starts is handed the run's name, and its
     // scenarios write into the run's folder: one folder a run, pruned whole.

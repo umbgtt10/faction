@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use faction_system_tests::traits::monotonic_clock::MonotonicClock;
@@ -16,14 +17,17 @@ use crate::engine::soak_limit::SoakLimit;
 const SUMMARY_EVERY: u64 = 100;
 
 // Seeds played one after another from `from`, on the deterministic engine,
-// until the limit: each failure shrunk, recorded among the regressions and
-// reported as it is found, and a summary every hundred scenarios and at the
-// end, written to `out`.
+// until the limit: each failure replayed with its nodes' logs in a folder
+// under `logs` named for its seed, shrunk -- the smallest scenario replayed
+// into `shrunk` beside them -- recorded among the regressions and reported as
+// it is found, and a summary every hundred scenarios and at the end, written
+// to `out`.
 pub struct Soak {
     from: u64,
     limit: SoakLimit,
     source: Box<dyn ScenarioSource>,
     regressions: Regressions,
+    logs: PathBuf,
     clock: Arc<dyn MonotonicClock>,
     out: Box<dyn Write>,
 }
@@ -35,6 +39,7 @@ impl Soak {
         limit: SoakLimit,
         source: Box<dyn ScenarioSource>,
         regressions: Regressions,
+        logs: PathBuf,
         clock: Arc<dyn MonotonicClock>,
         out: Box<dyn Write>,
     ) -> Self {
@@ -43,6 +48,7 @@ impl Soak {
             limit,
             source,
             regressions,
+            logs,
             clock,
             out,
         }
@@ -77,11 +83,24 @@ impl Soak {
         let Err(failure) = ChaosRun::new(scenario.clone(), None).run() else {
             return true;
         };
-        let _ = writeln!(self.out, "seed {seed} failed: {failure}");
+        let folder = self.logs.join(seed.to_string());
+        let _ = ChaosRun::new(scenario.clone(), Some(folder.clone())).run();
+        let _ = writeln!(
+            self.out,
+            "seed {seed} failed: {failure}; logs in {}",
+            folder.display()
+        );
         let Some(shrunk) = Shrinker::new(scenario).shrink() else {
             return false;
         };
-        let _ = writeln!(self.out, "seed {seed} shrunk: {}", shrunk.failure);
+        let shrunk_folder = folder.join("shrunk");
+        let _ = ChaosRun::new(shrunk.scenario.clone(), Some(shrunk_folder.clone())).run();
+        let _ = writeln!(
+            self.out,
+            "seed {seed} shrunk: {}; logs in {}",
+            shrunk.failure,
+            shrunk_folder.display()
+        );
         let recorded = self.regressions.record(Regression {
             seed,
             failure: shrunk.failure.to_string(),

@@ -6,3 +6,4 @@ pub mod engine;
 pub mod harness;
 pub mod invocation_tests;
 pub mod oracle;
+pub mod tee_tests;

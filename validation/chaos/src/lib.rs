@@ -9,4 +9,5 @@ pub mod harness;
 pub mod invocation;
 pub mod model;
 pub mod oracle;
+pub mod tee;
 pub mod usage;

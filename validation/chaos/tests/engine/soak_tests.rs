@@ -10,6 +10,7 @@ use faction_chaos::model::planned_change::PlannedChange;
 use faction_chaos::model::scenario::Scenario;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use std::env::temp_dir;
+use std::fs::remove_dir_all;
 use std::fs::remove_file;
 use std::io::Result as IoResult;
 use std::io::Write;
@@ -72,13 +73,14 @@ impl Write for SharedOutput {
     }
 }
 
-fn soak(from: u64, limit: SoakLimit, path: PathBuf) -> (Soak, SharedOutput) {
+fn soak(from: u64, limit: SoakLimit, path: PathBuf, logs: PathBuf) -> (Soak, SharedOutput) {
     let output = SharedOutput::default();
     let soak = Soak::new(
         from,
         limit,
         Box::new(OneFailing),
         Regressions::new(path),
+        logs,
         Arc::new(SimulatedClock::at(Duration::ZERO)),
         Box::new(output.clone()),
     );
@@ -89,7 +91,8 @@ fn soak(from: u64, limit: SoakLimit, path: PathBuf) -> (Soak, SharedOutput) {
 fn run_of_a_soak_given_no_time_plays_nothing() {
     // Arrange
     let path = temp_dir().join(format!("soak-tests-no-time-{}.json", id()));
-    let (soak, output) = soak(5, SoakLimit::For(Duration::ZERO), path);
+    let logs = temp_dir().join(format!("soak-tests-no-time-logs-{}", id()));
+    let (soak, output) = soak(5, SoakLimit::For(Duration::ZERO), path, logs);
 
     // Act
     let failed = soak.run();
@@ -103,22 +106,38 @@ fn run_of_a_soak_given_no_time_plays_nothing() {
 fn run_of_a_soak_meeting_a_failing_seed_records_it_shrunk() {
     // Arrange
     let path = temp_dir().join(format!("soak-tests-failing-{}.json", id()));
-    let (soak, output) = soak(0, SoakLimit::Scenarios(3), path.clone());
+    let logs = temp_dir().join(format!("soak-tests-failing-logs-{}", id()));
+    let (soak, output) = soak(0, SoakLimit::Scenarios(3), path.clone(), logs.clone());
 
     // Act
     let failed = soak.run();
 
     // Assert
     let recorded = Regressions::new(path.clone()).load().unwrap();
+    let logged = [
+        logs.join("1").join("consolidated.jsonl").exists(),
+        logs.join("1")
+            .join("shrunk")
+            .join("consolidated.jsonl")
+            .exists(),
+        logs.join("0").exists(),
+    ];
     remove_file(&path).ok();
+    remove_dir_all(&logs).ok();
     assert_eq!(failed, 1);
+    assert_eq!(logged, [true, true, false]);
     assert_eq!(recorded.len(), 1);
     assert_eq!(recorded[0].seed, 1);
     assert_eq!(recorded[0].scenario.chaos_rounds, 0);
+    let seed_logs = logs.join("1");
     assert_eq!(
         output.text(),
-        "seed 1 failed: round 320: a planned change never committed\n\
-         seed 1 shrunk: round 300: a planned change never committed\n\
-         soak from seed 0: 3 scenarios, 1 failed\n"
+        format!(
+            "seed 1 failed: round 320: a planned change never committed; logs in {}\n\
+             seed 1 shrunk: round 300: a planned change never committed; logs in {}\n\
+             soak from seed 0: 3 scenarios, 1 failed\n",
+            seed_logs.display(),
+            seed_logs.join("shrunk").display()
+        )
     );
 }

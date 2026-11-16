@@ -49,7 +49,7 @@ pub fn log_dir(label: &str) -> PathBuf {
 }
 
 fn logs_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../logs")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../logs/system")
 }
 
 pub fn real_time() -> TimePorts {
