@@ -8,6 +8,11 @@ use faction_chaos::model::planned_change::PlannedChange;
 use faction_chaos::model::scenario::Scenario;
 use faction_chaos::oracle::failure::Failure;
 use rstest::rstest;
+use std::env::temp_dir;
+use std::fs::read_to_string;
+use std::fs::remove_dir_all;
+use std::path::PathBuf;
+use std::process::id;
 
 const SEEDS_PER_CASE: u64 = 30;
 
@@ -30,6 +35,10 @@ fn calm(
         chaos_rounds,
         quiescence_rounds,
     }
+}
+
+fn folder(label: &str) -> PathBuf {
+    temp_dir().join(format!("chaos-run-tests-{label}-{}", id()))
 }
 
 fn planned(change: Change, due: u64) -> PlannedChange {
@@ -60,7 +69,7 @@ fn run_of_each_single_run_seed_reaches_its_end_state(#[case] case: u64) {
     // Act
     let failures: Vec<String> = seeds
         .filter_map(|seed| {
-            ChaosRun::new(Generator::new(seed).scenario())
+            ChaosRun::new(Generator::new(seed).scenario(), None)
                 .run()
                 .err()
                 .map(|failure| format!("seed {seed}: {failure}"))
@@ -72,17 +81,49 @@ fn run_of_each_single_run_seed_reaches_its_end_state(#[case] case: u64) {
 }
 
 #[test]
+fn run_given_a_log_folder_writes_each_node_s_log_and_their_consolidation() {
+    // Arrange
+    let folder = folder("logs");
+    let run = ChaosRun::new(
+        calm(
+            2,
+            vec![planned(Change::Addition { peer_id: 3 }, 0)],
+            50,
+            2_000,
+        ),
+        Some(folder.clone()),
+    );
+
+    // Act
+    let ended = run.run();
+
+    // Assert
+    let node = read_to_string(folder.join("node-3.jsonl")).unwrap();
+    let consolidated = read_to_string(folder.join("consolidated.jsonl")).unwrap();
+    remove_dir_all(&folder).ok();
+    assert!(ended.is_ok(), "{ended:?}");
+    assert!(node.contains("\"event\":\"start\""), "{node}");
+    assert!(
+        consolidated.starts_with("{\"timestamp\":\"2026-01-01T00:00:00"),
+        "{consolidated}"
+    );
+}
+
+#[test]
 fn run_of_a_calm_scenario_reaches_its_end_state() {
     // Arrange
-    let run = ChaosRun::new(calm(
-        2,
-        vec![
-            planned(Change::Addition { peer_id: 3 }, 0),
-            planned(Change::Removal { peer_id: 1 }, 10),
-        ],
-        50,
-        2_000,
-    ));
+    let run = ChaosRun::new(
+        calm(
+            2,
+            vec![
+                planned(Change::Addition { peer_id: 3 }, 0),
+                planned(Change::Removal { peer_id: 1 }, 10),
+            ],
+            50,
+            2_000,
+        ),
+        None,
+    );
 
     // Act
     let ended = run.run();
@@ -94,12 +135,10 @@ fn run_of_a_calm_scenario_reaches_its_end_state() {
 #[test]
 fn run_of_a_change_that_never_commits_fails_uncommitted() {
     // Arrange
-    let run = ChaosRun::new(calm(
-        3,
-        vec![planned(Change::Removal { peer_id: 2 }, 0)],
-        0,
-        300,
-    ));
+    let run = ChaosRun::new(
+        calm(3, vec![planned(Change::Removal { peer_id: 2 }, 0)], 0, 300),
+        None,
+    );
 
     // Act
     let ended = run.run();
@@ -111,7 +150,7 @@ fn run_of_a_change_that_never_commits_fails_uncommitted() {
 #[test]
 fn run_of_a_scenario_given_no_time_fails_diverged() {
     // Arrange
-    let run = ChaosRun::new(calm(3, Vec::new(), 0, 0));
+    let run = ChaosRun::new(calm(3, Vec::new(), 0, 0), None);
 
     // Act
     let ended = run.run();
@@ -133,11 +172,33 @@ fn run_of_a_scenario_given_no_time_fails_diverged() {
 #[test]
 fn run_of_one_seed_twice_ends_alike() {
     // Arrange
-    let first = ChaosRun::new(Generator::new(5).scenario()).run();
+    let first = ChaosRun::new(Generator::new(5).scenario(), None).run();
 
     // Act
-    let second = ChaosRun::new(Generator::new(5).scenario()).run();
+    let second = ChaosRun::new(Generator::new(5).scenario(), None).run();
 
     // Assert
     assert_eq!(first, second);
+}
+
+#[test]
+fn run_of_one_seed_twice_writes_the_same_logs() {
+    // Arrange
+    let (first, second) = (folder("first"), folder("second"));
+    ChaosRun::new(Generator::new(11).scenario(), Some(first.clone()))
+        .run()
+        .ok();
+
+    // Act
+    ChaosRun::new(Generator::new(11).scenario(), Some(second.clone()))
+        .run()
+        .ok();
+
+    // Assert
+    let logs =
+        [&first, &second].map(|folder| read_to_string(folder.join("consolidated.jsonl")).unwrap());
+    remove_dir_all(&first).ok();
+    remove_dir_all(&second).ok();
+    assert!(!logs[0].is_empty());
+    assert_eq!(logs[0], logs[1]);
 }

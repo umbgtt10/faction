@@ -3,3 +3,4 @@
 
 pub mod chaos_run;
 pub mod fault_schedule;
+pub mod replay;

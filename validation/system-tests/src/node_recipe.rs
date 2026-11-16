@@ -201,7 +201,10 @@ impl NodeRecipe {
     // stderr, or nowhere.
     fn report(&self, peer_id: PeerId) -> Box<dyn FaultReport> {
         match (&self.logs, self.writer(peer_id)) {
-            (_, Some(writer)) => Box::new(SharedFileFaultReport::new(writer)),
+            (_, Some(writer)) => Box::new(SharedFileFaultReport::new(
+                writer,
+                self.time.wall_clock.clone(),
+            )),
             (Logs::Silent, None) => Box::new(NoOpFaultReport),
             _ => Box::new(BannerFaultReport::new(Box::new(stderr()))),
         }

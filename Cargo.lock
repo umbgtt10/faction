@@ -320,6 +320,7 @@ dependencies = [
 name = "faction-chaos"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "faction",
  "faction-protocol",
  "faction-system-tests",

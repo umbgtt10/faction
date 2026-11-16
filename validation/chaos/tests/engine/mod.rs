@@ -3,3 +3,4 @@
 
 pub mod chaos_run_tests;
 pub mod fault_schedule_tests;
+pub mod replay_tests;

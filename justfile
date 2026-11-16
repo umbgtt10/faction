@@ -37,6 +37,12 @@ stage1:
     cargo test -p faction-system-tests --lib --bins
     cargo xtask system-tests
 
+# One chaos seed replayed on the deterministic engine, every node's log
+# written under logs/chaos/<seed>/ with their consolidation: the run a failure
+# reported, to be read.
+chaos-replay seed:
+    cargo run -q --release -p faction-chaos -- replay {{seed}}
+
 # House rules, duplication, CRAP, coverage, mirrored tests, file risk and
 # dependencies, in that order: see xtask/src/main.rs.
 stage2:

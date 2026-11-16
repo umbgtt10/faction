@@ -129,7 +129,10 @@ fn main() {
         LivePolicy::default(),
         cuts.clone(),
         match config.log_path.as_deref() {
-            Some(path) => Box::new(SharedFileFaultReport::new(SharedWriter::open(path))),
+            Some(path) => Box::new(SharedFileFaultReport::new(
+                SharedWriter::open(path),
+                time.wall_clock.clone(),
+            )),
             None => Box::new(BannerFaultReport::new(Box::new(stderr()))),
         },
         transport,

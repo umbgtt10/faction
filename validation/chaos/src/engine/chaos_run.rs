@@ -1,16 +1,20 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+
+use chrono::TimeZone;
+use chrono::Utc;
 
 use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
-use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
+use faction_system_tests::infra::timer::simulated::simulated_wall_clock::SimulatedWallClock;
 use faction_system_tests::time_ports::TimePorts;
 use faction_system_tests::timer_delay::TimerDelay;
 
@@ -33,7 +37,9 @@ const STEPS_PER_ROUND: usize = 16;
 // chaos ends every fault heals -- a node down, or with its timer side dead,
 // restarted -- and the run waits for the end state the committed log
 // implies, every invariant watched throughout. It announces no fault it
-// injects: a seed that fails is replayed to be read.
+// injects, and logs nothing unless given a folder: a seed that fails is
+// replayed into one to be read, its logs stamped with the time it simulates
+// from the first of January 2026, alike on every replay.
 pub struct ChaosRun {
     scenario: Scenario,
     cluster: Cluster,
@@ -45,21 +51,29 @@ pub struct ChaosRun {
 
 impl ChaosRun {
     #[must_use]
-    pub fn new(scenario: Scenario) -> Self {
+    pub fn new(scenario: Scenario, log_dir: Option<PathBuf>) -> Self {
         let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
+        let origin = Utc
+            .with_ymd_and_hms(2026, 1, 1, 0, 0, 0)
+            .single()
+            .unwrap_or_default();
         let time = TimePorts {
             clock: clock.clone(),
             pause: clock.clone(),
-            wall_clock: Arc::new(SystemWallClock),
+            wall_clock: Arc::new(SimulatedWallClock::new(clock.clone(), origin)),
         };
         let board = FaultBoard::default();
         let breaches = Breaches::default();
-        let mut cluster = ClusterBuilder::new(scenario.nodes, scenario.required_count, time)
+        let builder = ClusterBuilder::new(scenario.nodes, scenario.required_count, time)
             .suspicion_threshold(scenario.suspicion_threshold)
             .faults(board.clone())
             .breaches(breaches.clone())
-            .silent()
-            .build();
+            .silent();
+        let mut cluster = match log_dir {
+            Some(dir) => builder.log_dir(dir),
+            None => builder,
+        }
+        .build();
         cluster.start_all();
         let peers = Self::peers(&scenario);
         for peer_id in peers[scenario.nodes..].iter().copied() {
