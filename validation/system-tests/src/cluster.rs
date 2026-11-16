@@ -319,6 +319,12 @@ impl Cluster {
         Ok(())
     }
 
+    // A commit reported to the node `peer_id` alone: the layer above reaching
+    // one node in its own time.
+    pub fn report_commit(&self, peer_id: PeerId, commit: Commit) {
+        Self::report(self.node_of(peer_id), commit);
+    }
+
     pub fn request_addition(&self, coordinator: usize, newcomer_id: PeerId) {
         self.nodes[coordinator].request_addition(newcomer_id);
     }
@@ -361,6 +367,11 @@ impl Cluster {
             node.start();
         }
         self.started = true;
+    }
+
+    // One input of the node at `index` taken, if it had one: whether it had.
+    pub fn step(&self, index: usize) -> bool {
+        self.nodes[index].step()
     }
 
     pub fn step_all(&mut self) {

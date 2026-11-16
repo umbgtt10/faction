@@ -114,16 +114,32 @@ impl ProcessRunner {
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
-            "state {:?} {} {} {} {} {} {}",
+            "state {:?} {} {} {} {} {} {} {}",
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
             Self::reconfiguration(snapshot.reconfiguration),
-            Self::suspected(&snapshot.suspected),
+            Self::peers(&snapshot.suspected),
             Self::quorum(snapshot.quorum),
-            snapshot.epoch
+            snapshot.epoch,
+            Self::peers(&snapshot.members)
         );
         let _ = self.out.flush();
+    }
+
+    // The suspected members as the state line writes them: by id, comma
+    // separated, or a dash for none.
+    // Peers as the state line writes them: `-` for none.
+    fn peers(peers: &[PeerId]) -> String {
+        if peers.is_empty() {
+            String::from("-")
+        } else {
+            peers
+                .iter()
+                .map(PeerId::to_string)
+                .collect::<Vec<String>>()
+                .join(",")
+        }
     }
 
     // The quorum as the state line writes it.
@@ -143,20 +159,6 @@ impl ProcessRunner {
             Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
             Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
             Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
-        }
-    }
-
-    // The suspected members as the state line writes them: by id, comma
-    // separated, or a dash for none.
-    fn suspected(suspected: &[PeerId]) -> String {
-        if suspected.is_empty() {
-            String::from("-")
-        } else {
-            suspected
-                .iter()
-                .map(PeerId::to_string)
-                .collect::<Vec<String>>()
-                .join(",")
         }
     }
 }

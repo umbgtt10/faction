@@ -430,6 +430,7 @@ fn new_starts_fresh() {
         NodeSnapshot {
             peer_state: PeerState::Fresh,
             member_count: 3,
+            members: vec![0, 1, 2],
             required_count: 2,
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
@@ -579,6 +580,7 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
         NodeSnapshot {
             peer_state: PeerState::Fresh,
             member_count: 0,
+            members: Vec::new(),
             required_count: 0,
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),

@@ -7,6 +7,7 @@ use crate::support::recipe;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction_protocol::commit::Commit;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::fault_board::FaultBoard;
@@ -276,6 +277,26 @@ fn poll_within_a_condition_never_met_gives_up_at_the_deadline_naming_it() {
 }
 
 #[test]
+fn report_commit_reports_the_commit_to_that_node_alone() {
+    // Arrange
+    let (cluster, _) = cluster();
+
+    // Act
+    cluster.report_commit(
+        1,
+        Commit::Addition {
+            peer_id: 5,
+            epoch: 1,
+        },
+    );
+
+    // Assert
+    assert_eq!(cluster.snapshot(1).members, vec![0, 1, 5]);
+    assert_eq!(cluster.snapshot(1).epoch, 1);
+    assert_eq!(cluster.snapshot(0).members, vec![0, 1]);
+}
+
+#[test]
 fn settle_pauses_once_a_round() {
     // Arrange
     let (mut cluster, clock) = cluster();
@@ -313,6 +334,35 @@ fn step_all_steps_every_node() {
     // Assert
     assert_eq!(cluster.node_state(0), PeerState::Pinging);
     assert_eq!(cluster.node_state(1), PeerState::Pinging);
+}
+
+#[test]
+fn step_of_a_node_with_a_due_timer_applies_it() {
+    // Arrange
+    let (mut cluster, clock) = cluster();
+    cluster.start_all();
+    clock.advance(Duration::from_millis(10));
+
+    // Act
+    let stepped = cluster.step(0);
+
+    // Assert
+    assert!(stepped);
+    assert_eq!(cluster.node_state(0), PeerState::Pinging);
+    assert_eq!(cluster.node_state(1), PeerState::Fresh);
+}
+
+#[test]
+fn step_of_a_node_with_nothing_due_does_nothing() {
+    // Arrange
+    let (mut cluster, _) = cluster();
+    cluster.start_all();
+
+    // Act
+    let stepped = cluster.step(0);
+
+    // Assert
+    assert!(!stepped);
 }
 
 #[test]

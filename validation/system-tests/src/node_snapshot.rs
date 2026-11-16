@@ -11,6 +11,7 @@ use faction::types::PeerId;
 pub struct NodeSnapshot {
     pub peer_state: PeerState,
     pub member_count: usize,
+    pub members: Vec<PeerId>,
     pub required_count: usize,
     pub reconfiguration: Reconfiguration,
     pub suspected: Vec<PeerId>,

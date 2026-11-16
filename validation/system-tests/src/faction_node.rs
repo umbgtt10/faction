@@ -171,6 +171,7 @@ impl FactionNode {
                 NodeSnapshot {
                     peer_state: view.peer_state(),
                     member_count: view.members().as_slice().len(),
+                    members: view.members().as_slice().to_vec(),
                     required_count: view.required_count(),
                     reconfiguration: view.reconfiguration(),
                     suspected: view.suspected().to_vec(),
@@ -181,6 +182,7 @@ impl FactionNode {
             Role::Waiting(_) => NodeSnapshot {
                 peer_state: PeerState::Fresh,
                 member_count: 0,
+                members: Vec::new(),
                 required_count: 0,
                 reconfiguration: Reconfiguration::None,
                 suspected: Vec::new(),

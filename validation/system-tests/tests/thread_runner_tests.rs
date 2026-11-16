@@ -19,6 +19,7 @@ fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
     Arc::new(Mutex::new(NodeSnapshot {
         peer_state: PeerState::Fresh,
         member_count: 0,
+        members: Vec::new(),
         required_count: 0,
         reconfiguration: Reconfiguration::None,
         suspected: Vec::new(),

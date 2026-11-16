@@ -48,6 +48,14 @@ impl StateReader {
         }
     }
 
+    fn parse_peers(text: &str) -> Option<Vec<PeerId>> {
+        if text == "-" {
+            Some(Vec::new())
+        } else {
+            text.split(',').map(|peer| peer.parse().ok()).collect()
+        }
+    }
+
     fn parse_quorum(text: &str) -> Option<Quorum> {
         match text {
             "off" => Some(Quorum::NotTracked),
@@ -81,26 +89,20 @@ impl StateReader {
         let member_count = parts.next()?.parse().ok()?;
         let required_count = parts.next()?.parse().ok()?;
         let reconfiguration = Self::parse_reconfiguration(parts.next()?)?;
-        let suspected = Self::parse_suspected(parts.next()?)?;
+        let suspected = Self::parse_peers(parts.next()?)?;
         let quorum = Self::parse_quorum(parts.next()?)?;
         let epoch = parts.next()?.parse().ok()?;
+        let members = Self::parse_peers(parts.next()?)?;
         Some(NodeSnapshot {
             peer_state,
             member_count,
+            members,
             required_count,
             reconfiguration,
             suspected,
             quorum,
             epoch,
         })
-    }
-
-    fn parse_suspected(text: &str) -> Option<Vec<PeerId>> {
-        if text == "-" {
-            Some(Vec::new())
-        } else {
-            text.split(',').map(|peer| peer.parse().ok()).collect()
-        }
     }
 
     fn read(&self, line: &str) {

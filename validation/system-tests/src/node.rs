@@ -32,6 +32,7 @@ use crate::time_ports::TimePorts;
 const FRESH: NodeSnapshot = NodeSnapshot {
     peer_state: PeerState::Fresh,
     member_count: 0,
+    members: Vec::new(),
     required_count: 0,
     reconfiguration: Reconfiguration::None,
     suspected: Vec::new(),
@@ -326,9 +327,12 @@ impl Node {
         }
     }
 
-    pub fn step(&self) {
-        if let Self::Task { node } = self {
-            node.borrow_mut().step();
+    // One input of a task node's taken, if it had one: whether it had. A
+    // thread's or a process's node steps on its own.
+    pub fn step(&self) -> bool {
+        match self {
+            Self::Task { node } => node.borrow_mut().step(),
+            Self::Thread { .. } | Self::Process { .. } => false,
         }
     }
 
