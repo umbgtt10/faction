@@ -21,6 +21,7 @@ use faction_system_tests::constants::DEFAULT_SUSPICION_THRESHOLD;
 use faction_system_tests::constants::HELPERS;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::live_policy::LivePolicy;
+use faction_system_tests::infra::logging::no_op_fault_report::NoOpFaultReport;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
@@ -66,7 +67,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
             0,
             LivePolicy::default(),
             cuts.clone(),
-            None,
+            Box::new(NoOpFaultReport),
             Box::new(mesh.remove(0)),
         )),
         Box::new(timer),

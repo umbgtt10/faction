@@ -20,6 +20,7 @@ use crate::cluster::Cluster;
 use crate::constants::DEFAULT_DEADLINE_CYCLES;
 use crate::infra::fault_board::FaultBoard;
 use crate::infra::invariants::breaches::Breaches;
+use crate::infra::logging::logs::Logs;
 use crate::infra::network::port_allocator::PortAllocator;
 use crate::infra::network::tcp_readiness::TcpReadiness;
 use crate::infra::timer::timer_delays::TimerDelays;
@@ -58,6 +59,7 @@ pub struct ClusterBuilder {
     suspicion_threshold: usize,
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
+    silent: bool,
     faults: FaultBoard,
     breaches: Breaches,
 }
@@ -76,6 +78,7 @@ impl ClusterBuilder {
             suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
+            silent: false,
             faults: FaultBoard::default(),
             breaches: Breaches::default(),
         }
@@ -107,7 +110,7 @@ impl ClusterBuilder {
                 deadline_delay: delay * self.freshness_margin,
                 probe_stretch: self.probe_stretch.factor(),
             },
-            self.log_dir.clone(),
+            self.logs(),
             self.time.clone(),
             self.faults.clone(),
             self.breaches.clone(),
@@ -167,6 +170,14 @@ impl ClusterBuilder {
     #[must_use]
     pub fn probe_stretch(mut self, stretch: ProbeStretch) -> Self {
         self.probe_stretch = stretch;
+        self
+    }
+
+    // A cluster whose nodes announce none of the faults they inject, nor log
+    // anything, unless given a log folder.
+    #[must_use]
+    pub fn silent(mut self) -> Self {
+        self.silent = true;
         self
     }
 
@@ -249,6 +260,16 @@ impl ClusterBuilder {
             self.log_dir,
             self.time,
         )
+    }
+
+    // Where its in-process nodes log: their folder, if given one; else
+    // nowhere, if silent; else their faults on stderr.
+    fn logs(&self) -> Logs {
+        match (&self.log_dir, self.silent) {
+            (Some(dir), _) => Logs::Files(dir.clone()),
+            (None, true) => Logs::Silent,
+            (None, false) => Logs::Stderr,
+        }
     }
 
     fn node_binary() -> String {

@@ -7,6 +7,7 @@ use faction::types::PeerId;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
+use faction_system_tests::infra::logging::logs::Logs;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
@@ -68,7 +69,7 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
             deadline_delay: Duration::from_secs(10),
             probe_stretch: ProbeStretch::Minimal.factor(),
         },
-        None,
+        Logs::Stderr,
         time.clone(),
         FaultBoard::default(),
         Breaches::default(),

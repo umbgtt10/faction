@@ -12,7 +12,7 @@ use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
 use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use std::cell::RefCell;
-use std::path::PathBuf;
+use std::io::stderr;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -29,6 +29,10 @@ use faction_protocol::timer::Timer;
 use faction_protocol::transport::Transport;
 
 use crate::faction_node::FactionNode;
+use crate::infra::logging::banner_fault_report::BannerFaultReport;
+use crate::infra::logging::logs::Logs;
+use crate::infra::logging::no_op_fault_report::NoOpFaultReport;
+use crate::infra::logging::shared_file_fault_report::SharedFileFaultReport;
 use crate::infra::logging::shared_file_observer::SharedFileObserver;
 use crate::infra::logging::shared_writer::SharedWriter;
 use crate::infra::timer::real::real_timer::RealTimer;
@@ -39,6 +43,7 @@ use crate::node_observer::NodeObserver;
 use crate::role::Role;
 use crate::spawn::Spawn;
 use crate::time_ports::TimePorts;
+use crate::traits::fault_report::FaultReport;
 use crate::traits::roles::Roles;
 
 #[derive(Clone)]
@@ -46,7 +51,7 @@ pub struct NodeRecipe {
     required: usize,
     suspicion_threshold: usize,
     delays: TimerDelays,
-    log_dir: Option<PathBuf>,
+    logs: Logs,
     time: TimePorts,
     faults: FaultBoard,
     breaches: Breaches,
@@ -60,7 +65,7 @@ impl NodeRecipe {
         required: usize,
         suspicion_threshold: usize,
         delays: TimerDelays,
-        log_dir: Option<PathBuf>,
+        logs: Logs,
         time: TimePorts,
         faults: FaultBoard,
         breaches: Breaches,
@@ -69,7 +74,7 @@ impl NodeRecipe {
             required,
             suspicion_threshold,
             delays,
-            log_dir,
+            logs,
             time,
             faults,
             breaches,
@@ -137,8 +142,8 @@ impl NodeRecipe {
     }
 
     // The node's transport behind the faults a test injects: those its board
-    // holds for it, the links its cuts name cut, every fault one line of the
-    // node's log.
+    // holds for it, the links its cuts name cut, every fault announced as its
+    // logs say.
     fn faulty(
         &self,
         peer_id: PeerId,
@@ -150,7 +155,7 @@ impl NodeRecipe {
             peer_id,
             faults.transport.clone(),
             cuts.clone(),
-            self.writer(peer_id),
+            self.report(peer_id),
             transport,
         ))
     }
@@ -192,6 +197,16 @@ impl NodeRecipe {
         (faction_observer, node_observer)
     }
 
+    // Where the node announces the faults it injects: its log, a banner on
+    // stderr, or nowhere.
+    fn report(&self, peer_id: PeerId) -> Box<dyn FaultReport> {
+        match (&self.logs, self.writer(peer_id)) {
+            (_, Some(writer)) => Box::new(SharedFileFaultReport::new(writer)),
+            (Logs::Silent, None) => Box::new(NoOpFaultReport),
+            _ => Box::new(BannerFaultReport::new(Box::new(stderr()))),
+        }
+    }
+
     // The node's timer behind the faults its board holds for it: its firings',
     // and its clock's.
     fn timer(&self, peer_id: PeerId, faults: &NodeFaults) -> Box<dyn Timer> {
@@ -212,9 +227,12 @@ impl NodeRecipe {
     }
 
     fn writer(&self, peer_id: PeerId) -> Option<SharedWriter> {
-        self.log_dir
-            .as_ref()
-            .map(|dir| SharedWriter::open(&dir.join(format!("node-{peer_id}.jsonl"))))
+        match &self.logs {
+            Logs::Files(dir) => Some(SharedWriter::open(
+                &dir.join(format!("node-{peer_id}.jsonl")),
+            )),
+            Logs::Stderr | Logs::Silent => None,
+        }
     }
 }
 

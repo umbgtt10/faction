@@ -9,7 +9,6 @@ use faction_protocol::transport_message::TransportMessage;
 
 use crate::infra::dice::Dice;
 use crate::infra::live_policy::LivePolicy;
-use crate::infra::logging::shared_writer::SharedWriter;
 use crate::infra::transport::faulty::fault_policy::FaultPolicy;
 use crate::infra::transport::faulty::first_contact::FirstContact;
 use crate::infra::transport::faulty::inbox::Inbox;
@@ -17,6 +16,7 @@ use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use crate::infra::transport::faulty::message_kind::MessageKind;
 use crate::infra::transport::faulty::misdelivery::Misdelivery;
 use crate::infra::transport::faulty::wedge::Wedge;
+use crate::traits::fault_report::FaultReport;
 
 const PARTITION_SALT: u64 = 0x5041_5254_494F_4E00;
 const ASYMMETRIC_SALT: u64 = 0x4153_594D_4D00_0000;
@@ -39,14 +39,14 @@ const SEED_MIX: u64 = 0x9E37_79B9_7F4A_7C15;
 /// first messages to each peer lost, and a receive ring of bounded capacity losing
 /// messages when busy, by size and by backlog (see [`Inbox`]). The [`LinkCuts`] are
 /// cut and mended while it runs: nothing is sent to a peer cut off, and nothing it
-/// sends is received. Every fault is one line of the node's log when it is given
-/// one, and a loud banner on stderr otherwise.
+/// sends is received. Every fault is announced to its [`FaultReport`]: a line of the
+/// node's log, a banner on stderr, or nothing.
 pub struct FaultyTransport {
     inner: Box<dyn Transport>,
     peer_id: PeerId,
     policy: LivePolicy<FaultPolicy>,
     cuts: LinkCuts,
-    log: Option<SharedWriter>,
+    report: Box<dyn FaultReport>,
     dice: Dice,
     held: Vec<(u64, PeerId, TransportMessage)>,
     stalled: Vec<(PeerId, TransportMessage)>,
@@ -62,7 +62,7 @@ impl FaultyTransport {
         peer_id: PeerId,
         policy: LivePolicy<FaultPolicy>,
         cuts: LinkCuts,
-        log: Option<SharedWriter>,
+        report: Box<dyn FaultReport>,
         inner: Box<dyn Transport>,
     ) -> FaultyTransport {
         let seed = policy.current().seed ^ peer_id.wrapping_mul(SEED_MIX);
@@ -71,7 +71,7 @@ impl FaultyTransport {
             peer_id,
             policy,
             cuts,
-            log,
+            report,
             dice: Dice::new(seed),
             held: Vec::new(),
             stalled: Vec::new(),
@@ -82,20 +82,8 @@ impl FaultyTransport {
         }
     }
 
-    fn announce(&self, kind: &str, to: PeerId, message: &TransportMessage) {
-        if let Some(log) = &self.log {
-            log.write_line(&format!(
-                "{{\"event\":\"fault\",\"fault\":\"{kind}\",\"node\":{},\"to\":{to},\"message\":\"{message:?}\"}}",
-                self.peer_id
-            ));
-            return;
-        }
-        eprintln!();
-        eprintln!("###############################################################");
-        eprintln!("###  FAULT INJECTED >>> {kind}");
-        eprintln!("###  peer {} -> peer {}   {:?}", self.peer_id, to, message);
-        eprintln!("###############################################################");
-        eprintln!();
+    fn announce(&mut self, kind: &str, to: PeerId, message: &TransportMessage) {
+        self.report.report(kind, self.peer_id, to, message);
     }
 
     // A message the inner transport received, refused by a deaf node, dropped

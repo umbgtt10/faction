@@ -5,6 +5,8 @@ use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::infra::live_policy::LivePolicy;
+use faction_system_tests::infra::logging::no_op_fault_report::NoOpFaultReport;
+use faction_system_tests::infra::logging::shared_file_fault_report::SharedFileFaultReport;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
@@ -36,7 +38,7 @@ fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) 
             peer_id,
             LivePolicy::new(policy),
             LinkCuts::default(),
-            None,
+            Box::new(NoOpFaultReport),
             Box::new(inner),
         ),
         forwarded,
@@ -52,7 +54,13 @@ fn live_faulty(policy: FaultPolicy) -> (FaultyTransport, Forwarded, LivePolicy<F
         forwarded: forwarded.clone(),
     };
     (
-        FaultyTransport::new(0, live.clone(), LinkCuts::default(), None, Box::new(inner)),
+        FaultyTransport::new(
+            0,
+            live.clone(),
+            LinkCuts::default(),
+            Box::new(NoOpFaultReport),
+            Box::new(inner),
+        ),
         forwarded,
         live,
     )
@@ -71,7 +79,7 @@ fn receiving(policy: FaultPolicy) -> (FaultyTransport, InMemoryTransport, LivePo
             0,
             live.clone(),
             LinkCuts::default(),
-            None,
+            Box::new(NoOpFaultReport),
             Box::new(mesh.remove(0)),
         ),
         peer_one,
@@ -220,7 +228,7 @@ fn recv_from_a_peer_cut_off_drops_what_it_sent() {
         0,
         LivePolicy::default(),
         cuts.clone(),
-        None,
+        Box::new(NoOpFaultReport),
         Box::new(mesh.remove(0)),
     );
     cuts.cut(1);
@@ -349,7 +357,7 @@ fn send_after_its_policy_is_healed_forwards_again() {
         0,
         live.clone(),
         LinkCuts::default(),
-        None,
+        Box::new(NoOpFaultReport),
         Box::new(RecordingTransport {
             forwarded: forwarded.clone(),
         }),
@@ -447,7 +455,7 @@ fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
         0,
         LivePolicy::default(),
         cuts.clone(),
-        Some(SharedWriter::open(&path)),
+        Box::new(SharedFileFaultReport::new(SharedWriter::open(&path))),
         Box::new(RecordingTransport {
             forwarded: forwarded.clone(),
         }),

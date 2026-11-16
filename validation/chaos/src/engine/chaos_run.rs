@@ -32,7 +32,8 @@ const STEPS_PER_ROUND: usize = 16;
 // acts, and each node takes the inputs it has, up to a budget. Once the
 // chaos ends every fault heals -- a node down, or with its timer side dead,
 // restarted -- and the run waits for the end state the committed log
-// implies, every invariant watched throughout.
+// implies, every invariant watched throughout. It announces no fault it
+// injects: a seed that fails is replayed to be read.
 pub struct ChaosRun {
     scenario: Scenario,
     cluster: Cluster,
@@ -57,6 +58,7 @@ impl ChaosRun {
             .suspicion_threshold(scenario.suspicion_threshold)
             .faults(board.clone())
             .breaches(breaches.clone())
+            .silent()
             .build();
         cluster.start_all();
         let peers = Self::peers(&scenario);

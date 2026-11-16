@@ -322,6 +322,31 @@ fn silence_of_a_node_keeps_the_cluster_from_concluding() {
 }
 
 #[test]
+fn silent_builds_a_cluster_that_runs_its_faults_unannounced() {
+    // Arrange
+    let (time, _) = fake_time();
+    let board = FaultBoard::default();
+    board.node(0).transport.set(FaultPolicy {
+        duplication: 100,
+        ..FaultPolicy::default()
+    });
+
+    // Act
+    let mut cluster = ClusterBuilder::new(3, 3, time)
+        .faults(board)
+        .silent()
+        .build();
+
+    // Assert
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every node bootstrapped",
+        |cluster| cluster.is_bootstrapped(),
+    );
+    assert_eq!(polled, Ok(()));
+}
+
+#[test]
 fn step_all_steps_every_node() {
     // Arrange
     let (mut cluster, clock) = cluster();

@@ -6,6 +6,7 @@
 use std::env::args;
 use std::fs::create_dir_all;
 use std::io::BufReader;
+use std::io::stderr;
 use std::io::stdin;
 use std::io::stdout;
 use std::path::Path;
@@ -19,6 +20,9 @@ use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::live_policy::LivePolicy;
+use faction_system_tests::infra::logging::banner_fault_report::BannerFaultReport;
+use faction_system_tests::infra::logging::logs::Logs;
+use faction_system_tests::infra::logging::shared_file_fault_report::SharedFileFaultReport;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
 use faction_system_tests::infra::network::address_book::AddressBook;
@@ -104,7 +108,7 @@ fn main() {
             .log_path
             .as_deref()
             .and_then(Path::parent)
-            .map(Path::to_path_buf),
+            .map_or(Logs::Stderr, |dir| Logs::Files(dir.to_path_buf())),
         time.clone(),
         FaultBoard::default(),
         Breaches::default(),
@@ -124,7 +128,10 @@ fn main() {
         config.peer_id,
         LivePolicy::default(),
         cuts.clone(),
-        config.log_path.as_deref().map(SharedWriter::open),
+        match config.log_path.as_deref() {
+            Some(path) => Box::new(SharedFileFaultReport::new(SharedWriter::open(path))),
+            None => Box::new(BannerFaultReport::new(Box::new(stderr()))),
+        },
         transport,
     ));
     let node = FactionNode::new(
