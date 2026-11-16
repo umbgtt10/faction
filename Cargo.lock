@@ -317,6 +317,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "faction-chaos"
+version = "0.1.0"
+dependencies = [
+ "faction",
+ "faction-protocol",
+ "faction-system-tests",
+ "rstest",
+]
+
+[[package]]
 name = "faction-core-validation"
 version = "0.8.0"
 dependencies = [

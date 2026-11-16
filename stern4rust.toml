@@ -19,5 +19,10 @@ skip = ["paired-test-file"]
 [package.faction-core-validation]
 skip = ["paired-test-file"]
 
+# The chaos runs: their tests are named for the runs and the pieces they
+# exercise, and the scenario's records, which carry no behaviour, have none.
+[package.faction-chaos]
+skip = ["paired-test-file"]
+
 [package.faction-protocol-validation]
 skip = ["paired-test-file"]

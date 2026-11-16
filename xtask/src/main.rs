@@ -29,6 +29,7 @@ use xtask::reports::crap_report_parser::CrapReportParser;
 use xtask::reports::scores::library_scorer::LibraryScorer;
 use xtask::reports::scores::message_scoring::MessageScoring;
 
+const CHAOS_PACKAGE: &str = "faction-chaos";
 const CORE_PACKAGE: &str = "faction";
 const CORE_VALIDATION_PACKAGE: &str = "faction-core-validation";
 const CONFORMANCE_TIER: &str = "conformance";
@@ -108,6 +109,7 @@ fn stage2() -> Result<&'static str, String> {
     let runner = SystemCommandRunner::new(Vec::new());
     let parser = CrapReportParser::new();
     let every_package = vec![
+        String::from(CHAOS_PACKAGE),
         String::from(CORE_PACKAGE),
         String::from(CORE_VALIDATION_PACKAGE),
         String::from(LADDER_PACKAGE),

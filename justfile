@@ -33,7 +33,7 @@ stage1:
     cargo fmt {{fmt_mode}}
     cargo clippy --workspace --all-targets -- -D warnings
     cargo check -p faction -p faction-core-validation -p faction-protocol -p faction-protocol-validation -p faction-spec-model --no-default-features --lib --target thumbv7em-none-eabihf
-    cargo test -p faction -p faction-core-validation -p faction-ladder -p faction-memory -p faction-protocol -p faction-protocol-validation -p faction-spec-model -p xtask
+    cargo test -p faction -p faction-chaos -p faction-core-validation -p faction-ladder -p faction-memory -p faction-protocol -p faction-protocol-validation -p faction-spec-model -p xtask
     cargo test -p faction-system-tests --lib --bins
     cargo xtask system-tests
 
