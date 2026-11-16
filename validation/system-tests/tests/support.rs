@@ -6,10 +6,12 @@ use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::types::PeerId;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
+use faction_system_tests::infra::timer::timer_delays::TimerDelays;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node_recipe::NodeRecipe;
 use faction_system_tests::probe_stretch::ProbeStretch;
@@ -61,12 +63,15 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
     NodeRecipe::new(
         required,
         1,
-        Duration::from_millis(10),
-        Duration::from_secs(10),
-        ProbeStretch::Minimal.factor(),
+        TimerDelays {
+            delay: Duration::from_millis(10),
+            deadline_delay: Duration::from_secs(10),
+            probe_stretch: ProbeStretch::Minimal.factor(),
+        },
         None,
         time.clone(),
         FaultBoard::default(),
+        Breaches::default(),
     )
 }
 

@@ -17,6 +17,7 @@ use faction_protocol::transport::Transport;
 
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::live_policy::LivePolicy;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
@@ -25,6 +26,7 @@ use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
+use faction_system_tests::infra::timer::timer_delays::TimerDelays;
 use faction_system_tests::infra::transport::faulty::faulty_transport::FaultyTransport;
 use faction_system_tests::infra::transport::faulty::link_cuts::LinkCuts;
 use faction_system_tests::infra::transport::grpc::grpc_transport::GrpcTransport;
@@ -93,9 +95,11 @@ fn main() {
     let recipe = NodeRecipe::new(
         config.required,
         config.suspicion_threshold,
-        delay,
-        deadline_delay,
-        config.probe_stretch,
+        TimerDelays {
+            delay,
+            deadline_delay,
+            probe_stretch: config.probe_stretch,
+        },
         config
             .log_path
             .as_deref()
@@ -103,6 +107,7 @@ fn main() {
             .map(Path::to_path_buf),
         time.clone(),
         FaultBoard::default(),
+        Breaches::default(),
     );
     let role = if config.newcomer {
         recipe.waiting(config.peer_id)

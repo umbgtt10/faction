@@ -3,16 +3,18 @@
 
 use crate::constants::HELPERS;
 use crate::infra::fault_board::FaultBoard;
+use crate::infra::invariants::breaches::Breaches;
+use crate::infra::invariants::invariant_observer::InvariantObserver;
 use crate::infra::node_faults::NodeFaults;
 use crate::infra::timer::faulty::faulty_clock::FaultyClock;
 use crate::infra::timer::faulty::faulty_timer::FaultyTimer;
+use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
 use crate::infra::transport::faulty::link_cuts::LinkCuts;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Duration;
 
 use faction::config::Config;
 use faction::faction::Faction;
@@ -43,37 +45,34 @@ use crate::traits::roles::Roles;
 pub struct NodeRecipe {
     required: usize,
     suspicion_threshold: usize,
-    delay: Duration,
-    deadline_delay: Duration,
-    probe_stretch: u32,
+    delays: TimerDelays,
     log_dir: Option<PathBuf>,
     time: TimePorts,
     faults: FaultBoard,
+    breaches: Breaches,
 }
 
 impl NodeRecipe {
-    // `faults`: the board each node it builds reads its faults from.
-    #[allow(clippy::too_many_arguments)]
+    // `faults`: the board each node it builds reads its faults from;
+    // `breaches`: the board its nodes' invariant observers report into.
     #[must_use]
     pub fn new(
         required: usize,
         suspicion_threshold: usize,
-        delay: Duration,
-        deadline_delay: Duration,
-        probe_stretch: u32,
+        delays: TimerDelays,
         log_dir: Option<PathBuf>,
         time: TimePorts,
         faults: FaultBoard,
+        breaches: Breaches,
     ) -> Self {
         Self {
             required,
             suspicion_threshold,
-            delay,
-            deadline_delay,
-            probe_stretch,
+            delays,
             log_dir,
             time,
             faults,
+            breaches,
         }
     }
 
@@ -108,7 +107,7 @@ impl NodeRecipe {
                 Node::spawn_thread(
                     move || recipe.build_newcomer(peer_id, transport),
                     self.time.clone(),
-                    self.delay,
+                    self.delays.delay,
                 )
             }
             Spawn::Process => panic!("a recipe builds in-process nodes only"),
@@ -130,7 +129,7 @@ impl NodeRecipe {
                 Node::spawn_thread(
                     move || recipe.build(peer_id, peers, transport),
                     self.time.clone(),
-                    self.delay,
+                    self.delays.delay,
                 )
             }
             Spawn::Process => panic!("a recipe builds in-process nodes only"),
@@ -205,9 +204,9 @@ impl NodeRecipe {
             faults.timer.clone(),
             Box::new(RealTimer::with_delays(
                 clock,
-                self.delay,
-                self.deadline_delay,
-                self.probe_stretch,
+                self.delays.delay,
+                self.delays.deadline_delay,
+                self.delays.probe_stretch,
             )),
         ))
     }
@@ -220,10 +219,18 @@ impl NodeRecipe {
 }
 
 // A recipe's roles: a node created at a membership, or a newcomer, each with
-// a faction observer of its own on the node's log.
+// a faction observer of its own on the node's log, behind the invariant
+// observer that reports its breaches.
 impl Roles for NodeRecipe {
     fn running(&self, peer_id: PeerId, membership: &Membership) -> Role {
         let (faction_observer, _) = self.observers(peer_id);
+        let watched = InvariantObserver::new(
+            peer_id,
+            Some(membership.peers.clone()),
+            membership.epoch,
+            self.breaches.clone(),
+            faction_observer,
+        );
         let config = Config::new(
             peer_id,
             membership.peers.clone(),
@@ -232,7 +239,7 @@ impl Roles for NodeRecipe {
             membership.epoch,
         );
         Role::Running(Box::new(Protocol::new(
-            Faction::new(config, faction_observer),
+            Faction::new(config, Box::new(watched)),
             membership.peers.clone(),
             peer_id,
             HELPERS,
@@ -245,7 +252,13 @@ impl Roles for NodeRecipe {
             peer_id,
             self.suspicion_threshold,
             HELPERS,
-            faction_observer,
+            Box::new(InvariantObserver::new(
+                peer_id,
+                None,
+                0,
+                self.breaches.clone(),
+                faction_observer,
+            )),
         ))
     }
 }

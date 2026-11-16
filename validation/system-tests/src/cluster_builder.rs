@@ -19,8 +19,10 @@ use faction_protocol::transport::Transport;
 use crate::cluster::Cluster;
 use crate::constants::DEFAULT_DEADLINE_CYCLES;
 use crate::infra::fault_board::FaultBoard;
+use crate::infra::invariants::breaches::Breaches;
 use crate::infra::network::port_allocator::PortAllocator;
 use crate::infra::network::tcp_readiness::TcpReadiness;
+use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::channels::channels_transport::ChannelsTransport;
 use crate::infra::transport::grpc::grpc_transport::GrpcTransport;
 use crate::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -57,6 +59,7 @@ pub struct ClusterBuilder {
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
     faults: FaultBoard,
+    breaches: Breaches,
 }
 
 impl ClusterBuilder {
@@ -74,7 +77,16 @@ impl ClusterBuilder {
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
             faults: FaultBoard::default(),
+            breaches: Breaches::default(),
         }
+    }
+
+    // The board its in-process nodes' invariant observers report into, which
+    // the caller keeps to read the first breach.
+    #[must_use]
+    pub fn breaches(mut self, breaches: Breaches) -> Self {
+        self.breaches = breaches;
+        self
     }
 
     #[must_use]
@@ -90,12 +102,15 @@ impl ClusterBuilder {
         let recipe = NodeRecipe::new(
             self.node_required,
             self.suspicion_threshold,
-            delay,
-            delay * self.freshness_margin,
-            self.probe_stretch.factor(),
+            TimerDelays {
+                delay,
+                deadline_delay: delay * self.freshness_margin,
+                probe_stretch: self.probe_stretch.factor(),
+            },
             self.log_dir.clone(),
             self.time.clone(),
             self.faults.clone(),
+            self.breaches.clone(),
         );
 
         let nodes: Vec<Node> = peer_ids

@@ -10,11 +10,13 @@ use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
 use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
+use faction_system_tests::join::committer::Committer;
 use faction_system_tests::node::Node;
 use faction_system_tests::poll_expired::PollExpired;
 use faction_system_tests::spawn::Spawn;
@@ -143,6 +145,41 @@ fn poll_within_a_cluster_healed_of_a_lossy_link_concludes() {
     // Assert
     assert!(!stalled);
     assert_eq!(polled, Ok(()));
+}
+
+#[test]
+fn poll_within_a_cluster_watched_for_breaches_through_a_change_finds_none() {
+    // Arrange
+    let (time, _) = fake_time();
+    let breaches = Breaches::default();
+    let mut cluster = ClusterBuilder::new(3, 2, time)
+        .breaches(breaches.clone())
+        .build();
+    cluster.poll_until_bootstrapped();
+    cluster.add(
+        0,
+        3,
+        Committer::Commit {
+            required_count: None,
+        },
+    );
+    cluster.commit_removal(1, None);
+
+    // Act
+    let polled = cluster.poll_within(
+        Duration::from_secs(10),
+        "every member bootstrapped",
+        |cluster| {
+            [0, 2, 3]
+                .into_iter()
+                .all(|index| cluster.node_state(index) == PeerState::Bootstrapped)
+        },
+    );
+
+    // Assert
+    assert_eq!(polled, Ok(()));
+    assert_eq!(cluster.node_state(1), PeerState::Removed);
+    assert_eq!(breaches.first(), None);
 }
 
 #[test]

@@ -3,6 +3,7 @@
 
 pub mod dice_tests;
 pub mod fault_board_tests;
+pub mod invariants;
 pub mod live_policy_tests;
 pub mod logging;
 pub mod network;
