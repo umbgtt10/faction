@@ -3,6 +3,7 @@
 
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
+use faction_protocol::commit::Commit;
 use faction_protocol::transport_message::TransportMessage;
 use faction_protocol_validation::cluster::Cluster;
 
@@ -34,7 +35,13 @@ fn a_commit_for_another_peer_leaves_the_addition_in_flight() {
     cluster.request_addition(0, NEWCOMER);
 
     // Act
-    cluster.commit_addition(0, 4);
+    cluster.commit(
+        0,
+        Commit::Addition {
+            peer_id: 4,
+            epoch: 1,
+        },
+    );
 
     // Assert
     assert_eq!(
@@ -49,7 +56,13 @@ fn a_commit_reaching_nodes_still_bootstrapping_admits_the_peer_and_counts_it() {
     // Arrange
     let mut cluster = Cluster::new(3, 4, 1);
     for index in 0..3 {
-        cluster.commit_addition(index, NEWCOMER);
+        cluster.commit(
+            index,
+            Commit::Addition {
+                peer_id: NEWCOMER,
+                epoch: 1,
+            },
+        );
     }
     cluster.start_all();
 
@@ -59,7 +72,7 @@ fn a_commit_reaching_nodes_still_bootstrapping_admits_the_peer_and_counts_it() {
             index,
             TransportMessage::Ready {
                 from: NEWCOMER,
-                epoch: 0,
+                epoch: 1,
             },
         );
     }
@@ -123,7 +136,13 @@ fn a_required_count_lowered_while_collecting_concludes() {
     }
 
     // Act
-    cluster.change_required_count(0, 1);
+    cluster.commit(
+        0,
+        Commit::RequiredCount {
+            required_count: 1,
+            epoch: 1,
+        },
+    );
 
     // Assert
     assert_eq!(cluster.node_state(0), PeerState::Bootstrapped);

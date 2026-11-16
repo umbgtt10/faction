@@ -69,13 +69,17 @@ impl ProcessRunner {
             ProcessCommand::Deny(peer_id) => self.node.deny(peer_id),
             ProcessCommand::ExpireDeadline => self.node.expire_deadline(),
             ProcessCommand::RequestAddition(peer_id) => self.node.request_addition(peer_id),
-            ProcessCommand::CommitAddition(peer_id) => self.node.commit_addition(peer_id),
+            ProcessCommand::CommitAddition(peer_id, epoch) => {
+                self.node.commit_addition(peer_id, epoch);
+            }
             ProcessCommand::AbortAddition(peer_id) => self.node.abort_addition(peer_id),
             ProcessCommand::RequestRemoval(peer_id) => self.node.request_removal(peer_id),
-            ProcessCommand::CommitRemoval(peer_id) => self.node.commit_removal(peer_id),
+            ProcessCommand::CommitRemoval(peer_id, epoch) => {
+                self.node.commit_removal(peer_id, epoch);
+            }
             ProcessCommand::AbortRemoval(peer_id) => self.node.abort_removal(peer_id),
-            ProcessCommand::RequiredCount(required_count) => {
-                self.node.change_required_count(required_count);
+            ProcessCommand::RequiredCount(required_count, epoch) => {
+                self.node.change_required_count(required_count, epoch);
             }
             ProcessCommand::Cut(peer_id) => self.node.cut(peer_id),
             ProcessCommand::Mend(peer_id) => self.node.mend(peer_id),
@@ -109,13 +113,14 @@ impl ProcessRunner {
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
-            "state {:?} {} {} {} {} {}",
+            "state {:?} {} {} {} {} {} {}",
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
             Self::reconfiguration(snapshot.reconfiguration),
             Self::suspected(&snapshot.suspected),
-            Self::quorum(snapshot.quorum)
+            Self::quorum(snapshot.quorum),
+            snapshot.epoch
         );
         let _ = self.out.flush();
     }

@@ -10,6 +10,7 @@ use std::mem::replace;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use faction_protocol::commit::Commit;
@@ -78,22 +79,22 @@ impl FactionNode {
         self.read_members();
     }
 
-    pub fn change_required_count(&mut self, required_count: usize) {
+    pub fn change_required_count(&mut self, required_count: usize, epoch: Epoch) {
         self.command(|protocol| {
             protocol.commit(Commit::RequiredCount {
                 required_count,
-                epoch: 0,
+                epoch,
             })
         });
     }
 
-    pub fn commit_addition(&mut self, peer_id: PeerId) {
-        self.command(|protocol| protocol.commit(Commit::Addition { peer_id, epoch: 0 }));
+    pub fn commit_addition(&mut self, peer_id: PeerId, epoch: Epoch) {
+        self.command(|protocol| protocol.commit(Commit::Addition { peer_id, epoch }));
         self.read_members();
     }
 
-    pub fn commit_removal(&mut self, peer_id: PeerId) {
-        self.command(|protocol| protocol.commit(Commit::Removal { peer_id, epoch: 0 }));
+    pub fn commit_removal(&mut self, peer_id: PeerId, epoch: Epoch) {
+        self.command(|protocol| protocol.commit(Commit::Removal { peer_id, epoch }));
         self.read_members();
     }
 
@@ -148,6 +149,7 @@ impl FactionNode {
                     reconfiguration: view.reconfiguration(),
                     suspected: view.suspected().to_vec(),
                     quorum: view.quorum(),
+                    epoch: view.epoch(),
                 }
             }
             Role::Waiting(_) => NodeSnapshot {
@@ -157,6 +159,7 @@ impl FactionNode {
                 reconfiguration: Reconfiguration::None,
                 suspected: Vec::new(),
                 quorum: Quorum::NotTracked,
+                epoch: 0,
             },
         }
     }

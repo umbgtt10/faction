@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use std::cell::Cell;
 use std::fs::read_dir;
 use std::fs::read_to_string;
 use std::fs::write;
@@ -12,6 +13,7 @@ use std::time::Duration;
 
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use crate::approver::Approver;
@@ -33,6 +35,7 @@ pub struct Cluster {
     log_dir: Option<PathBuf>,
     pause: Arc<dyn Pause>,
     added_addrs: Vec<(PeerId, SocketAddr)>,
+    epoch: Cell<Epoch>,
 }
 
 impl Cluster {
@@ -56,6 +59,7 @@ impl Cluster {
             log_dir,
             pause,
             added_addrs: Vec::new(),
+            epoch: Cell::new(0),
         }
     }
 
@@ -126,25 +130,30 @@ impl Cluster {
 
     // The commit reported to every node, the newcomer first -- the members
     // ignore it until they hold the commit, so it never concludes on the old
-    // count -- with the new required count, if one is given.
+    // count -- with the new required count, if one is given: each a change of
+    // its own, at the next epoch the harness, as the layer above, numbers.
     pub fn commit_addition(&self, newcomer_id: PeerId, required_count: Option<usize>) {
+        let addition = self.next_epoch();
+        let count = required_count.map(|required_count| (required_count, self.next_epoch()));
         for node in self.nodes.iter().rev() {
-            node.commit_addition(newcomer_id);
-            if let Some(required_count) = required_count {
-                node.change_required_count(required_count);
+            node.commit_addition(newcomer_id, addition);
+            if let Some((required_count, epoch)) = count {
+                node.change_required_count(required_count, epoch);
             }
         }
     }
 
     // The removal committed, reported to every node -- the one removed among
     // them -- with the new required count first, if one is given, so that no
-    // node shows its quorum lost between the two.
+    // node shows its quorum lost between the two: each at its own epoch.
     pub fn commit_removal(&self, peer_id: PeerId, required_count: Option<usize>) {
+        let count = required_count.map(|required_count| (required_count, self.next_epoch()));
+        let removal = self.next_epoch();
         for node in &self.nodes {
-            if let Some(required_count) = required_count {
-                node.change_required_count(required_count);
+            if let Some((required_count, epoch)) = count {
+                node.change_required_count(required_count, epoch);
             }
-            node.commit_removal(peer_id);
+            node.commit_removal(peer_id, removal);
         }
     }
 
@@ -353,6 +362,13 @@ impl Cluster {
             body.push('\n');
         }
         let _ = write(dir.join("consolidated.jsonl"), body);
+    }
+
+    // The epoch of the harness's next commit: one more than its last, from one.
+    fn next_epoch(&self) -> Epoch {
+        let epoch = self.epoch.get() + 1;
+        self.epoch.set(epoch);
+        epoch
     }
 
     fn node_of(&self, peer_id: PeerId) -> &Node {

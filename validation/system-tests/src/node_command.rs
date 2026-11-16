@@ -3,6 +3,7 @@
 
 use std::sync::mpsc::Sender;
 
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 pub enum NodeCommand {
@@ -11,12 +12,12 @@ pub enum NodeCommand {
     Deny(PeerId, Sender<()>),
     ExpireDeadline(Sender<()>),
     RequestAddition(PeerId, Sender<()>),
-    CommitAddition(PeerId, Sender<()>),
+    CommitAddition(PeerId, Epoch, Sender<()>),
     AbortAddition(PeerId, Sender<()>),
     RequestRemoval(PeerId, Sender<()>),
-    CommitRemoval(PeerId, Sender<()>),
+    CommitRemoval(PeerId, Epoch, Sender<()>),
     AbortRemoval(PeerId, Sender<()>),
-    ChangeRequiredCount(usize, Sender<()>),
+    ChangeRequiredCount(usize, Epoch, Sender<()>),
     Cut(PeerId, Sender<()>),
     Mend(PeerId, Sender<()>),
     Shutdown,

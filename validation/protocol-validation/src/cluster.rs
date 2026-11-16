@@ -129,21 +129,10 @@ impl Cluster {
         });
     }
 
-    pub fn change_required_count(&mut self, index: usize, required_count: usize) {
-        let decisions = self.protocols[index].commit(Commit::RequiredCount {
-            required_count,
-            epoch: 0,
-        });
-        self.route_all(decisions, index);
-    }
-
-    pub fn commit_addition(&mut self, index: usize, peer_id: PeerId) {
-        let decisions = self.protocols[index].commit(Commit::Addition { peer_id, epoch: 0 });
-        self.route_all(decisions, index);
-    }
-
-    pub fn commit_removal(&mut self, index: usize, peer_id: PeerId) {
-        let decisions = self.protocols[index].commit(Commit::Removal { peer_id, epoch: 0 });
+    // A commit of the layer above reported to the node at `index`, at the epoch
+    // that layer numbered it: the tests play that layer, one epoch per change.
+    pub fn commit(&mut self, index: usize, commit: Commit) {
+        let decisions = self.protocols[index].commit(commit);
         self.route_all(decisions, index);
     }
 

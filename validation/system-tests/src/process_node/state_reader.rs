@@ -83,6 +83,7 @@ impl StateReader {
         let reconfiguration = Self::parse_reconfiguration(parts.next()?)?;
         let suspected = Self::parse_suspected(parts.next()?)?;
         let quorum = Self::parse_quorum(parts.next()?)?;
+        let epoch = parts.next()?.parse().ok()?;
         Some(NodeSnapshot {
             peer_state,
             member_count,
@@ -90,6 +91,7 @@ impl StateReader {
             reconfiguration,
             suspected,
             quorum,
+            epoch,
         })
     }
 

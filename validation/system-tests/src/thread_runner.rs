@@ -79,8 +79,8 @@ impl ThreadRunner {
                     self.node.request_addition(peer_id);
                     ack
                 }
-                Ok(NodeCommand::CommitAddition(peer_id, ack)) => {
-                    self.node.commit_addition(peer_id);
+                Ok(NodeCommand::CommitAddition(peer_id, epoch, ack)) => {
+                    self.node.commit_addition(peer_id, epoch);
                     ack
                 }
                 Ok(NodeCommand::AbortAddition(peer_id, ack)) => {
@@ -91,8 +91,8 @@ impl ThreadRunner {
                     self.node.request_removal(peer_id);
                     ack
                 }
-                Ok(NodeCommand::CommitRemoval(peer_id, ack)) => {
-                    self.node.commit_removal(peer_id);
+                Ok(NodeCommand::CommitRemoval(peer_id, epoch, ack)) => {
+                    self.node.commit_removal(peer_id, epoch);
                     ack
                 }
                 Ok(NodeCommand::AbortRemoval(peer_id, ack)) => {
@@ -107,8 +107,8 @@ impl ThreadRunner {
                     self.node.mend(peer_id);
                     ack
                 }
-                Ok(NodeCommand::ChangeRequiredCount(required_count, ack)) => {
-                    self.node.change_required_count(required_count);
+                Ok(NodeCommand::ChangeRequiredCount(required_count, epoch, ack)) => {
+                    self.node.change_required_count(required_count, epoch);
                     ack
                 }
                 Ok(NodeCommand::Shutdown) | Err(TryRecvError::Disconnected) => return false,

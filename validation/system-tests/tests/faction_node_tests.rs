@@ -241,7 +241,7 @@ fn change_required_count_sets_the_count_in_effect() {
     let (mut node, _) = node();
 
     // Act
-    node.change_required_count(3);
+    node.change_required_count(3, 1);
 
     // Assert
     assert_eq!(node.snapshot().required_count, 3);
@@ -253,7 +253,7 @@ fn commit_addition_admits_the_peer() {
     let (mut node, _) = node();
 
     // Act
-    node.commit_addition(7);
+    node.commit_addition(7, 1);
 
     // Assert
     assert_eq!(node.member_count(), 4);
@@ -263,8 +263,8 @@ fn commit_addition_admits_the_peer() {
 fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Arrange
     let (mut node, mut peer_one, mut outsider, _) = concluded();
-    node.commit_addition(7);
-    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
+    node.commit_addition(7, 1);
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 1 });
 
     // Act
     for _ in 0..4 {
@@ -274,7 +274,7 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        received.contains(&TransportMessage::Ready { from: 0, epoch: 0 }),
+        received.contains(&TransportMessage::Ready { from: 0, epoch: 1 }),
         "{received:?}"
     );
 }
@@ -283,9 +283,9 @@ fn commit_addition_widens_the_broadcasts_to_the_new_member() {
 fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     // Arrange
     let (mut node, mut peer_one, mut outsider, _) = concluded();
-    node.commit_addition(7);
-    node.commit_removal(7);
-    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 0 });
+    node.commit_addition(7, 1);
+    node.commit_removal(7, 2);
+    peer_one.send(0, TransportMessage::Ping { from: 1, epoch: 2 });
 
     // Act
     for _ in 0..4 {
@@ -295,7 +295,7 @@ fn commit_removal_narrows_the_broadcasts_to_the_members_left() {
     // Assert
     let received: Vec<TransportMessage> = from_fn(|| outsider.recv()).collect();
     assert!(
-        !received.contains(&TransportMessage::Ready { from: 0, epoch: 0 }),
+        !received.contains(&TransportMessage::Ready { from: 0, epoch: 2 }),
         "{received:?}"
     );
 }
@@ -306,7 +306,7 @@ fn commit_removal_takes_the_member_out() {
     let (mut node, _) = node();
 
     // Act
-    node.commit_removal(2);
+    node.commit_removal(2, 1);
 
     // Assert
     assert_eq!(node.member_count(), 2);
@@ -432,6 +432,7 @@ fn new_starts_fresh() {
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
+            epoch: 0
         }
     );
 }
@@ -560,6 +561,7 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
+            epoch: 0
         }
     );
 }

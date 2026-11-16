@@ -42,21 +42,21 @@ fn parse_admit_without_a_peer_returns_none() {
 }
 
 #[test]
-fn parse_commit_addition_reads_the_peer() {
+fn parse_commit_addition_reads_the_peer_and_the_epoch() {
     // Arrange & Act
-    let command = ProcessCommand::parse("commit-addition 6");
+    let command = ProcessCommand::parse("commit-addition 6 2");
 
     // Assert
-    assert_eq!(command, Some(ProcessCommand::CommitAddition(6)));
+    assert_eq!(command, Some(ProcessCommand::CommitAddition(6, 2)));
 }
 
 #[test]
-fn parse_commit_removal_reads_the_peer() {
+fn parse_commit_removal_reads_the_peer_and_the_epoch() {
     // Arrange & Act
-    let command = ProcessCommand::parse("commit-removal 6");
+    let command = ProcessCommand::parse("commit-removal 6 3");
 
     // Assert
-    assert_eq!(command, Some(ProcessCommand::CommitRemoval(6)));
+    assert_eq!(command, Some(ProcessCommand::CommitRemoval(6, 3)));
 }
 
 #[test]
@@ -135,12 +135,12 @@ fn parse_request_removal_reads_the_peer() {
 }
 
 #[test]
-fn parse_required_count_reads_the_count() {
+fn parse_required_count_reads_the_count_and_the_epoch() {
     // Arrange & Act
-    let command = ProcessCommand::parse("required-count 3");
+    let command = ProcessCommand::parse("required-count 3 4");
 
     // Assert
-    assert_eq!(command, Some(ProcessCommand::RequiredCount(3)));
+    assert_eq!(command, Some(ProcessCommand::RequiredCount(3, 4)));
 }
 
 #[test]
