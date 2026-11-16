@@ -108,6 +108,33 @@ fn of_a_fresh_node_is_fresh() {
 }
 
 #[test]
+fn of_a_node_at_an_epoch_shows_it() {
+    // Arrange
+    let state = NodeState {
+        epoch: 5,
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["epoch"], json!("5"));
+}
+
+#[test]
+fn of_a_node_at_epoch_0_omits_it() {
+    // Arrange
+    let state = NodeStates::concluded();
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert!(view.get("epoch").is_none());
+}
+
+#[test]
 fn of_a_node_lists_its_missed_periods_in_the_members_order() {
     // Arrange
     let state = NodeState {
@@ -305,4 +332,29 @@ fn of_a_removed_node_past_its_deadline_is_removed_and_says_so() {
     // Assert
     assert_eq!(view["peer_state"], json!({"Removed": {}}));
     assert_eq!(view["deadline_missed"], json!(true));
+}
+
+#[test]
+fn reconfiguration_of_each_change_is_its_name_and_its_peer() {
+    // Arrange
+    let changes = [
+        Reconfiguration::None,
+        Reconfiguration::AdditionRequested(String::from("4")),
+        Reconfiguration::AdditionAcknowledged(String::from("4")),
+        Reconfiguration::RemovalRequested(String::from("2")),
+    ];
+
+    // Act
+    let encoded = changes.map(|change| View::reconfiguration(&change));
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [
+            json!({"None": {}}),
+            json!({"AdditionRequested": {"peer_id": "4"}}),
+            json!({"AdditionAcknowledged": {"peer_id": "4"}}),
+            json!({"RemovalRequested": {"peer_id": "2"}}),
+        ]
+    );
 }

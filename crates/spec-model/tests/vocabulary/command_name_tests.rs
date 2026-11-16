@@ -4,6 +4,26 @@
 use faction_spec_model::vocabulary::command_name::CommandName;
 
 #[test]
+fn commits_of_each_command_is_true_for_the_three_commits_alone() {
+    // Arrange & Act
+    let commits: Vec<&str> = CommandName::ALL
+        .iter()
+        .filter(|name| name.commits())
+        .map(|name| name.name())
+        .collect();
+
+    // Assert
+    assert_eq!(
+        commits,
+        [
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged"
+        ]
+    );
+}
+
+#[test]
 fn name_of_each_command_is_the_vocabulary_s_in_the_commands_order() {
     // Arrange & Act
     let names: Vec<&str> = CommandName::ALL.iter().map(|name| name.name()).collect();
@@ -27,6 +47,7 @@ fn name_of_each_command_is_the_vocabulary_s_in_the_commands_order() {
             "RemovalCommitted",
             "RemovalAborted",
             "RequiredCountChanged",
+            "MembershipReceived",
             "ProbeDue",
             "PeerHeard",
             "ProbeMissed",

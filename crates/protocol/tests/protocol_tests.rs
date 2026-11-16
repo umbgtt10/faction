@@ -7,6 +7,7 @@ use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
+use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::protocol::Protocol;
@@ -39,7 +40,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
 // Node 0 of members 0 to 3, requiring one, concluded by its own completion,
 // asking one helper.
 fn of_four() -> Protocol {
-    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1);
+    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1, 0);
     let mut protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1, 2, 3],
@@ -53,7 +54,7 @@ fn of_four() -> Protocol {
 }
 
 fn protocol() -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 0);
     Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1],
@@ -129,7 +130,10 @@ fn change_required_count_sets_the_count_in_effect() {
     let mut protocol = bootstrapped();
 
     // Act
-    let decisions = protocol.change_required_count(3);
+    let decisions = protocol.commit(Commit::RequiredCount {
+        required_count: 3,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
@@ -143,7 +147,10 @@ fn commit_addition_of_the_newcomer_admits_it() {
     protocol.request_addition(5);
 
     // Act
-    let decisions = protocol.commit_addition(5);
+    let decisions = protocol.commit(Commit::Addition {
+        peer_id: 5,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
@@ -160,7 +167,10 @@ fn commit_removal_of_the_node_itself_leaves_it_removed() {
     let mut protocol = of_four();
 
     // Act
-    let _ = protocol.commit_removal(0);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(protocol.cluster_view().peer_state(), PeerState::Removed);
@@ -174,7 +184,10 @@ fn commit_removal_of_the_peer_in_flight_takes_it_out_and_cancels_its_timeouts() 
     protocol.request_removal(2);
 
     // Act
-    let decisions = protocol.commit_removal(2);
+    let decisions = protocol.commit(Commit::Removal {
+        peer_id: 2,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(decisions, timeouts_cancelled(2));
@@ -491,7 +504,10 @@ fn decide_probe_due_before_the_conclusion_produces_noop() {
 fn decide_probe_due_once_removed_produces_noop_and_no_next_period() {
     // Arrange
     let mut protocol = of_four();
-    let _ = protocol.commit_removal(0);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 0,
+    });
 
     // Act
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::ProbeDue));
@@ -854,7 +870,10 @@ fn request_addition_after_a_removal_sends_the_membership_without_the_removed_mem
     // Arrange
     let mut protocol = of_four();
     protocol.request_removal(2);
-    let _ = protocol.commit_removal(2);
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 2,
+        epoch: 0,
+    });
 
     // Act
     let decisions = protocol.request_addition(5);

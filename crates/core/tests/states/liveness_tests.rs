@@ -12,7 +12,7 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::states::liveness::Liveness;
 
 fn config(threshold: usize) -> Config {
-    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), threshold)
+    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), threshold, 0)
 }
 
 extern crate alloc;
@@ -28,7 +28,7 @@ fn stepped(commands: &[Command], threshold: usize) -> (Vec<Outcome>, Liveness) {
         |(_, liveness), command| {
             liveness
                 .step(
-                    *command,
+                    command,
                     &members(),
                     QuorumPolicy::new(2),
                     &config(threshold),
@@ -183,7 +183,12 @@ fn step_of_a_command_not_of_liveness_is_none() {
     let liveness = Liveness::default();
 
     // Act
-    let stepped = liveness.step(Command::Probe, &members(), QuorumPolicy::new(2), &config(1));
+    let stepped = liveness.step(
+        &Command::Probe,
+        &members(),
+        QuorumPolicy::new(2),
+        &config(1),
+    );
 
     // Assert
     assert!(stepped.is_none());
@@ -254,7 +259,7 @@ fn step_of_a_probe_period_alone_has_no_one_to_probe() {
     // Act
     let (outcomes, _) = liveness
         .step(
-            Command::ProbeDue,
+            &Command::ProbeDue,
             &Members::new(vec![0]),
             QuorumPolicy::new(1),
             &config(1),

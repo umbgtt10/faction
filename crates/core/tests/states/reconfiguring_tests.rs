@@ -24,13 +24,22 @@ extern crate alloc;
 // peer 9.
 fn reach_reconfiguring() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::LocalParticipationCompleted);
-    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 3 });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 3,
+        epoch: 0,
+    });
     let _ = faction.process(Command::AdditionRequested { peer_id: 9 });
     faction
 }
@@ -39,13 +48,22 @@ fn reach_reconfiguring() -> Faction {
 // spare.
 fn reach_removing() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::LocalParticipationCompleted);
-    let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 2 });
-    let _ = faction.process(Command::ReadyObserved { peer_id: 3 });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::ReadyObserved {
+        peer_id: 3,
+        epoch: 0,
+    });
     let _ = faction.process(Command::RemovalRequested { peer_id: 4 });
     faction
 }
@@ -117,7 +135,10 @@ fn process_addition_aborted_of_another_peer_is_ignored() {
 fn process_addition_aborted_of_the_newcomer_withdraws_it() {
     // Arrange
     let mut faction = reach_reconfiguring();
-    let _ = faction.process(Command::MembershipAcknowledged { peer_id: 9 });
+    let _ = faction.process(Command::MembershipAcknowledged {
+        peer_id: 9,
+        epoch: 0,
+    });
 
     // Act
     let (outcomes, cluster_view, admissible) =
@@ -154,7 +175,10 @@ fn process_addition_committed_of_a_member_is_ignored() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 1 }));
+        Answers::accepted(faction.process(Command::AdditionCommitted {
+            peer_id: 1,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -174,7 +198,10 @@ fn process_addition_committed_of_another_peer_keeps_the_addition_in_flight() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 8 }));
+        Answers::accepted(faction.process(Command::AdditionCommitted {
+            peer_id: 8,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 8 }]);
@@ -189,11 +216,17 @@ fn process_addition_committed_of_another_peer_keeps_the_addition_in_flight() {
 fn process_addition_committed_of_the_newcomer_completes_the_addition() {
     // Arrange
     let mut faction = reach_reconfiguring();
-    let _ = faction.process(Command::MembershipAcknowledged { peer_id: 9 });
+    let _ = faction.process(Command::MembershipAcknowledged {
+        peer_id: 9,
+        epoch: 0,
+    });
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::AdditionCommitted {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
@@ -265,7 +298,10 @@ fn process_membership_acknowledged_by_another_peer_is_ignored() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::MembershipAcknowledged { peer_id: 8 }));
+        Answers::accepted(faction.process(Command::MembershipAcknowledged {
+            peer_id: 8,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -285,7 +321,10 @@ fn process_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::MembershipAcknowledged { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::MembershipAcknowledged {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ProposeAddition { peer_id: 9 }]);
@@ -299,11 +338,17 @@ fn process_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
 fn process_membership_acknowledged_twice_ignores_the_repeat() {
     // Arrange
     let mut faction = reach_reconfiguring();
-    let _ = faction.process(Command::MembershipAcknowledged { peer_id: 9 });
+    let _ = faction.process(Command::MembershipAcknowledged {
+        peer_id: 9,
+        epoch: 0,
+    });
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::MembershipAcknowledged { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::MembershipAcknowledged {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -323,7 +368,10 @@ fn process_membership_acknowledged_with_a_removal_in_flight_is_ignored() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::MembershipAcknowledged { peer_id: 4 }));
+        Answers::accepted(faction.process(Command::MembershipAcknowledged {
+            peer_id: 4,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -337,13 +385,73 @@ fn process_membership_acknowledged_with_a_removal_in_flight_is_ignored() {
 }
 
 #[test]
+fn process_of_a_membership_abandons_the_change_in_flight() {
+    // Arrange
+    let mut faction = reach_reconfiguring();
+
+    // Act
+    let (outcomes, view, _) = Answers::accepted(faction.process(Command::MembershipReceived {
+        members: vec![0, 1, 2, 3, 4, 9],
+        required_count: 4,
+        epoch: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::MembershipAdopted { epoch: 1 },
+            Outcome::ChangeAbandoned {
+                reconfiguration: Reconfiguration::AdditionRequested { peer_id: 9 }
+            },
+        ]
+    );
+    assert_eq!(view.reconfiguration(), Reconfiguration::None);
+    assert_eq!(view.members(), &Members::new(vec![0, 1, 2, 3, 4, 9]));
+}
+
+#[test]
+fn process_of_the_newcomer_s_acknowledgement_from_behind_refuses_it() {
+    // Arrange
+    let mut faction = reach_reconfiguring();
+    let _ = faction.process(Command::RequiredCountChanged {
+        required_count: 4,
+        epoch: 1,
+    });
+
+    // Act
+    let (outcomes, view, _) = Answers::accepted(faction.process(Command::MembershipAcknowledged {
+        peer_id: 9,
+        epoch: 0,
+    }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::StaleEpochIgnored {
+                peer_id: 9,
+                epoch: 0
+            },
+            Outcome::SendMembership { peer_id: 9 },
+        ]
+    );
+    assert_eq!(
+        view.reconfiguration(),
+        Reconfiguration::AdditionRequested { peer_id: 9 }
+    );
+}
+
+#[test]
 fn process_participation_of_a_member_acknowledges_its_rejoin() {
     // Arrange
     let mut faction = reach_reconfiguring();
 
     // Act
-    let (outcomes, _, _) =
-        Answers::accepted(faction.process(Command::ParticipationObserved { peer_id: 1 }));
+    let (outcomes, _, _) = Answers::accepted(faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::AcknowledgeRejoin { peer_id: 1 }]);
@@ -355,8 +463,10 @@ fn process_participation_of_the_newcomer_is_ignored_as_a_non_member() {
     let mut faction = reach_reconfiguring();
 
     // Act
-    let (outcomes, _, _) =
-        Answers::accepted(faction.process(Command::ParticipationObserved { peer_id: 9 }));
+    let (outcomes, _, _) = Answers::accepted(faction.process(Command::ParticipationObserved {
+        peer_id: 9,
+        epoch: 0,
+    }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NonMemberIgnored { peer_id: 9 }]);
@@ -419,7 +529,10 @@ fn process_removal_committed_of_another_peer_keeps_the_addition_in_flight() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 4 }));
+        Answers::accepted(faction.process(Command::RemovalCommitted {
+            peer_id: 4,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
@@ -437,7 +550,10 @@ fn process_removal_committed_of_the_peer_in_flight_completes_the_removal() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 4 }));
+        Answers::accepted(faction.process(Command::RemovalCommitted {
+            peer_id: 4,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
@@ -465,7 +581,10 @@ fn process_required_count_changed_sets_the_count_in_effect() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 3 }));
+        Answers::accepted(faction.process(Command::RequiredCountChanged {
+            required_count: 3,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(

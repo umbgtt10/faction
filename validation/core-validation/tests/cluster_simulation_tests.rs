@@ -87,13 +87,22 @@ fn new_gives_each_node_its_own_observer() {
     sim.complete_local(1);
 
     // Assert
-    let first: Vec<Command> = calls.iter().map(|calls| calls.borrow()[0].0).collect();
+    let first: Vec<Command> = calls
+        .iter()
+        .map(|calls| calls.borrow()[0].0.clone())
+        .collect();
     assert_eq!(
         first,
         vec![
-            Command::ReadyObserved { peer_id: 1 },
+            Command::ReadyObserved {
+                peer_id: 1,
+                epoch: 0
+            },
             Command::LocalParticipationCompleted,
-            Command::ReadyObserved { peer_id: 1 },
+            Command::ReadyObserved {
+                peer_id: 1,
+                epoch: 0
+            },
         ]
     );
 }

@@ -18,6 +18,7 @@ pub enum CommandName {
     RemovalCommitted,
     RemovalAborted,
     RequiredCountChanged,
+    MembershipReceived,
     ProbeDue,
     PeerHeard,
     ProbeMissed,
@@ -26,7 +27,7 @@ pub enum CommandName {
 }
 
 impl CommandName {
-    pub const ALL: [CommandName; 20] = [
+    pub const ALL: [CommandName; 21] = [
         CommandName::ParticipationObserved,
         CommandName::ReadyObserved,
         CommandName::LocalParticipationCompleted,
@@ -42,6 +43,7 @@ impl CommandName {
         CommandName::RemovalCommitted,
         CommandName::RemovalAborted,
         CommandName::RequiredCountChanged,
+        CommandName::MembershipReceived,
         CommandName::ProbeDue,
         CommandName::PeerHeard,
         CommandName::ProbeMissed,
@@ -55,6 +57,18 @@ impl CommandName {
             .into_iter()
             .find(|command| command.name() == name)
             .expect("a command")
+    }
+
+    // Whether the command is a commit of the layer above (§16): an addition's,
+    // a removal's or a new count's.
+    #[must_use]
+    pub fn commits(self) -> bool {
+        matches!(
+            self,
+            CommandName::AdditionCommitted
+                | CommandName::RemovalCommitted
+                | CommandName::RequiredCountChanged
+        )
     }
 
     #[must_use]
@@ -75,6 +89,7 @@ impl CommandName {
             CommandName::RemovalCommitted => "RemovalCommitted",
             CommandName::RemovalAborted => "RemovalAborted",
             CommandName::RequiredCountChanged => "RequiredCountChanged",
+            CommandName::MembershipReceived => "MembershipReceived",
             CommandName::ProbeDue => "ProbeDue",
             CommandName::PeerHeard => "PeerHeard",
             CommandName::ProbeMissed => "ProbeMissed",

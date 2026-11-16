@@ -19,7 +19,7 @@ extern crate alloc;
 
 fn faction(observer: Box<dyn Observer>) -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
         observer,
     )
 }
@@ -34,18 +34,30 @@ fn process_given_a_no_op_observer_answers_as_given_one_that_records() {
     let commands = vec![
         Command::DeadlineExpired,
         Command::Probe,
-        Command::ParticipationObserved { peer_id: 1 },
+        Command::ParticipationObserved {
+            peer_id: 1,
+            epoch: 0,
+        },
         Command::LocalParticipationCompleted,
         Command::LocalParticipationCompleted,
-        Command::ReadyObserved { peer_id: 1 },
-        Command::ReadyObserved { peer_id: 2 },
-        Command::ReadyObserved { peer_id: 3 },
+        Command::ReadyObserved {
+            peer_id: 1,
+            epoch: 0,
+        },
+        Command::ReadyObserved {
+            peer_id: 2,
+            epoch: 0,
+        },
+        Command::ReadyObserved {
+            peer_id: 3,
+            epoch: 0,
+        },
     ];
 
     // Act
     let answers: Vec<(ProcessResult, ProcessResult)> = commands
         .into_iter()
-        .map(|command| (silent.process(command), recorded.process(command)))
+        .map(|command| (silent.process(command.clone()), recorded.process(command)))
         .collect();
 
     // Assert

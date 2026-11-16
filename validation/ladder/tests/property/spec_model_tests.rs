@@ -26,7 +26,7 @@ proptest! {
         commands in RandomCommands::sequence(40),
     ) {
         // Arrange
-        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold);
+        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0);
         let mut model = Model::new(
             SpecReader::table(&SpecFiles::matrix()),
             SpecReader::configuration(&SpecWriter::configuration(&config)),
@@ -35,7 +35,7 @@ proptest! {
 
         // Act
         let departure = commands.iter().enumerate().find_map(|(index, command)| {
-            let answered = SpecWriter::result(&faction.process(*command));
+            let answered = SpecWriter::result(&faction.process(command.clone()));
             let modelled = model.process(&SpecWriter::command(command)).result;
             (answered != modelled).then(|| {
                 format!("call {}, {command:?}: the crate answers {answered}, the model {modelled}", index + 1)

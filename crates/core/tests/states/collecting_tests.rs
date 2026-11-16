@@ -25,16 +25,19 @@ extern crate alloc;
 
 fn faction_in_collecting() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1, 0),
         Box::new(NoOpObserver),
     );
-    let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+    let _ = faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
     let _ = faction.process(Command::LocalParticipationCompleted);
     faction
 }
 
 fn ready(peer_id: u64) -> Command {
-    Command::ReadyObserved { peer_id }
+    Command::ReadyObserved { peer_id, epoch: 0 }
 }
 
 #[test]
@@ -244,7 +247,10 @@ fn process_acknowledges_member_participation() {
     };
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 2 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 2,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -268,7 +274,10 @@ fn process_addition_committed_admits_the_peer() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::AdditionCommitted {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
@@ -323,7 +332,10 @@ fn process_ignores_non_member_participation() {
     };
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 99,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -338,6 +350,35 @@ fn process_ignores_non_member_participation() {
         },
         snap_before
     );
+}
+
+#[test]
+fn process_of_a_membership_whose_count_the_collecting_peers_reach_concludes() {
+    // Arrange
+    let mut faction = Faction::new(
+        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0),
+        Box::new(NoOpObserver),
+    );
+    let _ = faction.process(Command::LocalParticipationCompleted);
+
+    // Act
+    let (outcomes, view, _) = Answers::accepted(faction.process(Command::MembershipReceived {
+        members: vec![0, 1],
+        required_count: 1,
+        epoch: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::MembershipAdopted { epoch: 1 },
+            Outcome::Concluded {
+                mode: Conclusion::Bootstrapped
+            },
+        ]
+    );
+    assert_eq!(view.peer_state(), PeerState::Bootstrapped);
 }
 
 #[test]
@@ -414,7 +455,10 @@ fn process_removal_committed_takes_the_peer_out_of_the_peers_gathered_and_conclu
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 2 }));
+        Answers::accepted(faction.process(Command::RemovalCommitted {
+            peer_id: 2,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 2 }]);
@@ -431,7 +475,10 @@ fn process_required_count_changed_reached_concludes() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 1 }));
+        Answers::accepted(faction.process(Command::RequiredCountChanged {
+            required_count: 1,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -454,7 +501,10 @@ fn process_required_count_changed_short_stays_collecting() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 3 }));
+        Answers::accepted(faction.process(Command::RequiredCountChanged {
+            required_count: 3,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(

@@ -24,6 +24,6 @@ impl Observer for RecordingObserver {
         self.observations
             .lock()
             .unwrap()
-            .push((*command, result.clone()));
+            .push((command.clone(), result.clone()));
     }
 }

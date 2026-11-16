@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: MIT
 
 use crate::command::Command;
+use crate::members::Members;
 use crate::quorum_policy::QuorumPolicy;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 // A decision on who may be counted, or how many are required: a join decision,
-// a committed addition or removal, or a new required count.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// a committed addition or removal, a new required count, or a membership
+// handed to the node, adopted whole.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MembershipDecision {
     Requested(PeerId),
     Approved(PeerId),
@@ -15,6 +18,7 @@ pub enum MembershipDecision {
     Committed(PeerId),
     Removed(PeerId),
     Counted(QuorumPolicy),
+    Adopted(Members, QuorumPolicy, Epoch),
 }
 
 impl MembershipDecision {
@@ -24,11 +28,20 @@ impl MembershipDecision {
             Command::JoinRequested { peer_id } => Some(Self::Requested(*peer_id)),
             Command::JoinApproved { peer_id } => Some(Self::Approved(*peer_id)),
             Command::JoinRejected { peer_id } => Some(Self::Rejected(*peer_id)),
-            Command::AdditionCommitted { peer_id } => Some(Self::Committed(*peer_id)),
-            Command::RemovalCommitted { peer_id } => Some(Self::Removed(*peer_id)),
-            Command::RequiredCountChanged { required_count } => {
+            Command::AdditionCommitted { peer_id, .. } => Some(Self::Committed(*peer_id)),
+            Command::RemovalCommitted { peer_id, .. } => Some(Self::Removed(*peer_id)),
+            Command::RequiredCountChanged { required_count, .. } => {
                 Some(Self::Counted(QuorumPolicy::new(*required_count)))
             }
+            Command::MembershipReceived {
+                members,
+                required_count,
+                epoch,
+            } => Some(Self::Adopted(
+                Members::new(members.clone()),
+                QuorumPolicy::new(*required_count),
+                *epoch,
+            )),
             _ => None,
         }
     }

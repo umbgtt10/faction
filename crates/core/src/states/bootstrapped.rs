@@ -16,11 +16,13 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
+use crate::states::epoch_rule::EpochRule;
 use crate::states::liveness::Liveness;
 use crate::states::membership_decision::MembershipDecision;
 use crate::states::membership_step::MembershipStep;
 use crate::states::reconfiguring::Reconfiguring;
 use crate::states::removed::Removed;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 #[derive(Debug, Clone)]
@@ -50,37 +52,27 @@ impl Bootstrapped {
     }
 
     // What a concluded node answers whatever its addition: a peer still trying
-    // to bootstrap, a membership decision -- and the quorum it crosses -- and
-    // its members' liveness. Anything else it does not admit.
+    // to bootstrap -- refused from behind -- a membership decision -- and the
+    // quorum it crosses -- and its members' liveness. Anything else it does not
+    // admit.
     #[must_use]
-    pub fn answer(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Self)> {
+    pub fn answer(
+        &self,
+        command: Command,
+        config: &Config,
+        epoch: Epoch,
+    ) -> Option<(Vec<Outcome>, Self)> {
         if let Some(decision) = MembershipDecision::of(&command) {
             let membership =
                 MembershipStep::new(self.members.clone(), self.quorum_policy, decision);
-            let crossing = Liveness::crossing(
-                self.liveness
-                    .holds_quorum(&self.members, self.quorum_policy),
-                self.liveness
-                    .holds_quorum(membership.members(), membership.quorum_policy()),
-            );
-            Some((
-                membership
-                    .outcomes()
-                    .iter()
-                    .cloned()
-                    .chain(crossing)
-                    .collect(),
-                Self {
-                    members: membership.members().clone(),
-                    quorum_policy: membership.quorum_policy(),
-                    pinged_peers: membership.members().retained(&self.pinged_peers),
-                    collected_peers: membership.members().retained(&self.collected_peers),
-                    liveness: self.liveness.of_members(membership.members()),
-                },
+            Some(self.changed(
+                membership.outcomes().to_vec(),
+                membership.members(),
+                membership.quorum_policy(),
             ))
         } else if let Some((outcomes, liveness)) =
             self.liveness
-                .step(command, &self.members, self.quorum_policy, config)
+                .step(&command, &self.members, self.quorum_policy, config)
         {
             Some((
                 outcomes,
@@ -91,14 +83,20 @@ impl Bootstrapped {
             ))
         } else {
             match command {
-                Command::ParticipationObserved { peer_id } => {
-                    let outcome = if self.members.is_member(peer_id) {
-                        Outcome::AcknowledgeRejoin { peer_id }
-                    } else {
-                        Outcome::NonMemberIgnored { peer_id }
-                    };
-                    Some((vec![outcome], self.clone()))
+                Command::ParticipationObserved { peer_id, .. }
+                    if !self.members.is_member(peer_id) =>
+                {
+                    Some((vec![Outcome::NonMemberIgnored { peer_id }], self.clone()))
                 }
+                Command::ParticipationObserved {
+                    peer_id,
+                    epoch: claimed,
+                } => Some((
+                    EpochRule::new(epoch)
+                        .refused(peer_id, claimed)
+                        .unwrap_or_else(|| vec![Outcome::AcknowledgeRejoin { peer_id }]),
+                    self.clone(),
+                )),
                 _ => None,
             }
         }
@@ -106,6 +104,39 @@ impl Bootstrapped {
 }
 
 impl Bootstrapped {
+    // A change of membership applied: `outcomes`, then the quorum it crosses;
+    // the peers gathered and the liveness kept to the new members.
+    #[must_use]
+    pub fn changed(
+        &self,
+        outcomes: Vec<Outcome>,
+        members: &Members,
+        quorum_policy: QuorumPolicy,
+    ) -> (Vec<Outcome>, Self) {
+        let crossing = Liveness::crossing(
+            self.liveness
+                .holds_quorum(&self.members, self.quorum_policy),
+            self.liveness.holds_quorum(members, quorum_policy),
+        );
+        (
+            outcomes.into_iter().chain(crossing).collect(),
+            Self {
+                members: members.clone(),
+                quorum_policy,
+                pinged_peers: members.retained(&self.pinged_peers),
+                collected_peers: members.retained(&self.collected_peers),
+                liveness: self.liveness.of_members(members),
+            },
+        )
+    }
+
+    // What removes the node `peer_id`: its own removal committed, or a
+    // membership that does not name it.
+    #[must_use]
+    pub fn departure(&self, command: &Command, peer_id: PeerId) -> Option<(Vec<Outcome>, Stage)> {
+        Removed::departure(command, peer_id, &self.members, self.quorum_policy)
+    }
+
     // Whether the quorum can spare the member: a suspect it always can; any
     // other, if the members not suspected still number the count without it.
     fn can_spare(&self, peer_id: PeerId) -> bool {
@@ -118,11 +149,16 @@ impl Bootstrapped {
 }
 
 impl State for Bootstrapped {
-    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
+    fn step(
+        &self,
+        command: Command,
+        config: &Config,
+        epoch: Epoch,
+    ) -> Option<(Vec<Outcome>, Stage)> {
+        if let Some(departure) = self.departure(&command, config.peer_id()) {
+            return Some(departure);
+        }
         match command {
-            Command::RemovalCommitted { peer_id } if peer_id == config.peer_id() => {
-                Some(Removed::own_removal(peer_id))
-            }
             Command::AdditionRequested { peer_id } if self.members.is_member(peer_id) => Some((
                 vec![Outcome::DuplicateMemberIgnored { peer_id }],
                 Stage::Bootstrapped(self.clone()),
@@ -150,7 +186,7 @@ impl State for Bootstrapped {
                 )),
             )),
             _ => self
-                .answer(command, config)
+                .answer(command, config, epoch)
                 .map(|(outcomes, concluded)| (outcomes, Stage::Bootstrapped(concluded))),
         }
     }

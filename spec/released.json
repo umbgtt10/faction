@@ -1,4 +1,86 @@
 {
+ "commands": [
+  {
+   "name": "ParticipationObserved",
+   "version": "0.4.0"
+  },
+  {
+   "name": "ReadyObserved",
+   "version": "0.4.0"
+  },
+  {
+   "name": "LocalParticipationCompleted",
+   "version": "0.4.0"
+  },
+  {
+   "name": "DeadlineExpired",
+   "version": "0.4.0"
+  },
+  {
+   "name": "JoinRequested",
+   "version": "0.4.0"
+  },
+  {
+   "name": "JoinApproved",
+   "version": "0.4.0"
+  },
+  {
+   "name": "JoinRejected",
+   "version": "0.4.0"
+  },
+  {
+   "name": "AdditionRequested",
+   "version": "0.4.0"
+  },
+  {
+   "name": "MembershipAcknowledged",
+   "version": "0.4.0"
+  },
+  {
+   "name": "AdditionCommitted",
+   "version": "0.4.0"
+  },
+  {
+   "name": "AdditionAborted",
+   "version": "0.4.0"
+  },
+  {
+   "name": "RemovalRequested",
+   "version": "0.4.0"
+  },
+  {
+   "name": "RemovalCommitted",
+   "version": "0.4.0"
+  },
+  {
+   "name": "RemovalAborted",
+   "version": "0.4.0"
+  },
+  {
+   "name": "RequiredCountChanged",
+   "version": "0.4.0"
+  },
+  {
+   "name": "ProbeDue",
+   "version": "0.4.0"
+  },
+  {
+   "name": "PeerHeard",
+   "version": "0.4.0"
+  },
+  {
+   "name": "ProbeMissed",
+   "version": "0.4.0"
+  },
+  {
+   "name": "IndirectProbesMissed",
+   "version": "0.4.0"
+  },
+  {
+   "name": "Probe",
+   "version": "0.4.0"
+  }
+ ],
  "vectors": [
   {
    "id": "01-probe-on-a-fresh-node",

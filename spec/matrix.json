@@ -1,12 +1,12 @@
 {
-  "version": "0.4.1",
+  "version": "0.5.0",
   "admits": {
-    "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "Probe"],
-    "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "Probe"],
-    "Collecting": ["ParticipationObserved", "ReadyObserved", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "Probe"],
-    "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "AdditionCommitted", "RemovalRequested", "RemovalCommitted", "RequiredCountChanged", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
-    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
-    "Removed": ["Probe"]
+    "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
+    "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
+    "Collecting": ["ParticipationObserved", "ReadyObserved", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
+    "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "AdditionCommitted", "RemovalRequested", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
+    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
+    "Removed": ["MembershipReceived", "Probe"]
   },
   "rows": [
     {
@@ -21,7 +21,7 @@
     {
       "id": "not-admitted",
       "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring", "Removed"],
-      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
+      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
       "situation": "the stage does not admit the command (`admits`)",
       "result": "Rejected",
       "outcomes": [],
@@ -43,6 +43,24 @@
       "situation": "`peer_id` is not a member",
       "result": "Accepted",
       "outcomes": ["NonMemberIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "claim-behind-before-completion",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["ParticipationObserved", "ReadyObserved"],
+      "situation": "`epoch` is below the node's: the member's claim is refused, and the member sent the membership",
+      "result": "Accepted",
+      "outcomes": ["StaleEpochIgnored", "SendMembership"],
+      "next": "Pinging"
+    },
+    {
+      "id": "claim-behind",
+      "stages": ["Collecting", "Bootstrapped", "Reconfiguring"],
+      "commands": ["ParticipationObserved", "ReadyObserved"],
+      "situation": "`epoch` is below the node's: the member's claim is refused, and the member sent the membership",
+      "result": "Accepted",
+      "outcomes": ["StaleEpochIgnored", "SendMembership"],
       "next": "unchanged"
     },
     {
@@ -208,6 +226,15 @@
       "next": "unchanged"
     },
     {
+      "id": "acknowledgement-behind",
+      "stages": ["Reconfiguring"],
+      "commands": ["MembershipAcknowledged"],
+      "situation": "`epoch` is below the node's: the acknowledgement is refused, and `peer_id` sent the membership",
+      "result": "Accepted",
+      "outcomes": ["StaleEpochIgnored", "SendMembership"],
+      "next": "unchanged"
+    },
+    {
       "id": "acknowledgement-accepted",
       "stages": ["Reconfiguring"],
       "commands": ["MembershipAcknowledged"],
@@ -242,6 +269,15 @@
       "result": "Accepted",
       "outcomes": ["RemovalWithdrawn"],
       "next": "Bootstrapped"
+    },
+    {
+      "id": "commit-held",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "commands": ["AdditionCommitted", "RemovalCommitted", "RequiredCountChanged"],
+      "situation": "`epoch` is one or more, at or below the node's: the node holds the membership the commit makes already",
+      "result": "Accepted",
+      "outcomes": ["CommitIgnored"],
+      "next": "unchanged"
     },
     {
       "id": "commit-member",
@@ -403,6 +439,96 @@
       "situation": "otherwise: `required_count` is the count in effect",
       "result": "Accepted",
       "outcomes": ["RequiredCountSet"],
+      "next": "unchanged"
+    },
+    {
+      "id": "membership-held",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring", "Removed"],
+      "commands": ["MembershipReceived"],
+      "situation": "`epoch` is at or below the node's",
+      "result": "Accepted",
+      "outcomes": ["MembershipIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "membership-rejoined",
+      "stages": ["Removed"],
+      "commands": ["MembershipReceived"],
+      "situation": "`members` names the node: it is a fresh node holding the membership, at its epoch",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted"],
+      "next": "Initial"
+    },
+    {
+      "id": "membership-removes-node",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "commands": ["MembershipReceived"],
+      "situation": "`members` does not name the node: the membership is adopted, and the node removed as by its own removal",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "MemberRemoved"],
+      "next": "Removed"
+    },
+    {
+      "id": "membership-concludes",
+      "stages": ["Collecting"],
+      "commands": ["MembershipReceived"],
+      "situation": "with the membership adopted, the collecting peers number its required count or more",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "Concluded"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "abandonment-loses-quorum",
+      "stages": ["Reconfiguring"],
+      "commands": ["MembershipReceived"],
+      "situation": "the membership adopted, the change in flight is given up, and the quorum, held, is lost",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "ChangeAbandoned", "QuorumLost"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "abandonment-restores-quorum",
+      "stages": ["Reconfiguring"],
+      "commands": ["MembershipReceived"],
+      "situation": "the membership adopted, the change in flight is given up, and the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "ChangeAbandoned", "QuorumRestored"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "change-abandoned",
+      "stages": ["Reconfiguring"],
+      "commands": ["MembershipReceived"],
+      "situation": "the membership adopted, the change in flight is given up",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "ChangeAbandoned"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "adoption-loses-quorum",
+      "stages": ["Bootstrapped"],
+      "commands": ["MembershipReceived"],
+      "situation": "the membership adopted, the quorum, held, is lost",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "QuorumLost"],
+      "next": "unchanged"
+    },
+    {
+      "id": "adoption-restores-quorum",
+      "stages": ["Bootstrapped"],
+      "commands": ["MembershipReceived"],
+      "situation": "the membership adopted, the quorum, lost, is held again",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted", "QuorumRestored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "membership-adopted",
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Removed"],
+      "commands": ["MembershipReceived"],
+      "situation": "otherwise: the membership is adopted",
+      "result": "Accepted",
+      "outcomes": ["MembershipAdopted"],
       "next": "unchanged"
     },
     {

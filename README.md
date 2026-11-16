@@ -217,36 +217,38 @@ let config = Config::new(
     alloc::vec![0, 1, 2, 3, 4],
     QuorumPolicy::new(4),
     1,
+    0,
 );
 
 let mut machine = Faction::new(config, Box::new(NoOpObserver));
 
-let _ = machine.process(Command::ParticipationObserved { peer_id: 1 });
-let _ = machine.process(Command::ParticipationObserved { peer_id: 2 });
+let _ = machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 });
+let _ = machine.process(Command::ParticipationObserved { peer_id: 2, epoch: 0 });
 let _ = machine.process(Command::LocalParticipationCompleted);
-let _ = machine.process(Command::ReadyObserved { peer_id: 1 });
-let _ = machine.process(Command::ReadyObserved { peer_id: 2 });
+let _ = machine.process(Command::ReadyObserved { peer_id: 1, epoch: 0 });
+let _ = machine.process(Command::ReadyObserved { peer_id: 2, epoch: 0 });
 
 // Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
-let result = machine.process(Command::ReadyObserved { peer_id: 3 });
+let result = machine.process(Command::ReadyObserved { peer_id: 3, epoch: 0 });
 if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining
-    // peer), the join commands, an addition to coordinate, a committed
-    // addition and a new required count.
+    // peer), the join commands, an addition or a removal to coordinate, a
+    // committed one, a new required count, a membership and liveness.
     assert_eq!(
         admissible,
         alloc::vec![
-            Command::ParticipationObserved { peer_id: 0 },
+            Command::ParticipationObserved { peer_id: 0, epoch: 0 },
             Command::JoinRequested { peer_id: 0 },
             Command::JoinApproved { peer_id: 0 },
             Command::JoinRejected { peer_id: 0 },
             Command::AdditionRequested { peer_id: 0 },
-            Command::AdditionCommitted { peer_id: 0 },
+            Command::AdditionCommitted { peer_id: 0, epoch: 0 },
             Command::RemovalRequested { peer_id: 0 },
-            Command::RemovalCommitted { peer_id: 0 },
-            Command::RequiredCountChanged { required_count: 0 },
+            Command::RemovalCommitted { peer_id: 0, epoch: 0 },
+            Command::RequiredCountChanged { required_count: 0, epoch: 0 },
+            Command::MembershipReceived { members: alloc::vec![], required_count: 0, epoch: 0 },
             Command::ProbeDue,
             Command::PeerHeard { peer_id: 0 },
             Command::ProbeMissed { peer_id: 0 },

@@ -1,6 +1,7 @@
 # P1-ADR-TerminalStatesAreNotSinks
 
-- **Status:** Accepted; amended 2026-11-13 — a removed node is waited on by no one
+- **Status:** Accepted; amended 2026-11-13 — a removed node is waited on by no one; amended 2026-11-16 — a
+  membership that names it takes it back
 - **Date:** 2026-07-19
 - **Priority:** P1 (derived)
 - **Phase:** 0-bugfix
@@ -23,6 +24,14 @@ silent. `Removed` (`P1-ADR-RemovalThroughTheLayerThatCommits`) answers a probe
 alone and no command takes it anywhere: no member waits on a removed node, since
 every member applies the same commit and counts it no more. It is the one stage
 a node never leaves until Phase 5 gives a way back.
+
+**Amended in Phase 5.** `Removed` admits a membership too
+(`P1-ADR-TheEpochComesWithTheCommit`), and is left by adoption alone: a
+membership above the node's epoch that names it takes the node back to `Initial`,
+a fresh node holding it, which bootstraps among its members as a newcomer does;
+one that does not name it is adopted, and the node stays `Removed`. No member
+waits on a removed node still: it is the node that learns, when handed the
+membership, that the cluster has taken it back.
 
 ## Forcing constraints / Evidence
 Liveness: a peer's only path to learn a concluded node's readiness is that node

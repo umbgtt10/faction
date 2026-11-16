@@ -10,4 +10,5 @@ pub struct Configuration {
     pub peers: Vec<String>,
     pub required_count: u64,
     pub suspicion_threshold: u64,
+    pub epoch: u64,
 }

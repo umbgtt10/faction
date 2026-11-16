@@ -31,7 +31,13 @@ impl<'a> LivenessSequence<'a> {
     pub fn run(&self, periods: u64) -> MemoryProfile {
         self.counter.start();
         let mut faction = Faction::new(
-            Config::new(NODE, (NODE..=self.peers).collect(), QuorumPolicy::new(1), 1),
+            Config::new(
+                NODE,
+                (NODE..=self.peers).collect(),
+                QuorumPolicy::new(1),
+                1,
+                0,
+            ),
             Box::new(NoOpObserver),
         );
         let skeleton = self.counter.live();

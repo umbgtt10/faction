@@ -13,6 +13,8 @@ fn command(name: CommandName, peer_id: Option<&str>) -> Command {
         name,
         peer_id: peer_id.map(String::from),
         required_count: None,
+        epoch: 0,
+        members: Vec::new(),
     }
 }
 
@@ -37,6 +39,7 @@ fn admits_of_collecting_is_every_command_but_its_own_completion_and_a_change_s_c
             CommandName::AdditionCommitted,
             CommandName::RemovalCommitted,
             CommandName::RequiredCountChanged,
+            CommandName::MembershipReceived,
             CommandName::Probe,
         ]
     );

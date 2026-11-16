@@ -4,6 +4,7 @@
 use alloc::vec::Vec;
 
 use crate::quorum_policy::QuorumPolicy;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 pub struct Config {
@@ -11,6 +12,7 @@ pub struct Config {
     peers: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
     suspicion_threshold: usize,
+    epoch: Epoch,
 }
 
 impl Config {
@@ -20,13 +22,20 @@ impl Config {
         peers: Vec<PeerId>,
         quorum_policy: QuorumPolicy,
         suspicion_threshold: usize,
+        epoch: Epoch,
     ) -> Self {
         Self {
             peer_id,
             peers,
             quorum_policy,
             suspicion_threshold,
+            epoch,
         }
+    }
+
+    #[must_use]
+    pub const fn epoch(&self) -> Epoch {
+        self.epoch
     }
 
     #[must_use]

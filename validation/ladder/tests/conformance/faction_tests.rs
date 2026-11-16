@@ -8,6 +8,7 @@
 // vector and the matrix valid against the schema, and every row of the matrix
 // exercised.
 
+use crate::support::growth::Growth;
 use crate::support::recording_observer::RecordingObserver;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_reader::SpecReader;
@@ -23,8 +24,10 @@ use std::collections::BTreeSet;
 use std::rc::Rc;
 
 // What a vector's run answered where the vector expected otherwise: nothing
-// for a conforming implementation.
+// for a conforming implementation, a released vector's admissible commands
+// kept to those its version names (§1).
 fn departures(name: &str, vector: &Value) -> Vec<String> {
+    let growth = Growth::new(SpecFiles::released());
     let mut faction = Faction::new(
         SpecReader::configuration(&vector["configuration"]),
         Box::new(NoOpObserver),
@@ -32,7 +35,10 @@ fn departures(name: &str, vector: &Value) -> Vec<String> {
     let mut departures = Vec::new();
     let steps = vector["steps"].as_array().expect("a vector's steps");
     for (index, step) in steps.iter().enumerate() {
-        let result = SpecWriter::result(&faction.process(SpecReader::command(&step["command"])));
+        let result = growth.as_released(
+            name,
+            &SpecWriter::result(&faction.process(SpecReader::command(&step["command"]))),
+        );
         if result != step["result"] {
             departures.push(format!(
                 "{name}, step {}: answered {result}, not {}",
@@ -41,7 +47,7 @@ fn departures(name: &str, vector: &Value) -> Vec<String> {
             ));
         }
     }
-    let closing = SpecWriter::result(&faction.process(Command::Probe));
+    let closing = growth.as_released(name, &SpecWriter::result(&faction.process(Command::Probe)));
     let expected = json!({ "Probed": vector["final"] });
     if closing != expected {
         departures.push(format!(
@@ -67,7 +73,7 @@ fn misreport(name: &str, vector: &Value) -> Option<String> {
         .iter()
         .map(|step| SpecReader::command(&step["command"]))
         .chain([Command::Probe])
-        .map(|command| (command, faction.process(command)))
+        .map(|command| (command.clone(), faction.process(command)))
         .collect();
     let reported = calls.borrow().clone();
     (reported != answered)

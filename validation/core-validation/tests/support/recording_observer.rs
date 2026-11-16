@@ -25,6 +25,8 @@ impl RecordingObserver {
 
 impl Observer for RecordingObserver {
     fn observe(&mut self, command: &Command, result: &ProcessResult) {
-        self.calls.borrow_mut().push((*command, result.clone()));
+        self.calls
+            .borrow_mut()
+            .push((command.clone(), result.clone()));
     }
 }

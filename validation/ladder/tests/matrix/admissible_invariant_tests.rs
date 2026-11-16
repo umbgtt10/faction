@@ -18,21 +18,39 @@ use rstest::rstest;
 #[case(Init::Removed, "Removed")]
 fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case] stage: &str) {
     let candidates = [
-        Command::ParticipationObserved { peer_id: 0 },
-        Command::ReadyObserved { peer_id: 0 },
+        Command::ParticipationObserved {
+            peer_id: 0,
+            epoch: 0,
+        },
+        Command::ReadyObserved {
+            peer_id: 0,
+            epoch: 0,
+        },
         Command::LocalParticipationCompleted,
         Command::DeadlineExpired,
         Command::JoinRequested { peer_id: 0 },
         Command::JoinApproved { peer_id: 0 },
         Command::JoinRejected { peer_id: 0 },
         Command::AdditionRequested { peer_id: 0 },
-        Command::MembershipAcknowledged { peer_id: 0 },
-        Command::AdditionCommitted { peer_id: 0 },
+        Command::MembershipAcknowledged {
+            peer_id: 0,
+            epoch: 0,
+        },
+        Command::AdditionCommitted {
+            peer_id: 0,
+            epoch: 0,
+        },
         Command::AdditionAborted { peer_id: 0 },
         Command::RemovalRequested { peer_id: 0 },
-        Command::RemovalCommitted { peer_id: 0 },
+        Command::RemovalCommitted {
+            peer_id: 0,
+            epoch: 0,
+        },
         Command::RemovalAborted { peer_id: 0 },
-        Command::RequiredCountChanged { required_count: 0 },
+        Command::RequiredCountChanged {
+            required_count: 0,
+            epoch: 0,
+        },
     ];
 
     // Arrange — the admissible set the state advertises via Probe
@@ -58,7 +76,7 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
     for candidate in &candidates {
         let in_admissible = admissible.contains(candidate);
         let accepted = !matches!(
-            build(init).process(*candidate),
+            build(init).process(candidate.clone()),
             ProcessResult::Rejected { .. }
         );
         assert_eq!(

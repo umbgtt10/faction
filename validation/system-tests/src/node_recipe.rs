@@ -79,6 +79,7 @@ impl NodeRecipe {
             peers.clone(),
             QuorumPolicy::new(self.required),
             self.suspicion_threshold,
+            0,
         );
         let protocol = Protocol::new(
             Faction::new(config, faction_observer),

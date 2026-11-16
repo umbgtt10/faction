@@ -12,6 +12,7 @@ use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
+use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::output_message::OutputMessage;
@@ -78,16 +79,21 @@ impl FactionNode {
     }
 
     pub fn change_required_count(&mut self, required_count: usize) {
-        self.command(|protocol| protocol.change_required_count(required_count));
+        self.command(|protocol| {
+            protocol.commit(Commit::RequiredCount {
+                required_count,
+                epoch: 0,
+            })
+        });
     }
 
     pub fn commit_addition(&mut self, peer_id: PeerId) {
-        self.command(|protocol| protocol.commit_addition(peer_id));
+        self.command(|protocol| protocol.commit(Commit::Addition { peer_id, epoch: 0 }));
         self.read_members();
     }
 
     pub fn commit_removal(&mut self, peer_id: PeerId) {
-        self.command(|protocol| protocol.commit_removal(peer_id));
+        self.command(|protocol| protocol.commit(Commit::Removal { peer_id, epoch: 0 }));
         self.read_members();
     }
 

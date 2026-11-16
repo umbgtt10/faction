@@ -8,6 +8,7 @@ use crate::miss_count::MissCount;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
 use crate::reconfiguration::Reconfiguration;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,6 +25,7 @@ pub struct ClusterView {
     misses: Vec<MissCount>,
     last_probed: Option<PeerId>,
     quorum: Quorum,
+    epoch: Epoch,
 }
 
 impl ClusterView {
@@ -42,6 +44,7 @@ impl ClusterView {
         misses: Vec<MissCount>,
         last_probed: Option<PeerId>,
         quorum: Quorum,
+        epoch: Epoch,
     ) -> Self {
         let peer_state = if deadline_missed
             && !matches!(peer_state, PeerState::Bootstrapped | PeerState::Removed)
@@ -64,6 +67,7 @@ impl ClusterView {
             misses,
             last_probed,
             quorum,
+            epoch,
         }
     }
 
@@ -75,6 +79,11 @@ impl ClusterView {
     #[must_use]
     pub fn deadline_missed(&self) -> bool {
         self.deadline_missed
+    }
+
+    #[must_use]
+    pub fn epoch(&self) -> Epoch {
+        self.epoch
     }
 
     #[must_use]

@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use crate::answer::Answer;
 use crate::configuration::Configuration;
+use crate::epoch::Epoch;
 use crate::node_state::NodeState;
 use crate::reconfiguration::Reconfiguration;
 use crate::rules::rule_book::RuleBook;
@@ -43,6 +44,7 @@ impl Model {
                 suspected: Vec::new(),
                 misses: BTreeMap::new(),
                 last_probed: None,
+                epoch: configuration.epoch,
             },
         }
     }
@@ -60,6 +62,7 @@ impl Model {
             .applied(&command, &self.state);
         let state = NodeState {
             stage: row.next.unwrap_or(changed.stage),
+            epoch: Epoch::after(&command, row.result, changed.epoch),
             ..changed
         };
         let admissible: Value = self

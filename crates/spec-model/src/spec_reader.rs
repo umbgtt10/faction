@@ -33,6 +33,11 @@ impl SpecReader {
             name: CommandName::of(name),
             peer_id: payload.get("peer_id").map(Self::string),
             required_count: payload.get("required_count").map(Self::count),
+            epoch: payload.get("epoch").map_or(0, Self::count),
+            members: payload
+                .get("members")
+                .map(|members| Self::list(members).map(Self::string).collect())
+                .unwrap_or_default(),
         }
     }
 
@@ -43,6 +48,7 @@ impl SpecReader {
             peers: Self::list(&value["peers"]).map(Self::string).collect(),
             required_count: Self::count(&value["required_count"]),
             suspicion_threshold: Self::count(&value["suspicion_threshold"]),
+            epoch: value.get("epoch").map_or(0, Self::count),
         }
     }
 

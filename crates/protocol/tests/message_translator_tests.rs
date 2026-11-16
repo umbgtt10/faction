@@ -93,7 +93,13 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
     }));
 
     // Assert
-    assert_eq!(command, Command::ParticipationObserved { peer_id: 3 });
+    assert_eq!(
+        command,
+        Command::ParticipationObserved {
+            peer_id: 3,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
@@ -195,7 +201,13 @@ fn to_command_transport_membership_acknowledged_maps_to_membership_acknowledged(
     ));
 
     // Assert
-    assert_eq!(command, Command::MembershipAcknowledged { peer_id: 5 });
+    assert_eq!(
+        command,
+        Command::MembershipAcknowledged {
+            peer_id: 5,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
@@ -219,7 +231,13 @@ fn to_command_transport_ping_maps_to_participation_observed() {
         translator.to_command(InputMessage::Transport(TransportMessage::Ping { from: 42 }));
 
     // Assert
-    assert_eq!(command, Command::ParticipationObserved { peer_id: 42 });
+    assert_eq!(
+        command,
+        Command::ParticipationObserved {
+            peer_id: 42,
+            epoch: 0
+        }
+    );
 }
 
 #[test]
@@ -257,7 +275,13 @@ fn to_command_transport_ready_maps_to_ready_observed() {
         translator.to_command(InputMessage::Transport(TransportMessage::Ready { from: 7 }));
 
     // Assert
-    assert_eq!(command, Command::ReadyObserved { peer_id: 7 });
+    assert_eq!(
+        command,
+        Command::ReadyObserved {
+            peer_id: 7,
+            epoch: 0
+        }
+    );
 }
 
 #[test]

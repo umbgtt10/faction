@@ -5,6 +5,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::adoption::Adoption;
 use crate::command::Command;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
@@ -34,6 +35,9 @@ pub enum Change {
     PeerRemoved,
     RemovalCompletes,
     NodeRemoved,
+    MembershipAdopted,
+    MembershipRemovesNode,
+    NodeRejoins,
 }
 
 impl Change {
@@ -135,7 +139,18 @@ impl Change {
                     state.stage,
                     Stage::Collecting | Stage::Bootstrapped | Stage::Reconfiguring
                 ),
-                ..Self::removed(state, &Self::named(peer_id))
+                ..Self::removed(state, &state.peer_id)
+            },
+            Change::MembershipAdopted => Adoption::adopted(command, state),
+            Change::MembershipRemovesNode => {
+                Change::NodeRemoved.applied(command, &Adoption::adopted(command, state))
+            }
+            Change::NodeRejoins => NodeState {
+                pinging_peers: Vec::new(),
+                collecting_peers: Vec::new(),
+                deadline_missed: false,
+                completed_before_removal: false,
+                ..Adoption::adopted(command, state)
             },
         }
     }

@@ -22,7 +22,7 @@ extern crate alloc;
 
 fn test_faction() -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
         Box::new(NoOpObserver),
     )
 }
@@ -55,9 +55,16 @@ fn cluster_view_inherits_correctly() {
 fn new_returns_initial_state() {
     // Arrange & Act
     let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
-    let config = Config::new(0, vec![0], QuorumPolicy::new(1), 1);
+    let config = Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0);
     let (outcomes, new_state) = initial
-        .step(Command::ParticipationObserved { peer_id: 0 }, &config)
+        .step(
+            Command::ParticipationObserved {
+                peer_id: 0,
+                epoch: 0,
+            },
+            &config,
+            0,
+        )
         .expect("an Initial node admits participation");
 
     // Assert
@@ -113,7 +120,10 @@ fn process_accepts_participation_observed() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 1 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -138,7 +148,10 @@ fn process_accepts_ready_observed() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 1 }) {
+    let outcomes = match faction.process(Command::ReadyObserved {
+        peer_id: 1,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -161,7 +174,10 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted { peer_id: 9 }));
+        Answers::accepted(faction.process(Command::AdditionCommitted {
+            peer_id: 9,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
@@ -173,7 +189,7 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
 fn process_local_participation_completed_single_node_bootstraps() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0], QuorumPolicy::new(1), 1),
+        Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0),
         Box::new(NoOpObserver),
     );
 
@@ -203,12 +219,44 @@ fn process_local_participation_completed_single_node_bootstraps() {
 }
 
 #[test]
+fn process_of_a_member_s_claim_from_behind_refuses_it_and_leaves_initial() {
+    // Arrange
+    let mut faction = Faction::new(
+        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 2),
+        Box::new(NoOpObserver),
+    );
+
+    // Act
+    let (outcomes, view, _) = Answers::accepted(faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 1,
+    }));
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::StaleEpochIgnored {
+                peer_id: 1,
+                epoch: 1
+            },
+            Outcome::SendMembership { peer_id: 1 },
+        ]
+    );
+    assert_eq!(view.peer_state(), PeerState::Pinging);
+    assert!(view.pinging_peers().is_empty());
+}
+
+#[test]
 fn process_participation_non_member_from_initial() {
     // Arrange
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 99 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 99,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -249,7 +297,10 @@ fn process_ready_non_member_from_initial() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved { peer_id: 99 }) {
+    let outcomes = match faction.process(Command::ReadyObserved {
+        peer_id: 99,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -323,7 +374,10 @@ fn process_removal_committed_of_a_member_takes_it_out_and_stays_fresh() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RemovalCommitted { peer_id: 4 }));
+        Answers::accepted(faction.process(Command::RemovalCommitted {
+            peer_id: 4,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
@@ -338,7 +392,10 @@ fn process_required_count_changed_sets_the_count_and_stays_fresh() {
 
     // Act
     let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RequiredCountChanged { required_count: 2 }));
+        Answers::accepted(faction.process(Command::RequiredCountChanged {
+            required_count: 2,
+            epoch: 0,
+        }));
 
     // Assert
     assert_eq!(
@@ -361,7 +418,10 @@ fn process_stays_in_initial_after_rejected() {
     ));
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved { peer_id: 1 }) {
+    let outcomes = match faction.process(Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    }) {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
@@ -377,4 +437,31 @@ fn process_stays_in_initial_after_rejected() {
         vec![Outcome::ParticipationAccepted { peer_id: 1 }]
     );
     assert_eq!(snap.pinging_peers().len(), 1);
+}
+
+#[test]
+fn step_of_a_membership_naming_the_node_keeps_it_initial_holding_the_membership() {
+    // Arrange
+    let initial = Initial::new(Members::new(vec![0, 1, 2]), QuorumPolicy::new(3));
+    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0);
+
+    // Act
+    let (outcomes, stage) = initial
+        .step(
+            Command::MembershipReceived {
+                members: vec![2, 0],
+                required_count: 2,
+                epoch: 1,
+            },
+            &config,
+            0,
+        )
+        .expect("a membership is admitted");
+
+    // Assert
+    let view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(outcomes, vec![Outcome::MembershipAdopted { epoch: 1 }]);
+    assert_eq!(view.peer_state(), PeerState::Fresh);
+    assert_eq!(view.members(), &Members::new(vec![2, 0]));
+    assert_eq!(view.required_count(), 2);
 }

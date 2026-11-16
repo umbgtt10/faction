@@ -6,8 +6,11 @@ use serde_json::Value;
 use serde_json::json;
 
 use crate::command::Command;
+use crate::epoch::Epoch;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
+use crate::view::View;
+use crate::vocabulary::command_name::CommandName;
 use crate::vocabulary::variant::Variant;
 
 const CONCLUSION_MODE: &str = "Bootstrapped";
@@ -49,10 +52,15 @@ pub enum OutcomeName {
     SelfIgnored,
     QuorumLost,
     QuorumRestored,
+    StaleEpochIgnored,
+    CommitIgnored,
+    MembershipIgnored,
+    MembershipAdopted,
+    ChangeAbandoned,
 }
 
 impl OutcomeName {
-    pub const ALL: [OutcomeName; 35] = [
+    pub const ALL: [OutcomeName; 40] = [
         OutcomeName::ParticipationAccepted,
         OutcomeName::ReadyAccepted,
         OutcomeName::DuplicateParticipationIgnored,
@@ -88,6 +96,11 @@ impl OutcomeName {
         OutcomeName::SelfIgnored,
         OutcomeName::QuorumLost,
         OutcomeName::QuorumRestored,
+        OutcomeName::StaleEpochIgnored,
+        OutcomeName::CommitIgnored,
+        OutcomeName::MembershipIgnored,
+        OutcomeName::MembershipAdopted,
+        OutcomeName::ChangeAbandoned,
     ];
 
     #[must_use]
@@ -131,6 +144,23 @@ impl OutcomeName {
             OutcomeName::Concluded => {
                 Variant::of(self.name(), json!({"mode": Variant::unit(CONCLUSION_MODE)}))
             }
+            OutcomeName::StaleEpochIgnored => Variant::of(
+                self.name(),
+                Epoch::stated(json!({"peer_id": command.peer_id}), command.epoch),
+            ),
+            OutcomeName::CommitIgnored
+            | OutcomeName::MembershipIgnored
+            | OutcomeName::MembershipAdopted => {
+                Variant::of(self.name(), Epoch::stated(json!({}), command.epoch))
+            }
+            OutcomeName::ChangeAbandoned => Variant::of(
+                self.name(),
+                json!({"reconfiguration": View::reconfiguration(&state.reconfiguration)}),
+            ),
+            OutcomeName::MemberRemoved => Variant::of(
+                self.name(),
+                json!({"peer_id": Self::removed(command, state)}),
+            ),
             OutcomeName::RequiredCountSet => Variant::of(
                 self.name(),
                 json!({"required_count": command.required_count.map(|count| count.to_string())}),
@@ -153,7 +183,6 @@ impl OutcomeName {
             | OutcomeName::ProposeRemoval
             | OutcomeName::RemovalRefused
             | OutcomeName::RemovalWithdrawn
-            | OutcomeName::MemberRemoved
             | OutcomeName::PeerSuspected
             | OutcomeName::PeerRevived
             | OutcomeName::AliveNoted
@@ -202,10 +231,25 @@ impl OutcomeName {
             OutcomeName::SelfIgnored => "SelfIgnored",
             OutcomeName::QuorumLost => "QuorumLost",
             OutcomeName::QuorumRestored => "QuorumRestored",
+            OutcomeName::StaleEpochIgnored => "StaleEpochIgnored",
+            OutcomeName::CommitIgnored => "CommitIgnored",
+            OutcomeName::MembershipIgnored => "MembershipIgnored",
+            OutcomeName::MembershipAdopted => "MembershipAdopted",
+            OutcomeName::ChangeAbandoned => "ChangeAbandoned",
         }
     }
 
     fn named(command: &Command) -> &str {
         command.peer_id.as_deref().expect("a peer")
+    }
+
+    // The peer a removal names: the command's, or, for a membership that does
+    // not name the node, the node itself (§16).
+    fn removed<'a>(command: &'a Command, state: &'a NodeState) -> &'a str {
+        if command.name == CommandName::MembershipReceived {
+            &state.peer_id
+        } else {
+            Self::named(command)
+        }
     }
 }

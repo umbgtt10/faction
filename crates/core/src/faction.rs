@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
@@ -12,6 +13,7 @@ use crate::observer::Observer;
 use crate::process_result::ProcessResult;
 use crate::stage::Stage;
 use crate::state::State;
+use crate::states::epoch_rule::EpochRule;
 use crate::states::initial::Initial;
 
 pub struct Faction {
@@ -28,10 +30,11 @@ impl Faction {
             Members::new(config.peers().to_vec()),
             config.quorum_policy(),
         ));
-        let base = ClusterViewBuilder::default()
+        let genesis = ClusterViewBuilder::default()
             .with_required_count(config.required_count())
             .with_members(Members::new(config.peers().to_vec()))
             .build();
+        let base = ClusterViewBuilder::from_view_at(&genesis, config.epoch()).build();
         let cluster_view = stage.cluster_view(&base);
         Self {
             config,
@@ -43,29 +46,42 @@ impl Faction {
 
     #[must_use]
     pub fn process(&mut self, command: Command) -> ProcessResult {
-        let result = self.answer(command);
+        let result = self.answer(&command);
         self.observer.observe(&command, &result);
         result
     }
 
-    fn answer(&mut self, command: Command) -> ProcessResult {
-        match self.stage.step(command, &self.config) {
+    fn admissible(&self) -> Vec<Command> {
+        self.stage
+            .admissible_commands(&self.config, self.cluster_view.epoch())
+    }
+
+    // The node's epoch is its view's: an accepted command moves it as the
+    // epoch's rule says, before the stage shows itself.
+    fn answer(&mut self, command: &Command) -> ProcessResult {
+        let epoch = self.cluster_view.epoch();
+        match self.stage.step(command.clone(), &self.config, epoch) {
             Some((outcomes, stage)) => {
                 self.stage = stage;
-                self.cluster_view = self.stage.cluster_view(&self.cluster_view);
+                let moved = ClusterViewBuilder::from_view_at(
+                    &self.cluster_view,
+                    EpochRule::new(epoch).after(command),
+                )
+                .build();
+                self.cluster_view = self.stage.cluster_view(&moved);
                 ProcessResult::Accepted {
                     cluster_view: self.cluster_view.clone(),
-                    admissible: self.stage.admissible_commands(&self.config),
+                    admissible: self.admissible(),
                     outcomes,
                 }
             }
-            None if command == Command::Probe => ProcessResult::Probed {
+            None if *command == Command::Probe => ProcessResult::Probed {
                 cluster_view: self.cluster_view.clone(),
-                admissible: self.stage.admissible_commands(&self.config),
+                admissible: self.admissible(),
             },
             None => ProcessResult::Rejected {
                 cluster_view: self.cluster_view.clone(),
-                admissible: self.stage.admissible_commands(&self.config),
+                admissible: self.admissible(),
             },
         }
     }

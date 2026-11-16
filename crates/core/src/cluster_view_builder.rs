@@ -9,6 +9,7 @@ use crate::miss_count::MissCount;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
 use crate::reconfiguration::Reconfiguration;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 pub struct ClusterViewBuilder {
@@ -24,11 +25,18 @@ pub struct ClusterViewBuilder {
     misses: Vec<MissCount>,
     last_probed: Option<PeerId>,
     quorum: Quorum,
+    epoch: Epoch,
 }
 
 impl ClusterViewBuilder {
     #[must_use]
     pub fn from_view(view: &ClusterView) -> Self {
+        Self::from_view_at(view, view.epoch())
+    }
+
+    // A view's builder, the view moved to `epoch`.
+    #[must_use]
+    pub fn from_view_at(view: &ClusterView, epoch: Epoch) -> Self {
         Self {
             peer_state: view.peer_state(),
             is_pinging_completed: view.is_pinging_completed(),
@@ -42,6 +50,7 @@ impl ClusterViewBuilder {
             misses: view.misses().to_vec(),
             last_probed: view.last_probed(),
             quorum: view.quorum(),
+            epoch,
         }
     }
 
@@ -60,6 +69,7 @@ impl ClusterViewBuilder {
             self.misses,
             self.last_probed,
             self.quorum,
+            self.epoch,
         )
     }
 
@@ -151,6 +161,7 @@ impl Default for ClusterViewBuilder {
             misses: Vec::new(),
             last_probed: None,
             quorum: Quorum::NotTracked,
+            epoch: 0,
         }
     }
 }

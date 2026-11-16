@@ -29,7 +29,10 @@ fn non_member_observed_participation_from_member_returns_none() {
     let members = members();
 
     // Act
-    let non_member = members.non_member_observed(&Command::ParticipationObserved { peer_id: 1 });
+    let non_member = members.non_member_observed(&Command::ParticipationObserved {
+        peer_id: 1,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(non_member, None);
@@ -41,7 +44,10 @@ fn non_member_observed_participation_from_non_member_returns_peer() {
     let members = members();
 
     // Act
-    let non_member = members.non_member_observed(&Command::ParticipationObserved { peer_id: 9 });
+    let non_member = members.non_member_observed(&Command::ParticipationObserved {
+        peer_id: 9,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(non_member, Some(9));
@@ -53,7 +59,10 @@ fn non_member_observed_ready_from_member_returns_none() {
     let members = members();
 
     // Act
-    let non_member = members.non_member_observed(&Command::ReadyObserved { peer_id: 2 });
+    let non_member = members.non_member_observed(&Command::ReadyObserved {
+        peer_id: 2,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(non_member, None);
@@ -65,7 +74,10 @@ fn non_member_observed_ready_from_non_member_returns_peer() {
     let members = members();
 
     // Act
-    let non_member = members.non_member_observed(&Command::ReadyObserved { peer_id: 7 });
+    let non_member = members.non_member_observed(&Command::ReadyObserved {
+        peer_id: 7,
+        epoch: 0,
+    });
 
     // Assert
     assert_eq!(non_member, Some(7));

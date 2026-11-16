@@ -41,11 +41,20 @@ impl MessageTranslator {
     pub fn to_command(&self, message: InputMessage) -> Command {
         match message {
             InputMessage::Transport(msg) => match msg {
-                TransportMessage::Ping { from } => Command::ParticipationObserved { peer_id: from },
-                TransportMessage::Ready { from } => Command::ReadyObserved { peer_id: from },
+                TransportMessage::Ping { from } => Command::ParticipationObserved {
+                    peer_id: from,
+                    epoch: 0,
+                },
+                TransportMessage::Ready { from } => Command::ReadyObserved {
+                    peer_id: from,
+                    epoch: 0,
+                },
                 TransportMessage::Bootstrapped { .. } => Command::Probe,
                 TransportMessage::MembershipAcknowledged { from } => {
-                    Command::MembershipAcknowledged { peer_id: from }
+                    Command::MembershipAcknowledged {
+                        peer_id: from,
+                        epoch: 0,
+                    }
                 }
                 TransportMessage::Membership { .. } => unreachable!("handled in decide()"),
                 TransportMessage::ProbeAnswer {
@@ -61,7 +70,7 @@ impl MessageTranslator {
             },
             InputMessage::Timer(msg) => match msg {
                 TimerMessage::ParticipationObserved { peer_id } => {
-                    Command::ParticipationObserved { peer_id }
+                    Command::ParticipationObserved { peer_id, epoch: 0 }
                 }
                 TimerMessage::LocalParticipationCompleted => Command::LocalParticipationCompleted,
                 TimerMessage::RetryPing => unreachable!("handled in decide()"),

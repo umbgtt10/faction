@@ -13,6 +13,7 @@ use faction::process_result::ProcessResult;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::PeerId;
 
+use crate::commit::Commit;
 use crate::input_message::InputMessage;
 use crate::message_translator::MessageTranslator;
 use crate::output_message::OutputMessage;
@@ -58,20 +59,13 @@ impl Protocol {
         self.apply(Command::JoinApproved { peer_id })
     }
 
-    pub fn change_required_count(&mut self, required_count: usize) -> Vec<OutputMessage> {
-        self.apply(Command::RequiredCountChanged { required_count })
-    }
-
     pub fn cluster_view(&mut self) -> ClusterView {
         ResultView::of(self.faction.process(Command::Probe))
     }
 
-    pub fn commit_addition(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
-        self.apply(Command::AdditionCommitted { peer_id })
-    }
-
-    pub fn commit_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
-        self.apply(Command::RemovalCommitted { peer_id })
+    // A change the layer above has committed, at its epoch.
+    pub fn commit(&mut self, commit: Commit) -> Vec<OutputMessage> {
+        self.apply(commit.command())
     }
 
     pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {

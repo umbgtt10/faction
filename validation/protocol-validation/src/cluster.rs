@@ -23,6 +23,7 @@ use faction_protocol::transport_message::TransportMessage;
 
 use crate::in_memory_timer::InMemoryTimer;
 use crate::in_memory_transport::InMemoryTransport;
+use faction_protocol::commit::Commit;
 use faction_protocol::timer::Timer;
 use faction_protocol::transport::Transport;
 
@@ -70,6 +71,7 @@ impl Cluster {
                     peer_ids.clone(),
                     QuorumPolicy::new(required),
                     suspicion_threshold,
+                    0,
                 );
                 Protocol::new(
                     Faction::new(config, Box::new(NoOpObserver)),
@@ -128,17 +130,20 @@ impl Cluster {
     }
 
     pub fn change_required_count(&mut self, index: usize, required_count: usize) {
-        let decisions = self.protocols[index].change_required_count(required_count);
+        let decisions = self.protocols[index].commit(Commit::RequiredCount {
+            required_count,
+            epoch: 0,
+        });
         self.route_all(decisions, index);
     }
 
     pub fn commit_addition(&mut self, index: usize, peer_id: PeerId) {
-        let decisions = self.protocols[index].commit_addition(peer_id);
+        let decisions = self.protocols[index].commit(Commit::Addition { peer_id, epoch: 0 });
         self.route_all(decisions, index);
     }
 
     pub fn commit_removal(&mut self, index: usize, peer_id: PeerId) {
-        let decisions = self.protocols[index].commit_removal(peer_id);
+        let decisions = self.protocols[index].commit(Commit::Removal { peer_id, epoch: 0 });
         self.route_all(decisions, index);
     }
 

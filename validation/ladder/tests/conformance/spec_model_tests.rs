@@ -8,6 +8,7 @@
 // the matrix admitting what the prose states (§5). The vectors are checked here
 // before the crate runs them.
 
+use crate::support::growth::Growth;
 use crate::support::spec_files::SpecFiles;
 use faction_spec_model::answer::Answer;
 use faction_spec_model::model::Model;
@@ -104,6 +105,7 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::RemovalRequested,
                 CommandName::RemovalCommitted,
                 CommandName::RequiredCountChanged,
+                CommandName::MembershipReceived,
                 CommandName::ProbeDue,
                 CommandName::PeerHeard,
                 CommandName::ProbeMissed,
@@ -123,6 +125,7 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::RemovalCommitted,
                 CommandName::RemovalAborted,
                 CommandName::RequiredCountChanged,
+                CommandName::MembershipReceived,
                 CommandName::ProbeDue,
                 CommandName::PeerHeard,
                 CommandName::ProbeMissed,
@@ -130,7 +133,10 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::Probe,
             ],
         ),
-        (Stage::Removed, vec![CommandName::Probe]),
+        (
+            Stage::Removed,
+            vec![CommandName::MembershipReceived, CommandName::Probe],
+        ),
     ];
 
     // Act
@@ -147,6 +153,7 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
 fn process_of_every_vector_answers_each_step_as_written() {
     // Arrange
     let vectors = SpecFiles::vectors();
+    let growth = Growth::new(SpecFiles::released());
 
     // Act
     let departures: Vec<String> = vectors
@@ -157,7 +164,9 @@ fn process_of_every_vector_answers_each_step_as_written() {
                 .into_iter()
                 .zip(vector["steps"].as_array().expect("a vector's steps"))
                 .enumerate()
-                .filter(|(_, (answer, step))| answer.result != step["result"])
+                .filter(|(_, (answer, step))| {
+                    growth.as_released(name, &answer.result) != step["result"]
+                })
                 .map(|(index, (answer, step))| {
                     format!(
                         "{name}, step {}: the model answers {}, the vector {}",
@@ -171,7 +180,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
         .collect();
 
     // Assert
-    assert_eq!(vectors.len(), 93);
+    assert_eq!(vectors.len(), 108);
     assert!(departures.is_empty(), "{departures:#?}");
 }
 
@@ -179,6 +188,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
 fn process_of_every_vector_answers_the_closing_probe_with_the_final_answer() {
     // Arrange
     let vectors = SpecFiles::vectors();
+    let growth = Growth::new(SpecFiles::released());
 
     // Act
     let departures: Vec<String> = vectors
@@ -186,7 +196,7 @@ fn process_of_every_vector_answers_the_closing_probe_with_the_final_answer() {
         .filter_map(|(name, vector)| {
             let (_, closing) = answers(vector);
             let expected = json!({ "Probed": vector["final"] });
-            (closing.result != expected).then(|| {
+            (growth.as_released(name, &closing.result) != expected).then(|| {
                 format!(
                     "{name}: the model answers {}, the vector {expected}",
                     closing.result

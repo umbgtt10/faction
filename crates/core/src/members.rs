@@ -30,7 +30,8 @@ impl Members {
     #[must_use]
     pub fn non_member_observed(&self, command: &Command) -> Option<PeerId> {
         match command {
-            Command::ParticipationObserved { peer_id } | Command::ReadyObserved { peer_id }
+            Command::ParticipationObserved { peer_id, .. }
+            | Command::ReadyObserved { peer_id, .. }
                 if !self.is_member(*peer_id) =>
             {
                 Some(*peer_id)

@@ -6,6 +6,7 @@
 
 extern crate alloc;
 
+pub mod commit;
 pub mod input_message;
 pub mod message_translator;
 pub mod newcomer;

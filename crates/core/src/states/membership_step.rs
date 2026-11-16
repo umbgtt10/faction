@@ -11,7 +11,8 @@ use crate::states::membership_decision::MembershipDecision;
 
 // A membership decision applied, alike in every stage that admits it: a
 // committed addition admits its peer as an approval does, a committed removal
-// takes its peer out, and a new count becomes the count in effect.
+// takes its peer out, a new count becomes the count in effect, and a membership
+// adopted replaces both.
 pub struct MembershipStep {
     outcomes: Vec<Outcome>,
     members: Members,
@@ -68,6 +69,11 @@ impl MembershipStep {
                 }],
                 members,
                 quorum_policy: counted,
+            },
+            MembershipDecision::Adopted(adopted, quorum_policy, epoch) => Self {
+                outcomes: vec![Outcome::MembershipAdopted { epoch }],
+                members: adopted,
+                quorum_policy,
             },
         }
     }

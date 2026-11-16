@@ -34,6 +34,12 @@ pub enum Situation {
     SuspicionLosesQuorum,
     QuorumCannotSpare,
     CompletionLosesQuorum,
+    ClaimIsBehind,
+    CommitIsHeld,
+    MembershipIsHeld,
+    MembershipNamesNode,
+    MembershipOmitsNode,
+    MembershipConcludes,
 }
 
 impl Situation {
@@ -90,6 +96,14 @@ impl Situation {
                 Self::is_pending(command, &state.reconfiguration)
                     && Situation::LosesQuorum(Change::RemovalCompletes)
                         .holds(command, state, admitted)
+            }
+            Situation::ClaimIsBehind => command.epoch < state.epoch,
+            Situation::CommitIsHeld => (1..=state.epoch).contains(&command.epoch),
+            Situation::MembershipIsHeld => command.epoch <= state.epoch,
+            Situation::MembershipNamesNode => command.members.contains(&state.peer_id),
+            Situation::MembershipOmitsNode => !command.members.contains(&state.peer_id),
+            Situation::MembershipConcludes => {
+                Self::reaches_required_count(&Change::MembershipAdopted.applied(command, state))
             }
         }
     }

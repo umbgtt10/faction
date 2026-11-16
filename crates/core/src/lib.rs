@@ -87,21 +87,22 @@
 //!     alloc::vec![0, 1, 2, 3, 4],        // all peers
 //!     QuorumPolicy::new(4),              // quorum threshold
 //!     1,                                 // missed probe periods before suspicion
+//!     0,                                 // the epoch of this membership
 //! );
 //!
 //! let mut machine = Faction::new(config, Box::new(NoOpObserver));
 //!
 //! // Phase 1 — feed participation signals as they arrive from the wire.
 //! assert!(matches!(
-//!     machine.process(Command::ParticipationObserved { peer_id: 1 }),
+//!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 }),
 //!     ProcessResult::Accepted { .. }
 //! ));
-//! machine.process(Command::ParticipationObserved { peer_id: 2 });
+//! machine.process(Command::ParticipationObserved { peer_id: 2, epoch: 0 });
 //!
 //! // A duplicate is accepted but marked ignored — and, like every result,
 //! // it reports the set of commands admissible next.
 //! if let ProcessResult::Accepted { admissible, .. } =
-//!     machine.process(Command::ParticipationObserved { peer_id: 1 })
+//!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 })
 //! {
 //!     assert!(admissible.contains(&Command::LocalParticipationCompleted));
 //! }
@@ -115,11 +116,11 @@
 //!
 //! // Phase 2 — local participation done, now collecting readiness.
 //! machine.process(Command::LocalParticipationCompleted);
-//! machine.process(Command::ReadyObserved { peer_id: 1 });
-//! machine.process(Command::ReadyObserved { peer_id: 2 });
+//! machine.process(Command::ReadyObserved { peer_id: 1, epoch: 0 });
+//! machine.process(Command::ReadyObserved { peer_id: 2, epoch: 0 });
 //!
 //! // Self plus peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
-//! let result = machine.process(Command::ReadyObserved { peer_id: 3 });
+//! let result = machine.process(Command::ReadyObserved { peer_id: 3, epoch: 0 });
 //! if let ProcessResult::Accepted { cluster_view, .. } = result {
 //!     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 //!     // The cluster is live. Hand off to the application.

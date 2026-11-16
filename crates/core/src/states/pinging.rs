@@ -15,9 +15,11 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
+use crate::types::Epoch;
 use crate::types::PeerId;
 
 use super::collecting::Collecting;
+use super::epoch_rule::EpochRule;
 use super::local_completion_step::LocalCompletionStep;
 use super::membership_decision::MembershipDecision;
 use super::membership_step::MembershipStep;
@@ -60,18 +62,21 @@ impl State for Pinging {
             .build()
     }
 
-    fn step(&self, command: Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
-        if command
-            == (Command::RemovalCommitted {
-                peer_id: config.peer_id(),
-            })
-        {
-            Some(Removed::own_removal(config.peer_id()))
-        } else if let Some(peer_id) = self.members.non_member_observed(&command) {
-            Some((
-                vec![Outcome::NonMemberIgnored { peer_id }],
-                Stage::Pinging(self.clone()),
-            ))
+    fn step(
+        &self,
+        command: Command,
+        config: &Config,
+        epoch: Epoch,
+    ) -> Option<(Vec<Outcome>, Stage)> {
+        if let Some(departure) = Removed::departure(
+            &command,
+            config.peer_id(),
+            &self.members,
+            self.quorum_policy,
+        ) {
+            Some(departure)
+        } else if let Some(uncounted) = EpochRule::new(epoch).uncounted(&command, &self.members) {
+            Some((uncounted, Stage::Pinging(self.clone())))
         } else if let Some(decision) = MembershipDecision::of(&command) {
             let membership =
                 MembershipStep::new(self.members.clone(), self.quorum_policy, decision);
@@ -87,7 +92,7 @@ impl State for Pinging {
             ))
         } else {
             match command {
-                Command::ParticipationObserved { peer_id } => {
+                Command::ParticipationObserved { peer_id, .. } => {
                     let step = PingingStep::new(self.pinging_peers.clone(), peer_id);
 
                     Some((
@@ -99,7 +104,7 @@ impl State for Pinging {
                     ))
                 }
 
-                Command::ReadyObserved { peer_id } => {
+                Command::ReadyObserved { peer_id, .. } => {
                     let step =
                         ReadyBeforeCompletionStep::new(self.collecting_peers.clone(), peer_id);
 

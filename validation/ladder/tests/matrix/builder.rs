@@ -9,6 +9,8 @@ use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 
+// The epoch a node built at an epoch holds: the count's commit took it there.
+pub const EPOCH: u64 = 2;
 // The peer whose addition a reconfiguring node has in flight.
 pub const NEWCOMER: u64 = 9;
 // The member a removing node suspects, and whose removal it has in flight.
@@ -17,40 +19,58 @@ pub const THRESHOLD: usize = 5;
 
 pub fn build(init: Init) -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1, 0),
         Box::new(NoOpObserver),
     );
-    if !matches!(init, Init::Initial) {
-        let _ = faction.process(Command::ParticipationObserved { peer_id: 99 });
+    if !matches!(init, Init::Initial | Init::InitialAtEpoch) {
+        let _ = faction.process(Command::ParticipationObserved {
+            peer_id: 99,
+            epoch: 0,
+        });
     }
     match init {
-        Init::Initial => {}
+        Init::Initial | Init::InitialAtEpoch => {}
         Init::Fresh => {}
         Init::PingingPeer1Confirmed => {
-            let _ = faction.process(Command::ParticipationObserved { peer_id: 1 });
+            let _ = faction.process(Command::ParticipationObserved {
+                peer_id: 1,
+                epoch: 0,
+            });
         }
         Init::PingingP2Threshold => {
             for peer in 0..5 {
-                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved {
+                    peer_id: peer,
+                    epoch: 0,
+                });
             }
         }
-        Init::CollectingNoReadiness => {
+        Init::CollectingNoReadiness | Init::CollectingAtEpoch => {
             let _ = faction.process(Command::LocalParticipationCompleted);
         }
         Init::CollectingPeer1Confirmed => {
             let _ = faction.process(Command::LocalParticipationCompleted);
-            let _ = faction.process(Command::ReadyObserved { peer_id: 1 });
+            let _ = faction.process(Command::ReadyObserved {
+                peer_id: 1,
+                epoch: 0,
+            });
         }
         Init::CollectingAlmostQuorum => {
             let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..4 {
-                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved {
+                    peer_id: peer,
+                    epoch: 0,
+                });
             }
         }
-        Init::Bootstrapped => {
+        Init::Bootstrapped | Init::BootstrappedAtEpoch => {
             let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved {
+                    peer_id: peer,
+                    epoch: 0,
+                });
             }
         }
         Init::TimedOut => {
@@ -59,33 +79,60 @@ pub fn build(init: Init) -> Faction {
         Init::Suspecting | Init::Removing | Init::RemovingRevived => {
             let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved {
+                    peer_id: peer,
+                    epoch: 0,
+                });
             }
             let _ = faction.process(Command::IndirectProbesMissed { peer_id: SUSPECT });
         }
         Init::Removed => {
             let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved {
+                    peer_id: peer,
+                    epoch: 0,
+                });
             }
-            let _ = faction.process(Command::RemovalCommitted { peer_id: 0 });
+            let _ = faction.process(Command::RemovalCommitted {
+                peer_id: 0,
+                epoch: 0,
+            });
         }
-        Init::Reconfiguring | Init::ReconfiguringAcknowledged => {
+        Init::Reconfiguring | Init::ReconfiguringAcknowledged | Init::ReconfiguringAtEpoch => {
             let _ = faction.process(Command::LocalParticipationCompleted);
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved { peer_id: peer });
+                let _ = faction.process(Command::ReadyObserved {
+                    peer_id: peer,
+                    epoch: 0,
+                });
             }
             let _ = faction.process(Command::AdditionRequested { peer_id: NEWCOMER });
         }
     }
     if matches!(init, Init::ReconfiguringAcknowledged) {
-        let _ = faction.process(Command::MembershipAcknowledged { peer_id: NEWCOMER });
+        let _ = faction.process(Command::MembershipAcknowledged {
+            peer_id: NEWCOMER,
+            epoch: 0,
+        });
     }
     if matches!(init, Init::Removing | Init::RemovingRevived) {
         let _ = faction.process(Command::RemovalRequested { peer_id: SUSPECT });
     }
     if matches!(init, Init::RemovingRevived) {
         let _ = faction.process(Command::PeerHeard { peer_id: SUSPECT });
+    }
+    if matches!(
+        init,
+        Init::InitialAtEpoch
+            | Init::CollectingAtEpoch
+            | Init::BootstrappedAtEpoch
+            | Init::ReconfiguringAtEpoch
+    ) {
+        let _ = faction.process(Command::RequiredCountChanged {
+            required_count: THRESHOLD,
+            epoch: EPOCH,
+        });
     }
     faction
 }
@@ -109,4 +156,8 @@ pub enum Init {
     Removing,
     RemovingRevived,
     Removed,
+    InitialAtEpoch,
+    CollectingAtEpoch,
+    BootstrappedAtEpoch,
+    ReconfiguringAtEpoch,
 }

@@ -42,6 +42,7 @@ impl<'a> ConclusionSequence<'a> {
                 (NODE..=self.peers).collect(),
                 QuorumPolicy::new(self.peers as usize),
                 1,
+                0,
             ),
             Box::new(NoOpObserver),
         );
@@ -49,9 +50,11 @@ impl<'a> ConclusionSequence<'a> {
         let given = if self.busy { 2 } else { 1 };
         let busy = self.busy;
         let signals = (NODE + 1..=self.peers)
-            .map(|peer_id| Command::ParticipationObserved { peer_id })
+            .map(|peer_id| Command::ParticipationObserved { peer_id, epoch: 0 })
             .chain(once(Command::LocalParticipationCompleted))
-            .chain((NODE + 1..=self.peers).map(|peer_id| Command::ReadyObserved { peer_id }));
+            .chain(
+                (NODE + 1..=self.peers).map(|peer_id| Command::ReadyObserved { peer_id, epoch: 0 }),
+            );
         for command in
             signals.flat_map(|signal| repeat_n(signal, given).chain(busy.then_some(Command::Probe)))
         {

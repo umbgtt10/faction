@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use serde_json::Value;
 use serde_json::json;
 
+use crate::epoch::Epoch;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
 use crate::reconfiguration::Reconfiguration;
@@ -32,23 +33,42 @@ pub struct View;
 impl View {
     #[must_use]
     pub fn of(state: &NodeState) -> Value {
-        json!({
-            "peer_state": Variant::unit(Self::peer_state(state)),
-            "is_pinging_completed": matches!(
-                state.stage,
-                Stage::Collecting | Stage::Bootstrapped | Stage::Reconfiguring
-            ) || state.completed_before_removal,
-            "pinging_peers": state.pinging_peers,
-            "collecting_peers": state.collecting_peers,
-            "required_count": state.required_count.to_string(),
-            "deadline_missed": state.deadline_missed,
-            "members": state.members,
-            "reconfiguration": Self::reconfiguration(&state.reconfiguration),
-            "suspected": state.suspected,
-            "misses": Self::misses(state),
-            "last_probed": Self::last_probed(state.last_probed.as_ref()),
-            "quorum": Variant::unit(Self::quorum(state)),
-        })
+        Epoch::stated(
+            json!({
+                "peer_state": Variant::unit(Self::peer_state(state)),
+                "is_pinging_completed": matches!(
+                    state.stage,
+                    Stage::Collecting | Stage::Bootstrapped | Stage::Reconfiguring
+                ) || state.completed_before_removal,
+                "pinging_peers": state.pinging_peers,
+                "collecting_peers": state.collecting_peers,
+                "required_count": state.required_count.to_string(),
+                "deadline_missed": state.deadline_missed,
+                "members": state.members,
+                "reconfiguration": Self::reconfiguration(&state.reconfiguration),
+                "suspected": state.suspected,
+                "misses": Self::misses(state),
+                "last_probed": Self::last_probed(state.last_probed.as_ref()),
+                "quorum": Variant::unit(Self::quorum(state)),
+            }),
+            state.epoch,
+        )
+    }
+
+    #[must_use]
+    pub fn reconfiguration(reconfiguration: &Reconfiguration) -> Value {
+        match reconfiguration {
+            Reconfiguration::None => Variant::unit(NONE),
+            Reconfiguration::AdditionRequested(peer_id) => {
+                Variant::of(ADDITION_REQUESTED, json!({"peer_id": peer_id}))
+            }
+            Reconfiguration::AdditionAcknowledged(peer_id) => {
+                Variant::of(ADDITION_ACKNOWLEDGED, json!({"peer_id": peer_id}))
+            }
+            Reconfiguration::RemovalRequested(peer_id) => {
+                Variant::of(REMOVAL_REQUESTED, json!({"peer_id": peer_id}))
+            }
+        }
     }
 
     fn last_probed(last_probed: Option<&String>) -> Value {
@@ -86,21 +106,6 @@ impl View {
             (Stage::Bootstrapped | Stage::Reconfiguring, true) => HELD,
             (Stage::Bootstrapped | Stage::Reconfiguring, false) => LOST,
             _ => NOT_TRACKED,
-        }
-    }
-
-    fn reconfiguration(reconfiguration: &Reconfiguration) -> Value {
-        match reconfiguration {
-            Reconfiguration::None => Variant::unit(NONE),
-            Reconfiguration::AdditionRequested(peer_id) => {
-                Variant::of(ADDITION_REQUESTED, json!({"peer_id": peer_id}))
-            }
-            Reconfiguration::AdditionAcknowledged(peer_id) => {
-                Variant::of(ADDITION_ACKNOWLEDGED, json!({"peer_id": peer_id}))
-            }
-            Reconfiguration::RemovalRequested(peer_id) => {
-                Variant::of(REMOVAL_REQUESTED, json!({"peer_id": peer_id}))
-            }
         }
     }
 }

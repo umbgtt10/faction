@@ -81,7 +81,7 @@ fn invalid_transition(
     };
 
     // Act
-    let result = faction.process(command);
+    let result = faction.process(command.clone());
 
     // Assert
     let departures = table.departures(

@@ -63,6 +63,7 @@ impl Newcomer {
                     peers.clone(),
                     QuorumPolicy::new(required_count),
                     self.suspicion_threshold,
+                    0,
                 );
                 let protocol = Protocol::new(
                     Faction::new(config, self.observer),

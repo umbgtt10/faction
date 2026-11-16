@@ -6,6 +6,7 @@ use crate::support::spec_files::SpecFiles;
 use alloc::vec;
 use alloc::vec::Vec;
 use faction::command::Command;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 pub fn addition_aborted(peer_id: PeerId) -> Command {
@@ -13,7 +14,7 @@ pub fn addition_aborted(peer_id: PeerId) -> Command {
 }
 
 pub fn addition_committed(peer_id: PeerId) -> Command {
-    Command::AdditionCommitted { peer_id }
+    Command::AdditionCommitted { peer_id, epoch: 0 }
 }
 
 pub fn addition_requested(peer_id: PeerId) -> Command {
@@ -50,12 +51,21 @@ pub fn join_requested(peer_id: PeerId) -> Command {
     Command::JoinRequested { peer_id }
 }
 
+// A membership of `members`, requiring `required_count`, at `epoch`.
+pub fn membership(members: &[PeerId], required_count: usize, epoch: Epoch) -> Command {
+    Command::MembershipReceived {
+        members: members.to_vec(),
+        required_count,
+        epoch,
+    }
+}
+
 pub fn membership_acknowledged(peer_id: PeerId) -> Command {
-    Command::MembershipAcknowledged { peer_id }
+    Command::MembershipAcknowledged { peer_id, epoch: 0 }
 }
 
 pub fn participation(peer_id: PeerId) -> Command {
-    Command::ParticipationObserved { peer_id }
+    Command::ParticipationObserved { peer_id, epoch: 0 }
 }
 
 pub fn peer_heard(peer_id: PeerId) -> Command {
@@ -75,7 +85,7 @@ pub fn probe_only() -> Vec<Command> {
 }
 
 pub fn ready(peer_id: PeerId) -> Command {
-    Command::ReadyObserved { peer_id }
+    Command::ReadyObserved { peer_id, epoch: 0 }
 }
 
 pub fn reconfiguring_admissible() -> Vec<Command> {
@@ -87,7 +97,7 @@ pub fn removal_aborted(peer_id: PeerId) -> Command {
 }
 
 pub fn removal_committed(peer_id: PeerId) -> Command {
-    Command::RemovalCommitted { peer_id }
+    Command::RemovalCommitted { peer_id, epoch: 0 }
 }
 
 pub fn removal_requested(peer_id: PeerId) -> Command {
@@ -99,5 +109,8 @@ pub fn removed_admissible() -> Vec<Command> {
 }
 
 pub fn required_count_changed(required_count: usize) -> Command {
-    Command::RequiredCountChanged { required_count }
+    Command::RequiredCountChanged {
+        required_count,
+        epoch: 0,
+    }
 }

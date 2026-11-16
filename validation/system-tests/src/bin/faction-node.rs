@@ -119,6 +119,7 @@ fn main() {
             config.peers.clone(),
             QuorumPolicy::new(config.required),
             config.suspicion_threshold,
+            0,
         );
         let protocol = Protocol::new(
             Faction::new(faction_config, observer),
