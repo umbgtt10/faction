@@ -1,6 +1,6 @@
 # P2-ADR-TestingLadder
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-16 — the chaos tier
 - **Date:** 2026-07-20
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting
@@ -47,6 +47,15 @@ all run by one gate:
    signals, a thousand probe periods hold what one does, a hundred membership
    changes hold what one does, and nothing is left once the machine is gone
    (`validation/memory/`), as beggar's and cartel's tiers are.
+9. **Chaos** — scenarios drawn from a seed: a cluster, membership changes from
+   several coordinators in partly random order, and the network's and the timers'
+   faults; the layer above commits one change at a time in epoch order, late or
+   twice, never reordered. Every invariant is watched while the faults play, and
+   once they heal every node is checked against the end state the committed log
+   implies — computed, never observed (`validation/chaos/`). A deterministic
+   engine plays them on task nodes and a simulated clock, a seed replaying
+   exactly and a failure shrunk into a recorded regression; a real one on thread
+   and process nodes over the four transports, on the machine's clock.
 
 "Tested" means every tier passes under the gate; "done" means the gate is green.
 
@@ -55,8 +64,11 @@ Each tier is load-bearing because it is the only one that catches its class of
 failure: the matrix proves totality but not liveness; property tests find invariant
 violations no fixed case enumerates; the simulation and system tiers expose transport-
 and timing-dependent bugs that pure-logic tiers cannot — the TCP partial-write hang
-was a system-tier find, invisible to every tier above it. Binding all tiers to a
-single gate makes coverage structural rather than per-feature memory.
+was a system-tier find, invisible to every tier above it. So were the chaos tier's,
+each a combination no fixed scenario reached: a membership taken by a node it was
+not addressed to, a newcomer answering from behind with a membership not yet
+committed, and a member's ping answered with a broadcast to every member. Binding
+all tiers to a single gate makes coverage structural rather than per-feature memory.
 
 ## Rejected alternatives
 Lean on the exhaustive matrix alone — proves every transition is defined, proves
@@ -79,3 +91,6 @@ gates, among them 100% line, region and function coverage of `faction` and
 `faction-protocol` measured with the ladder's tiers running, and of `faction` again
 measured with the conformance tier alone
 (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`). Both green is the definition of done.
+Stage 1 runs the chaos tier's deterministic seeds and every regression recorded;
+its real engine runs on demand, `just chaos`, and its soak for as long as asked,
+`just chaos-soak`.
