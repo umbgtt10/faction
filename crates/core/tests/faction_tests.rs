@@ -16,6 +16,7 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
+use faction::reconfiguration::Reconfiguration;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -905,6 +906,42 @@ fn process_observes_timely_ready_from_collecting_no_quorum() {
     assert_eq!(view.peer_state(), PeerState::Collecting);
     assert_eq!(view.collecting_peers().len(), 3);
     assert_ne!(view.peer_state(), PeerState::Bootstrapped);
+}
+
+#[test]
+fn process_of_a_change_requested_of_a_provisional_node_is_refused_until_its_addition_commits() {
+    // Arrange
+    let mut newcomer = Faction::new(
+        Config::new(5, vec![0, 5], QuorumPolicy::new(1), 1, 2, true),
+        Box::new(NoOpObserver),
+    );
+    process(&mut newcomer, Command::LocalParticipationCompleted);
+
+    // Act
+    let refused = [
+        process(&mut newcomer, Command::AdditionRequested { peer_id: 7 }),
+        process(&mut newcomer, Command::RemovalRequested { peer_id: 0 }),
+    ];
+    let still = probe(&mut newcomer).reconfiguration();
+    process(
+        &mut newcomer,
+        Command::AdditionCommitted {
+            peer_id: 5,
+            epoch: 3,
+        },
+    );
+    let coordinated = process(&mut newcomer, Command::AdditionRequested { peer_id: 7 });
+
+    // Assert
+    assert_eq!(
+        refused,
+        [
+            vec![Outcome::CoordinationRefused { peer_id: 7 }],
+            vec![Outcome::CoordinationRefused { peer_id: 0 }],
+        ]
+    );
+    assert_eq!(still, Reconfiguration::None);
+    assert_eq!(coordinated, vec![Outcome::SendMembership { peer_id: 7 }]);
 }
 
 #[test]

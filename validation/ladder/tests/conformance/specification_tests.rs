@@ -271,7 +271,12 @@ fn vector_bytes_of_every_released_vector_are_as_released() {
         .filter_map(|entry| {
             let id = entry["id"].as_str().expect("a released vector's id");
             let expected = entry["sha256"].as_str().expect("its digest");
-            match SpecFiles::vector_bytes(id) {
+            let bytes = if entry.get("withdrawn").is_some() {
+                SpecFiles::withdrawn_bytes(id)
+            } else {
+                SpecFiles::vector_bytes(id)
+            };
+            match bytes {
                 None => Some(format!("{id}: released, and missing")),
                 Some(bytes) if digest(&bytes) != expected => {
                     Some(format!("{id}: released, and changed"))
@@ -283,4 +288,33 @@ fn vector_bytes_of_every_released_vector_are_as_released() {
 
     // Assert
     assert!(departures.is_empty(), "{departures:#?}");
+}
+
+#[test]
+fn vectors_of_the_specification_hold_no_vector_withdrawn() {
+    // Arrange
+    let released = SpecFiles::released();
+    let in_force: Vec<String> = SpecFiles::vectors()
+        .into_iter()
+        .map(|(name, _)| name)
+        .collect();
+
+    // Act
+    let withdrawn: Vec<&str> = released["vectors"]
+        .as_array()
+        .expect("the released vectors")
+        .iter()
+        .filter(|entry| entry.get("withdrawn").is_some())
+        .map(|entry| entry["id"].as_str().expect("a released vector's id"))
+        .collect();
+
+    // Assert
+    assert_eq!(
+        withdrawn,
+        ["113-provisional-acknowledgement-from-behind-and-removal"]
+    );
+    for id in withdrawn {
+        assert!(!in_force.iter().any(|name| name == id), "{id}");
+        assert!(SpecFiles::withdrawn_bytes(id).is_some(), "{id}");
+    }
 }

@@ -190,6 +190,7 @@ impl SpecWriter {
             Outcome::AbortIgnored { peer_id } => Self::peer("AbortIgnored", *peer_id),
             Outcome::ProposeRemoval { peer_id } => Self::peer("ProposeRemoval", *peer_id),
             Outcome::RemovalRefused { peer_id } => Self::peer("RemovalRefused", *peer_id),
+            Outcome::CoordinationRefused { peer_id } => Self::peer("CoordinationRefused", *peer_id),
             Outcome::RemovalWithdrawn { peer_id } => Self::peer("RemovalWithdrawn", *peer_id),
             Outcome::MemberRemoved { peer_id } => Self::peer("MemberRemoved", *peer_id),
             Outcome::RequiredCountSet { required_count } => {

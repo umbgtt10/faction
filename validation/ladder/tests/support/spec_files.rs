@@ -31,6 +31,12 @@ impl SpecFiles {
         read(Self::root().join("vectors").join(format!("{name}.json"))).ok()
     }
 
+    // A withdrawn vector's file, byte for byte, or none if no vector withdrawn
+    // has the name.
+    pub fn withdrawn_bytes(name: &str) -> Option<Vec<u8>> {
+        read(Self::root().join("withdrawn").join(format!("{name}.json"))).ok()
+    }
+
     // Every vector under its file's name, in the order of the names.
     pub fn vectors() -> Vec<(String, Value)> {
         let folder = Self::root().join("vectors");

@@ -76,19 +76,6 @@ growth rule deciding how released vectors carry it.
 
 ---
 
-## A provisional node coordinating
-
-Specification 0.6.0 has a newcomer hold its membership provisionally until its own addition
-commits, and send none to a peer behind
-([`P1-ADR-ANewcomerHoldsItsMembershipProvisionally`](ADRs/P1-ADR-ANewcomerHoldsItsMembershipProvisionally.md)).
-A provisional node that has concluded -- alone, with a required count of one -- may still be asked
-to coordinate an addition, and `AdditionRequested` has it offer its membership, itself in it, to
-the next newcomer. The chaos validation's layer above asks only members no change removes, which a
-newcomer is not, so nothing has met it. Whether a provisional node may coordinate at all -- refused,
-as a removed node is, until its addition commits -- is a question for the next specification.
-
----
-
 ## Deferred
 
 - `PeerId` genericization (currently `u64`) — deferred to post-Phase-6.

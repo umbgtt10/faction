@@ -217,6 +217,7 @@ view shows, never what it admits.
 | `AbortIgnored { peer_id }` | An abort not naming the change in flight |
 | `ProposeRemoval { peer_id }` | Propose the removal to the layer that commits |
 | `RemovalRefused { peer_id }` | The quorum cannot spare the member: the members not suspected would fall below the count |
+| `CoordinationRefused { peer_id }` | The node's membership is provisional: it coordinates no addition or removal until its own addition commits |
 | `RemovalWithdrawn { peer_id }` | The removal in flight was aborted |
 | `MemberRemoved { peer_id }` | The peer is no longer a member — the node itself among them, which is then `Removed` |
 | `RequiredCountSet { required_count }` | The required count in effect is now this |

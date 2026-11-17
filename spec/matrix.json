@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "admits": {
     "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
@@ -217,6 +217,15 @@
       "next": "unchanged"
     },
     {
+      "id": "coordination-refused-provisional",
+      "stages": ["Bootstrapped"],
+      "commands": ["AdditionRequested", "RemovalRequested"],
+      "situation": "the node's membership is provisional: it coordinates no change until its own addition commits",
+      "result": "Accepted",
+      "outcomes": ["CoordinationRefused"],
+      "next": "unchanged"
+    },
+    {
       "id": "addition-member",
       "stages": ["Bootstrapped"],
       "commands": ["AdditionRequested"],
@@ -241,15 +250,6 @@
       "situation": "the change in flight is not an addition requested of `peer_id`: another peer's, one acknowledged already, or a removal",
       "result": "Accepted",
       "outcomes": ["AcknowledgementIgnored"],
-      "next": "unchanged"
-    },
-    {
-      "id": "acknowledgement-behind-provisional",
-      "stages": ["Reconfiguring"],
-      "commands": ["MembershipAcknowledged"],
-      "situation": "`epoch` is below the node's and its membership provisional: the acknowledgement is refused, and nothing sent",
-      "result": "Accepted",
-      "outcomes": ["StaleEpochIgnored"],
       "next": "unchanged"
     },
     {

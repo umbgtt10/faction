@@ -401,6 +401,25 @@ fn holds_node_is_alone_for_a_node_with_no_other_member_is_true() {
 }
 
 #[test]
+fn holds_node_is_provisional_at_a_provisional_node_only() {
+    // Arrange
+    let request = naming(CommandName::AdditionRequested, "7");
+    let provisional = NodeState {
+        provisional: true,
+        ..at(1)
+    };
+
+    // Act
+    let held = [
+        Situation::NodeIsProvisional.holds(&request, &provisional, &ADMITTED),
+        Situation::NodeIsProvisional.holds(&request, &at(1), &ADMITTED),
+    ];
+
+    // Assert
+    assert_eq!(held, [true, false]);
+}
+
+#[test]
 fn holds_not_admitted_for_a_command_the_stage_admits_is_false() {
     // Arrange
     let state = NodeStates::of(Stage::Bootstrapped, &[], &[]);

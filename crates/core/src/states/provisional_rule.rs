@@ -8,9 +8,10 @@ use crate::outcome::Outcome;
 use crate::types::PeerId;
 
 // What a provisional membership decides (§16): a node holding one sends a
-// peer behind no membership, holding none the layer above committed; and its
-// membership stops being provisional, once and for all, when it applies the
-// commit of its own addition, adopts a membership, or is removed.
+// peer behind no membership, holding none the layer above committed, and
+// coordinates no change, being no member of record; and its membership stops
+// being provisional, once and for all, when it applies the commit of its own
+// addition, adopts a membership, or is removed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProvisionalRule {
     peer_id: PeerId,
@@ -53,6 +54,20 @@ impl ProvisionalRule {
                 !matches!(outcome, Outcome::SendMembership { peer_id } if refused.contains(peer_id))
             })
             .collect()
+    }
+
+    // The answer a provisional node gives a change it is asked to coordinate,
+    // in place of the stage's: refused, naming the change's peer.
+    #[must_use]
+    pub fn refusal(&self, command: &Command) -> Option<Outcome> {
+        match *command {
+            Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id }
+                if self.provisional =>
+            {
+                Some(Outcome::CoordinationRefused { peer_id })
+            }
+            _ => None,
+        }
     }
 
     // Whether the answer ends a provisional membership: a membership adopted,
