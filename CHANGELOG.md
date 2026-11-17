@@ -5,6 +5,13 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-11-17
+
+### Published on crates.io
+
+Conforms to the specification's version 0.8.0: its 115 vectors in force are kept, each re-encoded once as receipts
+with no answer changed, their released bytes kept under `spec/released/0.7.0/`.
+
 ### Every answer numbered, every node an instance
 
 #### Added
