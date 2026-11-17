@@ -4,6 +4,7 @@
 use faction::quorum::Quorum;
 use std::cell::RefCell;
 use std::io::BufReader;
+use std::mem::take;
 use std::net::SocketAddr;
 use std::process::Child;
 use std::rc::Rc;
@@ -23,6 +24,7 @@ use serde_json::to_string;
 
 use crate::faction_node::FactionNode;
 use crate::infra::fault_settings::FaultSettings;
+use crate::infra::proposal::Proposal;
 use crate::membership::Membership;
 use crate::node_command::NodeCommand;
 use crate::node_snapshot::NodeSnapshot;
@@ -48,6 +50,7 @@ pub enum Node {
     },
     Thread {
         snapshot: Arc<Mutex<NodeSnapshot>>,
+        proposals: Arc<Mutex<Vec<Proposal>>>,
         commands: Sender<NodeCommand>,
         handle: Option<JoinHandle<()>>,
     },
@@ -55,6 +58,7 @@ pub enum Node {
         child: Mutex<Child>,
         channel: ProcessChannel,
         snapshot: Arc<Mutex<NodeSnapshot>>,
+        proposals: Arc<Mutex<Vec<Proposal>>>,
         reader: Option<JoinHandle<()>>,
     },
 }
@@ -65,12 +69,15 @@ impl Node {
         let stdin = child.stdin.take().expect("child stdin is piped");
         let stdout = child.stdout.take().expect("child stdout is piped");
         let snapshot = Arc::new(Mutex::new(FRESH));
+        let proposals = Arc::new(Mutex::new(Vec::new()));
         let (acks, ack_receiver) = channel();
-        let reader = StateReader::new(snapshot.clone(), acks).spawn(BufReader::new(stdout));
+        let reader = StateReader::new(snapshot.clone(), proposals.clone(), acks)
+            .spawn(BufReader::new(stdout));
         Self::Process {
             child: Mutex::new(child),
             channel: ProcessChannel::new(Box::new(stdin), ack_receiver),
             snapshot,
+            proposals,
             reader: Some(reader),
         }
     }
@@ -89,12 +96,15 @@ impl Node {
     ) -> Self {
         let snapshot = Arc::new(Mutex::new(FRESH));
         let thread_snapshot = snapshot.clone();
+        let proposals = Arc::new(Mutex::new(Vec::new()));
+        let thread_proposals = proposals.clone();
         let (commands, command_receiver) = channel();
         let handle = spawn(move || {
             ThreadRunner::new(
                 build(),
                 command_receiver,
                 thread_snapshot,
+                thread_proposals,
                 time,
                 idle_delay,
                 lifetime,
@@ -103,6 +113,7 @@ impl Node {
         });
         Self::Thread {
             snapshot,
+            proposals,
             commands,
             handle: Some(handle),
         }
@@ -195,6 +206,16 @@ impl Node {
                 Self::send_command(commands, |ack| NodeCommand::Cut(peer_id, ack));
             }
             Self::Process { channel, .. } => channel.send(&format!("cut {peer_id}")),
+        }
+    }
+
+    pub fn decline(&self, peer_id: PeerId, epoch: Epoch) {
+        match self {
+            Self::Task { node } => node.borrow_mut().decline(peer_id, epoch),
+            Self::Thread { commands, .. } => {
+                Self::send_command(commands, |ack| NodeCommand::Decline(peer_id, epoch, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!("decline {peer_id} {epoch}")),
         }
     }
 
@@ -361,6 +382,18 @@ impl Node {
         match self {
             Self::Task { node } => node.borrow_mut().step(),
             Self::Thread { .. } | Self::Process { .. } => false,
+        }
+    }
+
+    // What the node proposed since it was last asked, in the order it
+    // proposed it.
+    #[must_use]
+    pub fn take_proposals(&self) -> Vec<Proposal> {
+        match self {
+            Self::Task { node } => node.borrow_mut().take_proposals(),
+            Self::Thread { proposals, .. } | Self::Process { proposals, .. } => {
+                take(&mut *proposals.lock().unwrap())
+            }
         }
     }
 

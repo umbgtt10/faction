@@ -4,6 +4,7 @@
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::process_node::state_reader::StateReader;
 use rstest::rstest;
@@ -12,6 +13,19 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
+
+fn fresh() -> Arc<Mutex<NodeSnapshot>> {
+    Arc::new(Mutex::new(NodeSnapshot {
+        peer_state: PeerState::Fresh,
+        member_count: 0,
+        members: Vec::new(),
+        required_count: 0,
+        reconfiguration: Reconfiguration::None,
+        suspected: Vec::new(),
+        quorum: Quorum::NotTracked,
+        epoch: 0,
+    }))
+}
 
 fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
     let snapshot = Arc::new(Mutex::new(NodeSnapshot {
@@ -25,7 +39,7 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
         epoch: 0,
     }));
     let (acks, ack_receiver) = channel();
-    StateReader::new(snapshot.clone(), acks)
+    StateReader::new(snapshot.clone(), Arc::new(Mutex::new(Vec::new())), acks)
         .spawn(Cursor::new(output))
         .join()
         .unwrap();
@@ -62,6 +76,28 @@ fn spawn_reads_a_state_line_into_the_snapshot(
             epoch: 5,
         }
     );
+}
+
+#[rstest]
+#[case("proposal addition 7 3\n", vec![Proposal::Addition { peer_id: 7, epoch: 3 }])]
+#[case("proposal removal 2 1\nproposal removal 2 4\n", vec![Proposal::Removal { peer_id: 2, epoch: 1 }, Proposal::Removal { peer_id: 2, epoch: 4 }])]
+#[case("proposal removal 2\nproposal merger 2 1\n", vec![])]
+fn spawn_reads_each_proposal_line_into_the_proposals(
+    #[case] output: &'static str,
+    #[case] expected: Vec<Proposal>,
+) {
+    // Arrange
+    let proposals = Arc::new(Mutex::new(Vec::new()));
+    let (acks, _) = channel();
+
+    // Act
+    StateReader::new(fresh(), proposals.clone(), acks)
+        .spawn(Cursor::new(output))
+        .join()
+        .unwrap();
+
+    // Assert
+    assert_eq!(*proposals.lock().unwrap(), expected);
 }
 
 #[rstest]

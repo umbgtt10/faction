@@ -8,6 +8,7 @@ use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
 use crate::faction_node::FactionNode;
+use crate::infra::proposal::Proposal;
 use crate::node_command::NodeCommand;
 use crate::node_snapshot::NodeSnapshot;
 use crate::time_ports::TimePorts;
@@ -16,6 +17,7 @@ pub struct ThreadRunner {
     node: FactionNode,
     commands: Receiver<NodeCommand>,
     snapshot: Arc<Mutex<NodeSnapshot>>,
+    proposals: Arc<Mutex<Vec<Proposal>>>,
     time: TimePorts,
     idle_delay: Duration,
     lifetime: Duration,
@@ -27,6 +29,7 @@ impl ThreadRunner {
         node: FactionNode,
         commands: Receiver<NodeCommand>,
         snapshot: Arc<Mutex<NodeSnapshot>>,
+        proposals: Arc<Mutex<Vec<Proposal>>>,
         time: TimePorts,
         idle_delay: Duration,
         lifetime: Duration,
@@ -35,6 +38,7 @@ impl ThreadRunner {
             node,
             commands,
             snapshot,
+            proposals,
             time,
             idle_delay,
             lifetime,
@@ -101,6 +105,10 @@ impl ThreadRunner {
                     self.node.abort_removal(peer_id);
                     ack
                 }
+                Ok(NodeCommand::Decline(peer_id, epoch, ack)) => {
+                    self.node.decline(peer_id, epoch);
+                    ack
+                }
                 Ok(NodeCommand::Cut(peer_id, ack)) => {
                     self.node.cut(peer_id);
                     ack
@@ -129,7 +137,12 @@ impl ThreadRunner {
         }
     }
 
+    // The node's state, and what it proposed, where the layer above reads them.
     fn publish(&mut self) {
         *self.snapshot.lock().unwrap() = self.node.snapshot();
+        self.proposals
+            .lock()
+            .unwrap()
+            .extend(self.node.take_proposals());
     }
 }

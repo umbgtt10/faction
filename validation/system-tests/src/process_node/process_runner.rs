@@ -12,6 +12,7 @@ use faction::reconfiguration::Reconfiguration;
 
 use crate::faction_node::FactionNode;
 use crate::infra::network::address_book::AddressBook;
+use crate::infra::proposal::Proposal;
 use crate::process_node::process_command::ProcessCommand;
 use crate::time_ports::TimePorts;
 
@@ -80,6 +81,7 @@ impl ProcessRunner {
                 self.node.commit_removal(peer_id, epoch);
             }
             ProcessCommand::AbortRemoval(peer_id) => self.node.abort_removal(peer_id),
+            ProcessCommand::Decline(peer_id, epoch) => self.node.decline(peer_id, epoch),
             ProcessCommand::RequiredCount(required_count, epoch) => {
                 self.node.change_required_count(required_count, epoch);
             }
@@ -113,7 +115,11 @@ impl ProcessRunner {
         let _ = self.out.flush();
     }
 
+    // What the node proposed, a line each, then its state.
     fn emit_state(&mut self) {
+        for proposal in self.node.take_proposals() {
+            let _ = writeln!(self.out, "{}", Self::proposal(proposal));
+        }
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
@@ -142,6 +148,14 @@ impl ProcessRunner {
                 .map(PeerId::to_string)
                 .collect::<Vec<String>>()
                 .join(",")
+        }
+    }
+
+    // A proposal as its line writes it: its kind, its peer and its epoch.
+    fn proposal(proposal: Proposal) -> String {
+        match proposal {
+            Proposal::Addition { peer_id, epoch } => format!("proposal addition {peer_id} {epoch}"),
+            Proposal::Removal { peer_id, epoch } => format!("proposal removal {peer_id} {epoch}"),
         }
     }
 

@@ -9,5 +9,6 @@ pub mod live_policy;
 pub mod logging;
 pub mod network;
 pub mod node_faults;
+pub mod proposal;
 pub mod timer;
 pub mod transport;

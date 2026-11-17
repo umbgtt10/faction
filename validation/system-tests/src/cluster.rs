@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::infra::proposal::Proposal;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::fs::read_dir;
@@ -326,6 +327,12 @@ impl Cluster {
         Self::report(self.node_of(peer_id), commit);
     }
 
+    // A proposal the layer above declined at `epoch`, reported to its
+    // coordinator `peer_id` alone.
+    pub fn report_decline(&self, peer_id: PeerId, declined: PeerId, epoch: Epoch) {
+        self.node_of(peer_id).decline(declined, epoch);
+    }
+
     pub fn request_addition(&self, coordinator: usize, newcomer_id: PeerId) {
         self.nodes[coordinator].request_addition(newcomer_id);
     }
@@ -387,6 +394,12 @@ impl Cluster {
     }
 
     // Every link of `peer_id`'s mended, as cut by `silence`.
+    // What the node at `index` proposed since it was last asked.
+    #[must_use]
+    pub fn take_proposals(&self, index: usize) -> Vec<Proposal> {
+        self.nodes[index].take_proposals()
+    }
+
     pub fn unsilence(&self, peer_id: PeerId) {
         for other in self.others(peer_id) {
             self.node_of(peer_id).mend(other);

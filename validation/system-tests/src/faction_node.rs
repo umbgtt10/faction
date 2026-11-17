@@ -8,6 +8,7 @@ use crate::infra::node_faults::NodeFaults;
 use faction::instance::instance_id::InstanceId;
 use faction::quorum::Quorum;
 use std::mem::replace;
+use std::mem::take;
 
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
@@ -26,6 +27,7 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
+use crate::infra::proposal::Proposal;
 use crate::membership::Membership;
 use crate::node_observer::NodeObserver;
 use crate::node_snapshot::NodeSnapshot;
@@ -35,7 +37,8 @@ use crate::traits::roles::Roles;
 // A node's loop: its timer and its transport polled in turn, every decision
 // carried out. A newcomer waits for its membership and becomes a running node
 // of it; a node broadcasts to the members its view shows, read again when an
-// admission, a commit or a membership changes them. A removed node a
+// admission, a commit or a membership changes them; what it proposes it holds
+// until the layer above takes it. A removed node a
 // membership invites back becomes a newcomer again, and a restarted node is
 // created again at a membership; its roles made anew by `roles`.
 pub struct FactionNode {
@@ -49,6 +52,7 @@ pub struct FactionNode {
     roles: Box<dyn Roles>,
     started: bool,
     toggle_timer_and_transport: bool,
+    proposals: Vec<Proposal>,
 }
 
 impl FactionNode {
@@ -73,6 +77,7 @@ impl FactionNode {
             roles,
             started: false,
             toggle_timer_and_transport: true,
+            proposals: Vec::new(),
         };
         node.read_members();
         node
@@ -114,6 +119,10 @@ impl FactionNode {
     // with drops what crosses it.
     pub fn cut(&mut self, peer_id: PeerId) {
         self.faults.cuts.cut(peer_id);
+    }
+
+    pub fn decline(&mut self, peer_id: PeerId, epoch: Epoch) {
+        self.command(|protocol| protocol.decline(peer_id, epoch));
     }
 
     pub fn deny(&mut self, peer_id: PeerId) {
@@ -235,6 +244,12 @@ impl FactionNode {
         true
     }
 
+    // What the node proposed since it was last asked, in the order it
+    // proposed it.
+    pub fn take_proposals(&mut self) -> Vec<Proposal> {
+        take(&mut self.proposals)
+    }
+
     fn command(&mut self, apply: impl FnOnce(&mut Protocol) -> Vec<OutputMessage>) {
         let decisions = match &mut self.role {
             Role::Running(protocol) => apply(protocol),
@@ -308,9 +323,13 @@ impl FactionNode {
             OutputMessage::Send { to, message } => {
                 self.transport.send(to, message);
             }
-            OutputMessage::ProposeAddition { .. }
-            | OutputMessage::ProposeRemoval { .. }
-            | OutputMessage::Noop => {}
+            OutputMessage::ProposeAddition { peer_id, epoch } => {
+                self.proposals.push(Proposal::Addition { peer_id, epoch });
+            }
+            OutputMessage::ProposeRemoval { peer_id, epoch } => {
+                self.proposals.push(Proposal::Removal { peer_id, epoch });
+            }
+            OutputMessage::Noop => {}
         }
     }
 

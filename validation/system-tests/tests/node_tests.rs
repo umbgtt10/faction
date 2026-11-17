@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::concluded_node;
 use crate::support::fake_time;
 use crate::support::in_memory_node;
 use crate::support::real_time;
@@ -8,6 +9,7 @@ use crate::support::recipe;
 use faction::peer_state::PeerState;
 use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::infra::network::tcp_readiness::TcpReadiness;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::membership::Membership;
@@ -120,6 +122,80 @@ fn admit_of_a_thread_node_adds_a_member() {
 
     // Assert
     assert_eq!(node.member_count(), 2);
+    node.shutdown();
+}
+
+#[test]
+fn decline_of_a_process_node_proposes_its_removal_again() {
+    // Arrange
+    let mut node = process_node();
+    bootstrapped(&node);
+    node.change_required_count(0, 1);
+    node.request_removal(0);
+
+    // Act
+    node.decline(0, 1);
+
+    // Assert
+    assert_eq!(
+        node.take_proposals(),
+        vec![
+            Proposal::Removal {
+                peer_id: 0,
+                epoch: 1
+            };
+            2
+        ]
+    );
+    node.shutdown();
+}
+
+#[test]
+fn decline_of_a_task_node_proposes_the_removal_again() {
+    // Arrange
+    let (time, clock) = fake_time();
+    let node = Node::task(Rc::new(RefCell::new(concluded_node(&time, &clock))));
+    node.request_removal(2);
+
+    // Act
+    node.decline(2, 0);
+
+    // Assert
+    assert_eq!(
+        node.take_proposals(),
+        vec![
+            Proposal::Removal {
+                peer_id: 2,
+                epoch: 0
+            };
+            2
+        ]
+    );
+}
+
+#[test]
+fn decline_of_a_thread_node_proposes_its_removal_again() {
+    // Arrange
+    let mut node = thread_node();
+    bootstrapped(&node);
+    node.change_required_count(0, 1);
+    node.request_removal(0);
+
+    // Act
+    node.decline(0, 1);
+
+    // Assert
+    assert_eq!(
+        node.take_proposals(),
+        vec![
+            Proposal::Removal {
+                peer_id: 0,
+                epoch: 1
+            };
+            2
+        ]
+    );
+    assert!(node.take_proposals().is_empty());
     node.shutdown();
 }
 

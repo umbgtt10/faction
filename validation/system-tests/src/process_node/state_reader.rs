@@ -13,17 +13,27 @@ use std::thread::spawn;
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 
+use crate::infra::proposal::Proposal;
 use crate::node_snapshot::NodeSnapshot;
 
 pub struct StateReader {
     snapshot: Arc<Mutex<NodeSnapshot>>,
+    proposals: Arc<Mutex<Vec<Proposal>>>,
     acks: Sender<()>,
 }
 
 impl StateReader {
     #[must_use]
-    pub fn new(snapshot: Arc<Mutex<NodeSnapshot>>, acks: Sender<()>) -> Self {
-        Self { snapshot, acks }
+    pub fn new(
+        snapshot: Arc<Mutex<NodeSnapshot>>,
+        proposals: Arc<Mutex<Vec<Proposal>>>,
+        acks: Sender<()>,
+    ) -> Self {
+        Self {
+            snapshot,
+            proposals,
+            acks,
+        }
     }
 
     pub fn spawn(self, output: impl BufRead + Send + 'static) -> JoinHandle<()> {
@@ -53,6 +63,21 @@ impl StateReader {
             Some(Vec::new())
         } else {
             text.split(',').map(|peer| peer.parse().ok()).collect()
+        }
+    }
+
+    fn parse_proposal(line: &str) -> Option<Proposal> {
+        let mut parts = line.split_whitespace();
+        if parts.next()? != "proposal" {
+            return None;
+        }
+        let kind = parts.next()?;
+        let peer_id = parts.next()?.parse().ok()?;
+        let epoch = parts.next()?.parse().ok()?;
+        match kind {
+            "addition" => Some(Proposal::Addition { peer_id, epoch }),
+            "removal" => Some(Proposal::Removal { peer_id, epoch }),
+            _ => None,
         }
     }
 
@@ -108,6 +133,8 @@ impl StateReader {
     fn read(&self, line: &str) {
         if let Some(snapshot) = Self::parse_state(line) {
             *self.snapshot.lock().unwrap() = snapshot;
+        } else if let Some(proposal) = Self::parse_proposal(line) {
+            self.proposals.lock().unwrap().push(proposal);
         } else if line.trim() == "ack" {
             let _ = self.acks.send(());
         }

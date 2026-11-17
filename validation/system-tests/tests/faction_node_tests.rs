@@ -24,6 +24,7 @@ use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::fault_settings::FaultSettings;
 use faction_system_tests::infra::logging::no_op_fault_report::NoOpFaultReport;
 use faction_system_tests::infra::node_faults::NodeFaults;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::infra::timer::real::real_timer::RealTimer;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::faulty::fault_policy::FaultPolicy;
@@ -443,6 +444,26 @@ fn cut_keeps_everything_from_crossing_the_link() {
 
     // Assert
     assert_eq!(from_fn(|| peer_one.recv()).count(), 0);
+}
+
+#[test]
+fn decline_of_a_removal_the_quorum_can_spare_proposes_it_again() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+    node.request_removal(2);
+    let _ = node.take_proposals();
+
+    // Act
+    node.decline(2, 0);
+
+    // Assert
+    assert_eq!(
+        node.take_proposals(),
+        vec![Proposal::Removal {
+            peer_id: 2,
+            epoch: 0
+        }]
+    );
 }
 
 #[test]
@@ -886,4 +907,50 @@ fn step_with_nothing_due_returns_false() {
     // Assert
     assert!(!had_work);
     assert_eq!(node.peer_state(), PeerState::Fresh);
+}
+
+#[test]
+fn take_proposals_holds_each_proposal_once() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+    node.request_removal(2);
+
+    // Act
+    let taken = [node.take_proposals(), node.take_proposals()];
+
+    // Assert
+    assert_eq!(
+        taken,
+        [
+            vec![Proposal::Removal {
+                peer_id: 2,
+                epoch: 0
+            }],
+            Vec::new()
+        ]
+    );
+}
+
+#[test]
+fn take_proposals_holds_the_addition_its_newcomer_acknowledged() {
+    // Arrange
+    let (mut node, _, mut outsider, _) = concluded();
+    node.request_addition(7);
+    outsider.send(
+        0,
+        TransportMessage::MembershipAcknowledged { from: 7, epoch: 0 },
+    );
+    while node.step() {}
+
+    // Act
+    let proposals = node.take_proposals();
+
+    // Assert
+    assert_eq!(
+        proposals,
+        vec![Proposal::Addition {
+            peer_id: 7,
+            epoch: 0
+        }]
+    );
 }
