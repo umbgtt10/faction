@@ -55,6 +55,10 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
   coordinator for as many changes as its bound has room for, so several changes race on one coordinator as well as
   across coordinators; a recorded regression, drawn before, keeps every bound at one. The system tests give each node
   its bound, by its peer id (`ClusterBuilder::changes_in_flight`, a process node's `--bounds`).
+- In half the chaos scenarios every planned change comes due in one round, and the layer above asks a coordinator
+  holding changes already before one holding none, so changes pile up on one coordinator as far as its bound lets them:
+  over 3,000 scenarios a coordinator held two changes in flight in 3,321 rounds and three in 491, where it had in 202
+  and 6.
 
 ### What eight hours of chaos soak found
 

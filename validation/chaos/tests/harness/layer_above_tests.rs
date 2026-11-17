@@ -119,6 +119,50 @@ fn act_asks_a_coordinator_for_as_many_changes_as_its_bound_at_once() {
 }
 
 #[test]
+fn act_asks_a_coordinator_holding_changes_before_one_holding_none() {
+    // Arrange
+    let held_by = |seed: u64| {
+        let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
+        let time = TimePorts {
+            clock: clock.clone(),
+            pause: clock.clone(),
+            wall_clock: Arc::new(SystemWallClock),
+        };
+        let mut cluster = ClusterBuilder::new(3, 1, time)
+            .changes_in_flight(vec![2, 2])
+            .build();
+        cluster.start_all();
+        cluster.add_newcomer(3);
+        let mut layer = LayerAbove::new(&Scenario {
+            seed,
+            changes_in_flight: vec![2, 2],
+            required_count: 1,
+            ..scenario(
+                vec![
+                    due_at(Change::Removal { peer_id: 2 }, 40),
+                    due_at(Change::Addition { peer_id: 3 }, 40),
+                ],
+                0,
+            )
+        });
+        play(&mut layer, &cluster, &clock, 40);
+        layer.act(40, &cluster);
+        let mut held = [
+            cluster.snapshot(0).reconfigurations.len(),
+            cluster.snapshot(1).reconfigurations.len(),
+        ];
+        held.sort_unstable();
+        held
+    };
+
+    // Act
+    let held: Vec<[usize; 2]> = (0..8).map(held_by).collect();
+
+    // Assert
+    assert_eq!(held, vec![[0, 2]; 8]);
+}
+
+#[test]
 fn act_commits_a_new_required_count_of_its_own_accord() {
     // Arrange
     let (cluster, clock) = cluster();

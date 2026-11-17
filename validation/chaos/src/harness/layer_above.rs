@@ -193,23 +193,33 @@ impl LayerAbove {
     }
 
     // A coordinator with room for another change: concluded, its changes in
-    // flight and those `busy` asked of it this round fewer than its bound.
+    // flight and those `busy` asked of it this round fewer than its bound --
+    // one holding changes already before one holding none, so that changes
+    // pile up on a coordinator as far as its bound lets them.
     fn coordinator(&mut self, snapshots: &[NodeSnapshot], busy: &[PeerId]) -> Option<PeerId> {
-        let idle: Vec<PeerId> = self
+        let held = |peer_id: PeerId| {
+            snapshots[peer_id as usize].reconfigurations.len()
+                + busy.iter().filter(|busy| **busy == peer_id).count()
+        };
+        let room: Vec<PeerId> = self
             .coordinators
             .iter()
             .copied()
             .filter(|peer_id| {
-                let snapshot = &snapshots[*peer_id as usize];
-                let asked = busy.iter().filter(|busy| *busy == peer_id).count();
-                snapshot.peer_state == PeerState::Bootstrapped
-                    && snapshot.reconfigurations.len() + asked < self.bound(*peer_id)
+                snapshots[*peer_id as usize].peer_state == PeerState::Bootstrapped
+                    && held(*peer_id) < self.bound(*peer_id)
             })
             .collect();
-        if idle.is_empty() {
+        let holding: Vec<PeerId> = room
+            .iter()
+            .copied()
+            .filter(|peer_id| held(*peer_id) > 0)
+            .collect();
+        let pool = if holding.is_empty() { room } else { holding };
+        if pool.is_empty() {
             return None;
         }
-        Some(idle[self.dice.below(idle.len() as u64) as usize])
+        Some(pool[self.dice.below(pool.len() as u64) as usize])
     }
 
     // Whether the planned change at `index` is a new count to commit now: its
