@@ -38,8 +38,10 @@ Phases 5 and 6 the chaos validation grew it twice: its 0.5.1 states the order th
 above owes a node its commits in, and its 0.6.0 a newcomer's provisional membership,
 which the crate conforms to from 0.10.0; its 0.7.0 has a provisional node coordinate no
 change, withdrawing the released vector that showed one coordinating -- the first withdrawn,
-to correct a defect -- which the crate conforms to from 0.11.0. Each later phase opens with
-its specification's next version.
+to correct a defect -- which the crate conforms to from 0.11.0; its 0.8.0 numbers every
+answer and names every instance, re-encoding every released vector once, changing no
+answer, which the crate conforms to from 0.12.0. Each later phase opens with its
+specification's next version.
 
 ## Enforcement
 A phase's plan begins with its change to `spec/`; the conformance tests run

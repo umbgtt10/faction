@@ -152,7 +152,9 @@ commands, so every released vector passes unchanged, and `spec/released.json` fa
 conformance tier on one removed or edited. The one way out is a withdrawal, to correct a
 defect a released vector shows, never to grow: `released.json` marks it withdrawn at the
 correcting version, and its bytes move, unchanged, to `spec/withdrawn/` (0.7.0 withdrew
-vector 113). It lists the commands each released version
+vector 113). The other is a re-encoding, of every released vector at once, never of an
+answer: `released.json` records each re-encoded digest beside the released one, and the
+released bytes are kept under `spec/released/` (0.8.0 wrote them as receipts). It lists the commands each released version
 names too: both conformance tiers compare a released vector's admissible commands among
 those its version names (`validation/ladder/tests/support/growth.rs`). Specification
 0.5.0 was the first to grow by the rule. Before the rule the encoding grew in place,

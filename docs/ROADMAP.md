@@ -5,7 +5,8 @@
 **Last updated:** 2026-11-17  
 **Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0); the chaos
 validation built (specification 0.6.0, for the crate's 0.10.0); a provisional node coordinating
-no change (specification 0.7.0, for the crate's 0.11.0)
+no change (specification 0.7.0, for the crate's 0.11.0); every answer a numbered receipt and every node an
+instance (specification 0.8.0, for the crate's 0.12.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -437,12 +438,13 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.7.0 written |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.8.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0, released in 0.8.0) |
 | 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
 | cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Complete (specification 0.6.0, for the crate's 0.10.0) |
+| cross-cutting | Numbered receipts | Before Phase 6 | ✅ Complete (specification 0.8.0, for the crate's 0.12.0) |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 
 ---

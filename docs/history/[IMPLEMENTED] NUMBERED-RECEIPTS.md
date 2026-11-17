@@ -1,9 +1,24 @@
-# [PROPOSAL] Numbered receipts — every answer numbered, every instance named
+# [IMPLEMENTED] Numbered receipts — every answer numbered, every instance named
 
 **Status:** accepted 2026-11-17, at the owner's answers: the receipt's answer named `output`, as the siblings name it;
 the instance id the siblings' `InstanceId { node, incarnation }`, the caller's to give; the vectors written as the
 siblings write theirs, every released vector re-encoded once with no answer changed; a log's lines numbered as the
-siblings number theirs. Built on the branch `numbered-receipts`.
+siblings number theirs. Implemented on the branch `numbered-receipts`, 2026-11-17, as accepted, but for these
+departures, each found while building:
+
+- **The two records live in a folder of their own:** `faction::instance::instance_id::InstanceId` and
+  `faction::instance::receipt::Receipt`, where §5 named them at the crate's root, which holds the twenty files a
+  directory may.
+- **The conformance tier reads every vector's configuration into the crate and back.** The crate itself never reads
+  the instance back, so `Config::instance()` was a line the conformance tier alone left uncovered; read back, the
+  instance a configuration states is one the crate holds (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`).
+- **The re-encoding is checked twice:** a script wrote it, and the conformance tier derives every re-encoded vector
+  from its released bytes on its own and compares.
+- **A log's line in the system tests carries the incarnation too**, beside the number: a node restarted keeps
+  writing to its file, and its numbers starting again are told from a gap by it. The in-process cluster of
+  protocol-validation gives a restarted or rejoined node its next incarnation, as the system tests do.
+- **A probe cut from a log** is the evidence: the replay tier finds it by the gap in the numbers, where before nothing
+  showed.
 
 **Releases:** the specification's 0.8.0; the crate's 0.12.0, breaking.
 **Order:** after 0.11.0, before Phase 6, at the owner's word.

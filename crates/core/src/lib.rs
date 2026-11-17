@@ -15,7 +15,7 @@
 //!
 //! **Phases 1 to 5 of six are built** -- bootstrapping, dynamic joining,
 //! single-node addition, failure detection, single-node removal, and epochs
-//! and rejoin -- conformant to version 0.7.0 of the specification in the
+//! and rejoin -- conformant to version 0.8.0 of the specification in the
 //! repository's `spec/`.
 //!
 //! # What it does
@@ -140,7 +140,8 @@
 //! # Observer
 //!
 //! Every call — an accepted command, a rejected one, a probe — is reported once
-//! to the [`Observer`], with the command and its result. Wire it to telemetry,
+//! to the [`Observer`], with the command and its receipt: the result, numbered
+//! one more than the last. Wire it to telemetry,
 //! an audit log, or a test assertion: it is told and answers nothing, so the
 //! machine doesn't care. [`NoOpObserver`] is provided for the common "just drive
 //! the machine" case.

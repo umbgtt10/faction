@@ -1,6 +1,6 @@
 # P1-ADR-SingleEntryPoint
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-17 — the answer a numbered receipt
 - **Date:** 2026-07-19
 - **Priority:** P1 (derived)
 - **Phase:** cross-cutting
@@ -10,8 +10,9 @@ A consumer drives the machine from a protocol loop and must never need to know
 the internal state graph to use it safely.
 
 ## Decision
-A single method, `process(command) -> ProcessResult`, handles writes, reads,
-and rejections uniformly. `ProcessResult` is one of `Accepted { outcomes,
+A single method, `process(command) -> Receipt`, handles writes, reads,
+and rejections uniformly; the receipt carries the answer, its `output`, and its
+number (`P1-ADR-TheLogIsTheRecord`). The output, a `ProcessResult`, is one of `Accepted { outcomes,
 cluster_view }`, `Rejected { cluster_view, admissible }`, or `Probed {
 cluster_view, admissible }`. The machine is self-describing: on a probe or a
 rejection it returns the set of commands admissible in the current state. The
