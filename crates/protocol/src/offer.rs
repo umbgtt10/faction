@@ -108,7 +108,12 @@ impl Offer {
     // the newcomer itself, its membership provisional, its own addition yet to
     // commit.
     #[must_use]
-    pub fn config(&self, instance: InstanceId, suspicion_threshold: usize) -> Config {
+    pub fn config(
+        &self,
+        instance: InstanceId,
+        suspicion_threshold: usize,
+        changes_in_flight: usize,
+    ) -> Config {
         Config::new(
             instance,
             self.members
@@ -120,7 +125,7 @@ impl Offer {
             suspicion_threshold,
             self.epoch,
             true,
-            1,
+            changes_in_flight,
         )
     }
 }

@@ -48,6 +48,7 @@ pub struct LayerAbove {
     progress: Vec<Progress>,
     log: CommittedLog,
     coordinators: Vec<PeerId>,
+    bounds: Vec<usize>,
     due: Vec<u64>,
     dice: Dice,
     delivery_lag: u64,
@@ -71,6 +72,7 @@ impl LayerAbove {
                 epoch: 0,
             }),
             coordinators: Coordinators::of(scenario),
+            bounds: scenario.changes_in_flight.clone(),
             due: Vec::new(),
             dice: Dice::new(scenario.seed.wrapping_mul(SEED_MIX) ^ DICE_SALT),
             delivery_lag: scenario.delivery_lag,
@@ -124,6 +126,15 @@ impl LayerAbove {
         self.progress
             .iter()
             .all(|progress| *progress == Progress::Committed)
+    }
+
+    // The bound of the coordinator `peer_id`: 1 past the scenario's list.
+    fn bound(&self, peer_id: PeerId) -> usize {
+        usize::try_from(peer_id)
+            .ok()
+            .and_then(|index| self.bounds.get(index))
+            .copied()
+            .unwrap_or(1)
     }
 
     // Every proposal every node made since the last round, in the order made.
@@ -181,7 +192,8 @@ impl LayerAbove {
         }
     }
 
-    // An idle coordinator, none of `busy`: concluded, with no change in flight.
+    // A coordinator with room for another change: concluded, its changes in
+    // flight and those `busy` asked of it this round fewer than its bound.
     fn coordinator(&mut self, snapshots: &[NodeSnapshot], busy: &[PeerId]) -> Option<PeerId> {
         let idle: Vec<PeerId> = self
             .coordinators
@@ -189,9 +201,9 @@ impl LayerAbove {
             .copied()
             .filter(|peer_id| {
                 let snapshot = &snapshots[*peer_id as usize];
-                !busy.contains(peer_id)
-                    && snapshot.peer_state == PeerState::Bootstrapped
-                    && snapshot.reconfigurations.is_empty()
+                let asked = busy.iter().filter(|busy| *busy == peer_id).count();
+                snapshot.peer_state == PeerState::Bootstrapped
+                    && snapshot.reconfigurations.len() + asked < self.bound(*peer_id)
             })
             .collect();
         if idle.is_empty() {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::constants::DEFAULT_SUSPICION_THRESHOLD;
+use crate::infra::coordination::Coordination;
 use crate::probe_stretch::ProbeStretch;
 use std::env::consts::EXE_EXTENSION;
 use std::env::current_exe;
@@ -58,6 +59,7 @@ pub struct ClusterBuilder {
     timer_delay: TimerDelay,
     freshness_margin: u32,
     suspicion_threshold: usize,
+    changes_in_flight: Vec<usize>,
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
     lifetime: Duration,
@@ -78,6 +80,7 @@ impl ClusterBuilder {
             timer_delay: TimerDelay::Minimal,
             freshness_margin: DEFAULT_DEADLINE_CYCLES,
             suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
+            changes_in_flight: Vec::new(),
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
             lifetime: NODE_LIFETIME,
@@ -107,7 +110,7 @@ impl ClusterBuilder {
         let delay = self.timer_delay.duration();
         let recipe = NodeRecipe::new(
             self.node_required,
-            self.suspicion_threshold,
+            self.coordination(),
             TimerDelays {
                 delay,
                 deadline_delay: delay * self.freshness_margin,
@@ -148,6 +151,14 @@ impl ClusterBuilder {
     // The board its in-process nodes read their faults from, which the caller
     // keeps to switch them while the cluster runs; a process node's are its
     // own.
+    // Each node's bound of changes in flight, by its peer id -- 1 for a peer
+    // the list does not reach, and for every node unless given.
+    #[must_use]
+    pub fn changes_in_flight(mut self, bounds: Vec<usize>) -> Self {
+        self.changes_in_flight = bounds;
+        self
+    }
+
     #[must_use]
     pub fn faults(mut self, board: FaultBoard) -> Self {
         self.faults = board;
@@ -245,7 +256,7 @@ impl ClusterBuilder {
             Self::node_binary(),
             self.transport,
             self.node_required,
-            self.suspicion_threshold,
+            self.coordination(),
             self.timer_delay.duration(),
             self.freshness_margin,
             self.probe_stretch.factor(),
@@ -274,6 +285,10 @@ impl ClusterBuilder {
             self.log_dir,
             self.time,
         )
+    }
+
+    fn coordination(&self) -> Coordination {
+        Coordination::new(self.suspicion_threshold, self.changes_in_flight.clone())
     }
 
     // Where its in-process nodes log: their folder, if given one; else

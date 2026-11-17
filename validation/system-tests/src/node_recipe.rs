@@ -3,6 +3,7 @@
 
 use crate::constants::FIRST_INCARNATION;
 use crate::constants::HELPERS;
+use crate::infra::coordination::Coordination;
 use crate::infra::fault_board::FaultBoard;
 use crate::infra::invariants::breaches::Breaches;
 use crate::infra::invariants::invariant_observer::InvariantObserver;
@@ -50,7 +51,7 @@ use crate::traits::roles::Roles;
 #[derive(Clone)]
 pub struct NodeRecipe {
     required: usize,
-    suspicion_threshold: usize,
+    coordination: Coordination,
     delays: TimerDelays,
     logs: Logs,
     time: TimePorts,
@@ -64,7 +65,7 @@ impl NodeRecipe {
     #[must_use]
     pub fn new(
         required: usize,
-        suspicion_threshold: usize,
+        coordination: Coordination,
         delays: TimerDelays,
         logs: Logs,
         time: TimePorts,
@@ -73,7 +74,7 @@ impl NodeRecipe {
     ) -> Self {
         Self {
             required,
-            suspicion_threshold,
+            coordination,
             delays,
             logs,
             time,
@@ -274,10 +275,10 @@ impl Roles for NodeRecipe {
             instance,
             membership.peers.clone(),
             QuorumPolicy::new(membership.required_count),
-            self.suspicion_threshold,
+            self.coordination.suspicion_threshold(),
             membership.epoch,
             false,
-            1,
+            self.coordination.bound(peer_id),
         );
         Role::Running(Box::new(Protocol::new(
             Faction::new(config, Box::new(watched)),
@@ -291,7 +292,8 @@ impl Roles for NodeRecipe {
         let (faction_observer, _) = self.observers(instance);
         Role::Waiting(Newcomer::new(
             instance,
-            self.suspicion_threshold,
+            self.coordination.suspicion_threshold(),
+            self.coordination.bound(instance.node),
             HELPERS,
             Box::new(InvariantObserver::new(
                 instance.node,

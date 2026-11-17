@@ -8,6 +8,7 @@ use crate::support::real_time;
 use crate::support::recipe;
 use faction::peer_state::PeerState;
 use faction_system_tests::constants::NODE_LIFETIME;
+use faction_system_tests::infra::coordination::Coordination;
 use faction_system_tests::infra::network::tcp_readiness::TcpReadiness;
 use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
@@ -56,7 +57,7 @@ fn spec() -> ProcessSpec {
         String::from(env!("CARGO_BIN_EXE_faction-node")),
         TransportKind::Tcp,
         1,
-        1,
+        Coordination::new(1, Vec::new()),
         Duration::from_millis(10),
         100,
         ProbeStretch::Minimal.factor(),

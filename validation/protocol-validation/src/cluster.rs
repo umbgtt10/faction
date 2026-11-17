@@ -134,6 +134,7 @@ impl Cluster {
                     incarnation: 1,
                 },
                 self.suspicion_threshold,
+                1,
                 HELPERS,
                 Box::new(NoOpObserver),
             ),
@@ -359,6 +360,7 @@ impl Cluster {
         let newcomer = Newcomer::new(
             self.next_instance(index),
             self.suspicion_threshold,
+            1,
             HELPERS,
             Box::new(NoOpObserver),
         );

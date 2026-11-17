@@ -41,6 +41,28 @@ fn scenario_draws_a_cluster_of_three_to_six_that_its_count_fits() {
 }
 
 #[test]
+fn scenario_draws_each_peer_a_bound_of_one_to_three_changes_in_flight() {
+    // Arrange & Act
+    let drawn = drawn();
+
+    // Assert
+    assert!(drawn.iter().all(|scenario| {
+        scenario.changes_in_flight.len() >= scenario.nodes
+            && scenario
+                .changes_in_flight
+                .iter()
+                .all(|bound| (1..=3).contains(bound))
+    }));
+    for bound in 1..=3 {
+        assert!(
+            drawn
+                .iter()
+                .any(|scenario| scenario.changes_in_flight.contains(&bound))
+        );
+    }
+}
+
+#[test]
 fn scenario_of_another_seed_is_another() {
     // Arrange
     let first = Generator::new(1).scenario();

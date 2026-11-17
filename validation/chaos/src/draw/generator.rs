@@ -11,10 +11,12 @@ use crate::model::change::Change;
 use crate::model::planned_change::PlannedChange;
 use crate::model::scenario::Scenario;
 
+const BOUND_SALT: u64 = 0x424F_554E_4400_0000;
 const CHANGE_SALT: u64 = 0x4348_414E_4745_0000;
 const CHAOS_SPAN: u64 = 200;
 const DUPLICATE_PERCENTS: [u8; 4] = [0, 0, 10, 30];
 const FAULT_SALT: u64 = 0x4641_554C_5400_0000;
+const MAX_BOUND: u64 = 3;
 const MAX_LAG: u64 = 5;
 const MAX_THRESHOLD: u64 = 3;
 const MIN_CHAOS_ROUNDS: u64 = 100;
@@ -56,11 +58,17 @@ impl Generator {
             chaos_rounds,
         );
         let restarts = RestartDraw::new(mixed ^ RESTART_SALT).restarts(&restartable, chaos_rounds);
+        let mut bound_dice = Dice::new(mixed ^ BOUND_SALT);
+        let changes_in_flight = Self::peers(nodes, &changes)
+            .iter()
+            .map(|_| 1 + bound_dice.below(MAX_BOUND) as usize)
+            .collect();
         Scenario {
             seed: self.seed,
             nodes,
             required_count,
             suspicion_threshold,
+            changes_in_flight,
             changes,
             faults,
             restarts,

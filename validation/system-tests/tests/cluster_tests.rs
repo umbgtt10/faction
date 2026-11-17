@@ -85,6 +85,28 @@ fn abort_removal_of_a_requested_removal_withdraws_it() {
 }
 
 #[test]
+fn changes_in_flight_lets_a_node_hold_as_many_changes_as_its_bound() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 1, real_time())
+        .changes_in_flight(vec![2])
+        .build();
+    cluster.poll_until_bootstrapped();
+
+    // Act
+    cluster.request_removal(0, 2);
+    cluster.request_removal(0, 1);
+
+    // Assert
+    assert_eq!(
+        cluster.snapshot(0).reconfigurations,
+        [
+            Reconfiguration::RemovalRequested { peer_id: 2 },
+            Reconfiguration::RemovalRequested { peer_id: 1 }
+        ]
+    );
+}
+
+#[test]
 fn commit_removal_reports_the_count_and_the_removal_to_every_node() {
     // Arrange
     let mut cluster = ClusterBuilder::new(3, 3, real_time()).build();

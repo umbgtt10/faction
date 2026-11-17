@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction_chaos::harness::layer_above::LayerAbove;
 use faction_chaos::model::change::Change;
 use faction_chaos::model::planned_change::PlannedChange;
@@ -67,6 +68,7 @@ fn scenario(changes: Vec<PlannedChange>, delivery_lag: u64) -> Scenario {
         nodes: 3,
         required_count: 2,
         suspicion_threshold: 1,
+        changes_in_flight: Vec::new(),
         changes,
         faults: Vec::new(),
         restarts: Vec::new(),
@@ -75,6 +77,45 @@ fn scenario(changes: Vec<PlannedChange>, delivery_lag: u64) -> Scenario {
         chaos_rounds: 100,
         quiescence_rounds: 100,
     }
+}
+
+#[test]
+fn act_asks_a_coordinator_for_as_many_changes_as_its_bound_at_once() {
+    // Arrange
+    let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
+    let time = TimePorts {
+        clock: clock.clone(),
+        pause: clock.clone(),
+        wall_clock: Arc::new(SystemWallClock),
+    };
+    let mut cluster = ClusterBuilder::new(3, 1, time)
+        .changes_in_flight(vec![2])
+        .build();
+    cluster.start_all();
+    let mut layer = LayerAbove::new(&Scenario {
+        changes_in_flight: vec![2],
+        required_count: 1,
+        ..scenario(
+            vec![
+                due_at(Change::Removal { peer_id: 2 }, 40),
+                due_at(Change::Removal { peer_id: 1 }, 40),
+            ],
+            0,
+        )
+    });
+    play(&mut layer, &cluster, &clock, 40);
+
+    // Act
+    layer.act(40, &cluster);
+
+    // Assert
+    assert_eq!(
+        cluster.snapshot(0).reconfigurations,
+        [
+            Reconfiguration::RemovalRequested { peer_id: 2 },
+            Reconfiguration::RemovalRequested { peer_id: 1 }
+        ]
+    );
 }
 
 #[test]

@@ -41,6 +41,18 @@ fn args(extra: &[&str]) -> Args {
 }
 
 #[test]
+fn parse_reads_each_node_s_bound() {
+    // Arrange
+    let args = args(&["--bounds", "1,3,2"]);
+
+    // Act
+    let config = args.parse();
+
+    // Assert
+    assert_eq!(config.bounds, vec![1, 3, 2]);
+}
+
+#[test]
 fn parse_reads_every_required_argument() {
     // Arrange
     let args = args(&[]);
@@ -65,6 +77,7 @@ fn parse_reads_every_required_argument() {
     assert_eq!(config.freshness_margin, 2);
     assert_eq!(config.log_path, None);
     assert!(!config.newcomer);
+    assert!(config.bounds.is_empty());
 }
 
 #[test]

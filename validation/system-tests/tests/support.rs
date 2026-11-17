@@ -7,6 +7,7 @@ use faction::peer_state::PeerState;
 use faction::types::PeerId;
 use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::faction_node::FactionNode;
+use faction_system_tests::infra::coordination::Coordination;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::logging::logs::Logs;
@@ -77,7 +78,7 @@ pub fn real_time() -> TimePorts {
 pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
     NodeRecipe::new(
         required,
-        1,
+        Coordination::new(1, Vec::new()),
         TimerDelays {
             delay: Duration::from_millis(10),
             deadline_delay: Duration::from_secs(10),

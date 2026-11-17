@@ -127,6 +127,7 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
                 incarnation: 1,
             },
             DEFAULT_SUSPICION_THRESHOLD,
+            1,
             HELPERS,
             Box::new(NoOpObserver),
         )),

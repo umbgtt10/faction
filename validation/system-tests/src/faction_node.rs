@@ -338,6 +338,7 @@ impl FactionNode {
         let placeholder = Role::Waiting(Newcomer::new(
             self.instance,
             DEFAULT_SUSPICION_THRESHOLD,
+            1,
             HELPERS,
             Box::new(NoOpObserver),
         ));

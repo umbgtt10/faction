@@ -18,6 +18,7 @@ fn newcomer() -> Newcomer {
             incarnation: 1,
         },
         1,
+        1,
         2,
         Box::new(NoOpObserver),
     )
@@ -32,6 +33,7 @@ fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
             incarnation: 1,
         },
         2,
+        1,
         1,
         Box::new(NoOpObserver),
     );

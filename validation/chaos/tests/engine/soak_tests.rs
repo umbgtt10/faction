@@ -40,6 +40,7 @@ impl ScenarioSource for OneFailing {
             nodes: 3,
             required_count: 2,
             suspicion_threshold: 1,
+            changes_in_flight: Vec::new(),
             changes,
             faults: Vec::new(),
             restarts: Vec::new(),

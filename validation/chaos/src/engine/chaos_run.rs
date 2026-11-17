@@ -39,6 +39,7 @@ impl ChaosRun {
         let builder = engine
             .builder(&scenario)
             .suspicion_threshold(scenario.suspicion_threshold)
+            .changes_in_flight(scenario.changes_in_flight.clone())
             .breaches(breaches.clone())
             .silent();
         let mut cluster = match log_dir {

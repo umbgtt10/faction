@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::infra::coordination::Coordination;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::process::Command;
@@ -17,7 +18,7 @@ pub struct ProcessSpec {
     bin: String,
     transport: TransportKind,
     node_required: usize,
-    suspicion_threshold: usize,
+    coordination: Coordination,
     timer_delay: Duration,
     freshness_margin: u32,
     probe_stretch: u32,
@@ -33,7 +34,7 @@ impl ProcessSpec {
         bin: String,
         transport: TransportKind,
         node_required: usize,
-        suspicion_threshold: usize,
+        coordination: Coordination,
         timer_delay: Duration,
         freshness_margin: u32,
         probe_stretch: u32,
@@ -45,7 +46,7 @@ impl ProcessSpec {
             bin,
             transport,
             node_required,
-            suspicion_threshold,
+            coordination,
             timer_delay,
             freshness_margin,
             probe_stretch,
@@ -116,7 +117,9 @@ impl ProcessSpec {
             .arg("--required")
             .arg(self.node_required.to_string())
             .arg("--suspicion-threshold")
-            .arg(self.suspicion_threshold.to_string())
+            .arg(self.coordination.suspicion_threshold().to_string())
+            .arg("--bounds")
+            .arg(self.coordination.listed())
             .arg("--freshness-margin")
             .arg(self.freshness_margin.to_string())
             .arg("--probe-stretch")

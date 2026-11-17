@@ -124,6 +124,7 @@ fn config_of_an_offer_already_naming_the_node_lists_it_once() {
             incarnation: 1,
         },
         1,
+        1,
     );
 
     // Assert
@@ -142,6 +143,7 @@ fn config_of_an_offer_is_the_newcomer_s_at_its_epoch() {
             incarnation: 2,
         },
         3,
+        2,
     );
 
     // Assert
@@ -156,6 +158,7 @@ fn config_of_an_offer_is_the_newcomer_s_at_its_epoch() {
     assert_eq!(config.peers(), &[1, 5]);
     assert_eq!(config.required_count(), 2);
     assert_eq!(config.suspicion_threshold(), 3);
+    assert_eq!(config.changes_in_flight(), 2);
     assert_eq!(config.epoch(), 4);
 }
 
