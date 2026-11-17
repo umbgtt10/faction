@@ -1,11 +1,19 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::cluster_view::ClusterView;
+use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::instance::instance_id::InstanceId;
+use faction::peer_state::PeerState;
 use faction_protocol::offer::Offer;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::transport_message::TransportMessage;
+
+// A running node's view at `epoch`.
+fn at_epoch(epoch: u64) -> ClusterView {
+    ClusterViewBuilder::from_view_at(&ClusterViewBuilder::default().build(), epoch, false).build()
+}
 
 fn membership(members: Vec<u64>) -> TransportMessage {
     TransportMessage::Membership {
@@ -46,7 +54,47 @@ fn acknowledged_of_what_taking_asked_acknowledges_first_and_drops_the_noops() {
 }
 
 #[test]
-fn command_of_an_offer_is_the_membership_with_the_node() {
+fn answered_by_a_node_it_removed_acknowledges_nothing() {
+    // Arrange
+    let offer = Offer::of(&membership(vec![1, 2]), 5).expect("a membership");
+    let removed = ClusterViewBuilder::from_view_at(&at_epoch(4), 4, false)
+        .with_peer_state(PeerState::Removed)
+        .build();
+
+    // Act
+    let outputs = offer.answered(vec![OutputMessage::Noop], 5, &removed);
+
+    // Assert
+    assert_eq!(outputs, vec![OutputMessage::Noop]);
+}
+
+#[test]
+fn answered_by_a_node_still_running_acknowledges_at_its_epoch() {
+    // Arrange
+    let offer = Offer::of(&membership(vec![1, 5]), 5).expect("a membership");
+
+    // Act
+    let outputs = offer.answered(
+        vec![OutputMessage::BroadcastPing { epoch: 4 }],
+        5,
+        &at_epoch(4),
+    );
+
+    // Assert
+    assert_eq!(
+        outputs,
+        vec![
+            OutputMessage::Send {
+                to: 1,
+                message: TransportMessage::MembershipAcknowledged { from: 5, epoch: 4 },
+            },
+            OutputMessage::BroadcastPing { epoch: 4 },
+        ]
+    );
+}
+
+#[test]
+fn command_of_an_offer_is_the_membership_as_sent() {
     // Arrange
     let offer = Offer::of(&membership(vec![1, 2]), 5).expect("a membership");
 
@@ -57,7 +105,7 @@ fn command_of_an_offer_is_the_membership_with_the_node() {
     assert_eq!(
         command,
         Command::MembershipReceived {
-            members: vec![1, 2, 5],
+            members: vec![1, 2],
             required_count: 2,
             epoch: 4,
         }

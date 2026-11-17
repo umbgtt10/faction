@@ -5,6 +5,17 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### What eight hours of chaos soak found
+
+#### Fixed
+- faction-protocol: a running node takes a membership as it was sent -- one that does not name
+  the node removes it, as the specification says (§16) -- and acknowledges every membership it
+  takes but one that removed it. It added itself to every membership, as a newcomer does, so a
+  node behind its own removal took the coordinator's invitation to re-add it, or a member's reply
+  catching it up, as a membership naming it, adopted a member no commit had made, and caught a
+  restarted peer up with it. The soaks found it four times in 3.7 million seeds; each case is a
+  chaos regression.
+
 ## [0.12.0] — 2026-11-17
 
 ### Published on crates.io

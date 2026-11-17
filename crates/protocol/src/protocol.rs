@@ -88,8 +88,7 @@ impl Protocol {
                 match Offer::of(&message, self.local_peer_id) {
                     Some(offer) => {
                         let taken = self.apply(offer.command());
-                        let epoch = self.cluster_view().epoch();
-                        offer.acknowledged(taken, self.local_peer_id, epoch)
+                        offer.answered(taken, self.local_peer_id, &self.cluster_view())
                     }
                     None => vec![OutputMessage::Noop],
                 }

@@ -436,7 +436,7 @@ fn decide_local_completion_produces_broadcast_ready_and_retry() {
 }
 
 #[test]
-fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_it() {
+fn decide_membership_above_the_epoch_naming_the_node_is_adopted_and_acknowledged_at_it() {
     // Arrange
     let mut protocol = protocol();
 
@@ -444,7 +444,7 @@ fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
         from: 7,
         to: 0,
-        members: vec![7],
+        members: vec![7, 0],
         required_count: 1,
         epoch: 3,
     }));
@@ -460,6 +460,34 @@ fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_
     );
     assert_eq!(view.members().as_slice(), &[7, 0]);
     assert_eq!(view.required_count(), 1);
+    assert_eq!(view.epoch(), 3);
+}
+
+#[test]
+fn decide_membership_above_the_epoch_not_naming_the_node_removes_it_and_acknowledges_nothing() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
+        from: 7,
+        to: 0,
+        members: vec![7],
+        required_count: 1,
+        epoch: 3,
+    }));
+
+    // Assert
+    let view = protocol.cluster_view();
+    assert!(!decisions.iter().any(|decision| matches!(
+        decision,
+        OutputMessage::Send {
+            message: TransportMessage::MembershipAcknowledged { .. },
+            ..
+        }
+    )));
+    assert_eq!(view.peer_state(), PeerState::Removed);
+    assert_eq!(view.members().as_slice(), &[7]);
     assert_eq!(view.epoch(), 3);
 }
 
