@@ -679,5 +679,5 @@ subsequent phase.
 | L3 | **No single-node addition protocol.** Joining mid-flight requires a commit/abort reconfiguration protocol not yet implemented. | Phase 3 |
 | L4 | **No single-node removal protocol.** Leaving or being removed requires a quorum-preserving removal check not yet implemented. | Phase 4 |
 | L5 | **No epochs or rejoin handling.** Membership has no version counter. Stale nodes are not rejected. Previously-removed nodes cannot rejoin. No split-brain prevention. | Phase 5 |
-| L6 | **Single-change-at-a-time.** Concurrent additions and removals are not sequenced. No bounded queue, no defined overflow behavior. | Phase 6 |
+| L6 | **Single-change-at-a-time.** A coordinator holds one change in flight, and nothing in the specification says the layer above must check a proposal again at commit time. | Phase 6 (a bound of changes in flight; a proposal committed only while still valid) |
 | L7 | **No generic identity.** Peer IDs are `u64`. No `NodeId` trait, no address resolution abstraction. | Future |

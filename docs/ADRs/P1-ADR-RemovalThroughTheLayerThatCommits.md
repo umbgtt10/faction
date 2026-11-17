@@ -1,6 +1,6 @@
 # P1-ADR-RemovalThroughTheLayerThatCommits
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-17 — a coordinator holds up to its bound of changes in flight
 - **Date:** 2026-11-13
 - **Priority:** P1 (derived from `P0-ADR-ProtocolAgnostic`)
 - **Phase:** 4
@@ -26,6 +26,12 @@ removal it never refuses for the quorum. Every node, in every stage, applies the
 commit the layer above reports (`RemovalCommitted`): the peer leaves every list
 the node holds, its liveness with it. A node whose own removal commits is
 `Removed`, a sixth stage that admits a probe alone.
+
+**Amended 2026-11-17, Phase 6.** A coordinator holds up to its bound of changes in flight, 1 unless its
+configuration states another, in `Coordinating` below the bound and `Reconfiguring` at it; no two changes in flight
+name one peer, the removals in flight are counted together, and each change ends on its own
+(`P1-ADR-SeveralChangesInFlight`). With the bound at 1 the decision above stands as written. The layer above commits a
+proposal only while it is still valid (`P1-ADR-AProposalIsCommittedOnlyWhileValid`).
 
 ## Forcing constraints / Evidence
 The member most worth removing is the one that cannot answer, so a removal waits

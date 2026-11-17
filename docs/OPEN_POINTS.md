@@ -1,8 +1,8 @@
 # Open Points
 
-Status: **Phases 1 to 5 landed** — joining, addition, failure detection, removal, and
-epochs and rejoin — across the full spawn/transport matrix, and the chaos validation
-built on them; see `CHANGELOG.md` for what shipped and `docs/ADRs/` for the decisions.
+Status: **Phases 1 to 6 built** — joining, addition, failure detection, removal, epochs
+and rejoin, and concurrent changes — across the full spawn/transport matrix, and the
+chaos validation built on them, Phase 6 awaiting its 12-hour soak; see `CHANGELOG.md` for what shipped and `docs/ADRs/` for the decisions.
 Everything implemented, decided, or captured in an ADR has moved out of this file; only
 the genuinely-open items remain below.
 

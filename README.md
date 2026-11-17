@@ -21,10 +21,10 @@ consensus begins?
 `faction` replaces that with a **formally specified, fully tested Mealy state machine**
 that answers the question deterministically, observably, and provably.
 
-**Phases 1 to 5 of six are built** (2026-11-16): bootstrapping, dynamic joining, single-node addition, failure
-detection, single-node removal, and epochs and rejoin, conformant to version 0.8.0 of the specification in
-[`spec/`](spec/SPEC.md).
-Version 0.12.0 is on [crates.io](https://crates.io/crates/faction).
+**All six phases are built** (2026-11-17): bootstrapping, dynamic joining, single-node addition, failure
+detection, single-node removal, epochs and rejoin, and concurrent changes, conformant to version 0.9.0 of the
+specification in [`spec/`](spec/SPEC.md). Version 0.12.0 is on [crates.io](https://crates.io/crates/faction); Phase 6
+is released as 0.13.0 once a 12-hour soak has passed with no failure.
 
 ---
 
@@ -295,13 +295,13 @@ The caller owns the network. `faction` owns the state.
 
 | Package | What it tests | Tests |
 |---|---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 73 rows and 115 conformance vectors, re-encoded once at 0.8.0 as receipts, and one withdrawn | — |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 200 |
-| `crates/core/` unit tests | Each type and each step in isolation | 308 |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 233 |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 78 rows and 125 conformance vectors in force, the released ones re-encoded at 0.8.0 as receipts and at 0.9.0 with the view's changes in flight a list, and one withdrawn | — |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 224 |
+| `crates/core/` unit tests | Each type and each step in isolation | 343 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them under bounds of one to three, liveness's invariants, removal's, the epoch's and the changes in flight's; logs replayed | 255 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 121 |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 123 |
 | `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, removal, and epochs and rejoin | 198 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
@@ -309,8 +309,8 @@ The caller owns the network. `faction` owns the state.
 | `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport | 50 |
 | `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
 | `validation/system-tests/` rejoin | Nodes restarted, re-added, partitioned and ahead, across spawn/transport | 50 |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 346 |
-| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 99 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 365 |
+| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes; the layer above committing by the specification's rule alone, every peer bound to one to three changes in flight | 110 |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -340,9 +340,9 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 
 | Metric | Value |
 |---|---|
-| Core productive LOC | ~2,350 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.8.0 — its independent model and the crate answer all 115 vectors in force as written, each kept as released and re-encoded once, changing no answer, and one withdrawn to correct a defect |
-| Total tests | 2,007 |
+| Core productive LOC | ~2,550 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.9.0 — its independent model and the crate answer all 125 vectors in force as written, the released ones kept as released and re-encoded twice, changing no answer, and one withdrawn to correct a defect |
+| Total tests | 2,120 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -385,7 +385,7 @@ Each principle above is recorded as an Architecture Decision Record — thirty, 
 
 - Perform network I/O — the caller sends and receives messages
 - Confirm a member dead, or remove one for its silence — a suspect stays a member until the caller has its removal committed
-- Manage the full membership lifecycle — joining, addition, failure detection, removal and epochs have landed; concurrent changes are Phase 6
+- Manage the full membership lifecycle — joining, addition, failure detection, removal, epochs and concurrent changes have landed
 - Check that a membership it is handed is genuine — that is the caller's, as a signature is
 - Know about consensus — protocols build on top of `faction`, not inside it
 - Provide a runtime — async, threading, and process management are the caller's concern
@@ -427,7 +427,8 @@ probes its members and suspects those it cannot reach — and **Phase 4 (single-
 removal)**: a concluded cluster shrinks by one through the same layer, never below
 what its quorum can spare — and **Phase 5 (epochs and rejoin)**: every membership
 carries the layer above's number for it, a node behind is refused and caught up, and a
-removed node comes back. Concurrent changes follow.
+removed node comes back — and **Phase 6 (concurrent changes)**: a coordinator holds several changes
+in flight, up to its bound, and the layer above commits each only while it is still valid.
 
 Each phase is a strict superset of the previous; Phase 0 tests pass unchanged at Phase 6.
 No phase begins until the previous phase has 100% `(state, command)` coverage.
