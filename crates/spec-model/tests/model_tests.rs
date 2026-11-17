@@ -20,6 +20,42 @@ fn model() -> Model {
 }
 
 #[test]
+fn process_of_a_change_requested_of_a_provisional_concluded_node_is_refused() {
+    // Arrange
+    let mut model = Model::new(
+        SpecReader::table(&SpecFiles::matrix()),
+        SpecReader::configuration(&json!({
+            "peer_id": "5",
+            "peers": ["0", "5"],
+            "required_count": "1",
+            "suspicion_threshold": "1",
+            "epoch": "2",
+            "provisional": true,
+        })),
+    );
+    let _ = model.process(&json!({"LocalParticipationCompleted": {}}));
+
+    // Act
+    let answers = [
+        model.process(&json!({"AdditionRequested": {"peer_id": "7"}})),
+        model.process(&json!({"RemovalRequested": {"peer_id": "0"}})),
+    ];
+
+    // Assert
+    for (answer, peer_id) in answers.iter().zip(["7", "0"]) {
+        assert_eq!(answer.row, "coordination-refused-provisional");
+        assert_eq!(
+            answer.result["Accepted"]["outcomes"],
+            json!([{"CoordinationRefused": {"peer_id": peer_id}}])
+        );
+        assert_eq!(
+            answer.result["Accepted"]["cluster_view"]["reconfiguration"],
+            json!({"None": {}})
+        );
+    }
+}
+
+#[test]
 fn process_of_a_claim_from_behind_at_a_provisional_node_sends_nothing() {
     // Arrange
     let mut model = Model::new(

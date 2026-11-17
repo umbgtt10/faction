@@ -149,7 +149,10 @@ A phase only adds: commands, outcomes, stages, configuration, fields of the view
 changes what an earlier release answers: the specification's growth rule (§1) omits a new
 member at its initial value and names a new command in no earlier vector's admissible
 commands, so every released vector passes unchanged, and `spec/released.json` fails the
-conformance tier on one removed or edited. It lists the commands each released version
+conformance tier on one removed or edited. The one way out is a withdrawal, to correct a
+defect a released vector shows, never to grow: `released.json` marks it withdrawn at the
+correcting version, and its bytes move, unchanged, to `spec/withdrawn/` (0.7.0 withdrew
+vector 113). It lists the commands each released version
 names too: both conformance tiers compare a released vector's admissible commands among
 those its version names (`validation/ladder/tests/support/growth.rs`). Specification
 0.5.0 was the first to grow by the rule. Before the rule the encoding grew in place,

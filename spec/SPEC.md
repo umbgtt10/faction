@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.6.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.7.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -18,6 +18,9 @@ every row it has. 0.5.0 is the first version to grow by the rule of §1: every v
 answered alike. 0.5.1 answers every command as 0.5.0 does, and states what the layer above owes a node: its commits in
 epoch order (§16). 0.6.0 grows by the rule again: a newcomer holds its membership provisionally until its own addition
 commits, and refuses a claim from behind without sending it (§16); every vector 0.5.x released is answered alike.
+0.7.0 has a provisional node coordinate no change, refusing an addition or a removal it is asked for (§16), and
+withdraws the one released vector that showed one coordinating (§1, §17); every other vector 0.6.0 released is
+answered alike.
 
 ## 1. Conventions
 
@@ -56,7 +59,11 @@ version's behaviour, and a command a later version adds is named in no earlier v
 implementation conforms to a vector of an earlier version when the commands it admits, among those that version
 names, are the vector's. The commands a released version names are those [`released.json`](released.json) lists at
 that version or an earlier one (§17). Every answer this version gives is therefore given the same by every later
-version, and every vector released here passes unchanged there. 0.5.0 grows by the rule: the epoch (§16), a member of
+version, and every vector released here passes unchanged there — but one a later version withdraws. A version
+withdraws a released vector only to correct a defect the vector shows, never to grow: `released.json` marks it
+withdrawn at that version, and its bytes move, unchanged, from [`vectors/`](vectors/) to [`withdrawn/`](withdrawn/)
+(§17). 0.7.0 withdraws vector 113, in which a provisional node coordinated an addition, offering the newcomer a
+membership no commit made (§16). 0.5.0 grows by the rule: the epoch (§16), a member of
 the configuration, the view, three signals and three commits, is omitted wherever it is 0, and a form with no epoch
 holds epoch 0; the command `MembershipReceived` is new, and so are the outcomes it and the epoch bring. 0.6.0 grows by
 it again: whether a node's membership is provisional (§16), a member of the configuration and of the view, is omitted
@@ -256,7 +263,9 @@ propose it; every node applies it once it has committed. Who may be added, and h
 
 **`AdditionRequested`** starts an addition: `SendMembership` — the caller sends the newcomer the members, the
 required count and the epoch the view shows — and the node is `Reconfiguring`, its reconfiguration `AdditionRequested`. A peer that is already a
-member, the node itself among them, is answered `DuplicateMemberIgnored`, and nothing changes. `Reconfiguring` does not
+member, the node itself among them, is answered `DuplicateMemberIgnored`, and nothing changes. A node whose membership
+is provisional coordinates no addition: it is answered `CoordinationRefused`, carrying the peer, before anything else,
+and nothing changes (§16). `Reconfiguring` does not
 admit a second request, of either kind.
 
 **`MembershipAcknowledged`** from the peer whose addition is requested is answered `ProposeAddition` — the caller
@@ -289,8 +298,9 @@ removal commits (§14).
 
 **`RemovalRequested`** starts a removal: `ProposeRemoval` — the caller proposes the removal to the layer above — and the
 node is `Reconfiguring`, its reconfiguration `RemovalRequested`. Any member may be named, the node itself among them. A
-peer that is not a member is answered `NonMemberIgnored`, and nothing changes. `Reconfiguring` does not admit a second
-request, of either kind.
+peer that is not a member is answered `NonMemberIgnored`, and nothing changes. A node whose membership is provisional
+coordinates no removal: it is answered `CoordinationRefused`, carrying the peer, before anything else, and nothing
+changes (§16). `Reconfiguring` does not admit a second request, of either kind.
 
 **A removal that would lose the quorum is refused.** The removal of a member not suspected, when without it the members
 not suspected would number fewer than the required count, is answered `RemovalRefused`, and nothing changes; the node
@@ -412,13 +422,16 @@ epoch (§6, §7), and so is an acknowledgement not awaited (§11). A claim at th
 before: the node behind is this one, and the membership will reach it. Liveness carries no epoch: being alive is not a
 claim on a membership, and a member slow to apply a commit is never suspected for it.
 
-**A provisional node sends no membership**
+**A provisional node sends no membership, and coordinates no change**
 ([`P1-ADR-ANewcomerHoldsItsMembershipProvisionally`](../docs/ADRs/P1-ADR-ANewcomerHoldsItsMembershipProvisionally.md)).
 A newcomer holds the membership its coordinator offered it, and itself,
 before the layer above has committed its addition: its membership is provisional, and a peer adopting it would hold a
 member no commit added. A node whose membership is provisional refuses a claim from behind as any node does,
 `StaleEpochIgnored`, carrying the peer and its epoch, and sends the peer nothing: a member that holds a committed
-membership will. Its membership stops being provisional, once and for all, when the node applies the commit of its own
+membership will. Asked for an addition or a removal, it refuses, `CoordinationRefused`, carrying the peer, and nothing
+changes (§11, §12): an addition it coordinated would hand the newcomer a membership naming a member no commit added,
+and a change it coordinates is the cluster's, of which it is no member of record yet. So it never has a change in
+flight. Its membership stops being provisional, once and for all, when the node applies the commit of its own
 addition — at an epoch above its own, whatever else its row says, `DuplicateMemberIgnored` among them — when it adopts
 a membership, and when it is removed (§12). Nothing else changes it.
 
@@ -457,8 +470,10 @@ row of the matrix is exercised by at least one vector.
 
 **Released vectors are kept.** `released.json` lists every vector of every released version by its file's name, the
 version that released its bytes and the SHA-256 digest of them, and every command a released version names, by its
-name and the first released version to name it. A listed vector is never removed or edited, and a listed command
-never removed.
+name and the first released version to name it. A listed vector is never edited, and a listed command never
+removed. A listed vector a later version withdraws to correct a defect (§1) is marked withdrawn at that version, and its
+bytes move, unchanged, to [`withdrawn/`](withdrawn/): no implementation is held to it. [`vectors/`](vectors/) holds
+every vector in force.
 
 **An implementation conforms** when, created from each vector's configuration with an observer that does nothing
 and given each step's command in turn, it answers each with the step's result, and the closing `Probe` with the

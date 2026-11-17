@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::boxed::Box;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
@@ -61,15 +62,19 @@ impl Faction {
 
     // The node's epoch is its view's, and so is whether its membership is
     // provisional: an accepted command moves each as its rule says, before
-    // the stage shows itself, and a provisional node sends no membership.
+    // the stage shows itself; a provisional node sends no membership, and a
+    // change it is asked to coordinate it refuses, its stage kept.
     fn answer(&mut self, command: &Command) -> ProcessResult {
         let epoch = self.cluster_view.epoch();
         let provisional =
             ProvisionalRule::new(self.config.peer_id(), self.cluster_view.is_provisional());
         match self.stage.step(command.clone(), &self.config, epoch) {
             Some((outcomes, stage)) => {
+                let (outcomes, stage) = provisional.refusal(command).map_or_else(
+                    || (provisional.answered(outcomes), stage),
+                    |refused| (vec![refused], self.stage.clone()),
+                );
                 self.stage = stage;
-                let outcomes = provisional.answered(outcomes);
                 let moved = ClusterViewBuilder::from_view_at(
                     &self.cluster_view,
                     EpochRule::new(epoch).after(command),

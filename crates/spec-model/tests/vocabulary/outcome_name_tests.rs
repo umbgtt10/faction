@@ -101,6 +101,18 @@ fn encoded_of_a_commit_or_a_membership_carries_its_epoch() {
 }
 
 #[test]
+fn encoded_of_a_coordination_refused_names_the_command_s_peer() {
+    // Arrange
+    let request = naming(CommandName::AdditionRequested, "7");
+
+    // Act
+    let encoded = OutcomeName::CoordinationRefused.encoded(&request, &NodeStates::concluded());
+
+    // Assert
+    assert_eq!(encoded, json!({"CoordinationRefused": {"peer_id": "7"}}));
+}
+
+#[test]
 fn encoded_of_a_liveness_outcome_names_the_command_s_peer() {
     // Arrange
     let state = NodeStates::concluded();
@@ -381,6 +393,7 @@ fn name_of_each_outcome_is_the_vocabulary_s() {
             "AbortIgnored",
             "ProposeRemoval",
             "RemovalRefused",
+            "CoordinationRefused",
             "RemovalWithdrawn",
             "MemberRemoved",
             "RequiredCountSet",

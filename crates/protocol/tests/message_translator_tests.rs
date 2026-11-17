@@ -513,6 +513,22 @@ fn to_output_messages_concluded_then_broadcast_local_ready_returns_both_in_order
 }
 
 #[test]
+fn to_output_messages_coordination_refused_asks_nothing() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let outputs = translator.to_output_messages(
+        vec![Outcome::CoordinationRefused { peer_id: 7 }],
+        &view(),
+        0,
+    );
+
+    // Assert
+    assert_eq!(outputs, vec![OutputMessage::Noop]);
+}
+
+#[test]
 fn to_output_messages_empty_outcomes_returns_noop() {
     // Arrange
     let translator = translator();

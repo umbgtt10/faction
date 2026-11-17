@@ -170,6 +170,13 @@ const RULES: [(&str, Rule); 73] = [
         },
     ),
     (
+        "coordination-refused-provisional",
+        Rule {
+            situation: Situation::NodeIsProvisional,
+            change: Change::Nothing,
+        },
+    ),
+    (
         "addition-member",
         Rule {
             situation: Situation::PeerIsMember,
@@ -187,13 +194,6 @@ const RULES: [(&str, Rule); 73] = [
         "acknowledgement-ignored",
         Rule {
             situation: Situation::AcknowledgementNotAwaited,
-            change: Change::Nothing,
-        },
-    ),
-    (
-        "acknowledgement-behind-provisional",
-        Rule {
-            situation: Situation::ProvisionalClaimIsBehind,
             change: Change::Nothing,
         },
     ),

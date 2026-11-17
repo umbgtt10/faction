@@ -649,7 +649,8 @@
   {
    "id": "113-provisional-acknowledgement-from-behind-and-removal",
    "version": "0.6.0",
-   "sha256": "dc02e998f55780bb50b2879a4f64daca021f204b3456155e67d4be0f2fee849e"
+   "sha256": "dc02e998f55780bb50b2879a4f64daca021f204b3456155e67d4be0f2fee849e",
+   "withdrawn": "0.7.0"
   }
  ]
 }

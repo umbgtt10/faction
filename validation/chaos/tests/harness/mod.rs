@@ -2,4 +2,5 @@
 // SPDX-License-Identifier: MIT
 
 pub mod committed_log_tests;
+pub mod coordinators_tests;
 pub mod layer_above_tests;

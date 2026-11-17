@@ -161,3 +161,48 @@ fn answered_by_a_provisional_node_withholds_the_membership_from_a_peer_behind() 
         }]
     );
 }
+
+#[test]
+fn refusal_at_a_node_never_provisional_is_none() {
+    // Arrange
+    let rule = ProvisionalRule::new(5, false);
+
+    // Act
+    let refusal = rule.refusal(&Command::AdditionRequested { peer_id: 7 });
+
+    // Assert
+    assert_eq!(refusal, None);
+}
+
+#[test]
+fn refusal_of_a_change_requested_at_a_provisional_node_names_its_peer() {
+    // Arrange
+    let rule = ProvisionalRule::new(5, true);
+
+    // Act
+    let refusals = [
+        rule.refusal(&Command::AdditionRequested { peer_id: 7 }),
+        rule.refusal(&Command::RemovalRequested { peer_id: 0 }),
+    ];
+
+    // Assert
+    assert_eq!(
+        refusals,
+        [
+            Some(Outcome::CoordinationRefused { peer_id: 7 }),
+            Some(Outcome::CoordinationRefused { peer_id: 0 }),
+        ]
+    );
+}
+
+#[test]
+fn refusal_of_anything_but_a_change_requested_is_none() {
+    // Arrange
+    let rule = ProvisionalRule::new(5, true);
+
+    // Act
+    let refusal = rule.refusal(&own_addition(3));
+
+    // Assert
+    assert_eq!(refusal, None);
+}

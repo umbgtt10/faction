@@ -22,7 +22,7 @@ consensus begins?
 that answers the question deterministically, observably, and provably.
 
 **Phases 1 to 5 of six are built** (2026-11-16): bootstrapping, dynamic joining, single-node addition, failure
-detection, single-node removal, and epochs and rejoin, conformant to version 0.6.0 of the specification in
+detection, single-node removal, and epochs and rejoin, conformant to version 0.7.0 of the specification in
 [`spec/`](spec/SPEC.md).
 Version 0.10.0 is on [crates.io](https://crates.io/crates/faction).
 
@@ -291,13 +291,13 @@ The caller owns the network. `faction` owns the state.
 
 | Package | What it tests | Tests |
 |---|---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 73 rows and 113 conformance vectors | — |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 196 |
-| `crates/core/` unit tests | Each type and each step in isolation | 301 |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 229 |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 73 rows and 115 conformance vectors, and one withdrawn | — |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 199 |
+| `crates/core/` unit tests | Each type and each step in isolation | 306 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 230 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 117 |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 118 |
 | `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, removal, and epochs and rejoin | 198 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
@@ -306,7 +306,7 @@ The caller owns the network. `faction` owns the state.
 | `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
 | `validation/system-tests/` rejoin | Nodes restarted, re-added, partitioned and ahead, across spawn/transport | 50 |
 | `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 343 |
-| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 95 |
+| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 96 |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -337,8 +337,8 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~2,350 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.6.0 — its independent model and the crate answer all 113 vectors as written, each kept as released |
-| Total tests | 1,981 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.7.0 — its independent model and the crate answer all 115 vectors in force as written, each kept as released, and one withdrawn to correct a defect |
+| Total tests | 1,992 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |

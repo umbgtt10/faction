@@ -2,3 +2,4 @@
 *.jsonl
 logs/
 validation/system-tests/src/infra/transport/grpc/generated/
+*.proptest-regressions

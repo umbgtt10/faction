@@ -969,6 +969,27 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
+            "CoordinationRefused"
+          ],
+          "properties": {
+            "CoordinationRefused": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
             "RemovalWithdrawn"
           ],
           "properties": {
@@ -1990,6 +2011,7 @@
                     "AbortIgnored",
                     "ProposeRemoval",
                     "RemovalRefused",
+                    "CoordinationRefused",
                     "RemovalWithdrawn",
                     "MemberRemoved",
                     "RequiredCountSet",
@@ -2030,7 +2052,7 @@
       }
     },
     "released": {
-      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them; and every command a released version names, by its name and the first released version to name it.",
+      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them, and the version that withdrew it, if one did; and every command a released version names, by its name and the first released version to name it.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2079,6 +2101,9 @@
               "sha256": {
                 "type": "string",
                 "pattern": "^[0-9a-f]{64}$"
+              },
+              "withdrawn": {
+                "type": "string"
               }
             }
           }

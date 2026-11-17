@@ -5,6 +5,37 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Added
+- The specification is 0.7.0: a node whose membership is provisional coordinates no change.
+  Asked for an addition or a removal it answers `CoordinationRefused`, carrying the peer, and
+  nothing changes, until the commit of its own addition ends the provisional membership: an
+  addition it coordinated handed the newcomer a membership naming a member no commit added. One
+  row added, one gone -- an acknowledgement from behind at a provisional node, which no node
+  reaches any more -- and vectors 114 to 116.
+
+#### Changed — breaking
+- `Outcome` gains `CoordinationRefused { peer_id }`.
+- A node whose membership is provisional refuses `AdditionRequested` and `RemovalRequested`,
+  which 0.10.0 answered as any concluded node does.
+
+#### Removed
+- Vector 113, released at 0.6.0, is withdrawn: it showed a provisional node coordinating an
+  addition. The specification's growth rule (§1) now allows a released vector withdrawn to
+  correct a defect, never to grow; `released.json` marks it withdrawn at 0.7.0, and its bytes
+  are kept in `spec/withdrawn/`.
+
+#### Changed
+- The chaos tier's layer above asks a newcomer to coordinate once added, as it asks any peer no
+  change removes: refused while its membership is provisional, coordinating once its own addition
+  commits.
+
+#### Fixed
+- An adopted membership's missed periods are listed in its members' order, as the specification
+  says (§1, §16): a node kept them in the order of the membership it held before, so a view after
+  an adoption that reordered members who had missed periods differed from the specification's.
+  The property tier found it, the crate against the independent model; a unit test keeps the
+  case.
+
 ## [0.10.0] — 2026-11-17
 
 ### Published on crates.io

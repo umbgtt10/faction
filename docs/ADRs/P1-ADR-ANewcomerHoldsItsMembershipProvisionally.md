@@ -1,6 +1,6 @@
 # P1-ADR-ANewcomerHoldsItsMembershipProvisionally
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-17 — a provisional node coordinates no change
 - **Date:** 2026-11-16
 - **Priority:** P1 (derived from `P1-ADR-TheEpochComesWithTheCommit`)
 - **Phase:** between 5 and 6, found by the chaos validation
@@ -20,6 +20,12 @@ each omitted when it is not. A node whose membership is provisional refuses a cl
 provisional, once and for all, when it applies the commit of its own addition, when it adopts a membership, and when it
 is removed. The reference protocol creates every newcomer provisional.
 
+**Amended 2026-11-17.** A provisional node coordinates no change: asked for an addition or a removal, it answers
+`CoordinationRefused`, carrying the peer, and nothing changes. An addition it coordinated would hand the newcomer a
+membership naming a member no commit added -- the provisional node itself -- and the newcomer, once its own addition
+committed, would hold it as a committed one; and a change it coordinates is the cluster's, of which it is no member of
+record yet. So a provisional node never has a change in flight, and never an acknowledgement to refuse.
+
 ## Forcing constraints / Evidence
 The chaos soak's seed 1794855532 fails without the rule and passes with it, and is recorded among the chaos
 regressions. A membership's epoch is the layer above's number for a committed membership: a membership at that number
@@ -37,10 +43,12 @@ but the membership here is the node's own, sent at its own word.
 
 ## Consequences
 Specification 0.6.0 grows by the rule of §1: every released vector is answered alike. `Config::new` and `ClusterView::new`
-take the flag, which every caller now passes. A provisional node that coordinates an addition still offers its membership
-to its newcomer, as `AdditionRequested` asks; whether a provisional node may coordinate at all is left open.
+take the flag, which every caller now passes. Specification 0.7.0 corrects what 0.6.0 left open -- a provisional node
+coordinated an addition, offering its membership -- and withdraws vector 113, released at 0.6.0, which showed it: the
+first released vector withdrawn, as §1 now allows to correct a defect, never to grow. `Outcome` gains
+`CoordinationRefused`, and the row refusing an acknowledgement from behind at a provisional node goes, no node reaching it.
 
 ## Enforcement
-Specification 0.6.0: three rows of the matrix -- a claim from behind before completion and after it, and an
-acknowledgement from behind, at a provisional node -- vectors 109 to 113, the independent model answering each before
-the crate runs it, and the chaos regressions.
+Specification 0.7.0: three rows of the matrix -- a claim from behind before completion and after it, and a change asked
+of a provisional node -- vectors 109 to 112 and 114 to 116, the independent model answering each before the crate runs
+it, and the chaos regressions.

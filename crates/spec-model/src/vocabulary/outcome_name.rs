@@ -38,6 +38,7 @@ pub enum OutcomeName {
     AbortIgnored,
     ProposeRemoval,
     RemovalRefused,
+    CoordinationRefused,
     RemovalWithdrawn,
     MemberRemoved,
     RequiredCountSet,
@@ -60,7 +61,7 @@ pub enum OutcomeName {
 }
 
 impl OutcomeName {
-    pub const ALL: [OutcomeName; 40] = [
+    pub const ALL: [OutcomeName; 41] = [
         OutcomeName::ParticipationAccepted,
         OutcomeName::ReadyAccepted,
         OutcomeName::DuplicateParticipationIgnored,
@@ -82,6 +83,7 @@ impl OutcomeName {
         OutcomeName::AbortIgnored,
         OutcomeName::ProposeRemoval,
         OutcomeName::RemovalRefused,
+        OutcomeName::CoordinationRefused,
         OutcomeName::RemovalWithdrawn,
         OutcomeName::MemberRemoved,
         OutcomeName::RequiredCountSet,
@@ -182,6 +184,7 @@ impl OutcomeName {
             | OutcomeName::AbortIgnored
             | OutcomeName::ProposeRemoval
             | OutcomeName::RemovalRefused
+            | OutcomeName::CoordinationRefused
             | OutcomeName::RemovalWithdrawn
             | OutcomeName::PeerSuspected
             | OutcomeName::PeerRevived
@@ -217,6 +220,7 @@ impl OutcomeName {
             OutcomeName::AbortIgnored => "AbortIgnored",
             OutcomeName::ProposeRemoval => "ProposeRemoval",
             OutcomeName::RemovalRefused => "RemovalRefused",
+            OutcomeName::CoordinationRefused => "CoordinationRefused",
             OutcomeName::RemovalWithdrawn => "RemovalWithdrawn",
             OutcomeName::MemberRemoved => "MemberRemoved",
             OutcomeName::RequiredCountSet => "RequiredCountSet",
