@@ -5,7 +5,7 @@
 **Last updated:** 2026-11-17  
 **Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0); the chaos
 validation built (specification 0.6.0, for the crate's 0.10.0); a provisional node coordinating
-no change (specification 0.7.0)
+no change (specification 0.7.0, for the crate's 0.11.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during

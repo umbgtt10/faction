@@ -24,7 +24,7 @@ that answers the question deterministically, observably, and provably.
 **Phases 1 to 5 of six are built** (2026-11-16): bootstrapping, dynamic joining, single-node addition, failure
 detection, single-node removal, and epochs and rejoin, conformant to version 0.7.0 of the specification in
 [`spec/`](spec/SPEC.md).
-Version 0.10.0 is on [crates.io](https://crates.io/crates/faction).
+Version 0.11.0 is on [crates.io](https://crates.io/crates/faction).
 
 ---
 
@@ -219,7 +219,7 @@ helpers asked, and the threshold it is created with.
 
 ```toml
 [dependencies]
-faction = "0.10"
+faction = "0.11"
 ```
 
 ```rust
@@ -345,7 +345,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified on `thumbv7em-none-eabihf` |
 | System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
-| Published | [crates.io](https://crates.io/crates/faction) 0.10.0 |
+| Published | [crates.io](https://crates.io/crates/faction) 0.11.0 |
 
 ---
 

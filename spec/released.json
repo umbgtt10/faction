@@ -651,6 +651,21 @@
    "version": "0.6.0",
    "sha256": "dc02e998f55780bb50b2879a4f64daca021f204b3456155e67d4be0f2fee849e",
    "withdrawn": "0.7.0"
+  },
+  {
+   "id": "114-provisional-refuses-an-addition",
+   "version": "0.7.0",
+   "sha256": "0799ba2d36c33a7fd99eae9e9876d2dd24d25e0a0ce2d771eea1093316b21ce9"
+  },
+  {
+   "id": "115-provisional-refuses-a-removal-until-its-addition-commits",
+   "version": "0.7.0",
+   "sha256": "22e3a85fb12c005e8c140b0e9a65ed20dbb0bd713b8b9fac59ff8f8363f051ee"
+  },
+  {
+   "id": "116-provisional-ends-with-its-own-removal",
+   "version": "0.7.0",
+   "sha256": "53d8439ffab19ded4fefcf7b7a4be48cdcde96247807af761bc82898a3b0f4e3"
   }
  ]
 }

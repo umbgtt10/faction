@@ -5,6 +5,15 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-11-17
+
+### Published on crates.io
+
+Conforms to the specification's version 0.7.0: its 115 vectors in force are released and kept, the 112 of 0.6.0
+still in force pass unchanged, and vector 113, released at 0.6.0, is withdrawn to correct the defect it showed.
+
+### A provisional node coordinates no change
+
 #### Added
 - The specification is 0.7.0: a node whose membership is provisional coordinates no change.
   Asked for an addition or a removal it answers `CoordinationRefused`, carrying the peer, and
