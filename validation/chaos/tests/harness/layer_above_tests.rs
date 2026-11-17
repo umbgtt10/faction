@@ -30,6 +30,15 @@ fn cluster() -> (Cluster, Arc<SimulatedClock>) {
     (cluster, clock)
 }
 
+// A change planned for round `due`.
+fn due_at(change: Change, due: u64) -> PlannedChange {
+    PlannedChange {
+        change,
+        due,
+        after: None,
+    }
+}
+
 fn planned(change: Change, after: Option<usize>) -> PlannedChange {
     PlannedChange {
         change,
@@ -118,6 +127,66 @@ fn act_commits_an_addition_once_its_newcomer_acknowledges() {
 }
 
 #[test]
+fn act_declines_a_removal_a_new_count_conflicts_with_and_commits_it_proposed_again() {
+    // Arrange
+    let (cluster, clock) = cluster();
+    let mut layer = LayerAbove::new(&scenario(
+        vec![
+            due_at(Change::RequiredCount { required_count: 1 }, 40),
+            due_at(Change::Removal { peer_id: 1 }, 40),
+        ],
+        0,
+    ));
+
+    // Act
+    play(&mut layer, &cluster, &clock, 200);
+
+    // Assert
+    assert_eq!(
+        layer.log().commits(),
+        [
+            Commit::RequiredCount {
+                required_count: 1,
+                epoch: 1
+            },
+            Commit::Removal {
+                peer_id: 1,
+                epoch: 2
+            },
+        ]
+    );
+    assert!(layer.settled());
+    assert_eq!(layer.flaw(), None);
+}
+
+#[test]
+fn act_gives_up_a_removal_a_raised_count_can_no_longer_spare() {
+    // Arrange
+    let (cluster, clock) = cluster();
+    let mut layer = LayerAbove::new(&scenario(
+        vec![
+            due_at(Change::RequiredCount { required_count: 3 }, 40),
+            due_at(Change::Removal { peer_id: 1 }, 40),
+        ],
+        0,
+    ));
+
+    // Act
+    play(&mut layer, &cluster, &clock, 200);
+
+    // Assert
+    assert_eq!(
+        layer.log().commits(),
+        [Commit::RequiredCount {
+            required_count: 3,
+            epoch: 1
+        }]
+    );
+    assert!(!layer.settled());
+    assert_eq!(cluster.snapshot(1).members, vec![0, 1, 2]);
+}
+
+#[test]
 fn act_takes_a_removed_member_back_only_after_its_removal() {
     // Arrange
     let (cluster, clock) = cluster();
@@ -148,6 +217,15 @@ fn act_takes_a_removed_member_back_only_after_its_removal() {
     );
     assert_eq!(cluster.node_state(2), PeerState::Bootstrapped);
     assert_eq!(cluster.snapshot(2).epoch, 2);
+}
+
+#[test]
+fn flaw_of_a_layer_yet_to_act_is_none() {
+    // Arrange & Act
+    let layer = LayerAbove::new(&scenario(Vec::new(), 0));
+
+    // Assert
+    assert_eq!(layer.flaw(), None);
 }
 
 #[test]

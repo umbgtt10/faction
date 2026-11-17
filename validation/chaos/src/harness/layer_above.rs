@@ -3,9 +3,11 @@
 
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::infra::dice::Dice;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::membership::Membership;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 
@@ -30,11 +32,15 @@ enum Progress {
 
 // The layer above the nodes, played as a consensus layer would play it. It
 // asks a coordinator -- any peer no change removes, a newcomer among them
-// once added -- for each planned change once it is due, commits the
-// proposals it sees one at a time, numbering them, and commits a new
-// required count of its own accord.
-// A request a coordinator refused, or lost, it asks again. It reports to
-// every running node the commits it lacks, in epoch order, up to
+// once added -- for each planned change once it is due, and takes every
+// proposal any node makes, in the order they were made. It commits them one
+// at a time, numbering them, by the specification's rule alone (§17): a
+// proposal no change committed since its epoch conflicts with, that a planned
+// change waits for; every other it declines, and reports the decline to its
+// coordinator once the coordinator holds the epoch it was declined at. It
+// commits a new required count of its own accord, once the members reach it.
+// A request a coordinator refused, gave up, or lost, it asks again. It
+// reports to every running node the commits it lacks, in epoch order, up to
 // `delivery_lag` rounds late and, at `duplicates` percent, twice: a node
 // restarted, joined or taken back is caught up from the epoch it holds.
 pub struct LayerAbove {
@@ -47,6 +53,9 @@ pub struct LayerAbove {
     delivery_lag: u64,
     duplicates: u8,
     next_commit: u64,
+    proposals: Vec<(PeerId, Proposal)>,
+    declines: Vec<(PeerId, PeerId, Epoch)>,
+    flaw: Option<String>,
 }
 
 impl LayerAbove {
@@ -67,21 +76,34 @@ impl LayerAbove {
             delivery_lag: scenario.delivery_lag,
             duplicates: scenario.duplicates,
             next_commit: 0,
+            proposals: Vec::new(),
+            declines: Vec::new(),
+            flaw: None,
         }
     }
 
-    // One round of the layer above: the requests the coordinators lost given
-    // up, one proposal committed, the changes due requested, and every
-    // running node reported what it lacks.
+    // One round of the layer above: the proposals made taken, the requests
+    // the coordinators lost given up, one change committed and the proposals
+    // no longer valid declined, the changes due requested, and every running
+    // node reported what it lacks.
     pub fn act(&mut self, round: u64, cluster: &Cluster) {
         let snapshots: Vec<NodeSnapshot> = (0..cluster.node_count())
             .map(|index| cluster.snapshot(index))
             .collect();
         self.due.resize(snapshots.len(), 0);
+        self.collect(cluster);
         self.withdraw_lost(round, &snapshots);
-        self.commit_ready(round, &snapshots);
+        self.commit_ready(round);
         self.request_due(round, cluster, &snapshots);
         self.deliver(round, cluster, &snapshots);
+    }
+
+    // What the layer above was asked to commit that the log cannot hold: a
+    // proposal the rule admitted that adds a member or removes a peer that
+    // is none.
+    #[must_use]
+    pub fn flaw(&self) -> Option<&str> {
+        self.flaw.as_deref()
     }
 
     #[must_use]
@@ -104,19 +126,58 @@ impl LayerAbove {
             .all(|progress| *progress == Progress::Committed)
     }
 
-    fn commit_ready(&mut self, round: u64, snapshots: &[NodeSnapshot]) {
-        if round < self.next_commit {
+    // Every proposal every node made since the last round, in the order made.
+    fn collect(&mut self, cluster: &Cluster) {
+        for index in 0..cluster.node_count() {
+            for proposal in cluster.take_proposals(index) {
+                self.proposals.push((index as PeerId, proposal));
+            }
+        }
+    }
+
+    // The planned change at `index` committed at the next epoch, unless the
+    // log cannot hold it.
+    fn commit(&mut self, index: usize, round: u64) {
+        let change = self.plan[index].change;
+        if !self.log.fits(change) {
+            self.flaw = Some(format!(
+                "{change:?} at epoch {}",
+                self.log.commits().len() + 1
+            ));
             return;
         }
-        let Some(index) = (0..self.plan.len()).find(|index| self.ready(*index, round, snapshots))
-        else {
-            return;
-        };
-        self.log.commit(self.plan[index].change);
+        self.log.commit(change);
         self.progress[index] = Progress::Committed;
         self.next_commit = round + 1 + self.dice.below(COMMIT_GAP);
         for due in self.due.iter_mut() {
             *due = (*due).max(round + self.dice.below(self.delivery_lag + 1));
+        }
+    }
+
+    // Once its round has come: the proposals in the order made, each declined
+    // while it is no longer valid or no planned change waits for it, the
+    // first still valid committed; with none, a new count due the members
+    // reach.
+    fn commit_ready(&mut self, round: u64) {
+        if round < self.next_commit {
+            return;
+        }
+        while !self.proposals.is_empty() {
+            let (coordinator, proposal) = self.proposals.remove(0);
+            match self.planned_for(proposal) {
+                Some(index) if self.log.admits(proposal) => {
+                    self.commit(index, round);
+                    return;
+                }
+                _ => self.declines.push((
+                    coordinator,
+                    Self::named(proposal),
+                    self.log.commits().len() as Epoch,
+                )),
+            }
+        }
+        if let Some(index) = (0..self.plan.len()).find(|index| self.count_ready(*index, round)) {
+            self.commit(index, round);
         }
     }
 
@@ -139,8 +200,20 @@ impl LayerAbove {
         Some(idle[self.dice.below(idle.len() as u64) as usize])
     }
 
+    // Whether the planned change at `index` is a new count to commit now: its
+    // round come, and the members reaching it.
+    fn count_ready(&self, index: usize, round: u64) -> bool {
+        matches!(
+            (self.plan[index].change, self.progress[index]),
+            (Change::RequiredCount { .. }, Progress::Waiting { .. })
+        ) && self.is_due(index, round)
+            && self.log.fits(self.plan[index].change)
+    }
+
     // Every running node reported, in epoch order, the commits it lacks, as
-    // far as its lateness lets them reach it this round.
+    // far as its lateness lets them reach it this round; and every
+    // coordinator holding the epoch a proposal of its was declined at, the
+    // decline.
     fn deliver(&mut self, round: u64, cluster: &Cluster, snapshots: &[NodeSnapshot]) {
         for (index, snapshot) in snapshots.iter().enumerate() {
             if snapshot.members.is_empty() || snapshot.peer_state == PeerState::Removed {
@@ -156,6 +229,15 @@ impl LayerAbove {
                 next += 1;
                 self.due[index] = round + self.dice.below(self.delivery_lag + 1);
             }
+        }
+        let (due, waiting): (Vec<_>, Vec<_>) = self
+            .declines
+            .iter()
+            .copied()
+            .partition(|(coordinator, _, epoch)| snapshots[*coordinator as usize].epoch >= *epoch);
+        self.declines = waiting;
+        for (coordinator, peer_id, epoch) in due {
+            cluster.report_decline(coordinator, peer_id, epoch);
         }
     }
 
@@ -185,40 +267,22 @@ impl LayerAbove {
                 .is_none_or(|after| self.progress[after] == Progress::Committed)
     }
 
-    // Whether the log stays valid with `change` committed: a peer added that
-    // is no member, a member removed above the required count, a count the
-    // members reach.
-    fn keeps_the_log_valid(&self, change: Change) -> bool {
-        let membership = self.log.membership();
-        match change {
-            Change::Addition { peer_id } => !membership.peers.contains(&peer_id),
-            Change::Removal { peer_id } => {
-                membership.peers.contains(&peer_id)
-                    && membership.peers.len() > membership.required_count
-            }
-            Change::RequiredCount { required_count } => {
-                (1..=membership.peers.len()).contains(&required_count)
-            }
+    // The peer a proposal names.
+    fn named(proposal: Proposal) -> PeerId {
+        match proposal {
+            Proposal::Addition { peer_id, .. } | Proposal::Removal { peer_id, .. } => peer_id,
         }
     }
 
-    // Whether the change at `index` may commit now: its proposal seen, or,
-    // for a count, its round come; and the log valid with it.
-    fn ready(&self, index: usize, round: u64, snapshots: &[NodeSnapshot]) -> bool {
-        let change = self.plan[index].change;
-        let proposed = match (change, self.progress[index]) {
-            (Change::Addition { peer_id }, Progress::Requested { coordinator }) => {
-                snapshots[coordinator as usize].reconfiguration
-                    == Reconfiguration::AdditionAcknowledged { peer_id }
-            }
-            (Change::Removal { peer_id }, Progress::Requested { coordinator }) => {
-                snapshots[coordinator as usize].reconfiguration
-                    == Reconfiguration::RemovalRequested { peer_id }
-            }
-            (Change::RequiredCount { .. }, Progress::Waiting { .. }) => self.is_due(index, round),
-            _ => false,
+    // The planned change `proposal` proposes, not yet committed.
+    fn planned_for(&self, proposal: Proposal) -> Option<usize> {
+        let change = match proposal {
+            Proposal::Addition { peer_id, .. } => Change::Addition { peer_id },
+            Proposal::Removal { peer_id, .. } => Change::Removal { peer_id },
         };
-        proposed && self.keeps_the_log_valid(change)
+        (0..self.plan.len()).find(|index| {
+            self.plan[*index].change == change && self.progress[*index] != Progress::Committed
+        })
     }
 
     fn request(cluster: &Cluster, coordinator: PeerId, change: Change) {
@@ -262,7 +326,7 @@ impl LayerAbove {
     }
 
     // Every request its coordinator no longer shows in flight -- refused late,
-    // or lost to a restart -- waiting to be asked again.
+    // given up, or lost to a restart -- waiting to be asked again.
     fn withdraw_lost(&mut self, round: u64, snapshots: &[NodeSnapshot]) {
         for index in 0..self.plan.len() {
             if let Progress::Requested { coordinator } = self.progress[index]

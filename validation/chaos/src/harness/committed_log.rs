@@ -4,6 +4,7 @@
 use faction::types::Epoch;
 use faction::types::PeerId;
 use faction_protocol::commit::Commit;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::membership::Membership;
 
 use crate::model::change::Change;
@@ -23,6 +24,24 @@ impl CommittedLog {
             genesis,
             commits: Vec::new(),
         }
+    }
+
+    // Whether `proposal` is still valid (§17): no change committed after the
+    // epoch it was decided at conflicts with it -- one naming its peer, or,
+    // for a removal, another removal or a new count.
+    #[must_use]
+    pub fn admits(&self, proposal: Proposal) -> bool {
+        let (peer_id, epoch, removal) = match proposal {
+            Proposal::Addition { peer_id, epoch } => (peer_id, epoch, false),
+            Proposal::Removal { peer_id, epoch } => (peer_id, epoch, true),
+        };
+        self.commits[self.after(epoch)..]
+            .iter()
+            .all(|commit| match *commit {
+                Commit::Addition { peer_id: named, .. } => named != peer_id,
+                Commit::Removal { peer_id: named, .. } => named != peer_id && !removal,
+                Commit::RequiredCount { .. } => !removal,
+            })
     }
 
     // The place of the first commit a node at `epoch` lacks.
@@ -51,6 +70,20 @@ impl CommittedLog {
     #[must_use]
     pub fn commits(&self) -> &[Commit] {
         &self.commits
+    }
+
+    // Whether the membership can hold `change`: a peer added that is no
+    // member, a member removed, a count its members reach.
+    #[must_use]
+    pub fn fits(&self, change: Change) -> bool {
+        let membership = self.membership();
+        match change {
+            Change::Addition { peer_id } => !membership.peers.contains(&peer_id),
+            Change::Removal { peer_id } => membership.peers.contains(&peer_id),
+            Change::RequiredCount { required_count } => {
+                (1..=membership.peers.len()).contains(&required_count)
+            }
+        }
     }
 
     #[must_use]

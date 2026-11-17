@@ -28,6 +28,14 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
 - **Breaking:** faction-protocol's `OutputMessage::ProposeAddition` and `ProposeRemoval` carry the epoch the proposal
   was decided at, the view's, for the caller to submit with the change.
 
+#### Validation
+- The chaos tier's layer above commits by the specification's rule alone: it takes every proposal a node makes, with
+  its epoch, commits the first no change committed since conflicts with, declines the rest, and reports each decline to
+  its coordinator once the coordinator holds the epoch it was declined at. The guard it kept of its own -- a peer added
+  that is no member, a member removed above the count -- is retired; a proposal the rule admits that the log cannot
+  hold fails the run. The system tests' nodes surface their proposals and take a decline, on tasks, threads and
+  processes alike.
+
 ### What eight hours of chaos soak found
 
 #### Fixed

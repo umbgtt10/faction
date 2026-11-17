@@ -4,6 +4,7 @@
 use faction_chaos::harness::committed_log::CommittedLog;
 use faction_chaos::model::change::Change;
 use faction_protocol::commit::Commit;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::membership::Membership;
 
 fn log() -> CommittedLog {
@@ -21,6 +22,95 @@ fn log_of_three() -> CommittedLog {
     log.commit(Change::Removal { peer_id: 1 });
     log.commit(Change::RequiredCount { required_count: 3 });
     log
+}
+
+#[test]
+fn admits_a_proposal_decided_at_the_log_s_epoch() {
+    // Arrange
+    let log = log_of_three();
+
+    // Act
+    let admitted = [
+        log.admits(Proposal::Addition {
+            peer_id: 1,
+            epoch: 3,
+        }),
+        log.admits(Proposal::Removal {
+            peer_id: 0,
+            epoch: 3,
+        }),
+    ];
+
+    // Assert
+    assert_eq!(admitted, [true, true]);
+}
+
+#[test]
+fn admits_a_removal_unless_another_removal_or_a_count_committed_since() {
+    // Arrange
+    let log = log_of_three();
+
+    // Act
+    let admitted = [
+        log.admits(Proposal::Removal {
+            peer_id: 0,
+            epoch: 0,
+        }),
+        log.admits(Proposal::Removal {
+            peer_id: 0,
+            epoch: 2,
+        }),
+        log.admits(Proposal::Removal {
+            peer_id: 0,
+            epoch: 1,
+        }),
+    ];
+
+    // Assert
+    assert_eq!(admitted, [false, false, false]);
+}
+
+#[test]
+fn admits_a_removal_with_only_another_peer_s_addition_committed_since() {
+    // Arrange
+    let mut log = log();
+    log.commit(Change::Addition { peer_id: 3 });
+
+    // Act
+    let admitted = [
+        log.admits(Proposal::Removal {
+            peer_id: 0,
+            epoch: 0,
+        }),
+        log.admits(Proposal::Removal {
+            peer_id: 3,
+            epoch: 0,
+        }),
+    ];
+
+    // Assert
+    assert_eq!(admitted, [true, false]);
+}
+
+#[test]
+fn admits_an_addition_unless_a_change_naming_its_peer_committed_since() {
+    // Arrange
+    let log = log_of_three();
+
+    // Act
+    let admitted = [
+        log.admits(Proposal::Addition {
+            peer_id: 1,
+            epoch: 1,
+        }),
+        log.admits(Proposal::Addition {
+            peer_id: 4,
+            epoch: 0,
+        }),
+    ];
+
+    // Assert
+    assert_eq!(admitted, [false, true]);
 }
 
 #[test]
@@ -87,6 +177,26 @@ fn commits_lists_every_commit_in_order() {
             },
         ]
     );
+}
+
+#[test]
+fn fits_a_change_its_membership_can_hold() {
+    // Arrange
+    let log = log();
+
+    // Act
+    let fitting = [
+        log.fits(Change::Addition { peer_id: 3 }),
+        log.fits(Change::Addition { peer_id: 1 }),
+        log.fits(Change::Removal { peer_id: 1 }),
+        log.fits(Change::Removal { peer_id: 5 }),
+        log.fits(Change::RequiredCount { required_count: 3 }),
+        log.fits(Change::RequiredCount { required_count: 4 }),
+        log.fits(Change::RequiredCount { required_count: 0 }),
+    ];
+
+    // Assert
+    assert_eq!(fitting, [true, false, true, false, true, false, false]);
 }
 
 #[test]

@@ -65,3 +65,21 @@ fn to_string_of_a_divergence_names_what_was_expected_and_found() {
     // Assert
     assert!(text.starts_with("round 40: node 1 expected Removed at epoch 2, found NodeSnapshot"));
 }
+
+#[test]
+fn to_string_of_an_unsound_commit_names_it() {
+    // Arrange
+    let failure = Failure::Unsound {
+        round: 12,
+        commit: String::from("Addition { peer_id: 1 } at epoch 4"),
+    };
+
+    // Act
+    let text = failure.to_string();
+
+    // Assert
+    assert_eq!(
+        text,
+        "round 12: the commit rule admitted Addition { peer_id: 1 } at epoch 4, which the log cannot hold"
+    );
+}

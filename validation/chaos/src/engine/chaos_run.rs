@@ -71,6 +71,12 @@ impl ChaosRun {
         for round in 0..=deadline {
             self.disturb(round);
             self.layer.act(round, &self.cluster);
+            if let Some(commit) = self.layer.flaw() {
+                return Err(Failure::Unsound {
+                    round,
+                    commit: commit.to_string(),
+                });
+            }
             self.engine.round(&self.cluster);
             if let Some(breach) = self.breaches.first() {
                 return Err(Failure::Breach { round, breach });
