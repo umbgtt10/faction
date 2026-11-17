@@ -14,8 +14,8 @@ fn row_ids_names_each_known_row_once_the_probe_s_first() {
 
     // Assert
     let distinct: BTreeSet<&str> = row_ids.iter().copied().collect();
-    assert_eq!(row_ids.len(), 73);
-    assert_eq!(distinct.len(), 73);
+    assert_eq!(row_ids.len(), 77);
+    assert_eq!(distinct.len(), 77);
     assert_eq!(row_ids[0], "probed");
 }
 
@@ -87,6 +87,21 @@ fn rule_of_the_row_completing_an_addition_admits_the_pending_peer() {
 }
 
 #[test]
+fn rule_of_the_row_giving_up_a_declined_removal_withdraws_it_if_the_quorum_cannot_spare_the_peer() {
+    // Arrange & Act
+    let rule = RuleBook::rule("decline-removal-refused");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::QuorumCannotSpare,
+            change: Change::RemovalWithdrawn,
+        }
+    );
+}
+
+#[test]
 fn rule_of_the_row_ignoring_a_commit_held_already_changes_nothing() {
     // Arrange & Act
     let rule = RuleBook::rule("commit-held");
@@ -96,6 +111,36 @@ fn rule_of_the_row_ignoring_a_commit_held_already_changes_nothing() {
         rule,
         Rule {
             situation: Situation::CommitIsHeld,
+            change: Change::Nothing,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_ignoring_a_decline_asks_whether_a_proposal_of_the_peer_is_in_flight() {
+    // Arrange & Act
+    let rule = RuleBook::rule("decline-ignored");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::DeclineNotAwaited,
+            change: Change::Nothing,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_proposing_a_declined_addition_again_asks_whether_the_peer_is_pending() {
+    // Arrange & Act
+    let rule = RuleBook::rule("decline-addition");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::PeerIsPending,
             change: Change::Nothing,
         }
     );

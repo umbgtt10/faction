@@ -28,7 +28,8 @@ impl SpecWriter {
             | Command::ReadyObserved { peer_id, epoch }
             | Command::MembershipAcknowledged { peer_id, epoch }
             | Command::AdditionCommitted { peer_id, epoch }
-            | Command::RemovalCommitted { peer_id, epoch } => json!({
+            | Command::RemovalCommitted { peer_id, epoch }
+            | Command::ProposalDeclined { peer_id, epoch } => json!({
                 Self::name(command): Self::stated(json!({ "peer_id": Self::number(*peer_id) }), *epoch)
             }),
             Command::JoinRequested { peer_id }
@@ -147,6 +148,7 @@ impl SpecWriter {
             Command::RemovalRequested { .. } => "RemovalRequested",
             Command::RemovalCommitted { .. } => "RemovalCommitted",
             Command::RemovalAborted { .. } => "RemovalAborted",
+            Command::ProposalDeclined { .. } => "ProposalDeclined",
             Command::RequiredCountChanged { .. } => "RequiredCountChanged",
             Command::MembershipReceived { .. } => "MembershipReceived",
             Command::ProbeDue => "ProbeDue",
@@ -198,6 +200,7 @@ impl SpecWriter {
                 Self::peer("AcknowledgementIgnored", *peer_id)
             }
             Outcome::AbortIgnored { peer_id } => Self::peer("AbortIgnored", *peer_id),
+            Outcome::DeclineIgnored { peer_id } => Self::peer("DeclineIgnored", *peer_id),
             Outcome::ProposeRemoval { peer_id } => Self::peer("ProposeRemoval", *peer_id),
             Outcome::RemovalRefused { peer_id } => Self::peer("RemovalRefused", *peer_id),
             Outcome::CoordinationRefused { peer_id } => Self::peer("CoordinationRefused", *peer_id),

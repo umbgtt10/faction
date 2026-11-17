@@ -104,6 +104,17 @@ impl Bootstrapped {
 }
 
 impl Bootstrapped {
+    // Whether the quorum can spare the member: a suspect it always can; any
+    // other, if the members not suspected still number the count without it.
+    #[must_use]
+    pub fn can_spare(&self, peer_id: PeerId) -> bool {
+        self.liveness.suspected().contains(&peer_id)
+            || self
+                .members
+                .without(peer_id)
+                .is_some_and(|rest| self.liveness.holds_quorum(&rest, self.quorum_policy))
+    }
+
     // A change of membership applied: `outcomes`, then the quorum it crosses;
     // the peers gathered and the liveness kept to the new members.
     #[must_use]
@@ -135,16 +146,6 @@ impl Bootstrapped {
     #[must_use]
     pub fn departure(&self, command: &Command, peer_id: PeerId) -> Option<(Vec<Outcome>, Stage)> {
         Removed::departure(command, peer_id, &self.members, self.quorum_policy)
-    }
-
-    // Whether the quorum can spare the member: a suspect it always can; any
-    // other, if the members not suspected still number the count without it.
-    fn can_spare(&self, peer_id: PeerId) -> bool {
-        self.liveness.suspected().contains(&peer_id)
-            || self
-                .members
-                .without(peer_id)
-                .is_some_and(|rest| self.liveness.holds_quorum(&rest, self.quorum_policy))
     }
 }
 

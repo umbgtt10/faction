@@ -85,6 +85,10 @@ fn every_command() -> Vec<Command> {
             epoch: 0,
         },
         Command::RemovalAborted { peer_id: 0 },
+        Command::ProposalDeclined {
+            peer_id: 0,
+            epoch: 0,
+        },
         Command::RequiredCountChanged {
             required_count: 0,
             epoch: 0,
@@ -115,6 +119,7 @@ fn every_command_but_a_concluded_node_s_own() -> Vec<Command> {
                     | Command::AdditionAborted { .. }
                     | Command::RemovalRequested { .. }
                     | Command::RemovalAborted { .. }
+                    | Command::ProposalDeclined { .. }
                     | Command::ProbeDue
                     | Command::PeerHeard { .. }
                     | Command::ProbeMissed { .. }
@@ -330,6 +335,10 @@ fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an
                 epoch: 0
             },
             Command::RemovalAborted { peer_id: 0 },
+            Command::ProposalDeclined {
+                peer_id: 0,
+                epoch: 0
+            },
             Command::RequiredCountChanged {
                 required_count: 0,
                 epoch: 0
@@ -736,7 +745,7 @@ fn step_removed_answers_a_membership_alone_and_leaves_a_probe_to_the_node() {
         .collect();
 
     // Assert
-    let membership = 15;
-    let expected: Vec<bool> = (0..21).map(|index| index == membership).collect();
+    let membership = 16;
+    let expected: Vec<bool> = (0..22).map(|index| index == membership).collect();
     assert_eq!(answered, expected);
 }

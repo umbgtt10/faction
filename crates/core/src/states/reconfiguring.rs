@@ -53,6 +53,35 @@ impl Reconfiguring {
         }
     }
 
+    // A declined proposal decided again on the node's present view (§17): an
+    // addition proposed again, a removal proposed again while the quorum can
+    // spare its member and given up once it cannot; a decline naming no
+    // proposal in flight ignored.
+    fn declined(&self, peer_id: PeerId) -> (Vec<Outcome>, Stage) {
+        match self.in_flight {
+            Reconfiguration::AdditionAcknowledged { peer_id: proposed } if proposed == peer_id => (
+                vec![Outcome::ProposeAddition { peer_id }],
+                Stage::Reconfiguring(self.clone()),
+            ),
+            Reconfiguration::RemovalRequested { peer_id: proposed }
+                if proposed == peer_id && !self.concluded.can_spare(peer_id) =>
+            {
+                (
+                    vec![Outcome::RemovalRefused { peer_id }],
+                    Stage::Bootstrapped(self.concluded.clone()),
+                )
+            }
+            Reconfiguration::RemovalRequested { peer_id: proposed } if proposed == peer_id => (
+                vec![Outcome::ProposeRemoval { peer_id }],
+                Stage::Reconfiguring(self.clone()),
+            ),
+            _ => (
+                vec![Outcome::DeclineIgnored { peer_id }],
+                Stage::Reconfiguring(self.clone()),
+            ),
+        }
+    }
+
     // Whether an abort or a commit names the change in flight: its peer's
     // addition, requested or acknowledged, or its peer's removal.
     fn names_in_flight(&self, command: &Command) -> bool {
@@ -126,6 +155,7 @@ impl State for Reconfiguring {
                 vec![Outcome::RemovalWithdrawn { peer_id }],
                 Stage::Bootstrapped(self.concluded.clone()),
             )),
+            Command::ProposalDeclined { peer_id, .. } => Some(self.declined(peer_id)),
             Command::AdditionCommitted { .. } | Command::RemovalCommitted { .. }
                 if self.names_in_flight(&command) =>
             {

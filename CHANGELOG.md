@@ -5,6 +5,26 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### Phase 6, first half: a proposal committed only while it is still valid
+
+Conforms to the specification's version 0.9.0: every vector 0.8.0 released is answered alike, and five new ones,
+117 to 121, show a proposal declined and decided again.
+
+#### Added
+- The specification states what the layer above owes a proposal (§17): it is decided at the epoch its answer's view
+  shows, and the layer above commits it only while no change committed since conflicts with it -- one naming the same
+  peer, or, for a removal, another removal or a new required count. The rule reads the committed changes alone.
+- `Command::ProposalDeclined { peer_id, epoch }`: the layer above reports a proposal it declined, after the commits up
+  to the epoch it declined it at, and the coordinator decides the change again on its present view -- an addition
+  proposed again, a removal proposed again while the quorum can spare its member and given up, `RemovalRefused`, once
+  it cannot. `Reconfiguring` admits it; every other stage rejects it.
+- `Outcome::DeclineIgnored`: a decline naming no proposal in flight.
+- `Bootstrapped::can_spare`, public: whether the quorum can spare a member, as a removal requested and a removal
+  declined are both decided by it.
+
+#### Changed
+- **Breaking:** `Command` and `Outcome` gain a variant each.
+
 ### What eight hours of chaos soak found
 
 #### Fixed

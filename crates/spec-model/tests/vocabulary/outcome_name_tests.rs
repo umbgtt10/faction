@@ -279,6 +279,19 @@ fn encoded_of_deadline_missed_counts_the_collecting_peers() {
 }
 
 #[test]
+fn encoded_of_decline_ignored_names_the_command_s_peer() {
+    // Arrange
+    let decline = at_epoch(CommandName::ProposalDeclined, Some("4"), 3);
+
+    // Act
+    let encoded = OutcomeName::DeclineIgnored
+        .encoded(&decline, &NodeStates::reconfiguring(Reconfiguration::None));
+
+    // Assert
+    assert_eq!(encoded, json!({"DeclineIgnored": {"peer_id": "4"}}));
+}
+
+#[test]
 fn encoded_of_miss_counted_counts_the_period_just_missed() {
     // Arrange
     let state = NodeState {
@@ -391,6 +404,7 @@ fn name_of_each_outcome_is_the_vocabulary_s() {
             "AdditionWithdrawn",
             "AcknowledgementIgnored",
             "AbortIgnored",
+            "DeclineIgnored",
             "ProposeRemoval",
             "RemovalRefused",
             "CoordinationRefused",

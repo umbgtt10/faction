@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:faction:spec:0.6.0:schema",
-  "title": "faction 0.6.0 -- the data model",
+  "$id": "urn:faction:spec:0.9.0:schema",
+  "title": "faction 0.9.0 -- the data model",
   "description": "Every command, result, outcome and view, and the forms of a conformance vector and of the decision table. Normative with SPEC.md.",
   "$ref": "#/$defs/vector",
   "$defs": {
@@ -98,6 +98,7 @@
         "RemovalRequested",
         "RemovalCommitted",
         "RemovalAborted",
+        "ProposalDeclined",
         "RequiredCountChanged",
         "MembershipReceived",
         "ProbeDue",
@@ -395,6 +396,30 @@
               "properties": {
                 "peer_id": {
                   "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ProposalDeclined"
+          ],
+          "properties": {
+            "ProposalDeclined": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                },
+                "epoch": {
+                  "$ref": "#/$defs/epoch"
                 }
               }
             }
@@ -927,6 +952,27 @@
           ],
           "properties": {
             "AbortIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DeclineIgnored"
+          ],
+          "properties": {
+            "DeclineIgnored": {
               "type": "object",
               "additionalProperties": false,
               "required": [
@@ -2065,6 +2111,7 @@
                     "AdditionWithdrawn",
                     "AcknowledgementIgnored",
                     "AbortIgnored",
+                    "DeclineIgnored",
                     "ProposeRemoval",
                     "RemovalRefused",
                     "CoordinationRefused",

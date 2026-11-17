@@ -36,6 +36,7 @@ pub enum OutcomeName {
     AdditionWithdrawn,
     AcknowledgementIgnored,
     AbortIgnored,
+    DeclineIgnored,
     ProposeRemoval,
     RemovalRefused,
     CoordinationRefused,
@@ -61,7 +62,7 @@ pub enum OutcomeName {
 }
 
 impl OutcomeName {
-    pub const ALL: [OutcomeName; 41] = [
+    pub const ALL: [OutcomeName; 42] = [
         OutcomeName::ParticipationAccepted,
         OutcomeName::ReadyAccepted,
         OutcomeName::DuplicateParticipationIgnored,
@@ -81,6 +82,7 @@ impl OutcomeName {
         OutcomeName::AdditionWithdrawn,
         OutcomeName::AcknowledgementIgnored,
         OutcomeName::AbortIgnored,
+        OutcomeName::DeclineIgnored,
         OutcomeName::ProposeRemoval,
         OutcomeName::RemovalRefused,
         OutcomeName::CoordinationRefused,
@@ -182,6 +184,7 @@ impl OutcomeName {
             | OutcomeName::AdditionWithdrawn
             | OutcomeName::AcknowledgementIgnored
             | OutcomeName::AbortIgnored
+            | OutcomeName::DeclineIgnored
             | OutcomeName::ProposeRemoval
             | OutcomeName::RemovalRefused
             | OutcomeName::CoordinationRefused
@@ -218,6 +221,7 @@ impl OutcomeName {
             OutcomeName::AdditionWithdrawn => "AdditionWithdrawn",
             OutcomeName::AcknowledgementIgnored => "AcknowledgementIgnored",
             OutcomeName::AbortIgnored => "AbortIgnored",
+            OutcomeName::DeclineIgnored => "DeclineIgnored",
             OutcomeName::ProposeRemoval => "ProposeRemoval",
             OutcomeName::RemovalRefused => "RemovalRefused",
             OutcomeName::CoordinationRefused => "CoordinationRefused",

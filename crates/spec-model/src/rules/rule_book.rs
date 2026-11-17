@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 73] = [
+const RULES: [(&str, Rule); 77] = [
     (
         "probed",
         Rule {
@@ -230,6 +230,34 @@ const RULES: [(&str, Rule); 73] = [
         Rule {
             situation: Situation::Always,
             change: Change::RemovalWithdrawn,
+        },
+    ),
+    (
+        "decline-ignored",
+        Rule {
+            situation: Situation::DeclineNotAwaited,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "decline-addition",
+        Rule {
+            situation: Situation::PeerIsPending,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "decline-removal-refused",
+        Rule {
+            situation: Situation::QuorumCannotSpare,
+            change: Change::RemovalWithdrawn,
+        },
+    ),
+    (
+        "decline-removal",
+        Rule {
+            situation: Situation::Always,
+            change: Change::Nothing,
         },
     ),
     (

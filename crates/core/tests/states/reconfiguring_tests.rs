@@ -571,6 +571,132 @@ fn process_participation_of_the_newcomer_is_ignored_as_a_non_member() {
 }
 
 #[test]
+fn process_proposal_declined_of_a_removal_the_quorum_can_no_longer_spare_gives_it_up() {
+    // Arrange
+    let mut faction = reach_removing();
+    let _ = faction
+        .process(Command::RemovalCommitted {
+            peer_id: 3,
+            epoch: 1,
+        })
+        .output;
+
+    // Act
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::ProposalDeclined {
+                peer_id: 4,
+                epoch: 1,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::RemovalRefused { peer_id: 4 }]);
+    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 4]);
+    assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
+}
+
+#[test]
+fn process_proposal_declined_of_a_removal_the_quorum_can_spare_proposes_it_again() {
+    // Arrange
+    let mut faction = reach_removing();
+
+    // Act
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::ProposalDeclined {
+                peer_id: 4,
+                epoch: 0,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ProposeRemoval { peer_id: 4 }]);
+    assert_eq!(
+        cluster_view.reconfiguration(),
+        Reconfiguration::RemovalRequested { peer_id: 4 }
+    );
+}
+
+#[test]
+fn process_proposal_declined_of_another_peer_is_ignored() {
+    // Arrange
+    let mut faction = reach_removing();
+
+    // Act
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::ProposalDeclined {
+                peer_id: 1,
+                epoch: 0,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::DeclineIgnored { peer_id: 1 }]);
+    assert_eq!(
+        cluster_view.reconfiguration(),
+        Reconfiguration::RemovalRequested { peer_id: 4 }
+    );
+}
+
+#[test]
+fn process_proposal_declined_of_the_acknowledged_addition_proposes_it_again() {
+    // Arrange
+    let mut faction = reach_reconfiguring();
+    let _ = faction
+        .process(Command::MembershipAcknowledged {
+            peer_id: 9,
+            epoch: 0,
+        })
+        .output;
+
+    // Act
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::ProposalDeclined {
+                peer_id: 9,
+                epoch: 0,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ProposeAddition { peer_id: 9 }]);
+    assert_eq!(
+        cluster_view.reconfiguration(),
+        Reconfiguration::AdditionAcknowledged { peer_id: 9 }
+    );
+}
+
+#[test]
+fn process_proposal_declined_of_the_addition_not_yet_acknowledged_is_ignored() {
+    // Arrange
+    let mut faction = reach_reconfiguring();
+
+    // Act
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::ProposalDeclined {
+                peer_id: 9,
+                epoch: 0,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::DeclineIgnored { peer_id: 9 }]);
+    assert_eq!(
+        cluster_view.reconfiguration(),
+        Reconfiguration::AdditionRequested { peer_id: 9 }
+    );
+}
+
+#[test]
 fn process_removal_aborted_of_another_peer_is_ignored() {
     // Arrange
     let mut faction = reach_removing();

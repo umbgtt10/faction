@@ -29,6 +29,7 @@ pub enum Outcome {
     AdditionWithdrawn { peer_id: PeerId },
     AcknowledgementIgnored { peer_id: PeerId },
     AbortIgnored { peer_id: PeerId },
+    DeclineIgnored { peer_id: PeerId },
     ProposeRemoval { peer_id: PeerId },
     RemovalRefused { peer_id: PeerId },
     CoordinationRefused { peer_id: PeerId },

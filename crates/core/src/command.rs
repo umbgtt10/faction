@@ -51,6 +51,10 @@ pub enum Command {
     RemovalAborted {
         peer_id: PeerId,
     },
+    ProposalDeclined {
+        peer_id: PeerId,
+        epoch: Epoch,
+    },
     RequiredCountChanged {
         required_count: usize,
         epoch: Epoch,

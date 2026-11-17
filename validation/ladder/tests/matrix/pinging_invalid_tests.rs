@@ -5,8 +5,8 @@ use super::assertions::{Assert, verify};
 use super::builder::{Init, build};
 use super::helpers::{
     addition_aborted, addition_requested, indirect_probes_missed, membership_acknowledged,
-    participation, peer_heard, pinging_admissible, probe_missed, ready, removal_aborted,
-    removal_requested,
+    participation, peer_heard, pinging_admissible, probe_missed, proposal_declined, ready,
+    removal_aborted, removal_requested,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -43,6 +43,12 @@ use rstest::rstest;
 #[case::rejects_removal_aborted(
     Init::Fresh,
     removal_aborted(1),
+    &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
+    pinging_admissible(),
+)]
+#[case::rejects_proposal_declined(
+    Init::Fresh,
+    proposal_declined(1),
     &[Assert::PingingCount(0), Assert::NotExited, Assert::NotLocalComplete],
     pinging_admissible(),
 )]

@@ -18,7 +18,7 @@ use crate::states::reconfiguring::Reconfiguring;
 use crate::states::removed::Removed;
 use crate::types::Epoch;
 
-const COMMANDS: [Command; 21] = [
+const COMMANDS: [Command; 22] = [
     Command::ParticipationObserved {
         peer_id: 0,
         epoch: 0,
@@ -48,6 +48,10 @@ const COMMANDS: [Command; 21] = [
         epoch: 0,
     },
     Command::RemovalAborted { peer_id: 0 },
+    Command::ProposalDeclined {
+        peer_id: 0,
+        epoch: 0,
+    },
     Command::RequiredCountChanged {
         required_count: 0,
         epoch: 0,

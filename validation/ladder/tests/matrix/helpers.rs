@@ -84,6 +84,10 @@ pub fn probe_only() -> Vec<Command> {
     vec![Command::Probe]
 }
 
+pub fn proposal_declined(peer_id: PeerId) -> Command {
+    Command::ProposalDeclined { peer_id, epoch: 0 }
+}
+
 pub fn ready(peer_id: PeerId) -> Command {
     Command::ReadyObserved { peer_id, epoch: 0 }
 }

@@ -21,6 +21,7 @@ pub enum Situation {
     PeerConcludes,
     NodeConcludes,
     AcknowledgementNotAwaited,
+    DeclineNotAwaited,
     PeerIsPending,
     PeerIsNotPending,
     CountConcludes,
@@ -64,6 +65,11 @@ impl Situation {
             Situation::AcknowledgementNotAwaited => {
                 !matches!(&state.reconfiguration, Reconfiguration::AdditionRequested(pending) if Some(pending) == peer_id)
             }
+            Situation::DeclineNotAwaited => !matches!(
+                &state.reconfiguration,
+                Reconfiguration::AdditionAcknowledged(proposed)
+                    | Reconfiguration::RemovalRequested(proposed) if Some(proposed) == peer_id
+            ),
             Situation::PeerIsPending => Self::is_pending(command, &state.reconfiguration),
             Situation::PeerIsNotPending => !Self::is_pending(command, &state.reconfiguration),
             Situation::CountConcludes => {

@@ -184,6 +184,7 @@ view shows, never what it admits.
 | `RemovalRequested { peer_id }` | The caller asks a concluded node to coordinate a member's removal |
 | `RemovalCommitted { peer_id, epoch }` | The layer above committed the removal at its epoch — reported to every node |
 | `RemovalAborted { peer_id }` | The layer above abandoned the removal |
+| `ProposalDeclined { peer_id, epoch }` | The layer above declined the coordinator's proposal at its epoch — a change committed since conflicts with it — and the node decides it again |
 | `RequiredCountChanged { required_count, epoch }` | The required count in effect, at its epoch — reported with the change it belongs to |
 | `MembershipReceived { members, required_count, epoch }` | A membership handed to the node — a member's answer to a claim from behind, or a snapshot |
 | `ProbeDue` | A probe period began |
@@ -211,12 +212,13 @@ view shows, never what it admits.
 | `JoinDenied { peer_id }` | The newcomer was refused; nothing changed |
 | `Concluded { mode }` | The node concluded bootstrapping (`mode` is `Bootstrapped`) |
 | `SendMembership { peer_id }` | Send the peer — a newcomer, or a member behind — the members, the required count and the epoch |
-| `ProposeAddition { peer_id }` | Propose the addition to the layer that commits |
+| `ProposeAddition { peer_id }` | Propose the addition to the layer that commits, decided at the epoch the view shows |
 | `AdditionWithdrawn { peer_id }` | The addition in flight was aborted |
 | `AcknowledgementIgnored { peer_id }` | An acknowledgement not awaited, or a repeat |
 | `AbortIgnored { peer_id }` | An abort not naming the change in flight |
-| `ProposeRemoval { peer_id }` | Propose the removal to the layer that commits |
-| `RemovalRefused { peer_id }` | The quorum cannot spare the member: the members not suspected would fall below the count |
+| `DeclineIgnored { peer_id }` | A decline naming no proposal in flight |
+| `ProposeRemoval { peer_id }` | Propose the removal to the layer that commits, decided at the epoch the view shows |
+| `RemovalRefused { peer_id }` | The quorum cannot spare the member: the members not suspected would fall below the count — asked for its removal, or told it was declined |
 | `CoordinationRefused { peer_id }` | The node's membership is provisional: it coordinates no addition or removal until its own addition commits |
 | `RemovalWithdrawn { peer_id }` | The removal in flight was aborted |
 | `MemberRemoved { peer_id }` | The peer is no longer a member — the node itself among them, which is then `Removed` |

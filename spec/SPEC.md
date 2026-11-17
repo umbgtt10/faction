@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.8.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.9.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -19,9 +19,11 @@ answered alike. 0.5.1 answers every command as 0.5.0 does, and states what the l
 epoch order (§16). 0.6.0 grows by the rule again: a newcomer holds its membership provisionally until its own addition
 commits, and refuses a claim from behind without sending it (§16); every vector 0.5.x released is answered alike.
 0.7.0 has a provisional node coordinate no change, refusing an addition or a removal it is asked for (§16), and
-withdraws the one released vector that showed one coordinating (§1, §17); every other vector 0.6.0 released is
+withdraws the one released vector that showed one coordinating (§1, §18); every other vector 0.6.0 released is
 answered alike. 0.8.0 answers every call with a numbered receipt and names every node an instance (§2, §3), and
-re-encodes every vector in force so, once, changing no answer (§1, §17).
+re-encodes every vector in force so, once, changing no answer (§1, §18). 0.9.0 states what the layer above owes a
+proposal — to commit it only while no change committed since conflicts with it — and has the coordinator decide a
+declined proposal again (§17); every vector 0.8.0 released is answered alike.
 
 ## 1. Conventions
 
@@ -34,16 +36,16 @@ any u64.
 nothing carries the empty object: `{"Probe": {}}`, `{"Fresh": {}}`.
 
 **Names are the vocabulary's.** A command says what the caller observed — a peer's signal, its own completion, the
-deadline, a join decision, an addition's or a removal's progress, a new required count, a membership handed to it, a
-probe period, a member heard from or missed — or, `Probe`, asks. An outcome says what happened to the signal, or, in the imperative, what the caller must now do:
+deadline, a join decision, an addition's or a removal's progress, a proposal declined, a new required count, a
+membership handed to it, a probe period, a member heard from or missed — or, `Probe`, asks. An outcome says what happened to the signal, or, in the imperative, what the caller must now do:
 `BroadcastLocalReady`, `AcknowledgeRejoin`, `EmitJoinRequest`, `SendMembership`, `ProposeAddition`, `ProposeRemoval`,
 `SendProbe`, `SendIndirectProbes`.
 
 **A list of commands by name** is in the commands' order: `ParticipationObserved`, `ReadyObserved`,
 `LocalParticipationCompleted`, `DeadlineExpired`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionRequested`,
 `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RemovalRequested`, `RemovalCommitted`,
-`RemovalAborted`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`,
-`IndirectProbesMissed`, `Probe`.
+`RemovalAborted`, `ProposalDeclined`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`,
+`ProbeMissed`, `IndirectProbesMissed`, `Probe`.
 
 **A list of peers is in arrival order.** The members are the configuration's peers in its order — or, once the node
 has adopted a membership, that membership's members in its order (§16) — then each admitted or added peer as it is
@@ -59,22 +61,23 @@ identical, and a list never holds a peer twice
 version's behaviour, and a command a later version adds is named in no earlier vector's admissible commands: an
 implementation conforms to a vector of an earlier version when the commands it admits, among those that version
 names, are the vector's. The commands a released version names are those [`released.json`](released.json) lists at
-that version or an earlier one (§17). Every answer this version gives is therefore given the same by every later
+that version or an earlier one (§18). Every answer this version gives is therefore given the same by every later
 version, and every vector released here passes unchanged there — but one a later version withdraws. A version
 withdraws a released vector only to correct a defect the vector shows, never to grow: `released.json` marks it
 withdrawn at that version, and its bytes move, unchanged, from [`vectors/`](vectors/) to [`withdrawn/`](withdrawn/)
-(§17). 0.7.0 withdraws vector 113, in which a provisional node coordinated an addition, offering the newcomer a
+(§18). 0.7.0 withdraws vector 113, in which a provisional node coordinated an addition, offering the newcomer a
 membership no commit made (§16). A version re-encodes the released vectors only all at once, and only to change
 how they are written, never an answer: `released.json` marks each with the version that re-encoded it and its
 re-encoded bytes' digest, and its released bytes are kept, unchanged, under [`released/`](released/), by the last
-version that wrote them (§17). 0.8.0 re-encodes the 115 vectors in force: each step's result is its receipt's
+version that wrote them (§18). 0.8.0 re-encodes the 115 vectors in force: each step's result is its receipt's
 output, numbered by the step's position, the closing answer the receipt the closing `Probe` is given, and the
 configuration's peer id its instance's node, at incarnation 1; their bytes as 0.7.0 wrote them are under
 [`released/0.7.0/`](released/0.7.0/). 0.5.0 grows by the rule: the epoch (§16), a member of
 the configuration, the view, three signals and three commits, is omitted wherever it is 0, and a form with no epoch
 holds epoch 0; the command `MembershipReceived` is new, and so are the outcomes it and the epoch bring. 0.6.0 grows by
 it again: whether a node's membership is provisional (§16), a member of the configuration and of the view, is omitted
-wherever it is not. Before the rule was written the encoding grew in place: 0.2.0,
+wherever it is not. 0.9.0 grows by it once more: the command `ProposalDeclined` is new, and so is the outcome
+`DeclineIgnored` it brings (§17). Before the rule was written the encoding grew in place: 0.2.0,
 0.3.0 and 0.4.0 each added fields to the view and the configuration, and commands to what earlier stages admit,
 rewriting the vectors released before them -- never an outcome -- and 0.4.0 renamed the view's `addition` to
 `reconfiguration`.
@@ -188,17 +191,17 @@ Each stage admits these commands, and rejects the rest:
 
 | Stage | Admits |
 |---|---|
-| `Initial` | every command but `DeadlineExpired`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted` and the four of liveness |
-| `Pinging` | every command but `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted` and the four of liveness |
-| `Collecting` | every command but `LocalParticipationCompleted`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted` and the four of liveness |
+| `Initial` | every command but `DeadlineExpired`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted`, `ProposalDeclined` and the four of liveness |
+| `Pinging` | every command but `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted`, `ProposalDeclined` and the four of liveness |
+| `Collecting` | every command but `LocalParticipationCompleted`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted`, `ProposalDeclined` and the four of liveness |
 | `Bootstrapped` | `ParticipationObserved`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionRequested`, `AdditionCommitted`, `RemovalRequested`, `RemovalCommitted`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`, `IndirectProbesMissed` and `Probe` |
-| `Reconfiguring` | `ParticipationObserved`, `JoinRequested`, `JoinRejected`, `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RemovalCommitted`, `RemovalAborted`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`, `IndirectProbesMissed` and `Probe` |
+| `Reconfiguring` | `ParticipationObserved`, `JoinRequested`, `JoinRejected`, `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RemovalCommitted`, `RemovalAborted`, `ProposalDeclined`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`, `IndirectProbesMissed` and `Probe` |
 | `Removed` | `MembershipReceived` and `Probe` |
 
 The four of liveness are `ProbeDue`, `PeerHeard`, `ProbeMissed` and `IndirectProbesMissed`. A node completes its own
 participation once; a concluded node answers only a peer still trying to bootstrap, a newcomer, an addition, a removal, a
 new count, a membership and liveness; an addition or a removal is requested of a concluded node alone, one change at a
-time; a commit and a new count reach every node, whatever its stage, until it is removed, and a membership reaches every
+time, and a proposal's decline reaches a node with a change in flight alone; a commit and a new count reach every node, whatever its stage, until it is removed, and a membership reaches every
 node, whatever its stage; a node tracks its members' liveness once it has concluded, never before; and a removed node
 answers a membership and a probe alone.
 
@@ -274,7 +277,8 @@ may restore its quorum (§15).
 
 **A concluded node grows by one through the layer that commits changes above it**, one change in flight at a time.
 The node that coordinates an addition is asked for it, hands the newcomer the membership, and tells the caller when to
-propose it; every node applies it once it has committed. Who may be added, and how a change commits, are the caller's.
+propose it; every node applies it once it has committed. Who may be added, and how a change commits, are the caller's;
+what the layer above owes a proposal is §17.
 
 **`AdditionRequested`** starts an addition: `SendMembership` — the caller sends the newcomer the members, the
 required count and the epoch the view shows — and the node is `Reconfiguring`, its reconfiguration `AdditionRequested`. A peer that is already a
@@ -284,7 +288,8 @@ and nothing changes (§16). `Reconfiguring` does not
 admit a second request, of either kind.
 
 **`MembershipAcknowledged`** from the peer whose addition is requested is answered `ProposeAddition` — the caller
-proposes the addition to the layer above — and its reconfiguration is `AdditionAcknowledged`. From any other peer, once
+proposes the addition to the layer above, decided at the epoch the view shows (§17) — and its reconfiguration is
+`AdditionAcknowledged`. From any other peer, once
 acknowledged, or with a removal in flight, it is answered `AcknowledgementIgnored`, and nothing changes. From the peer
 whose addition is requested, behind — its `epoch` below the node's — it is refused (§16).
 
@@ -311,8 +316,8 @@ once — a member being removed has nothing to acknowledge, and may not answer a
 committed. Who may be removed, and how a change commits, are the caller's: a suspected member stays a member until its
 removal commits (§14).
 
-**`RemovalRequested`** starts a removal: `ProposeRemoval` — the caller proposes the removal to the layer above — and the
-node is `Reconfiguring`, its reconfiguration `RemovalRequested`. Any member may be named, the node itself among them. A
+**`RemovalRequested`** starts a removal: `ProposeRemoval` — the caller proposes the removal to the layer above, decided
+at the epoch the view shows (§17) — and the node is `Reconfiguring`, its reconfiguration `RemovalRequested`. Any member may be named, the node itself among them. A
 peer that is not a member is answered `NonMemberIgnored`, and nothing changes. A node whose membership is provisional
 coordinates no removal: it is answered `CoordinationRefused`, carrying the peer, before anything else, and nothing
 changes (§16). `Reconfiguring` does not admit a second request, of either kind.
@@ -472,7 +477,49 @@ the node has probed no one; a member new to it is alive. Then:
     carrying the change as the view showed it, and the node is `Bootstrapped`, with no change in flight;
   - a concluded node's quorum is checked against the new members and count, and a crossing said last (§15).
 
-## 17. Conformance
+## 17. Proposals
+
+**A proposal is decided at the epoch its answer's view shows**
+([`P1-ADR-AProposalIsCommittedOnlyWhileValid`](../docs/ADRs/P1-ADR-AProposalIsCommittedOnlyWhileValid.md)).
+`ProposeAddition` and `ProposeRemoval` tell the caller to propose a change to the layer above, and the view the answer
+carries shows the membership the node decided it on, at its epoch: the addition of a peer that is not a member (§11),
+the removal of a member its quorum can spare (§12).
+
+**What the layer above owes a proposal: to commit it only while it is still valid.** A proposal decided at epoch `e`
+is valid at the layer above's epoch `c` when no change it committed at an epoch above `e`, up to `c`, conflicts with
+it:
+
+- a change naming the same peer conflicts with it;
+- for a removal, another removal or a new required count conflicts with it too: either moves what the removal's quorum
+  check counted;
+- nothing else conflicts: an addition of another peer only adds to the members a removal spares, and an addition
+  checks no quorum.
+
+A valid proposal holds at `c` what the node decided it on at `e`. The rule reads the committed changes alone, never a
+node's suspicions, so any layer above can keep it. A layer above may decline more than the rule asks — every proposal
+decided before its latest commit, say — but commits no proposal that is not valid. A proposal it commits it reports as
+it reports any commit (§16); one it declines it reports to the coordinator alone, `ProposalDeclined`, carrying the
+epoch it declined it at, once it has reported every commit up to that epoch to the coordinator: as it reports its
+commits in epoch order (§16), the node then decides again on a view that holds them.
+
+**`ProposalDeclined`** reports a proposal declined at the layer above's `epoch`, and the node decides the change again
+on its present view. It is admitted in `Reconfiguring` alone (§5): a decline is the coordinator's, of the change it
+has in flight.
+
+- **Naming no proposal in flight** — the change in flight is another peer's, or the addition of `peer_id` is not yet
+  acknowledged, and so not yet proposed — it is answered `DeclineIgnored`, and nothing changes.
+- **An addition** is proposed again: `ProposeAddition`, at the node's epoch, and the change stays in flight. Its peer
+  is never a member while its addition is in flight (§11), so on the node's own view it is always still valid.
+- **A removal** the quorum can still spare is proposed again: `ProposeRemoval`, at the node's epoch, and the change
+  stays in flight. One it can no longer spare — of a member not suspected, without which the members not suspected
+  would number fewer than the required count — is given up: `RemovalRefused`, and the node is `Bootstrapped`, with no
+  change in flight and the peer still a member. A suspect's removal is never given up for the quorum (§12).
+
+The decline's epoch is the layer above's, and the node decides on the view it holds, whatever the epoch: a decline
+reported before the commits it was declined for has the node decide without them, and a change it proposes again the
+layer above declines again, until they reach it.
+
+## 18. Conformance
 
 **A vector is a configuration, steps, and a final answer.** Each step is a command and the receipt it must be
 answered with. The final answer is the receipt a `Probe` issued after the last step must be given: numbered one more

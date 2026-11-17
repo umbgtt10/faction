@@ -154,6 +154,34 @@ fn process_of_a_deadline_on_a_fresh_node_is_rejected_by_not_admitted() {
 }
 
 #[test]
+fn process_of_a_declined_removal_the_quorum_can_no_longer_spare_gives_it_up() {
+    // Arrange
+    let mut model = model();
+    let _ = model.process(&json!({"ReadyObserved": {"peer_id": "2"}}));
+    let _ = model.process(&json!({"LocalParticipationCompleted": {}}));
+    let _ = model.process(&json!({"RemovalRequested": {"peer_id": "3"}}));
+    let _ = model.process(&json!({"RemovalCommitted": {"peer_id": "2", "epoch": "1"}}));
+
+    // Act
+    let answer = model.process(&json!({"ProposalDeclined": {"peer_id": "3", "epoch": "1"}}));
+
+    // Assert
+    assert_eq!(answer.row, "decline-removal-refused");
+    assert_eq!(
+        answer.receipt["output"]["Accepted"]["outcomes"],
+        json!([{"RemovalRefused": {"peer_id": "3"}}])
+    );
+    assert_eq!(
+        answer.receipt["output"]["Accepted"]["cluster_view"]["reconfiguration"],
+        json!({"None": {}})
+    );
+    assert_eq!(
+        answer.receipt["output"]["Accepted"]["cluster_view"]["members"],
+        json!(["1", "3"])
+    );
+}
+
+#[test]
 fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
     // Arrange
     let mut model = model();
@@ -249,6 +277,7 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
             "AdditionAborted",
             "RemovalCommitted",
             "RemovalAborted",
+            "ProposalDeclined",
             "RequiredCountChanged",
             "MembershipReceived",
             "ProbeDue",

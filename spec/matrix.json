@@ -1,11 +1,11 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "admits": {
     "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Collecting": ["ParticipationObserved", "ReadyObserved", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "AdditionCommitted", "RemovalRequested", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
-    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
+    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalCommitted", "RemovalAborted", "ProposalDeclined", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
     "Removed": ["MembershipReceived", "Probe"]
   },
   "rows": [
@@ -21,7 +21,7 @@
     {
       "id": "not-admitted",
       "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring", "Removed"],
-      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
+      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "ProposalDeclined", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
       "situation": "the stage does not admit the command (`admits`)",
       "result": "Rejected",
       "outcomes": [],
@@ -296,6 +296,42 @@
       "result": "Accepted",
       "outcomes": ["RemovalWithdrawn"],
       "next": "Bootstrapped"
+    },
+    {
+      "id": "decline-ignored",
+      "stages": ["Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "no proposal of `peer_id` is in flight: the change in flight is another peer's, or the addition of `peer_id` is not yet acknowledged",
+      "result": "Accepted",
+      "outcomes": ["DeclineIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "decline-addition",
+      "stages": ["Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "the addition of `peer_id` is acknowledged: it is proposed again, at the node's epoch",
+      "result": "Accepted",
+      "outcomes": ["ProposeAddition"],
+      "next": "unchanged"
+    },
+    {
+      "id": "decline-removal-refused",
+      "stages": ["Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "the removal of `peer_id` is in flight, `peer_id` is not suspected, and without it the members not suspected would number fewer than the required count: it is given up",
+      "result": "Accepted",
+      "outcomes": ["RemovalRefused"],
+      "next": "Bootstrapped"
+    },
+    {
+      "id": "decline-removal",
+      "stages": ["Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "otherwise: the removal of `peer_id` is in flight, and it is proposed again, at the node's epoch",
+      "result": "Accepted",
+      "outcomes": ["ProposeRemoval"],
+      "next": "unchanged"
     },
     {
       "id": "commit-held",

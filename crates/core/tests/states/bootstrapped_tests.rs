@@ -302,6 +302,44 @@ fn answer_of_an_addition_request_is_none() {
 }
 
 #[test]
+fn can_spare_a_member_the_count_does_not_need_is_true() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let spared = bootstrapped.can_spare(1);
+
+    // Assert
+    assert!(spared);
+}
+
+#[test]
+fn can_spare_a_member_the_count_needs_is_false() {
+    // Arrange
+    let bootstrapped = needing_all_three();
+
+    // Act
+    let spared = bootstrapped.can_spare(1);
+
+    // Assert
+    assert!(!spared);
+}
+
+#[test]
+fn can_spare_a_suspect_the_count_needs_is_true() {
+    // Arrange
+    let (_, suspecting) = needing_all_three()
+        .answer(Command::IndirectProbesMissed { peer_id: 2 }, &config(), 0)
+        .expect("a concluded node tracks its members' liveness");
+
+    // Act
+    let spared = suspecting.can_spare(2);
+
+    // Assert
+    assert!(spared);
+}
+
+#[test]
 fn changed_of_a_count_raised_past_the_members_loses_the_quorum() {
     // Arrange
     let concluded = concluded();
