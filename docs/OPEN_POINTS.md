@@ -1,9 +1,10 @@
 # Open Points
 
-Status: **Phase 1 (dynamic joining) landed** across the full spawn/transport matrix —
-see `CHANGELOG.md` for what shipped and `docs/ADRs/` for the decisions. Everything
-implemented, decided, or captured in an ADR has moved out of this file; only the
-genuinely-open items remain below.
+Status: **Phases 1 to 5 landed** — joining, addition, failure detection, removal, and
+epochs and rejoin — across the full spawn/transport matrix, and the chaos validation
+built on them; see `CHANGELOG.md` for what shipped and `docs/ADRs/` for the decisions.
+Everything implemented, decided, or captured in an ADR has moved out of this file; only
+the genuinely-open items remain below.
 
 Companion to `ROADMAP.md`. Items move into `ROADMAP.md` (or a phase's own spec)
 once decided; until then they stay here rather than clutter the roadmap with
@@ -25,60 +26,6 @@ joins a local DV cluster. Other candidates to evaluate later (not commitments):
 gossip/SWIM membership layers, sidecar/sharded clusters, any BFT SMR wanting a
 bootstrap+join gate. Each such consumer should contribute back a published sample
 integration (the ROADMAP publication checklist already asks for one).
-
----
-
-## Robustness under adversarial delivery
-
-The whole transport matrix — InMemory, Channels, TCP, gRPC — is **reliable and
-ordered**: everything is delivered, in order, exactly once. That proves faction is
-*transport-agnostic*; it has never tested *delivery quality* — loss, reordering,
-duplication, partitions.
-
-**A new transport (WebSocket / UDP)?** Not for correctness. WebSocket is another
-reliable framed transport (gRPC's shape) — breadth, not a new failure mode. UDP looks
-tempting for loss/reorder, but localhost UDP essentially never drops, so it would not
-exercise its distinguishing property without artificial dropping — at which point it
-*is* the fault-injection work below. Adding a transport is a breadth call
-(grants/marketing), not a coverage one.
-
-**Fault injection — the real gap.** A harness-level `FaultyTransport` decorator
-(built now; exercised as the Phase-2 hardening assessment) wraps any transport and
-misbehaves per a seeded policy. It lives in the harness, **not** in `core` (pure
-Mealy, no I/O — it cannot "drop") or `protocol` (a translator, not a network). The
-taxonomy, each row a claim faction already makes:
-
-| Fault | Probes the claim that… |
-|---|---|
-| Loss | `RetryPing`/`RetryReady` recover dropped signals (liveness under loss) |
-| Duplication | set-accumulation + `Duplicate*Ignored` dedup (safety under dup) |
-| Partition (+ heal) | a cut sub-quorum → `TimedOut` → converges on heal (partition tolerance + self-heal) |
-| Delay / jitter | the deadline-vs-latency boundary; `TimedOut`-then-recover |
-| Reordering | commutative set accumulation (order-independence) |
-| Asymmetric / one-way | convergence survives half-open links |
-| Selective by type | each retry path is individually sufficient (dropping `Bootstrapped` announces is harmless — they map to `Probe`) |
-
-Out of scope: **corruption / mutation** is a *lying peer* → Byzantine, outside faction (the Notary bookkeeper's), and
-the wire decode already turns garbage into loss; **throttle / bandwidth** — faction
-cares about delivery, not throughput.
-
-**Hardening hypothesis.** Faction is already designed for this — retries, idempotent
-sets, and a non-terminal `TimedOut` that self-heals — so the expected verdict
-is *no core hardening*: the real knob is operational (the deadline / freshness margin
-tuned against the loss rate, which per faction's design is the caller's, not the
-machine's). The outcome that *would* mean hardening is a **permanent stall below
-100 % loss** — a convergence-critical signal that turns out not to be retried. That is
-what the assessment hunts for.
-
-**Wired, the assessment still open.** Phase 2 wired `FaultyTransport` around every
-node's transport, a process's included, and gave it `LinkCuts`, the links a test cuts
-and mends while the cluster runs; its liveness scenarios silence members and cut links
-through it. Every fault it fires is one more line of the node's own log
-(`{"event":"fault","fault":…,"node":…,"to":…,"message":…}`), inline in the per-node file
-and the merged `consolidated.jsonl` timeline. What stays open is the assessment itself:
-the seeded policies — loss, duplication, delay, reordering, partition, one-way links,
-a selective drop — run against the bootstrap's retries, the hunt for a permanent stall
-below 100 % loss.
 
 ---
 

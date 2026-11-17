@@ -374,6 +374,18 @@ real one on thread and process nodes over the four transports, on the machine's 
 failure is replayed with every node's log, shrunk to the smallest scenario that still fails,
 and recorded as a regression stage 1 replays.
 
+**What it settled.** Phase 2 wired its fault layer for an assessment it left open: whether
+some convergence-critical signal, once lost, is never sent again — a permanent stall below
+100 % loss. The chaos validation is that assessment, over every fault it was to run — loss,
+duplication, delay, reordering, partitions, one-way links, a kind of message dropped — and
+more, from the bootstrap on: a lost signal nothing repeats leaves a node short of the end
+state once the faults heal, which the oracle reports. No lost signal stalled a cluster.
+The protocol's findings were of another kind — in the table below — and every stall the
+soaks met was the harness's own. Three limits stand: under faults that never heal, liveness
+is the caller's, the deadline and the freshness margin tuned against the loss rate; a lying
+peer, corruption among its ways, is the Notary's; and a new transport, UDP or WebSocket, is
+breadth, not a failure mode the fault layer does not inject already.
+
 **Delivered:**
 
 | Metric | Value |
