@@ -121,8 +121,11 @@ changes in flight still admits no join decision: no admission goes around a chan
   bounds above 1 — a node never holds two changes naming one peer, never more than its bound, and its removals together
   always spare the quorum when it requests them.
 - **The chaos tier:** scenarios draw a bound per coordinator, from 1 to 3; the layer above lets every proposal race and
-  commits by D2 alone, `keeps_the_log_valid` retired as the guard it was. A new invariant: the committed log never takes
-  the members below the required count. The oracle's end state is unchanged.
+  commits by D2 alone, `keeps_the_log_valid` retired as the guard it was. A new invariant: the rule never admits a
+  change the committed log cannot hold — an addition of a member, a removal of a peer that is none — and a run
+  that would fails. *Agreed with the owner instead of the first draft's "the committed log never takes the members
+  below the required count":* that one is not the specification's to keep, since a coordinator that has lost its
+  quorum may remove a suspect (§12, vector 86). The oracle's end state is unchanged.
 - **The release gate:** a 12-hour soak, no failure; then 0.13.0.
 
 ## 8. Out of scope

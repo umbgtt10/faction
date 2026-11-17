@@ -5,7 +5,7 @@ use serde_json::Value;
 
 const RESULTS: [&str; 3] = ["Accepted", "Rejected", "Probed"];
 
-// The growth rule (§1, §17): a vector released at an earlier version is
+// The growth rule (§1, §18): a vector released at an earlier version is
 // answered alike by every later one, but for the commands a later version
 // added, which its receipts' admissible lists do not name. A vector not yet
 // released is answered whole.
