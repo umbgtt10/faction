@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::instance::instance_id::InstanceId;
 use faction::instance::receipt::Receipt;
 use std::sync::Arc;
 
@@ -8,7 +9,6 @@ use faction::command::Command;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
-use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::output_message::OutputMessage;
@@ -19,16 +19,16 @@ use crate::traits::wall_clock::WallClock;
 
 pub struct SharedFileObserver {
     writer: SharedWriter,
-    peer_id: PeerId,
+    instance: InstanceId,
     clock: Arc<dyn WallClock>,
 }
 
 impl SharedFileObserver {
     #[must_use]
-    pub fn new(writer: SharedWriter, peer_id: PeerId, clock: Arc<dyn WallClock>) -> Self {
+    pub fn new(writer: SharedWriter, instance: InstanceId, clock: Arc<dyn WallClock>) -> Self {
         Self {
             writer,
-            peer_id,
+            instance,
             clock,
         }
     }
@@ -46,7 +46,7 @@ impl NodeObserver for SharedFileObserver {
         let ts = self.now_utc();
         self.writer.write_line(&format!(
             r#"{{"timestamp":"{ts}","peer_id":{},"event":"start"}}"#,
-            self.peer_id
+            self.instance.node
         ));
     }
 
@@ -54,7 +54,7 @@ impl NodeObserver for SharedFileObserver {
         let ts = self.now_utc();
         self.writer.write_line(&format!(
                 r#"{{"timestamp":"{ts}","peer_id":{},"event":"step","input":"{input:?}","decisions":"{decisions:?}"}}"#,
-                self.peer_id,
+                self.instance.node,
             ),
         );
     }
@@ -71,8 +71,10 @@ impl Observer for SharedFileObserver {
         };
         let ts = self.now_utc();
         self.writer.write_line(&format!(
-                r#"{{"timestamp":"{ts}","peer_id":{},"event":"{event}","command":"{command:?}","peer_state":"{:?}","is_exited":{},"pinging_peers":{},"collecting_peers":{}}}"#,
-                self.peer_id,
+                r#"{{"timestamp":"{ts}","peer_id":{},"incarnation":{},"number":{},"event":"{event}","command":"{command:?}","peer_state":"{:?}","is_exited":{},"pinging_peers":{},"collecting_peers":{}}}"#,
+                self.instance.node,
+                self.instance.incarnation,
+                receipt.number,
                 cluster_view.peer_state(),
                 cluster_view.peer_state() == PeerState::Bootstrapped,
                 cluster_view.pinging_peers().len(),

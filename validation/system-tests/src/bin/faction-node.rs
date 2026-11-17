@@ -3,6 +3,8 @@
 
 #![forbid(unsafe_code)]
 
+use faction::instance::instance_id::InstanceId;
+use faction_system_tests::constants::FIRST_INCARNATION;
 use std::env::args;
 use std::fs::create_dir_all;
 use std::io::BufReader;
@@ -55,6 +57,10 @@ fn main() {
         wall_clock: Arc::new(SystemWallClock),
     };
 
+    let instance = InstanceId {
+        node: config.peer_id,
+        incarnation: FIRST_INCARNATION,
+    };
     let node_observer: Box<dyn NodeObserver> = match &config.log_path {
         Some(path) => {
             if let Some(parent) = path.parent() {
@@ -62,7 +68,7 @@ fn main() {
             }
             Box::new(SharedFileObserver::new(
                 SharedWriter::open(path),
-                config.peer_id,
+                instance,
                 time.wall_clock.clone(),
             ))
         }
@@ -121,14 +127,14 @@ fn main() {
         Breaches::default(),
     );
     let role = if config.newcomer {
-        recipe.waiting(config.peer_id)
+        recipe.waiting(instance)
     } else {
         let genesis = Membership {
             peers: config.peers.clone(),
             required_count: config.required,
             epoch: 0,
         };
-        recipe.running(config.peer_id, &genesis)
+        recipe.running(instance, &genesis)
     };
     let faulty = Box::new(FaultyTransport::new(
         config.peer_id,
@@ -144,7 +150,7 @@ fn main() {
         transport,
     ));
     let node = FactionNode::new(
-        config.peer_id,
+        instance,
         role,
         faulty,
         timer,

@@ -39,7 +39,7 @@ use crate::traits::roles::Roles;
 // membership invites back becomes a newcomer again, and a restarted node is
 // created again at a membership; its roles made anew by `roles`.
 pub struct FactionNode {
-    peer_id: PeerId,
+    instance: InstanceId,
     peers: Vec<PeerId>,
     role: Role,
     transport: Box<dyn Transport>,
@@ -54,7 +54,7 @@ pub struct FactionNode {
 impl FactionNode {
     #[must_use]
     pub fn new(
-        peer_id: PeerId,
+        instance: InstanceId,
         role: Role,
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
@@ -63,7 +63,7 @@ impl FactionNode {
         roles: Box<dyn Roles>,
     ) -> Self {
         let mut node = Self {
-            peer_id,
+            instance,
             peers: Vec::new(),
             role,
             transport,
@@ -124,6 +124,13 @@ impl FactionNode {
         self.command(Protocol::expire_deadline);
     }
 
+    // The instance the node is now: its node, and the incarnation it was last
+    // created as.
+    #[must_use]
+    pub const fn instance(&self) -> InstanceId {
+        self.instance
+    }
+
     pub fn member_count(&mut self) -> usize {
         self.snapshot().member_count
     }
@@ -152,7 +159,8 @@ impl FactionNode {
     // The node created again at `membership`, its state gone but its link: a
     // started node opens again at once, one not yet started when it starts.
     pub fn restart(&mut self, membership: &Membership) {
-        self.role = self.roles.running(self.peer_id, membership);
+        self.instance = self.next_instance();
+        self.role = self.roles.running(self.instance, membership);
         self.read_members();
         if self.started {
             let decisions = match &mut self.role {
@@ -245,7 +253,8 @@ impl FactionNode {
             (&mut self.role, &message)
             && protocol.invites(transport)
         {
-            self.role = self.roles.waiting(self.peer_id);
+            self.instance = self.next_instance();
+            self.role = self.roles.waiting(self.instance);
         }
         let membership = matches!(
             message,
@@ -266,11 +275,11 @@ impl FactionNode {
         match decision {
             OutputMessage::BroadcastPing { epoch } => {
                 for to in &self.peers {
-                    if *to != self.peer_id {
+                    if *to != self.instance.node {
                         self.transport.send(
                             *to,
                             TransportMessage::Ping {
-                                from: self.peer_id,
+                                from: self.instance.node,
                                 epoch,
                             },
                         );
@@ -279,11 +288,11 @@ impl FactionNode {
             }
             OutputMessage::BroadcastReady { epoch } => {
                 for to in &self.peers {
-                    if *to != self.peer_id {
+                    if *to != self.instance.node {
                         self.transport.send(
                             *to,
                             TransportMessage::Ready {
-                                from: self.peer_id,
+                                from: self.instance.node,
                                 epoch,
                             },
                         );
@@ -309,10 +318,7 @@ impl FactionNode {
     // node, which opens as a started node does; anything else it lets pass.
     fn join(&mut self, message: TransportMessage) -> Vec<OutputMessage> {
         let placeholder = Role::Waiting(Newcomer::new(
-            InstanceId {
-                node: self.peer_id,
-                incarnation: 1,
-            },
+            self.instance,
             DEFAULT_SUSPICION_THRESHOLD,
             HELPERS,
             Box::new(NoOpObserver),
@@ -346,6 +352,15 @@ impl FactionNode {
             self.timer_input().or_else(|| self.transport_input())
         } else {
             self.transport_input().or_else(|| self.timer_input())
+        }
+    }
+
+    // The instance the node is created as again: the next incarnation of its
+    // node.
+    const fn next_instance(&self) -> InstanceId {
+        InstanceId {
+            node: self.instance.node,
+            incarnation: self.instance.incarnation + 1,
         }
     }
 

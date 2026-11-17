@@ -78,7 +78,10 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         ProbeStretch::Minimal.factor(),
     );
     let mut node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(FaultyTransport::new(
             0,
@@ -112,7 +115,10 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
-        5,
+        InstanceId {
+            node: 5,
+            incarnation: 1,
+        },
         Role::Waiting(Newcomer::new(
             InstanceId {
                 node: 5,
@@ -159,7 +165,10 @@ fn node() -> (FactionNode, Arc<SimulatedClock>) {
     );
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(transport),
         Box::new(timer),
@@ -204,7 +213,10 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(InMemoryTransport::new_mesh(&peers).remove(0)),
         Box::new(timer),
@@ -247,7 +259,10 @@ fn pinging() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
         ProbeStretch::Minimal.factor(),
     );
     let mut node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(mesh.remove(0)),
         Box::new(timer),
@@ -472,6 +487,71 @@ fn expire_deadline_while_pinging_reports_timed_out() {
 
     // Assert
     assert_eq!(node.peer_state(), PeerState::TimedOut);
+}
+
+#[test]
+fn instance_of_a_removed_node_invited_back_is_its_next_incarnation() {
+    // Arrange
+    let (mut node, mut peer_one, _, _) = concluded();
+    node.commit_removal(0, 1);
+    peer_one.send(
+        0,
+        TransportMessage::Membership {
+            from: 1,
+            to: 0,
+            members: vec![0, 1, 2],
+            required_count: 1,
+            epoch: 2,
+        },
+    );
+
+    // Act
+    while node.step() {}
+
+    // Assert
+    assert_eq!(
+        node.instance(),
+        InstanceId {
+            node: 0,
+            incarnation: 2
+        }
+    );
+}
+
+#[test]
+fn instance_of_a_restarted_node_is_its_next_incarnation() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+    let first = node.instance();
+    let membership = Membership {
+        peers: vec![0, 1],
+        required_count: 2,
+        epoch: 3,
+    };
+
+    // Act
+    node.restart(&membership);
+    let second = node.instance();
+    node.restart(&membership);
+
+    // Assert
+    assert_eq!(
+        [first, second, node.instance()],
+        [
+            InstanceId {
+                node: 0,
+                incarnation: 1
+            },
+            InstanceId {
+                node: 0,
+                incarnation: 2
+            },
+            InstanceId {
+                node: 0,
+                incarnation: 3
+            },
+        ]
+    );
 }
 
 #[test]
