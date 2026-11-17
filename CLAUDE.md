@@ -49,7 +49,7 @@ code. It runs, in this order:
 | gate | asks |
 |---|---|
 | `cargo stern4rust` | do the house coding rules hold, in every package (`stern4rust.toml`) |
-| `cargo dry4rust` | did this change add duplicated code to the library's source (`dry4rust.toml`, floor 10 nodes, as beggar's and cartel's, against `dry4rust-baseline.json`: the nine groups there when the floor came down, one-line accessors most of them; re-record only to drop groups that are gone, at the same floor: `cargo dry4rust --path "$PWD" --min-nodes 10 --baseline "$PWD/dry4rust-baseline.json" baseline`) |
+| `cargo dry4rust` | did this change add duplicated code to the library's source (`dry4rust.toml`, floor 10 nodes, as beggar's and cartel's, against `dry4rust-baseline.json`: the nine groups there when the floor came down, one-line accessors most of them; re-record only to drop groups that are gone, at the same floor, or, at the owner's word, to admit a one-line accessor whose shape a type's API dictates -- as `ClusterView::reconfigurations` was, at 0.9.0: `cargo dry4rust --path "$PWD" --min-nodes 10 --baseline "$PWD/dry4rust-baseline.json" baseline`) |
 | `cargo crap4rust` | is any function of the library -- `faction`, `faction-protocol`, `faction-spec-model` -- complex and untested (threshold 15) |
 | `cargo llvm-cov` | is every line, region and function of the library covered, the ladder's tiers counted |
 | `cargo llvm-cov`, conformance alone | is every line, region and function of `faction` and of the specification's model reached by the specification's vectors alone (`P1-ADR-NoLineTheSpecificationDoesNotAskFor`) |
@@ -153,13 +153,14 @@ conformance tier on one removed or edited. The one way out is a withdrawal, to c
 defect a released vector shows, never to grow: `released.json` marks it withdrawn at the
 correcting version, and its bytes move, unchanged, to `spec/withdrawn/` (0.7.0 withdrew
 vector 113). The other is a re-encoding, of every released vector at once, never of an
-answer: `released.json` records each re-encoded digest beside the released one, and the
-released bytes are kept under `spec/released/` (0.8.0 wrote them as receipts). It lists the commands each released version
+answer: `released.json` records every re-encoding of a vector, in order, each digest beside
+the released one, and the bytes each re-encoding replaced are kept under `spec/released/`
+(0.8.0 wrote them as receipts, 0.9.0 made the view's change in flight a list). It lists the commands each released version
 names too: both conformance tiers compare a released vector's admissible commands among
 those its version names (`validation/ladder/tests/support/growth.rs`). Specification
 0.5.0 was the first to grow by the rule. Before the rule the encoding grew in place,
 rewriting vectors -- never an outcome -- and the view's `addition` became
-`reconfiguration`. Phase 0's tests pass unchanged at Phase 6 (`docs/ROADMAP.md`).
+`reconfiguration`, a list, `reconfigurations`, since 0.9.0. Phase 0's tests pass unchanged at Phase 6 (`docs/ROADMAP.md`).
 
 ## Orthogonality, trait surface and cognitive complexity
 
@@ -214,8 +215,9 @@ gaps.
   `{ c ≠ Probe : c is not rejected } ∪ { Probe }`.
 - Any new state or command variant MUST add its rows to the table first, then the
   matching cases here.
-- `Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with a
-  change in flight, an addition or a removal, shown as `PeerState::Bootstrapped`;
+- `Bootstrapped` is the only conclusion; `Coordinating` and `Reconfiguring` are a
+  concluded node with changes in flight, below its bound and at it, each an addition or
+  a removal, shown as `PeerState::Bootstrapped`;
   `Removed` is a node whose own removal committed, shown as `PeerState::Removed`. A missed deadline is
   non-terminal (`DeadlineMissed`), reported as `PeerState::TimedOut` via a derived view
   flag.

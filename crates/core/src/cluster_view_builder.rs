@@ -20,7 +20,7 @@ pub struct ClusterViewBuilder {
     required_count: usize,
     deadline_missed: bool,
     members: Members,
-    reconfiguration: Reconfiguration,
+    reconfigurations: Vec<Reconfiguration>,
     suspected: Vec<PeerId>,
     misses: Vec<MissCount>,
     last_probed: Option<PeerId>,
@@ -47,7 +47,7 @@ impl ClusterViewBuilder {
             required_count: view.required_count(),
             deadline_missed: view.deadline_missed(),
             members: view.members().clone(),
-            reconfiguration: view.reconfiguration(),
+            reconfigurations: view.reconfigurations().to_vec(),
             suspected: view.suspected().to_vec(),
             misses: view.misses().to_vec(),
             last_probed: view.last_probed(),
@@ -67,7 +67,7 @@ impl ClusterViewBuilder {
             self.required_count,
             self.deadline_missed,
             self.members,
-            self.reconfiguration,
+            self.reconfigurations,
             self.suspected,
             self.misses,
             self.last_probed,
@@ -132,8 +132,8 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn with_reconfiguration(mut self, reconfiguration: Reconfiguration) -> Self {
-        self.reconfiguration = reconfiguration;
+    pub fn with_reconfigurations(mut self, reconfigurations: Vec<Reconfiguration>) -> Self {
+        self.reconfigurations = reconfigurations;
         self
     }
 
@@ -160,7 +160,7 @@ impl Default for ClusterViewBuilder {
             required_count: 0,
             deadline_missed: false,
             members: Members::new(Vec::new()),
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             misses: Vec::new(),
             last_probed: None,

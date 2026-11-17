@@ -65,6 +65,7 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         1,
         0,
         false,
+        1,
     );
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
@@ -151,6 +152,7 @@ fn node() -> (FactionNode, Arc<SimulatedClock>) {
         1,
         0,
         false,
+        1,
     );
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
@@ -195,6 +197,7 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         1,
         0,
         false,
+        1,
     );
     let protocol = Protocol::new(
         Faction::new(
@@ -246,6 +249,7 @@ fn pinging() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
         1,
         0,
         false,
+        1,
     );
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
@@ -299,7 +303,7 @@ fn abort_addition_of_a_concluded_node_withdraws_its_addition() {
     node.abort_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
+    assert!(node.snapshot().reconfigurations.is_empty());
 }
 
 #[test]
@@ -311,7 +315,7 @@ fn abort_addition_of_a_node_not_concluded_changes_nothing() {
     node.abort_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
+    assert!(node.snapshot().reconfigurations.is_empty());
     assert_eq!(node.member_count(), 3);
 }
 
@@ -325,7 +329,7 @@ fn abort_removal_of_a_concluded_node_withdraws_its_removal() {
     node.abort_removal(2);
 
     // Assert
-    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
+    assert!(node.snapshot().reconfigurations.is_empty());
     assert_eq!(node.member_count(), 3);
 }
 
@@ -620,7 +624,7 @@ fn new_starts_fresh() {
             member_count: 3,
             members: vec![0, 1, 2],
             required_count: 2,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
             epoch: 0
@@ -650,8 +654,8 @@ fn request_addition_of_a_concluded_node_sends_the_newcomer_its_membership() {
 
     // Assert
     assert_eq!(
-        node.snapshot().reconfiguration,
-        Reconfiguration::AdditionRequested { peer_id: 7 }
+        node.snapshot().reconfigurations,
+        [Reconfiguration::AdditionRequested { peer_id: 7 }]
     );
     assert_eq!(
         outsider.recv(),
@@ -674,7 +678,7 @@ fn request_addition_of_a_node_not_concluded_changes_nothing() {
     node.request_addition(7);
 
     // Assert
-    assert_eq!(node.snapshot().reconfiguration, Reconfiguration::None);
+    assert!(node.snapshot().reconfigurations.is_empty());
 }
 
 #[test]
@@ -716,8 +720,8 @@ fn request_removal_of_a_concluded_node_proposes_it() {
 
     // Assert
     assert_eq!(
-        node.snapshot().reconfiguration,
-        Reconfiguration::RemovalRequested { peer_id: 2 }
+        node.snapshot().reconfigurations,
+        [Reconfiguration::RemovalRequested { peer_id: 2 }]
     );
 }
 
@@ -790,7 +794,7 @@ fn snapshot_of_a_waiting_newcomer_is_fresh_with_no_members() {
             member_count: 0,
             members: Vec::new(),
             required_count: 0,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
             epoch: 0

@@ -60,9 +60,7 @@
                 "2",
                 "3"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -126,11 +124,13 @@
                 "2",
                 "3"
               ],
-              "reconfiguration": {
-                "RemovalRequested": {
-                  "peer_id": "2"
+              "reconfigurations": [
+                {
+                  "RemovalRequested": {
+                    "peer_id": "2"
+                  }
                 }
-              },
+              ],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -195,11 +195,13 @@
                 "1",
                 "2"
               ],
-              "reconfiguration": {
-                "RemovalRequested": {
-                  "peer_id": "2"
+              "reconfigurations": [
+                {
+                  "RemovalRequested": {
+                    "peer_id": "2"
+                  }
                 }
-              },
+              ],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -265,11 +267,13 @@
                 "1",
                 "2"
               ],
-              "reconfiguration": {
-                "RemovalRequested": {
-                  "peer_id": "2"
+              "reconfigurations": [
+                {
+                  "RemovalRequested": {
+                    "peer_id": "2"
+                  }
                 }
-              },
+              ],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -334,9 +338,7 @@
               "members": [
                 "1"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -387,9 +389,7 @@
           "members": [
             "1"
           ],
-          "reconfiguration": {
-            "None": {}
-          },
+          "reconfigurations": [],
           "suspected": [],
           "misses": [],
           "last_probed": {

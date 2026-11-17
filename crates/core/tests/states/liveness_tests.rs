@@ -23,6 +23,7 @@ fn config(threshold: usize) -> Config {
         threshold,
         0,
         false,
+        1,
     )
 }
 

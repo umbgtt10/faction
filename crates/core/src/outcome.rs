@@ -33,6 +33,7 @@ pub enum Outcome {
     ProposeRemoval { peer_id: PeerId },
     RemovalRefused { peer_id: PeerId },
     CoordinationRefused { peer_id: PeerId },
+    DuplicateChangeIgnored { peer_id: PeerId },
     RemovalWithdrawn { peer_id: PeerId },
     MemberRemoved { peer_id: PeerId },
     RequiredCountSet { required_count: usize },

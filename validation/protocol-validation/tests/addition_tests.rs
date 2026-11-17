@@ -46,8 +46,8 @@ fn a_commit_for_another_peer_leaves_the_addition_in_flight() {
 
     // Assert
     assert_eq!(
-        cluster.reconfiguration(0),
-        Reconfiguration::AdditionRequested { peer_id: NEWCOMER }
+        cluster.reconfigurations(0),
+        [Reconfiguration::AdditionRequested { peer_id: NEWCOMER }]
     );
     assert_eq!(cluster.members(0), vec![0, 1, 2, 4]);
 }
@@ -104,8 +104,8 @@ fn a_lost_acknowledgement_is_recovered_from_the_membership_sent_again() {
 
     // Assert
     assert_eq!(
-        cluster.reconfiguration(0),
-        Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER }
+        cluster.reconfigurations(0),
+        [Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER }]
     );
 }
 
@@ -122,8 +122,8 @@ fn a_lost_membership_is_sent_again_until_acknowledged() {
     // Assert
     assert!(!cluster.is_newcomer_waiting());
     assert_eq!(
-        cluster.reconfiguration(0),
-        Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER }
+        cluster.reconfigurations(0),
+        [Reconfiguration::AdditionAcknowledged { peer_id: NEWCOMER }]
     );
 }
 
@@ -162,5 +162,5 @@ fn an_abort_before_the_acknowledgement_stops_the_sending() {
 
     // Assert
     assert!(cluster.is_newcomer_waiting());
-    assert_eq!(cluster.reconfiguration(0), Reconfiguration::None);
+    assert!(cluster.reconfigurations(0).is_empty());
 }

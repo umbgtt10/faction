@@ -20,7 +20,7 @@ impl NodeStates {
             pinging_peers: Self::peers(pinging_peers),
             collecting_peers: Self::peers(collecting_peers),
             deadline_missed: false,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             completed_before_removal: false,
             suspicion_threshold: 1,
             suspected: Vec::new(),
@@ -28,6 +28,7 @@ impl NodeStates {
             last_probed: None,
             epoch: 0,
             provisional: false,
+            changes_in_flight: 1,
         }
     }
 
@@ -47,7 +48,7 @@ impl NodeStates {
     // peer.
     pub fn reconfiguring(reconfiguration: Reconfiguration) -> NodeState {
         NodeState {
-            reconfiguration,
+            reconfigurations: vec![reconfiguration],
             ..Self::of(Stage::Reconfiguring, &[], &["1"])
         }
     }

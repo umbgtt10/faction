@@ -80,13 +80,13 @@ reproduce and expensive to diagnose.
 ### The state machine
 
 The machine progresses through four stages to a single conclusion; a concluded node
-may then coordinate an addition or a removal in a fifth, and a node removed from its
-cluster leaves for a sixth, from which a membership that names it takes it back to the
-first:
+may then coordinate additions and removals in a fifth, below its bound of changes in
+flight, and a sixth, at it; and a node removed from its cluster leaves for a seventh,
+from which a membership that names it takes it back to the first:
 
 ```text
-Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
-   └────────┴───────────┴──────────────┴──────────────┴──▶ Removed
+Initial → Pinging → Collecting → Bootstrapped ⇄ Coordinating ⇄ Reconfiguring
+   └────────┴───────────┴──────────────┴──────────────┴──────────────┴──▶ Removed
    ▲                                                         │
    └──────────── a membership that names it ─────────────────┘
 ```
@@ -97,7 +97,8 @@ Initial → Pinging → Collecting → Bootstrapped ⇄ Reconfiguring
 | `Pinging` | Collecting participation signals from peers | In-flight participation and readiness sets |
 | `Collecting` | Local participation complete, collecting readiness | In-flight readiness and completed participation sets |
 | `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Final peer sets at time of exit, and its members' liveness |
-| `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` | The concluded node's sets and the change in flight |
+| `Coordinating` | Concluded, with changes in flight fewer than its bound — shown as `Bootstrapped` | What `Reconfiguring` carries; it takes another request too |
+| `Reconfiguring` | Concluded, with as many changes in flight as its bound, each an addition or a removal — shown as `Bootstrapped` | The concluded node's sets and its changes in flight |
 | `Removed` | Removed from its own cluster — admits a membership and a probe alone | Its id and the membership it holds: its view is what it held, but itself and its liveness |
 
 A missed deadline is **not** a state: it is recorded as a fact (reported as
@@ -168,8 +169,9 @@ not a wire message, so no transport has to learn a new message type.
 A concluded cluster grows by one through the layer that commits changes above it — a
 consensus log, an operator, whatever the caller has. The node asked to coordinate
 an addition hands the newcomer the membership, waits for its acknowledgement, and
-tells the caller to propose the addition; one addition is in flight at a time, and a
-second request is refused until it ends. Every node applies the commit the layer
+tells the caller to propose the addition. A coordinator holds up to its bound of
+changes in flight at once — 1 unless its configuration states another — no two naming
+one peer; at its bound a request is refused until one ends. Every node applies the commit the layer
 above reports, whatever its stage, and the required count changes by its own
 command, reported with it. `faction` decides neither who may be added nor how a
 change commits.
@@ -241,6 +243,7 @@ let config = Config::new(
     1,
     0,
     false,
+    1,
 );
 
 let mut machine = Faction::new(config, Box::new(NoOpObserver));

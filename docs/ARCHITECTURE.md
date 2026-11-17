@@ -113,13 +113,15 @@ quorum.** Not by policy. Not by convention. By construction.
 ### Construction
 
 ```rust
-let config = Config::new(peer_id, peers, QuorumPolicy::new(required), suspicion_threshold);
+let config = Config::new(instance, peers, QuorumPolicy::new(required), suspicion_threshold, epoch, provisional, changes_in_flight);
 let machine = Faction::new(config, observer);
 ```
 
 `Config` holds the static peer list, the quorum threshold, the suspicion threshold —
 how many probe periods running a member must miss before it is suspected — and the
-epoch of the membership its peers and count are, 0 for a genesis. `QuorumPolicy`
+epoch of the membership its peers and count are, 0 for a genesis — whether that
+membership is a newcomer's, provisional, and how many changes the node may hold in flight
+at once as a coordinator, its bound, 1 for a node that coordinates one at a time. `QuorumPolicy`
 wraps an integer — the machine only checks "does the confirmed count meet or exceed this?"
 `Faction::new` takes both plus an `Observer` trait object. Construction produces a
 machine in the `Initial` state, its view `Fresh`: the configuration's peers as its
@@ -133,17 +135,22 @@ members, its required count, and nothing confirmed.
 | `Pinging` | Collecting participation signals from peers | Members, the participation and readiness accepted so far, and whether the deadline was missed |
 | `Collecting` | Local participation complete, collecting readiness | Members, the participation accepted, the readiness accepted — the node's own among it — and whether the deadline was missed |
 | `Bootstrapped` | Quorum reached — cluster is ready (the conclusion) | Members, the peer sets at the conclusion, and its members' liveness |
-| `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — its peer state `Bootstrapped` | The concluded node and the change in flight |
+| `Coordinating` | Concluded, with changes in flight fewer than its bound — its peer state `Bootstrapped` | The node at its bound's state, which it answers as, taking another request too |
+| `Reconfiguring` | Concluded, with as many changes in flight as its bound — its peer state `Bootstrapped` | The concluded node and its changes in flight, in the order requested |
 | `Removed` | Removed from its own cluster — admits a membership and a probe alone | Its own id and the membership it holds: its view is what it held, but itself and its liveness |
 
 Every stage carries the node's members — the configuration's peers, then each peer
 admitted or added, less each removed — and the required count in effect, starting at
 the configuration's. Membership decisions never change the stage, but for a node's own
 removal, which leaves it `Removed`; `JoinApproved` is admitted in every stage but
-`Reconfiguring`, where no admission goes around a change in flight, and `Removed`.
+`Coordinating` and `Reconfiguring`, where no admission goes around a change in flight,
+and `Removed`.
 
-`Bootstrapped` is the only conclusion; `Reconfiguring` is a concluded node with a
-change in flight, an addition or a removal (`P1-ADR-AdditionThroughTheLayerThatCommits`,
+`Bootstrapped` is the only conclusion; `Coordinating` and `Reconfiguring` are a
+concluded node with changes in flight, each an addition or a removal, below its bound and
+at it — the stage the changes in flight make: none `Bootstrapped`, fewer than the bound
+`Coordinating`, as many `Reconfiguring`, so a node bound to one change is never
+`Coordinating` (`P1-ADR-AdditionThroughTheLayerThatCommits`,
 `P1-ADR-RemovalThroughTheLayerThatCommits`); `Removed` is a node whose own removal
 committed, and no longer a member of its own cluster. A missed deadline is **not** a state: it is
 recorded as a non-terminal fact — surfaced as `PeerState::TimedOut` through a derived
@@ -217,6 +224,7 @@ view shows, never what it admits.
 | `AcknowledgementIgnored { peer_id }` | An acknowledgement not awaited, or a repeat |
 | `AbortIgnored { peer_id }` | An abort not naming the change in flight |
 | `DeclineIgnored { peer_id }` | A decline naming no proposal in flight |
+| `DuplicateChangeIgnored { peer_id }` | A request naming a peer with a change in flight: no two changes in flight name one peer |
 | `ProposeRemoval { peer_id }` | Propose the removal to the layer that commits, decided at the epoch the view shows |
 | `RemovalRefused { peer_id }` | The quorum cannot spare the member: the members not suspected would fall below the count — asked for its removal, or told it was declined |
 | `CoordinationRefused { peer_id }` | The node's membership is provisional: it coordinates no addition or removal until its own addition commits |
@@ -237,7 +245,7 @@ view shows, never what it admits.
 | `CommitIgnored { epoch }` | A commit the node holds already |
 | `MembershipIgnored { epoch }` | A membership at or below the node's epoch |
 | `MembershipAdopted { epoch }` | A membership above the node's epoch, taken |
-| `ChangeAbandoned { reconfiguration }` | The change in flight given up for a membership past it |
+| `ChangeAbandoned { reconfiguration }` | A change in flight given up for a membership past it — one for each, in the order requested |
 
 The call that concludes says so: its outcomes end with `Concluded { mode: Bootstrapped }`.
 The view says so from then on: its peer state is `Bootstrapped`.
@@ -356,7 +364,9 @@ handshake:
 1. `RemovalRequested` of a member not suspected the quorum cannot spare — the members
    not suspected would number fewer than the required count without it — is refused,
    `RemovalRefused`; of any other member, the node itself among them, it is proposed at
-   once, `ProposeRemoval`, and the node is `Reconfiguring`. A suspect's removal is never
+   once, `ProposeRemoval`, and the removal is the last of its changes in flight. The
+   removals in flight are counted together: the quorum must spare the member with every
+   other member whose removal is in flight gone too. A suspect's removal is never
    refused for the quorum.
 2. `RemovalCommitted`, reported to every node in every stage, takes the peer out of every
    list the node holds — its members, the peers it gathered, its suspects and missed
@@ -445,8 +455,12 @@ observation.
 
 What a concluded node answers whatever its change in flight — a peer still
 bootstrapping, a membership decision — is `Bootstrapped::answer`; `Reconfiguring`
-reuses it, refusing an admission and a second request of either kind, and carries the
-change's acknowledgement, abort and commit itself, and a membership past its change. What
+reuses it, refusing an admission and a request of either kind, and carries each
+change's acknowledgement, abort, decline and commit itself, and a membership past its
+changes; `Coordinating` answers as `Reconfiguring` does, and takes a request too. A
+request — of `Bootstrapped` or of `Coordinating` — is `Bootstrapped::requested`, with
+the changes in flight, which `InFlight` holds: no two naming one peer, each ending on its
+own, and the stage they make. What
 removes a node — its own removal committed, or a membership not naming it — every live
 stage asks first, through `Removed::departure`.
 
@@ -469,7 +483,7 @@ returns:
 - Whether the deadline has been missed (`deadline_missed`)
 - The required count in effect
 - Members — the configuration's peers, then every admitted or added peer, in arrival order, less each removed
-- The reconfiguration — the change in flight: none, an addition requested of a peer or acknowledged by it, or a peer's removal requested
+- The reconfigurations — the changes in flight, in the order requested, none with none in flight: each an addition requested of a peer or acknowledged by it, or a peer's removal requested
 - The suspected members, in the order suspected, and each member's missed periods
 - The member probed last
 - The quorum — not tracked before the conclusion nor once removed, held or lost between

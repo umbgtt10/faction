@@ -20,6 +20,7 @@ use faction::reconfiguration::Reconfiguration;
 use faction::stage::Stage;
 use faction::state::State;
 use faction::states::bootstrapped::Bootstrapped;
+use faction::states::in_flight::InFlight;
 
 // A concluded node of members 0, 1 and 2, requiring two.
 fn concluded() -> Bootstrapped {
@@ -42,6 +43,7 @@ fn config() -> Config {
         1,
         0,
         false,
+        1,
     )
 }
 
@@ -69,6 +71,7 @@ fn reach_bootstrapped() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -307,7 +310,7 @@ fn can_spare_a_member_the_count_does_not_need_is_true() {
     let bootstrapped = concluded();
 
     // Act
-    let spared = bootstrapped.can_spare(1);
+    let spared = bootstrapped.can_spare(1, &[]);
 
     // Assert
     assert!(spared);
@@ -319,10 +322,25 @@ fn can_spare_a_member_the_count_needs_is_false() {
     let bootstrapped = needing_all_three();
 
     // Act
-    let spared = bootstrapped.can_spare(1);
+    let spared = bootstrapped.can_spare(1, &[]);
 
     // Assert
     assert!(!spared);
+}
+
+#[test]
+fn can_spare_a_member_the_removals_in_flight_leave_needed_is_false() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let spared = [
+        bootstrapped.can_spare(1, &[2]),
+        bootstrapped.can_spare(1, &[1]),
+    ];
+
+    // Assert
+    assert_eq!(spared, [false, true]);
 }
 
 #[test]
@@ -333,7 +351,7 @@ fn can_spare_a_suspect_the_count_needs_is_true() {
         .expect("a concluded node tracks its members' liveness");
 
     // Act
-    let spared = suspecting.can_spare(2);
+    let spared = suspecting.can_spare(2, &[1]);
 
     // Assert
     assert!(spared);
@@ -449,7 +467,7 @@ fn process_addition_committed_admits_the_peer() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4, 9]);
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
 }
 
 #[test]
@@ -469,7 +487,7 @@ fn process_addition_requested_of_a_member_is_ignored() {
         outcomes,
         vec![Outcome::DuplicateMemberIgnored { peer_id: 2 }]
     );
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
 }
 
 #[test]
@@ -488,8 +506,8 @@ fn process_addition_requested_of_a_newcomer_reconfigures_still_bootstrapped() {
     assert_eq!(outcomes, vec![Outcome::SendMembership { peer_id: 9 }]);
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4]);
 }
@@ -607,6 +625,41 @@ fn process_required_count_changed_sets_the_count_in_effect() {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
+#[test]
+fn requested_of_a_peer_with_a_change_in_flight_ignores_it_as_a_duplicate() {
+    // Arrange
+    let bootstrapped = concluded();
+    let in_flight = InFlight::default().with(Reconfiguration::RemovalRequested { peer_id: 2 });
+
+    // Act
+    let (outcomes, stage) = bootstrapped
+        .requested(
+            &Command::AdditionRequested { peer_id: 2 },
+            &in_flight,
+            &config(),
+        )
+        .expect("a request");
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::DuplicateChangeIgnored { peer_id: 2 }]
+    );
+    assert!(matches!(stage, Stage::Reconfiguring(_)));
+}
+
+#[test]
+fn requested_of_any_other_command_is_none() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let answered = bootstrapped.requested(&Command::ProbeDue, &InFlight::default(), &config());
+
+    // Assert
+    assert!(answered.is_none());
+}
+
 // Only the node's own removal removes it: another member's, committed, is a
 // membership decision it applies and stays concluded.
 #[test]
@@ -648,8 +701,8 @@ fn step_removal_requested_of_a_member_the_quorum_can_spare_proposes_it_still_boo
     let cluster_view = stage.cluster_view(&ClusterViewBuilder::default().build());
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 1 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 1 }]
     );
 }
 

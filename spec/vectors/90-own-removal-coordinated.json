@@ -59,9 +59,7 @@
                 "2",
                 "3"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -124,11 +122,13 @@
                 "2",
                 "3"
               ],
-              "reconfiguration": {
-                "RemovalRequested": {
-                  "peer_id": "1"
+              "reconfigurations": [
+                {
+                  "RemovalRequested": {
+                    "peer_id": "1"
+                  }
                 }
-              },
+              ],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -188,9 +188,7 @@
                 "2",
                 "3"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -230,9 +228,7 @@
                 "2",
                 "3"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -267,9 +263,7 @@
             "2",
             "3"
           ],
-          "reconfiguration": {
-            "None": {}
-          },
+          "reconfigurations": [],
           "suspected": [],
           "misses": [],
           "last_probed": {

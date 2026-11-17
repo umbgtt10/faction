@@ -29,6 +29,7 @@ pub mod answer;
 pub mod command;
 pub mod configuration;
 pub mod epoch;
+pub mod in_flight;
 pub mod liveness;
 pub mod model;
 pub mod node_state;

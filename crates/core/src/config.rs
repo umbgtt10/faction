@@ -15,6 +15,7 @@ pub struct Config {
     suspicion_threshold: usize,
     epoch: Epoch,
     provisional: bool,
+    changes_in_flight: usize,
 }
 
 impl Config {
@@ -26,6 +27,7 @@ impl Config {
         suspicion_threshold: usize,
         epoch: Epoch,
         provisional: bool,
+        changes_in_flight: usize,
     ) -> Self {
         Self {
             instance,
@@ -34,7 +36,15 @@ impl Config {
             suspicion_threshold,
             epoch,
             provisional,
+            changes_in_flight,
         }
+    }
+
+    // How many changes the node may hold in flight at once as a coordinator:
+    // its bound (§2).
+    #[must_use]
+    pub const fn changes_in_flight(&self) -> usize {
+        self.changes_in_flight
     }
 
     #[must_use]

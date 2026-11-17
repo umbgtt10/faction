@@ -70,6 +70,7 @@ fn faction(genesis: Epoch, required_count: usize) -> Faction {
             1,
             genesis,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     )
@@ -116,7 +117,7 @@ proptest! {
                 prop_assert!(!outcomes.iter().any(counts), "{outcomes:?}");
                 prop_assert_eq!(cluster_view.pinging_peers(), previous.pinging_peers());
                 prop_assert_eq!(cluster_view.collecting_peers(), previous.collecting_peers());
-                prop_assert_eq!(cluster_view.reconfiguration(), previous.reconfiguration());
+                prop_assert_eq!(cluster_view.reconfigurations(), previous.reconfigurations());
             }
             previous = cluster_view;
         }

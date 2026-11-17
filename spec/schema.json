@@ -51,7 +51,7 @@
       }
     },
     "configuration": {
-      "description": "What a node is created from: its instance -- its node's id and an incarnation -- its genesis peers, the required count, the suspicion threshold and, unless 0, the epoch of its membership, and, if provisional, that its membership is.",
+      "description": "What a node is created from: its instance -- its node's id and an incarnation -- its genesis peers, the required count, the suspicion threshold and, unless 0, the epoch of its membership, if provisional, that its membership is, and, unless 1, its bound of changes in flight.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -79,6 +79,10 @@
         "provisional": {
           "description": "A newcomer's membership, offered by its coordinator, before its own addition commits; omitted when not.",
           "const": true
+        },
+        "changes_in_flight": {
+          "description": "How many changes the node may hold in flight at once as a coordinator; omitted at 1.",
+          "$ref": "#/$defs/positive_u64"
         }
       }
     },
@@ -1053,6 +1057,27 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
+            "DuplicateChangeIgnored"
+          ],
+          "properties": {
+            "DuplicateChangeIgnored": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_id"
+              ],
+              "properties": {
+                "peer_id": {
+                  "$ref": "#/$defs/u64"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
             "RemovalWithdrawn"
           ],
           "properties": {
@@ -1509,20 +1534,8 @@
       ]
     },
     "reconfiguration": {
-      "description": "The change in flight: none, an addition requested of a peer or acknowledged by it, or a removal of a peer requested.",
+      "description": "A change in flight: an addition requested of a peer or acknowledged by it, or a removal of a peer requested.",
       "oneOf": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "None"
-          ],
-          "properties": {
-            "None": {
-              "$ref": "#/$defs/nothing"
-            }
-          }
-        },
         {
           "type": "object",
           "additionalProperties": false,
@@ -1699,7 +1712,7 @@
         "required_count",
         "deadline_missed",
         "members",
-        "reconfiguration",
+        "reconfigurations",
         "suspected",
         "misses",
         "last_probed",
@@ -1727,8 +1740,12 @@
         "members": {
           "$ref": "#/$defs/peers"
         },
-        "reconfiguration": {
-          "$ref": "#/$defs/reconfiguration"
+        "reconfigurations": {
+          "description": "The changes in flight, in the order requested; none with no change in flight.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reconfiguration"
+          }
         },
         "suspected": {
           "$ref": "#/$defs/peers"
@@ -1961,6 +1978,7 @@
         "Pinging",
         "Collecting",
         "Bootstrapped",
+        "Coordinating",
         "Reconfiguring",
         "Removed"
       ]
@@ -1987,6 +2005,7 @@
             "Pinging",
             "Collecting",
             "Bootstrapped",
+            "Coordinating",
             "Reconfiguring",
             "Removed"
           ],
@@ -2016,6 +2035,14 @@
               }
             },
             "Bootstrapped": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/command_name"
+              }
+            },
+            "Coordinating": {
               "type": "array",
               "minItems": 1,
               "uniqueItems": true,
@@ -2115,6 +2142,7 @@
                     "ProposeRemoval",
                     "RemovalRefused",
                     "CoordinationRefused",
+                    "DuplicateChangeIgnored",
                     "RemovalWithdrawn",
                     "MemberRemoved",
                     "RequiredCountSet",
@@ -2138,14 +2166,16 @@
                 }
               },
               "next": {
-                "description": "The stage after, or unchanged.",
+                "description": "The stage after; unchanged; or changes-in-flight, the stage the changes in flight then make (§2).",
                 "enum": [
                   "Initial",
                   "Pinging",
                   "Collecting",
                   "Bootstrapped",
+                  "Coordinating",
                   "Reconfiguring",
                   "Removed",
+                  "changes-in-flight",
                   "unchanged"
                 ]
               }
@@ -2155,7 +2185,7 @@
       }
     },
     "released": {
-      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them, the version that withdrew it, if one did, and the version that re-encoded it, if one did, with its re-encoded bytes' digest; and every command a released version names, by its name and the first released version to name it.",
+      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them, the version that withdrew it, if one did, and every version that re-encoded it, if one did, each with the digest of the bytes it wrote; and every command a released version names, by its name and the first released version to name it.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2209,20 +2239,24 @@
                 "type": "string"
               },
               "reencoded": {
-                "description": "The version that re-encoded the vector, changing no answer, and the SHA-256 digest of its re-encoded bytes; its released bytes are kept under released/, by the last version that wrote them.",
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "version",
-                  "sha256"
-                ],
-                "properties": {
-                  "version": {
-                    "type": "string"
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
+                "description": "Every version that re-encoded the vector, changing no answer, in order, each with the SHA-256 digest of the bytes it wrote; the bytes each re-encoding replaced are kept under released/, by the last version that wrote them.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
                   }
                 }
               }

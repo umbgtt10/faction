@@ -5,11 +5,11 @@ use super::assertions::{Assert, verify};
 use super::builder::{EPOCH, Init, NEWCOMER, SUSPECT, build};
 use super::helpers::{
     addition_aborted, addition_committed, addition_requested, bootstrapped_admissible,
-    collecting_admissible, indirect_probes_missed, initial_admissible, join_approved,
-    join_rejected, join_requested, membership, membership_acknowledged, participation, peer_heard,
-    pinging_admissible, probe_missed, proposal_declined, ready, reconfiguring_admissible,
-    removal_aborted, removal_committed, removal_requested, removed_admissible,
-    required_count_changed,
+    collecting_admissible, coordinating_admissible, indirect_probes_missed, initial_admissible,
+    join_approved, join_rejected, join_requested, membership, membership_acknowledged,
+    participation, peer_heard, pinging_admissible, probe_missed, proposal_declined, ready,
+    reconfiguring_admissible, removal_aborted, removal_committed, removal_requested,
+    removed_admissible, required_count_changed,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -701,6 +701,38 @@ extern crate alloc;
     &[AbortIgnored { peer_id: 9 }],
     &[Assert::MemberCount(5), Assert::Exited],
     reconfiguring_admissible(),
+)]
+#[case::coordinating_duplicate_change(
+    "change-duplicate",
+    Init::Coordinating,
+    addition_requested(NEWCOMER),
+    &[DuplicateChangeIgnored { peer_id: NEWCOMER }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    coordinating_admissible(),
+)]
+#[case::coordinating_addition_requested_reaches_the_bound(
+    "addition-requested",
+    Init::Coordinating,
+    addition_requested(8),
+    &[SendMembership { peer_id: 8 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    reconfiguring_admissible(),
+)]
+#[case::coordinating_removal_refused(
+    "removal-refused",
+    Init::Coordinating,
+    removal_requested(4),
+    &[RemovalRefused { peer_id: 4 }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    coordinating_admissible(),
+)]
+#[case::coordinating_addition_aborted(
+    "addition-aborted",
+    Init::Coordinating,
+    addition_aborted(NEWCOMER),
+    &[AdditionWithdrawn { peer_id: NEWCOMER }],
+    &[Assert::MemberCount(5), Assert::Exited],
+    bootstrapped_admissible(),
 )]
 #[case::reconfiguring_decline_before_the_acknowledgement(
     "decline-ignored",

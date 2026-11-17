@@ -82,7 +82,11 @@ impl SpecWriter {
             }),
             config.epoch(),
         );
-        Self::provisional(stated, config.is_provisional())
+        let mut written = Self::provisional(stated, config.is_provisional());
+        if config.changes_in_flight() != 1 {
+            written["changes_in_flight"] = Self::number(config.changes_in_flight());
+        }
+        written
     }
 
     pub fn result(result: &ProcessResult) -> Value {
@@ -201,6 +205,9 @@ impl SpecWriter {
             }
             Outcome::AbortIgnored { peer_id } => Self::peer("AbortIgnored", *peer_id),
             Outcome::DeclineIgnored { peer_id } => Self::peer("DeclineIgnored", *peer_id),
+            Outcome::DuplicateChangeIgnored { peer_id } => {
+                Self::peer("DuplicateChangeIgnored", *peer_id)
+            }
             Outcome::ProposeRemoval { peer_id } => Self::peer("ProposeRemoval", *peer_id),
             Outcome::RemovalRefused { peer_id } => Self::peer("RemovalRefused", *peer_id),
             Outcome::CoordinationRefused { peer_id } => Self::peer("CoordinationRefused", *peer_id),
@@ -245,7 +252,6 @@ impl SpecWriter {
 
     fn reconfiguration(reconfiguration: Reconfiguration) -> Value {
         match reconfiguration {
-            Reconfiguration::None => json!({ "None": {} }),
             Reconfiguration::AdditionRequested { peer_id } => {
                 Self::peer("AdditionRequested", peer_id)
             }
@@ -313,7 +319,11 @@ impl SpecWriter {
                 "required_count": Self::number(view.required_count()),
                 "deadline_missed": view.deadline_missed(),
                 "members": Self::peers(view.members().as_slice()),
-                "reconfiguration": Self::reconfiguration(view.reconfiguration()),
+                "reconfigurations": view
+                    .reconfigurations()
+                    .iter()
+                    .map(|change| Self::reconfiguration(*change))
+                    .collect::<Vec<Value>>(),
                 "suspected": Self::peers(view.suspected()),
                 "misses": view
                     .misses()

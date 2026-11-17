@@ -9,6 +9,29 @@ use faction::quorum_policy::QuorumPolicy;
 extern crate alloc;
 
 #[test]
+fn changes_in_flight_is_the_bound_given() {
+    // Arrange
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1],
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+        3,
+    );
+
+    // Act
+    let bound = config.changes_in_flight();
+
+    // Assert
+    assert_eq!(bound, 3);
+}
+
+#[test]
 fn epoch_is_the_one_given() {
     // Arrange
     let config = Config::new(
@@ -21,6 +44,7 @@ fn epoch_is_the_one_given() {
         1,
         6,
         false,
+        1,
     );
 
     // Act
@@ -43,6 +67,7 @@ fn instance_is_the_one_given_and_its_node_the_peer_id() {
         1,
         0,
         false,
+        1,
     );
 
     // Assert
@@ -69,6 +94,7 @@ fn is_provisional_is_the_one_given() {
         1,
         2,
         true,
+        1,
     );
 
     // Act
@@ -84,6 +110,7 @@ fn is_provisional_is_the_one_given() {
             1,
             0,
             false,
+            1,
         )
         .is_provisional(),
     ];
@@ -108,6 +135,7 @@ fn new_stores_provided_values() {
         1,
         0,
         false,
+        1,
     );
 
     // Assert
@@ -131,6 +159,7 @@ fn suspicion_threshold_is_the_one_given() {
         3,
         0,
         false,
+        1,
     );
 
     // Act

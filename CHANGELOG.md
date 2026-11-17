@@ -19,12 +19,26 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
   proposed again, a removal proposed again while the quorum can spare its member and given up, `RemovalRefused`, once
   it cannot. `Reconfiguring` admits it; every other stage rejects it.
 - `Outcome::DeclineIgnored`: a decline naming no proposal in flight.
-- `Bootstrapped::can_spare`, public: whether the quorum can spare a member, as a removal requested and a removal
-  declined are both decided by it.
+- `Bootstrapped::can_spare(peer_id, removing)`, public: whether the quorum can spare a member with every other
+  member whose removal is in flight gone too, as a removal requested and a removal declined are both decided by it.
+- Several changes in flight on one coordinator, up to its bound: `Config::new` takes `changes_in_flight`, and
+  `Config::changes_in_flight()` gives it; a new stage, `Coordinating`, with changes in flight fewer than the bound,
+  answers as `Reconfiguring` does and takes another request too; `InFlight` holds the changes, no two naming one
+  peer, each ending on its own -- a commit, an abort or a decline given up ends its change alone, and an adopted
+  membership gives up every change, one `ChangeAbandoned` each. `Bootstrapped::requested` answers a request with the
+  changes in flight. The specification's 0.9.0 says so (§2, §11, §12, §16, §17): the bound is omitted at 1, so every
+  vector 0.8.0 released is answered alike, and vectors 122 to 126 show a coordinator bound to two or three.
+- `Outcome::DuplicateChangeIgnored`: a request naming a peer with a change in flight.
 - faction-protocol: `Protocol::decline(peer_id, epoch)`, a declined proposal reaching the machine.
 
 #### Changed
-- **Breaking:** `Command` and `Outcome` gain a variant each.
+- **Breaking:** `Command` gains a variant and `Outcome` two; `Config::new` takes the bound; `Stage` gains
+  `Coordinating`; `Reconfiguring::new` takes an `InFlight`.
+- **Breaking:** the view lists the changes in flight: `ClusterView::reconfigurations()`, in the order requested and
+  empty with none, replaces `reconfiguration()`, and `ClusterViewBuilder::with_reconfigurations` replaces
+  `with_reconfiguration`; `Reconfiguration` loses `None`. The specification re-encodes every vector in force once
+  more, the view's `reconfiguration` becoming `reconfigurations`, changing no answer; `released.json` lists every
+  re-encoding of a vector, and the bytes 0.8.0 wrote are kept under `spec/released/0.8.0/`.
 - **Breaking:** faction-protocol's `OutputMessage::ProposeAddition` and `ProposeRemoval` carry the epoch the proposal
   was decided at, the view's, for the caller to submit with the change.
 

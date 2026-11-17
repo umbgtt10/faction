@@ -5,6 +5,7 @@ use crate::support::node_states::NodeStates;
 use faction_spec_model::command::Command;
 use faction_spec_model::configuration::Configuration;
 use faction_spec_model::spec_reader::SpecReader;
+use faction_spec_model::table::next::Next;
 use faction_spec_model::table::row::Row;
 use faction_spec_model::vocabulary::command_name::CommandName;
 use faction_spec_model::vocabulary::outcome_name::OutcomeName;
@@ -13,7 +14,8 @@ use faction_spec_model::vocabulary::stage::Stage;
 use serde_json::Value;
 use serde_json::json;
 
-// A table of two rows: the probe, and the node's own completion concluding.
+// A table of three rows: the probe, the node's own completion concluding, and
+// an addition requested.
 fn matrix() -> Value {
     json!({
         "version": "0.1.0",
@@ -22,6 +24,7 @@ fn matrix() -> Value {
             "Pinging": ["LocalParticipationCompleted", "Probe"],
             "Collecting": ["Probe"],
             "Bootstrapped": ["Probe"],
+            "Coordinating": ["Probe"],
             "Reconfiguring": ["Probe"],
             "Removed": ["Probe"],
         },
@@ -43,6 +46,15 @@ fn matrix() -> Value {
                 "result": "Accepted",
                 "outcomes": ["LocalParticipationCompleted", "BroadcastLocalReady", "Concluded"],
                 "next": "Bootstrapped",
+            },
+            {
+                "id": "addition-requested",
+                "stages": ["Bootstrapped"],
+                "commands": ["AdditionRequested"],
+                "situation": "otherwise: the addition of `peer_id` is requested",
+                "result": "Accepted",
+                "outcomes": ["SendMembership"],
+                "next": "changes-in-flight",
             },
         ],
     })
@@ -145,6 +157,21 @@ fn command_of_a_signal_with_no_epoch_is_at_epoch_0() {
 }
 
 #[test]
+fn configuration_of_a_bound_of_changes_in_flight_reads_it() {
+    // Arrange & Act
+    let configuration = SpecReader::configuration(&json!({
+        "instance": {"node": "1", "incarnation": "1"},
+        "peers": ["1", "2"],
+        "required_count": "1",
+        "suspicion_threshold": "1",
+        "changes_in_flight": "3",
+    }));
+
+    // Assert
+    assert_eq!(configuration.changes_in_flight, 3);
+}
+
+#[test]
 fn configuration_of_a_configuration_at_an_epoch_reads_it() {
     // Arrange & Act
     let configuration = SpecReader::configuration(&json!({
@@ -180,6 +207,7 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
             suspicion_threshold: 3,
             epoch: 0,
             provisional: false,
+            changes_in_flight: 1,
         }
     );
 }
@@ -224,9 +252,23 @@ fn table_of_a_matrix_reads_a_row_leaving_the_stage_unchanged_with_no_next_stage(
 
     // Assert
     assert_eq!(row.id, "probed");
-    assert_eq!(row.next, None);
+    assert_eq!(row.next, Next::Unchanged);
     assert_eq!(row.result, ResultName::Probed);
     assert!(row.outcomes.is_empty());
+}
+
+#[test]
+fn table_of_a_matrix_reads_a_row_whose_next_stage_the_changes_in_flight_make() {
+    // Arrange
+    let table = SpecReader::table(&matrix());
+    let request = SpecReader::command(&json!({"AdditionRequested": {"peer_id": "4"}}));
+
+    // Act
+    let row = table.row(&request, &NodeStates::concluded());
+
+    // Assert
+    assert_eq!(row.id, "addition-requested");
+    assert_eq!(row.next, Next::ChangesInFlight);
 }
 
 #[test]
@@ -251,7 +293,7 @@ fn table_of_a_matrix_reads_each_row_s_stages_commands_result_outcomes_and_next_s
                 OutcomeName::BroadcastLocalReady,
                 OutcomeName::Concluded,
             ],
-            next: Some(Stage::Bootstrapped),
+            next: Next::Stage(Stage::Bootstrapped),
         }
     );
 }

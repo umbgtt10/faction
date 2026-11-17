@@ -30,7 +30,8 @@
 //! | `Pinging` | Active pinging and collecting peer sets |
 //! | `Collecting` | Collecting and pinged peer sets |
 //! | `Bootstrapped` | Terminal — quorum reached |
-//! | `Reconfiguring` | Concluded, coordinating one change, an addition or a removal — shown as `Bootstrapped` |
+//! | `Coordinating` | Concluded, with changes in flight fewer than its bound — shown as `Bootstrapped` |
+//! | `Reconfiguring` | Concluded, with as many changes in flight as its bound — shown as `Bootstrapped` |
 //! | `Removed` | Removed from its own cluster — admits a membership and a probe alone |
 //!
 //! `Bootstrapped` is the only conclusion. A missed deadline is recorded as
@@ -39,12 +40,15 @@
 //! bootstrapped node answers a still-pinging peer with its readiness, so a
 //! concluded node is never a silent sink.
 //!
-//! A concluded node grows or shrinks by one through the layer that commits
-//! changes above it: asked for an addition or a removal, it is `Reconfiguring`
-//! — one change in flight — until the layer above reports the commit, which
-//! every node applies, or the abort. It refuses to coordinate a removal its
-//! quorum cannot spare: a member not suspected, without whom the members not
-//! suspected would fall below the count. A node whose own removal commits is
+//! A concluded node grows or shrinks through the layer that commits changes
+//! above it, up to its bound of changes in flight at once, 1 unless its
+//! configuration states another: asked for an addition or a removal, it is
+//! `Coordinating` while it can take another and `Reconfiguring` once it
+//! cannot, each change in flight until the layer above reports its commit,
+//! which every node applies, or its abort. No two changes in flight name one
+//! peer. It refuses to coordinate a removal its quorum cannot spare: a member
+//! not suspected, without whom and every member whose removal is in flight the
+//! members not suspected would fall below the count. A node whose own removal commits is
 //! `Removed`, and admits nothing but a membership and a probe.
 //!
 //! Every membership carries an epoch, the layer above's own number for the
@@ -98,6 +102,7 @@
 //!     1,                                 // missed probe periods before suspicion
 //!     0,                                 // the epoch of this membership
 //!     false,                             // whether it is a newcomer's, provisional
+//!     1,                                 // changes it may hold in flight at once
 //! );
 //!
 //! let mut machine = Faction::new(config, Box::new(NoOpObserver));

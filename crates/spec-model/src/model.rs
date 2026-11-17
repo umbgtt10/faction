@@ -13,7 +13,6 @@ use crate::configuration::Configuration;
 use crate::epoch::Epoch;
 use crate::node_state::NodeState;
 use crate::provisional::Provisional;
-use crate::reconfiguration::Reconfiguration;
 use crate::rules::rule_book::RuleBook;
 use crate::spec_reader::SpecReader;
 use crate::table::decision_table::DecisionTable;
@@ -43,7 +42,7 @@ impl Model {
                 pinging_peers: Vec::new(),
                 collecting_peers: Vec::new(),
                 deadline_missed: false,
-                reconfiguration: Reconfiguration::None,
+                reconfigurations: Vec::new(),
                 completed_before_removal: false,
                 suspicion_threshold: configuration.suspicion_threshold,
                 suspected: Vec::new(),
@@ -51,6 +50,7 @@ impl Model {
                 last_probed: None,
                 epoch: configuration.epoch,
                 provisional: configuration.provisional,
+                changes_in_flight: configuration.changes_in_flight,
             },
             next_number: 1,
         }
@@ -62,13 +62,13 @@ impl Model {
         let outcomes: Vec<Value> = row
             .outcomes
             .iter()
-            .map(|outcome| outcome.encoded(&command, &self.state))
+            .flat_map(|outcome| outcome.encoded(&command, &self.state))
             .collect();
         let changed = RuleBook::rule(&row.id)
             .change
             .applied(&command, &self.state);
         let state = NodeState {
-            stage: row.next.unwrap_or(changed.stage),
+            stage: row.next.stage(&changed),
             epoch: Epoch::after(&command, row.result, changed.epoch),
             provisional: Provisional::after(&command, &row.outcomes, &self.state),
             ..changed

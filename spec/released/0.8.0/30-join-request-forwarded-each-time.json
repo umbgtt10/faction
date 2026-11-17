@@ -1,0 +1,192 @@
+{
+  "description": "A join request is forwarded, again when repeated, and changes nothing: an Initial node stays Initial.",
+  "rows": [
+    "join-requested"
+  ],
+  "configuration": {
+    "instance": {
+      "node": "1",
+      "incarnation": "1"
+    },
+    "peers": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "required_count": "3",
+    "suspicion_threshold": "1"
+  },
+  "steps": [
+    {
+      "command": {
+        "JoinRequested": {
+          "peer_id": "9"
+        }
+      },
+      "receipt": {
+        "number": "1",
+        "output": {
+          "Accepted": {
+            "outcomes": [
+              {
+                "EmitJoinRequest": {
+                  "peer_id": "9"
+                }
+              }
+            ],
+            "cluster_view": {
+              "peer_state": {
+                "Fresh": {}
+              },
+              "is_pinging_completed": false,
+              "pinging_peers": [],
+              "collecting_peers": [],
+              "required_count": "3",
+              "deadline_missed": false,
+              "members": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "reconfiguration": {
+                "None": {}
+              },
+              "suspected": [],
+              "misses": [],
+              "last_probed": {
+                "None": {}
+              },
+              "quorum": {
+                "NotTracked": {}
+              }
+            },
+            "admissible": [
+              "ParticipationObserved",
+              "ReadyObserved",
+              "LocalParticipationCompleted",
+              "JoinRequested",
+              "JoinApproved",
+              "JoinRejected",
+              "AdditionCommitted",
+              "RemovalCommitted",
+              "RequiredCountChanged",
+              "Probe"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "command": {
+        "JoinRequested": {
+          "peer_id": "9"
+        }
+      },
+      "receipt": {
+        "number": "2",
+        "output": {
+          "Accepted": {
+            "outcomes": [
+              {
+                "EmitJoinRequest": {
+                  "peer_id": "9"
+                }
+              }
+            ],
+            "cluster_view": {
+              "peer_state": {
+                "Fresh": {}
+              },
+              "is_pinging_completed": false,
+              "pinging_peers": [],
+              "collecting_peers": [],
+              "required_count": "3",
+              "deadline_missed": false,
+              "members": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "reconfiguration": {
+                "None": {}
+              },
+              "suspected": [],
+              "misses": [],
+              "last_probed": {
+                "None": {}
+              },
+              "quorum": {
+                "NotTracked": {}
+              }
+            },
+            "admissible": [
+              "ParticipationObserved",
+              "ReadyObserved",
+              "LocalParticipationCompleted",
+              "JoinRequested",
+              "JoinApproved",
+              "JoinRejected",
+              "AdditionCommitted",
+              "RemovalCommitted",
+              "RequiredCountChanged",
+              "Probe"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "final": {
+    "number": "3",
+    "output": {
+      "Probed": {
+        "cluster_view": {
+          "peer_state": {
+            "Fresh": {}
+          },
+          "is_pinging_completed": false,
+          "pinging_peers": [],
+          "collecting_peers": [],
+          "required_count": "3",
+          "deadline_missed": false,
+          "members": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "reconfiguration": {
+            "None": {}
+          },
+          "suspected": [],
+          "misses": [],
+          "last_probed": {
+            "None": {}
+          },
+          "quorum": {
+            "NotTracked": {}
+          }
+        },
+        "admissible": [
+          "ParticipationObserved",
+          "ReadyObserved",
+          "LocalParticipationCompleted",
+          "JoinRequested",
+          "JoinApproved",
+          "JoinRejected",
+          "AdditionCommitted",
+          "RemovalCommitted",
+          "RequiredCountChanged",
+          "Probe"
+        ]
+      }
+    }
+  }
+}

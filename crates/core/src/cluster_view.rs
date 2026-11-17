@@ -20,7 +20,7 @@ pub struct ClusterView {
     required_count: usize,
     deadline_missed: bool,
     members: Members,
-    reconfiguration: Reconfiguration,
+    reconfigurations: Vec<Reconfiguration>,
     suspected: Vec<PeerId>,
     misses: Vec<MissCount>,
     last_probed: Option<PeerId>,
@@ -40,7 +40,7 @@ impl ClusterView {
         required_count: usize,
         deadline_missed: bool,
         members: Members,
-        reconfiguration: Reconfiguration,
+        reconfigurations: Vec<Reconfiguration>,
         suspected: Vec<PeerId>,
         misses: Vec<MissCount>,
         last_probed: Option<PeerId>,
@@ -64,7 +64,7 @@ impl ClusterView {
             required_count,
             deadline_missed,
             members,
-            reconfiguration,
+            reconfigurations,
             suspected,
             misses,
             last_probed,
@@ -131,8 +131,8 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn reconfiguration(&self) -> Reconfiguration {
-        self.reconfiguration
+    pub fn reconfigurations(&self) -> &[Reconfiguration] {
+        &self.reconfigurations
     }
 
     #[must_use]

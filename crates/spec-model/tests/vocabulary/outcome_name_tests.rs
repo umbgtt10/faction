@@ -61,7 +61,8 @@ fn encoded_of_a_claim_refused_carries_the_peer_and_its_epoch_omitted_at_0() {
     let encoded = [
         OutcomeName::StaleEpochIgnored.encoded(&behind, &NodeStates::concluded()),
         OutcomeName::StaleEpochIgnored.encoded(&unnumbered, &NodeStates::concluded()),
-    ];
+    ]
+    .concat();
 
     // Assert
     assert_eq!(
@@ -86,7 +87,8 @@ fn encoded_of_a_commit_or_a_membership_carries_its_epoch() {
         OutcomeName::MembershipAdopted.encoded(&membership, &NodeStates::concluded()),
         OutcomeName::MembershipIgnored.encoded(&membership, &NodeStates::concluded()),
         OutcomeName::MembershipIgnored.encoded(&unnumbered, &NodeStates::concluded()),
-    ];
+    ]
+    .concat();
 
     // Assert
     assert_eq!(
@@ -109,7 +111,22 @@ fn encoded_of_a_coordination_refused_names_the_command_s_peer() {
     let encoded = OutcomeName::CoordinationRefused.encoded(&request, &NodeStates::concluded());
 
     // Assert
-    assert_eq!(encoded, json!({"CoordinationRefused": {"peer_id": "7"}}));
+    assert_eq!(encoded, [json!({"CoordinationRefused": {"peer_id": "7"}})]);
+}
+
+#[test]
+fn encoded_of_a_duplicate_change_names_the_command_s_peer() {
+    // Arrange
+    let request = naming(CommandName::RemovalRequested, "4");
+
+    // Act
+    let encoded = OutcomeName::DuplicateChangeIgnored.encoded(&request, &NodeStates::concluded());
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [json!({"DuplicateChangeIgnored": {"peer_id": "4"}})]
+    );
 }
 
 #[test]
@@ -122,7 +139,7 @@ fn encoded_of_a_liveness_outcome_names_the_command_s_peer() {
         OutcomeName::AlreadySuspected.encoded(&naming(CommandName::ProbeMissed, "2"), &state);
 
     // Assert
-    assert_eq!(encoded, json!({"AlreadySuspected": {"peer_id": "2"}}));
+    assert_eq!(encoded, [json!({"AlreadySuspected": {"peer_id": "2"}})]);
 }
 
 #[test]
@@ -135,7 +152,8 @@ fn encoded_of_a_membership_s_outcomes_carries_the_change_and_names_the_node() {
     let encoded = [
         OutcomeName::ChangeAbandoned.encoded(&membership, &removing),
         OutcomeName::MemberRemoved.encoded(&membership, &removing),
-    ];
+    ]
+    .concat();
 
     // Assert
     assert_eq!(
@@ -161,7 +179,7 @@ fn encoded_of_a_removal_s_outcome_names_the_command_s_peer() {
     // Act
     let encoded: Vec<Value> = removal_outcomes
         .iter()
-        .map(|outcome| outcome.encoded(&commit, &NodeStates::concluded()))
+        .flat_map(|outcome| outcome.encoded(&commit, &NodeStates::concluded()))
         .collect();
 
     // Assert
@@ -197,7 +215,9 @@ fn encoded_of_an_addition_s_outcome_names_the_command_s_peer() {
     // Act
     let encoded: Vec<Value> = addition_outcomes
         .iter()
-        .map(|outcome| outcome.encoded(&commit, &NodeStates::reconfiguring(Reconfiguration::None)))
+        .flat_map(|outcome| {
+            outcome.encoded(&commit, &NodeStates::of(Stage::Reconfiguring, &[], &["1"]))
+        })
         .collect();
 
     // Assert
@@ -229,7 +249,7 @@ fn encoded_of_an_outcome_carrying_nothing_is_a_unit() {
         .encoded(&completion, &NodeStates::of(Stage::Pinging, &[], &[]));
 
     // Assert
-    assert_eq!(encoded, json!({"BroadcastLocalReady": {}}));
+    assert_eq!(encoded, [json!({"BroadcastLocalReady": {}})]);
 }
 
 #[test]
@@ -239,7 +259,32 @@ fn encoded_of_an_outcome_naming_a_peer_names_the_command_s_peer() {
         .encoded(&signal_from("9"), &NodeStates::of(Stage::Pinging, &[], &[]));
 
     // Assert
-    assert_eq!(encoded, json!({"NonMemberIgnored": {"peer_id": "9"}}));
+    assert_eq!(encoded, [json!({"NonMemberIgnored": {"peer_id": "9"}})]);
+}
+
+#[test]
+fn encoded_of_change_abandoned_is_one_for_each_change_in_flight_in_the_order_requested() {
+    // Arrange
+    let membership = at_epoch(CommandName::MembershipReceived, None, 1);
+    let two = NodeState {
+        reconfigurations: vec![
+            Reconfiguration::AdditionAcknowledged(String::from("4")),
+            Reconfiguration::RemovalRequested(String::from("3")),
+        ],
+        ..NodeStates::of(Stage::Reconfiguring, &[], &["1"])
+    };
+
+    // Act
+    let encoded = OutcomeName::ChangeAbandoned.encoded(&membership, &two);
+
+    // Assert
+    assert_eq!(
+        encoded,
+        [
+            json!({"ChangeAbandoned": {"reconfiguration": {"AdditionAcknowledged": {"peer_id": "4"}}}}),
+            json!({"ChangeAbandoned": {"reconfiguration": {"RemovalRequested": {"peer_id": "3"}}}}),
+        ]
+    );
 }
 
 #[test]
@@ -253,7 +298,7 @@ fn encoded_of_concluded_names_the_mode_bootstrapped() {
     // Assert
     assert_eq!(
         encoded,
-        json!({"Concluded": {"mode": {"Bootstrapped": {}}}})
+        [json!({"Concluded": {"mode": {"Bootstrapped": {}}}})]
     );
 }
 
@@ -275,7 +320,10 @@ fn encoded_of_deadline_missed_counts_the_collecting_peers() {
     );
 
     // Assert
-    assert_eq!(encoded, json!({"DeadlineMissed": {"confirmed_count": "2"}}));
+    assert_eq!(
+        encoded,
+        [json!({"DeadlineMissed": {"confirmed_count": "2"}})]
+    );
 }
 
 #[test]
@@ -285,10 +333,10 @@ fn encoded_of_decline_ignored_names_the_command_s_peer() {
 
     // Act
     let encoded = OutcomeName::DeclineIgnored
-        .encoded(&decline, &NodeStates::reconfiguring(Reconfiguration::None));
+        .encoded(&decline, &NodeStates::of(Stage::Reconfiguring, &[], &["1"]));
 
     // Assert
-    assert_eq!(encoded, json!({"DeclineIgnored": {"peer_id": "4"}}));
+    assert_eq!(encoded, [json!({"DeclineIgnored": {"peer_id": "4"}})]);
 }
 
 #[test]
@@ -306,7 +354,7 @@ fn encoded_of_miss_counted_counts_the_period_just_missed() {
     // Assert
     assert_eq!(
         encoded,
-        json!({"MissCounted": {"peer_id": "2", "misses": "2"}})
+        [json!({"MissCounted": {"peer_id": "2", "misses": "2"}})]
     );
 }
 
@@ -320,7 +368,7 @@ fn encoded_of_quorum_lost_is_a_unit() {
         OutcomeName::QuorumLost.encoded(&naming(CommandName::IndirectProbesMissed, "2"), &state);
 
     // Assert
-    assert_eq!(encoded, json!({"QuorumLost": {}}));
+    assert_eq!(encoded, [json!({"QuorumLost": {}})]);
 }
 
 #[test]
@@ -341,7 +389,7 @@ fn encoded_of_required_count_set_carries_the_command_s_count() {
     // Assert
     assert_eq!(
         encoded,
-        json!({"RequiredCountSet": {"required_count": "3"}})
+        [json!({"RequiredCountSet": {"required_count": "3"}})]
     );
 }
 
@@ -357,7 +405,7 @@ fn encoded_of_send_indirect_probes_lists_the_members_to_ask() {
     // Assert
     assert_eq!(
         encoded,
-        json!({"SendIndirectProbes": {"peer_id": "2", "via": ["3"]}})
+        [json!({"SendIndirectProbes": {"peer_id": "2", "via": ["3"]}})]
     );
 }
 
@@ -373,7 +421,7 @@ fn encoded_of_send_probe_names_the_member_to_probe() {
     let encoded = OutcomeName::SendProbe.encoded(&probe_due(), &state);
 
     // Assert
-    assert_eq!(encoded, json!({"SendProbe": {"peer_id": "3"}}));
+    assert_eq!(encoded, [json!({"SendProbe": {"peer_id": "3"}})]);
 }
 
 #[test]
@@ -408,6 +456,7 @@ fn name_of_each_outcome_is_the_vocabulary_s() {
             "ProposeRemoval",
             "RemovalRefused",
             "CoordinationRefused",
+            "DuplicateChangeIgnored",
             "RemovalWithdrawn",
             "MemberRemoved",
             "RequiredCountSet",

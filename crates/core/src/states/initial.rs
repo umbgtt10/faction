@@ -12,7 +12,6 @@ use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
 use crate::quorum_policy::QuorumPolicy;
-use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::states::membership_decision::MembershipDecision;
@@ -47,7 +46,7 @@ impl State for Initial {
             .with_required_count(self.quorum_policy.threshold())
             .with_deadline_missed(false)
             .with_members(self.members.clone())
-            .with_reconfiguration(Reconfiguration::None)
+            .with_reconfigurations(Vec::new())
             .with_suspected(Vec::new())
             .with_misses(Vec::new())
             .with_last_probed(None)

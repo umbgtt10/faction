@@ -191,7 +191,7 @@ impl LayerAbove {
                 let snapshot = &snapshots[*peer_id as usize];
                 !busy.contains(peer_id)
                     && snapshot.peer_state == PeerState::Bootstrapped
-                    && snapshot.reconfiguration == Reconfiguration::None
+                    && snapshot.reconfigurations.is_empty()
             })
             .collect();
         if idle.is_empty() {
@@ -244,15 +244,17 @@ impl LayerAbove {
     // Whether `change` is in flight on the coordinator `snapshot` shows.
     fn in_flight(change: Change, snapshot: &NodeSnapshot) -> bool {
         match change {
-            Change::Addition { peer_id } => matches!(
-                snapshot.reconfiguration,
-                Reconfiguration::AdditionRequested { peer_id: requested }
-                    | Reconfiguration::AdditionAcknowledged { peer_id: requested }
-                    if requested == peer_id
-            ),
-            Change::Removal { peer_id } => {
-                snapshot.reconfiguration == Reconfiguration::RemovalRequested { peer_id }
-            }
+            Change::Addition { peer_id } => snapshot.reconfigurations.iter().any(|change| {
+                matches!(
+                    change,
+                    Reconfiguration::AdditionRequested { peer_id: requested }
+                        | Reconfiguration::AdditionAcknowledged { peer_id: requested }
+                        if *requested == peer_id
+                )
+            }),
+            Change::Removal { peer_id } => snapshot
+                .reconfigurations
+                .contains(&Reconfiguration::RemovalRequested { peer_id }),
             Change::RequiredCount { .. } => false,
         }
     }

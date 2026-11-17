@@ -4,7 +4,6 @@
 use faction::command::Command;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction_chaos::oracle::failure::Failure;
 use faction_system_tests::infra::invariants::breach::Breach;
 use faction_system_tests::node_snapshot::NodeSnapshot;
@@ -52,7 +51,7 @@ fn to_string_of_a_divergence_names_what_was_expected_and_found() {
             member_count: 1,
             members: vec![1],
             required_count: 1,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             quorum: Quorum::Held,
             epoch: 1,

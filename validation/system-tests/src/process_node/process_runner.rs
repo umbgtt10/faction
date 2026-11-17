@@ -127,7 +127,7 @@ impl ProcessRunner {
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
-            Self::reconfiguration(snapshot.reconfiguration),
+            Self::reconfigurations(&snapshot.reconfigurations),
             Self::peers(&snapshot.suspected),
             Self::quorum(snapshot.quorum),
             snapshot.epoch,
@@ -168,14 +168,27 @@ impl ProcessRunner {
         }
     }
 
-    // The change in flight as the state line writes it: none, an addition
-    // requested of a peer or acknowledged by it, or a peer's removal.
+    // A change in flight as the state line writes it: an addition requested of
+    // a peer or acknowledged by it, or a peer's removal.
     fn reconfiguration(reconfiguration: Reconfiguration) -> String {
         match reconfiguration {
-            Reconfiguration::None => String::from("none"),
             Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
             Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
             Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
+        }
+    }
+
+    // The changes in flight as the state line writes them: `none`, or each in
+    // the order requested, comma separated.
+    fn reconfigurations(reconfigurations: &[Reconfiguration]) -> String {
+        if reconfigurations.is_empty() {
+            String::from("none")
+        } else {
+            reconfigurations
+                .iter()
+                .map(|change| Self::reconfiguration(*change))
+                .collect::<Vec<String>>()
+                .join(",")
         }
     }
 }

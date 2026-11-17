@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 77] = [
+const RULES: [(&str, Rule); 78] = [
     (
         "probed",
         Rule {
@@ -173,6 +173,13 @@ const RULES: [(&str, Rule); 77] = [
         "coordination-refused-provisional",
         Rule {
             situation: Situation::NodeIsProvisional,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "change-duplicate",
+        Rule {
+            situation: Situation::ChangeInFlight,
             change: Change::Nothing,
         },
     ),

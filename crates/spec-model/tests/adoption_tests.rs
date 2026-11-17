@@ -17,7 +17,7 @@ fn adopted_of_a_membership_keeps_every_list_to_its_members_and_ends_the_change()
         suspected: NodeStates::peers(&["3"]),
         misses: NodeStates::misses(&[("2", 1), ("3", 2)]),
         last_probed: Some(String::from("3")),
-        reconfiguration: Reconfiguration::RemovalRequested(String::from("3")),
+        reconfigurations: vec![Reconfiguration::RemovalRequested(String::from("3"))],
         ..NodeStates::of(Stage::Reconfiguring, &[], &["1", "3"])
     };
     let membership = Command {
@@ -41,7 +41,7 @@ fn adopted_of_a_membership_keeps_every_list_to_its_members_and_ends_the_change()
             suspected: Vec::new(),
             misses: NodeStates::misses(&[("2", 1)]),
             last_probed: None,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             required_count: 1,
             epoch: 6,
             ..tracked

@@ -54,9 +54,7 @@
                 "5",
                 "6"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -117,9 +115,7 @@
                 "6",
                 "7"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -181,9 +177,7 @@
                 "6",
                 "7"
               ],
-              "reconfiguration": {
-                "None": {}
-              },
+              "reconfigurations": [],
               "suspected": [],
               "misses": [],
               "last_probed": {
@@ -234,9 +228,7 @@
             "6",
             "7"
           ],
-          "reconfiguration": {
-            "None": {}
-          },
+          "reconfigurations": [],
           "suspected": [],
           "misses": [],
           "last_probed": {

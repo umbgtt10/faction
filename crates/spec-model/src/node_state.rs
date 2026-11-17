@@ -17,7 +17,7 @@ pub struct NodeState {
     pub pinging_peers: Vec<String>,
     pub collecting_peers: Vec<String>,
     pub deadline_missed: bool,
-    pub reconfiguration: Reconfiguration,
+    pub reconfigurations: Vec<Reconfiguration>,
     pub completed_before_removal: bool,
     pub suspicion_threshold: u64,
     pub suspected: Vec<String>,
@@ -25,4 +25,5 @@ pub struct NodeState {
     pub last_probed: Option<String>,
     pub epoch: u64,
     pub provisional: bool,
+    pub changes_in_flight: u64,
 }

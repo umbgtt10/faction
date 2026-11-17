@@ -13,6 +13,7 @@ use rstest::rstest;
 #[case(Init::Fresh, "Pinging")]
 #[case(Init::CollectingNoReadiness, "Collecting")]
 #[case(Init::Bootstrapped, "Bootstrapped")]
+#[case(Init::Coordinating, "Coordinating")]
 #[case(Init::Reconfiguring, "Reconfiguring")]
 #[case(Init::Removing, "Reconfiguring")]
 #[case(Init::Removed, "Removed")]

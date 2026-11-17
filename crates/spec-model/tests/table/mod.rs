@@ -2,3 +2,4 @@
 // SPDX-License-Identifier: MIT
 
 pub mod decision_table_tests;
+pub mod next_tests;

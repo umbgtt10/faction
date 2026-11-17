@@ -101,7 +101,15 @@ impl StateReader {
             Some(("removing", peer_id)) => Some(Reconfiguration::RemovalRequested {
                 peer_id: peer_id.parse().ok()?,
             }),
-            _ => (text == "none").then_some(Reconfiguration::None),
+            _ => None,
+        }
+    }
+
+    fn parse_reconfigurations(text: &str) -> Option<Vec<Reconfiguration>> {
+        if text == "none" {
+            Some(Vec::new())
+        } else {
+            text.split(',').map(Self::parse_reconfiguration).collect()
         }
     }
 
@@ -113,7 +121,7 @@ impl StateReader {
         let peer_state = Self::parse_peer_state(parts.next()?);
         let member_count = parts.next()?.parse().ok()?;
         let required_count = parts.next()?.parse().ok()?;
-        let reconfiguration = Self::parse_reconfiguration(parts.next()?)?;
+        let reconfigurations = Self::parse_reconfigurations(parts.next()?)?;
         let suspected = Self::parse_peers(parts.next()?)?;
         let quorum = Self::parse_quorum(parts.next()?)?;
         let epoch = parts.next()?.parse().ok()?;
@@ -123,7 +131,7 @@ impl StateReader {
             member_count,
             members,
             required_count,
-            reconfiguration,
+            reconfigurations,
             suspected,
             quorum,
             epoch,

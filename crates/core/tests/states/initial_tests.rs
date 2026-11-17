@@ -33,6 +33,7 @@ fn test_faction() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     )
@@ -76,6 +77,7 @@ fn new_returns_initial_state() {
         1,
         0,
         false,
+        1,
     );
     let (outcomes, new_state) = initial
         .step(
@@ -229,6 +231,7 @@ fn process_local_participation_completed_single_node_bootstraps() {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -272,6 +275,7 @@ fn process_of_a_member_s_claim_from_behind_refuses_it_and_leaves_initial() {
             1,
             2,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -522,6 +526,7 @@ fn step_of_a_membership_naming_the_node_keeps_it_initial_holding_the_membership(
         1,
         0,
         false,
+        1,
     );
 
     // Act

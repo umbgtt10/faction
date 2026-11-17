@@ -11,6 +11,7 @@ use crate::outcome::Outcome;
 use crate::state::State;
 use crate::states::bootstrapped::Bootstrapped;
 use crate::states::collecting::Collecting;
+use crate::states::coordinating::Coordinating;
 use crate::states::epoch_rule::EpochRule;
 use crate::states::initial::Initial;
 use crate::states::pinging::Pinging;
@@ -74,6 +75,7 @@ pub enum Stage {
     Pinging(Pinging),
     Collecting(Collecting),
     Bootstrapped(Bootstrapped),
+    Coordinating(Coordinating),
     Reconfiguring(Reconfiguring),
     Removed(Removed),
 }
@@ -95,6 +97,7 @@ impl Stage {
             Self::Pinging(pinging) => pinging,
             Self::Collecting(collecting) => collecting,
             Self::Bootstrapped(bootstrapped) => bootstrapped,
+            Self::Coordinating(coordinating) => coordinating,
             Self::Reconfiguring(reconfiguring) => reconfiguring,
             Self::Removed(removed) => removed,
         }

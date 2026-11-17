@@ -6,7 +6,6 @@ use alloc::vec::Vec;
 
 use crate::command::Command;
 use crate::node_state::NodeState;
-use crate::reconfiguration::Reconfiguration;
 
 // What the specification says a node does with a membership it adopts (§16):
 // its members, required count and epoch are the membership's; every list it
@@ -32,7 +31,7 @@ impl Adoption {
                 .last_probed
                 .clone()
                 .filter(|last| members.contains(last)),
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             required_count: command.required_count.expect("a required count"),
             epoch: command.epoch,
             members,

@@ -13,7 +13,6 @@ use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
 use crate::quorum_policy::QuorumPolicy;
-use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::types::Epoch;
@@ -78,7 +77,7 @@ impl State for Collecting {
             .with_deadline_missed(self.deadline_missed)
             .with_required_count(self.quorum_policy.threshold())
             .with_members(self.members.clone())
-            .with_reconfiguration(Reconfiguration::None)
+            .with_reconfigurations(Vec::new())
             .build()
     }
 

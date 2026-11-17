@@ -6,6 +6,7 @@ pub mod assertions;
 pub mod bootstrapped_invalid_tests;
 pub mod builder;
 pub mod collecting_invalid_tests;
+pub mod coordinating_invalid_tests;
 pub mod helpers;
 pub mod initial_invalid_tests;
 pub mod pinging_invalid_tests;

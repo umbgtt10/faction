@@ -4,7 +4,9 @@
 pub mod adoption_tests;
 pub mod bootstrapped_tests;
 pub mod collecting_tests;
+pub mod coordinating_tests;
 pub mod epoch_rule_tests;
+pub mod in_flight_tests;
 pub mod liveness_tests;
 pub mod local_completion_step_tests;
 pub mod membership_decision_tests;

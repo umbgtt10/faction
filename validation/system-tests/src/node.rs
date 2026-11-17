@@ -17,7 +17,6 @@ use std::thread::spawn;
 use std::time::Duration;
 
 use faction::peer_state::PeerState;
-use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
 use faction::types::PeerId;
 use serde_json::to_string;
@@ -38,7 +37,7 @@ const FRESH: NodeSnapshot = NodeSnapshot {
     member_count: 0,
     members: Vec::new(),
     required_count: 0,
-    reconfiguration: Reconfiguration::None,
+    reconfigurations: Vec::new(),
     suspected: Vec::new(),
     quorum: Quorum::NotTracked,
     epoch: 0,

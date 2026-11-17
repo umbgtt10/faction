@@ -36,6 +36,7 @@ fn faction_in_pinging() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -268,6 +269,7 @@ fn process_local_completion_triggers_quorum() {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );

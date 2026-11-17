@@ -71,7 +71,7 @@ fn from_view_copies_every_field() {
         .with_peer_state(PeerState::Collecting)
         .with_deadline_missed(true)
         .with_members(Members::new(vec![1, 2]))
-        .with_reconfiguration(Reconfiguration::AdditionRequested { peer_id: 9 })
+        .with_reconfigurations(vec![Reconfiguration::AdditionRequested { peer_id: 9 }])
         .build();
 
     // Act
@@ -84,8 +84,8 @@ fn from_view_copies_every_field() {
     assert_eq!(copy.members().as_slice(), &[1, 2]);
     assert_eq!(copy.required_count(), 3);
     assert_eq!(
-        copy.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        copy.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -93,13 +93,13 @@ fn from_view_copies_every_field() {
 fn with_addition_updates_only_the_addition() {
     // Arrange & Act
     let result = base()
-        .with_reconfiguration(Reconfiguration::AdditionAcknowledged { peer_id: 8 })
+        .with_reconfigurations(vec![Reconfiguration::AdditionAcknowledged { peer_id: 8 }])
         .build();
 
     // Assert
     assert_eq!(
-        result.reconfiguration(),
-        Reconfiguration::AdditionAcknowledged { peer_id: 8 }
+        result.reconfigurations(),
+        [Reconfiguration::AdditionAcknowledged { peer_id: 8 }]
     );
     assert_eq!(result.peer_state(), PeerState::Bootstrapped);
     assert_eq!(result.required_count(), 3);

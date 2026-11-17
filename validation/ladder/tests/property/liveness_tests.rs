@@ -56,6 +56,7 @@ fn concluded(threshold: usize) -> Faction {
             threshold,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );

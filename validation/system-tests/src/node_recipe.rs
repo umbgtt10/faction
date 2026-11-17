@@ -277,6 +277,7 @@ impl Roles for NodeRecipe {
             self.suspicion_threshold,
             membership.epoch,
             false,
+            1,
         );
         Role::Running(Box::new(Protocol::new(
             Faction::new(config, Box::new(watched)),

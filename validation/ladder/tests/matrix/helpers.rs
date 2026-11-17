@@ -29,6 +29,10 @@ pub fn collecting_admissible() -> Vec<Command> {
     MatrixTable::new(SpecFiles::matrix()).admits("Collecting")
 }
 
+pub fn coordinating_admissible() -> Vec<Command> {
+    MatrixTable::new(SpecFiles::matrix()).admits("Coordinating")
+}
+
 extern crate alloc;
 
 pub fn indirect_probes_missed(peer_id: PeerId) -> Command {

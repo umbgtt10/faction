@@ -3,7 +3,6 @@
 
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
 use faction::types::PeerId;
 use faction_protocol::commit::Commit;
@@ -34,7 +33,7 @@ impl ExpectedEnd {
                 member_count: members.len(),
                 members,
                 required_count: membership.required_count,
-                reconfiguration: Reconfiguration::None,
+                reconfigurations: Vec::new(),
                 suspected: Vec::new(),
                 quorum: Quorum::Held,
                 epoch: membership.epoch,
@@ -90,7 +89,7 @@ impl ExpectedEnd {
             member_count: 0,
             members: Vec::new(),
             required_count: 0,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
             epoch: 0,

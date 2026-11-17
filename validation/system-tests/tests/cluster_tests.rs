@@ -55,14 +55,17 @@ fn abort_addition_of_a_requested_addition_withdraws_it() {
     cluster.poll_until_bootstrapped();
     cluster.add_newcomer(3);
     cluster.request_addition(1, 3);
-    let requested = cluster.snapshot(1).reconfiguration;
+    let requested = cluster.snapshot(1).reconfigurations;
 
     // Act
     cluster.abort_addition(1, 3);
 
     // Assert
-    assert_eq!(requested, Reconfiguration::AdditionRequested { peer_id: 3 });
-    assert_eq!(cluster.snapshot(1).reconfiguration, Reconfiguration::None);
+    assert_eq!(
+        requested,
+        [Reconfiguration::AdditionRequested { peer_id: 3 }]
+    );
+    assert!(cluster.snapshot(1).reconfigurations.is_empty());
 }
 
 #[test]
@@ -77,7 +80,7 @@ fn abort_removal_of_a_requested_removal_withdraws_it() {
     cluster.abort_removal(1, 2);
 
     // Assert
-    assert_eq!(cluster.snapshot(1).reconfiguration, Reconfiguration::None);
+    assert!(cluster.snapshot(1).reconfigurations.is_empty());
     assert_eq!(cluster.snapshot(1).member_count, 3);
 }
 

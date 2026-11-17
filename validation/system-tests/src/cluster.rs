@@ -285,7 +285,11 @@ impl Cluster {
         let proposed = Reconfiguration::AdditionAcknowledged {
             peer_id: newcomer_id,
         };
-        while self.nodes[coordinator].snapshot().reconfiguration != proposed {
+        while !self.nodes[coordinator]
+            .snapshot()
+            .reconfigurations
+            .contains(&proposed)
+        {
             self.step_all();
             self.time.pause.pause(self.poll_delay);
         }
@@ -295,7 +299,12 @@ impl Cluster {
     // layer that commits.
     pub fn poll_until_removal_proposed(&mut self, coordinator: usize, peer_id: PeerId) {
         let proposed = Reconfiguration::RemovalRequested { peer_id };
-        self.poll_until(|cluster| cluster.snapshot(coordinator).reconfiguration == proposed);
+        self.poll_until(|cluster| {
+            cluster
+                .snapshot(coordinator)
+                .reconfigurations
+                .contains(&proposed)
+        });
     }
 
     // Until `holds`, or the deadline: what the poll waited for, named, if it

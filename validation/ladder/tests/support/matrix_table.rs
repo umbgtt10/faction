@@ -56,8 +56,14 @@ impl MatrixTable {
             .map(|outcomes| outcomes.iter().map(Self::name).collect())
             .unwrap_or_default();
         let after = self.stage_of(result);
+        let in_flight = body["cluster_view"]["reconfigurations"]
+            .as_array()
+            .map_or(0, Vec::len);
         let next = match row["next"].as_str().expect("a row's next stage") {
             "unchanged" => before,
+            "changes-in-flight" if in_flight == 0 => "Bootstrapped",
+            "changes-in-flight" if after == "Coordinating" => "Coordinating",
+            "changes-in-flight" => "Reconfiguring",
             stage => stage,
         };
         let mut departures = Vec::new();

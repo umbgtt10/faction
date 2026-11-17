@@ -12,7 +12,6 @@ use std::mem::take;
 
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
-use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
 use faction::types::PeerId;
 
@@ -200,7 +199,7 @@ impl FactionNode {
                     member_count: view.members().as_slice().len(),
                     members: view.members().as_slice().to_vec(),
                     required_count: view.required_count(),
-                    reconfiguration: view.reconfiguration(),
+                    reconfigurations: view.reconfigurations().to_vec(),
                     suspected: view.suspected().to_vec(),
                     quorum: view.quorum(),
                     epoch: view.epoch(),
@@ -211,7 +210,7 @@ impl FactionNode {
                 member_count: 0,
                 members: Vec::new(),
                 required_count: 0,
-                reconfiguration: Reconfiguration::None,
+                reconfigurations: Vec::new(),
                 suspected: Vec::new(),
                 quorum: Quorum::NotTracked,
                 epoch: 0,

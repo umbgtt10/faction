@@ -36,6 +36,7 @@ fn faction_in_collecting() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -388,6 +389,7 @@ fn process_of_a_membership_whose_count_the_collecting_peers_reach_concludes() {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );

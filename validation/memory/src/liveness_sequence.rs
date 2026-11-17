@@ -42,6 +42,7 @@ impl<'a> LivenessSequence<'a> {
                 1,
                 0,
                 false,
+                1,
             ),
             Box::new(NoOpObserver),
         );

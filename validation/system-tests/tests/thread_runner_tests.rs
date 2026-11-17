@@ -6,7 +6,6 @@ use crate::support::fake_time;
 use crate::support::in_memory_node;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::node_command::NodeCommand;
@@ -28,7 +27,7 @@ fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
         member_count: 0,
         members: Vec::new(),
         required_count: 0,
-        reconfiguration: Reconfiguration::None,
+        reconfigurations: Vec::new(),
         suspected: Vec::new(),
         quorum: Quorum::NotTracked,
         epoch: 0,

@@ -17,6 +17,7 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
 use faction::state::State;
 use faction::states::bootstrapped::Bootstrapped;
+use faction::states::in_flight::InFlight;
 use faction::states::reconfiguring::Reconfiguring;
 
 extern crate alloc;
@@ -35,6 +36,7 @@ fn reach_reconfiguring() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -77,6 +79,7 @@ fn reach_removing() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -105,6 +108,39 @@ fn reach_removing() -> Faction {
     faction
 }
 
+// Node 0 of members 0 to 4, requiring four, bound to two changes, concluded,
+// then asked to add peers 9 and 8: at its bound.
+fn reach_two_in_flight() -> Faction {
+    let mut faction = Faction::new(
+        Config::new(
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
+            vec![0, 1, 2, 3, 4],
+            QuorumPolicy::new(4),
+            1,
+            0,
+            false,
+            2,
+        ),
+        Box::new(NoOpObserver),
+    );
+    let _ = faction.process(Command::LocalParticipationCompleted).output;
+    for peer_id in 1..4 {
+        let _ = faction
+            .process(Command::ReadyObserved { peer_id, epoch: 0 })
+            .output;
+    }
+    let _ = faction
+        .process(Command::AdditionRequested { peer_id: 9 })
+        .output;
+    let _ = faction
+        .process(Command::AdditionRequested { peer_id: 8 })
+        .output;
+    faction
+}
+
 #[test]
 fn cluster_view_reports_bootstrapped_with_the_addition_requested() {
     // Arrange
@@ -115,7 +151,7 @@ fn cluster_view_reports_bootstrapped_with_the_addition_requested() {
             vec![1],
             vec![0, 2],
         ),
-        Reconfiguration::AdditionRequested { peer_id: 7 },
+        InFlight::default().with(Reconfiguration::AdditionRequested { peer_id: 7 }),
     );
     let previous = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Collecting)
@@ -130,8 +166,8 @@ fn cluster_view_reports_bootstrapped_with_the_addition_requested() {
     assert_eq!(cluster_view.collecting_peers(), &[0, 2]);
     assert_eq!(cluster_view.required_count(), 2);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 7 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 7 }]
     );
 }
 
@@ -146,8 +182,8 @@ fn cluster_view_reports_bootstrapped_with_the_removal_requested() {
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 4 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 4 }]
     );
 }
 
@@ -166,9 +202,30 @@ fn process_addition_aborted_of_another_peer_is_ignored() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::AbortIgnored { peer_id: 8 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
+}
+
+#[test]
+fn process_addition_aborted_of_one_of_two_withdraws_it_alone() {
+    // Arrange
+    let mut faction = reach_two_in_flight();
+
+    // Act
+    let (outcomes, cluster_view, admissible) = Answers::accepted(
+        faction
+            .process(Command::AdditionAborted { peer_id: 9 })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::AdditionWithdrawn { peer_id: 9 }]);
+    assert_eq!(
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 8 }]
+    );
+    assert!(admissible.contains(&Command::AdditionRequested { peer_id: 0 }));
 }
 
 #[test]
@@ -191,7 +248,7 @@ fn process_addition_aborted_of_the_newcomer_withdraws_it() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::AdditionWithdrawn { peer_id: 9 }]);
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4]);
     assert!(admissible.contains(&Command::AdditionRequested { peer_id: 0 }));
 }
@@ -211,8 +268,8 @@ fn process_addition_aborted_with_a_removal_in_flight_is_ignored() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::AbortIgnored { peer_id: 4 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 4 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 4 }]
     );
 }
 
@@ -237,8 +294,8 @@ fn process_addition_committed_of_a_member_is_ignored() {
         vec![Outcome::DuplicateMemberIgnored { peer_id: 1 }]
     );
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -261,9 +318,33 @@ fn process_addition_committed_of_another_peer_keeps_the_addition_in_flight() {
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 8 }]);
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4, 8]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
+}
+
+#[test]
+fn process_addition_committed_of_one_of_two_ends_it_and_leaves_the_node_coordinating() {
+    // Arrange
+    let mut faction = reach_two_in_flight();
+
+    // Act
+    let (outcomes, cluster_view, admissible) = Answers::accepted(
+        faction
+            .process(Command::AdditionCommitted {
+                peer_id: 8,
+                epoch: 1,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 8 }]);
+    assert_eq!(
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
+    );
+    assert!(admissible.contains(&Command::AdditionRequested { peer_id: 0 }));
 }
 
 #[test]
@@ -290,7 +371,7 @@ fn process_addition_committed_of_the_newcomer_completes_the_addition() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4, 9]);
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
@@ -352,8 +433,8 @@ fn process_join_requested_and_rejected_are_answered_as_a_concluded_node_answers(
     assert_eq!(requested, vec![Outcome::EmitJoinRequest { peer_id: 8 }]);
     assert_eq!(rejected, vec![Outcome::JoinDenied { peer_id: 8 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -378,8 +459,8 @@ fn process_membership_acknowledged_by_another_peer_is_ignored() {
         vec![Outcome::AcknowledgementIgnored { peer_id: 8 }]
     );
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -401,8 +482,8 @@ fn process_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::ProposeAddition { peer_id: 9 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionAcknowledged { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionAcknowledged { peer_id: 9 }]
     );
 }
 
@@ -433,8 +514,8 @@ fn process_membership_acknowledged_twice_ignores_the_repeat() {
         vec![Outcome::AcknowledgementIgnored { peer_id: 9 }]
     );
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionAcknowledged { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionAcknowledged { peer_id: 9 }]
     );
 }
 
@@ -459,9 +540,41 @@ fn process_membership_acknowledged_with_a_removal_in_flight_is_ignored() {
         vec![Outcome::AcknowledgementIgnored { peer_id: 4 }]
     );
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 4 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 4 }]
     );
+}
+
+#[test]
+fn process_of_a_membership_abandons_every_change_in_flight_in_the_order_requested() {
+    // Arrange
+    let mut faction = reach_two_in_flight();
+
+    // Act
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::MembershipReceived {
+                members: vec![0, 1, 2, 3, 4],
+                required_count: 4,
+                epoch: 2,
+            })
+            .output,
+    );
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![
+            Outcome::MembershipAdopted { epoch: 2 },
+            Outcome::ChangeAbandoned {
+                reconfiguration: Reconfiguration::AdditionRequested { peer_id: 9 }
+            },
+            Outcome::ChangeAbandoned {
+                reconfiguration: Reconfiguration::AdditionRequested { peer_id: 8 }
+            },
+        ]
+    );
+    assert!(cluster_view.reconfigurations().is_empty());
 }
 
 #[test]
@@ -490,7 +603,7 @@ fn process_of_a_membership_abandons_the_change_in_flight() {
             },
         ]
     );
-    assert_eq!(view.reconfiguration(), Reconfiguration::None);
+    assert!(view.reconfigurations().is_empty());
     assert_eq!(view.members(), &Members::new(vec![0, 1, 2, 3, 4, 9]));
 }
 
@@ -527,8 +640,8 @@ fn process_of_the_newcomer_s_acknowledgement_from_behind_refuses_it() {
         ]
     );
     assert_eq!(
-        view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -593,7 +706,7 @@ fn process_proposal_declined_of_a_removal_the_quorum_can_no_longer_spare_gives_i
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::RemovalRefused { peer_id: 4 }]);
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 4]);
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
@@ -616,8 +729,8 @@ fn process_proposal_declined_of_a_removal_the_quorum_can_spare_proposes_it_again
     // Assert
     assert_eq!(outcomes, vec![Outcome::ProposeRemoval { peer_id: 4 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 4 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 4 }]
     );
 }
 
@@ -639,8 +752,8 @@ fn process_proposal_declined_of_another_peer_is_ignored() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::DeclineIgnored { peer_id: 1 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 4 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 4 }]
     );
 }
 
@@ -668,8 +781,8 @@ fn process_proposal_declined_of_the_acknowledged_addition_proposes_it_again() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::ProposeAddition { peer_id: 9 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionAcknowledged { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionAcknowledged { peer_id: 9 }]
     );
 }
 
@@ -691,8 +804,8 @@ fn process_proposal_declined_of_the_addition_not_yet_acknowledged_is_ignored() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::DeclineIgnored { peer_id: 9 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -711,8 +824,8 @@ fn process_removal_aborted_of_another_peer_is_ignored() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::AbortIgnored { peer_id: 3 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 4 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 4 }]
     );
 }
 
@@ -730,7 +843,7 @@ fn process_removal_aborted_of_the_peer_in_flight_withdraws_it() {
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::RemovalWithdrawn { peer_id: 4 }]);
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4]);
     assert!(admissible.contains(&Command::RemovalRequested { peer_id: 0 }));
 }
@@ -750,8 +863,8 @@ fn process_removal_aborted_with_an_addition_in_flight_is_ignored() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::AbortIgnored { peer_id: 9 }]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -774,8 +887,8 @@ fn process_removal_committed_of_another_peer_keeps_the_addition_in_flight() {
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3]);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
 }
 
@@ -797,7 +910,7 @@ fn process_removal_committed_of_the_peer_in_flight_completes_the_removal() {
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3]);
-    assert_eq!(cluster_view.reconfiguration(), Reconfiguration::None);
+    assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 }
 
@@ -837,7 +950,44 @@ fn process_required_count_changed_sets_the_count_in_effect() {
     );
     assert_eq!(cluster_view.required_count(), 3);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
+    );
+}
+
+#[test]
+fn requested_of_a_peer_with_a_change_in_flight_ignores_it_as_a_duplicate() {
+    // Arrange
+    let reconfiguring = Reconfiguring::new(
+        Bootstrapped::new(
+            Members::new(vec![0, 1, 2]),
+            QuorumPolicy::new(2),
+            vec![1],
+            vec![0, 2],
+        ),
+        InFlight::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
+    );
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2],
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+        2,
+    );
+
+    // Act
+    let (outcomes, _) = reconfiguring
+        .requested(&Command::RemovalRequested { peer_id: 2 }, &config)
+        .expect("a request");
+
+    // Assert
+    assert_eq!(
+        outcomes,
+        vec![Outcome::DuplicateChangeIgnored { peer_id: 2 }]
     );
 }

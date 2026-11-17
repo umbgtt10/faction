@@ -155,5 +155,6 @@ fn test_config() -> Config {
         1,
         0,
         false,
+        1,
     )
 }

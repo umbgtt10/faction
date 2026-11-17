@@ -120,6 +120,7 @@ impl Offer {
             suspicion_threshold,
             self.epoch,
             true,
+            1,
         )
     }
 }

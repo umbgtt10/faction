@@ -14,8 +14,8 @@ fn row_ids_names_each_known_row_once_the_probe_s_first() {
 
     // Assert
     let distinct: BTreeSet<&str> = row_ids.iter().copied().collect();
-    assert_eq!(row_ids.len(), 77);
-    assert_eq!(distinct.len(), 77);
+    assert_eq!(row_ids.len(), 78);
+    assert_eq!(distinct.len(), 78);
     assert_eq!(row_ids[0], "probed");
 }
 
@@ -126,6 +126,21 @@ fn rule_of_the_row_ignoring_a_decline_asks_whether_a_proposal_of_the_peer_is_in_
         rule,
         Rule {
             situation: Situation::DeclineNotAwaited,
+            change: Change::Nothing,
+        }
+    );
+}
+
+#[test]
+fn rule_of_the_row_ignoring_a_duplicate_change_asks_whether_a_change_of_the_peer_is_in_flight() {
+    // Arrange & Act
+    let rule = RuleBook::rule("change-duplicate");
+
+    // Assert
+    assert_eq!(
+        rule,
+        Rule {
+            situation: Situation::ChangeInFlight,
             change: Change::Nothing,
         }
     );
