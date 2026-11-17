@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::instance::receipt::Receipt;
 use std::sync::Arc;
 
 use faction::command::Command;
@@ -62,8 +63,8 @@ impl NodeObserver for SharedFileObserver {
 }
 
 impl Observer for SharedFileObserver {
-    fn observe(&mut self, command: &Command, result: &ProcessResult) {
-        let (event, cluster_view) = match result {
+    fn observe(&mut self, command: &Command, receipt: &Receipt) {
+        let (event, cluster_view) = match &receipt.output {
             ProcessResult::Accepted { cluster_view, .. } => ("accepted", cluster_view),
             ProcessResult::Rejected { cluster_view, .. } => ("rejected", cluster_view),
             ProcessResult::Probed { cluster_view, .. } => ("query", cluster_view),

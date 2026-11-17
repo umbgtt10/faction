@@ -3,6 +3,7 @@
 
 use alloc::vec;
 use faction::config::Config;
+use faction::instance::instance_id::InstanceId;
 use faction::quorum_policy::QuorumPolicy;
 
 extern crate alloc;
@@ -10,7 +11,17 @@ extern crate alloc;
 #[test]
 fn epoch_is_the_one_given() {
     // Arrange
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 6, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1],
+        QuorumPolicy::new(2),
+        1,
+        6,
+        false,
+    );
 
     // Act
     let epoch = config.epoch();
@@ -20,14 +31,61 @@ fn epoch_is_the_one_given() {
 }
 
 #[test]
+fn instance_is_the_one_given_and_its_node_the_peer_id() {
+    // Arrange & Act
+    let config = Config::new(
+        InstanceId {
+            node: 3,
+            incarnation: 7,
+        },
+        vec![1, 2, 3],
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+    );
+
+    // Assert
+    assert_eq!(
+        config.instance(),
+        InstanceId {
+            node: 3,
+            incarnation: 7
+        }
+    );
+    assert_eq!(config.peer_id(), 3);
+}
+
+#[test]
 fn is_provisional_is_the_one_given() {
     // Arrange
-    let newcomer = Config::new(5, vec![0, 5], QuorumPolicy::new(1), 1, 2, true);
+    let newcomer = Config::new(
+        InstanceId {
+            node: 5,
+            incarnation: 1,
+        },
+        vec![0, 5],
+        QuorumPolicy::new(1),
+        1,
+        2,
+        true,
+    );
 
     // Act
     let provisional = [
         newcomer.is_provisional(),
-        Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0, false).is_provisional(),
+        Config::new(
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
+            vec![0],
+            QuorumPolicy::new(1),
+            1,
+            0,
+            false,
+        )
+        .is_provisional(),
     ];
 
     // Assert
@@ -40,7 +98,17 @@ fn new_stores_provided_values() {
     let peers = vec![0, 1, 2, 3, 4];
 
     // Act
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(3), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        peers.clone(),
+        QuorumPolicy::new(3),
+        1,
+        0,
+        false,
+    );
 
     // Assert
     assert_eq!(config.peer_id(), 0);
@@ -53,7 +121,17 @@ fn new_stores_provided_values() {
 #[test]
 fn suspicion_threshold_is_the_one_given() {
     // Arrange
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 3, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1],
+        QuorumPolicy::new(2),
+        3,
+        0,
+        false,
+    );
 
     // Act
     let threshold = config.suspicion_threshold();

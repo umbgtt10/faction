@@ -28,7 +28,7 @@ fn departures(lines: &[Lines], required_count: usize) -> Vec<String> {
         .enumerate()
         .flat_map(|(peer, lines)| {
             let configuration = json!({
-                "peer_id": peer.to_string(),
+                "instance": {"node": peer.to_string(), "incarnation": "1"},
                 "peers": peers,
                 "required_count": required_count.to_string(),
                 "suspicion_threshold": "1",

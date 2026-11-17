@@ -9,6 +9,7 @@ use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
+use crate::instance::receipt::Receipt;
 use crate::members::Members;
 use crate::observer::Observer;
 use crate::process_result::ProcessResult;
@@ -23,6 +24,7 @@ pub struct Faction {
     observer: Box<dyn Observer>,
     stage: Stage,
     cluster_view: ClusterView,
+    next_number: u64,
 }
 
 impl Faction {
@@ -45,14 +47,21 @@ impl Faction {
             observer,
             stage,
             cluster_view,
+            next_number: 1,
         }
     }
 
+    // The command answered, on a receipt numbered one more than the last,
+    // and reported to the observer.
     #[must_use]
-    pub fn process(&mut self, command: Command) -> ProcessResult {
-        let result = self.answer(&command);
-        self.observer.observe(&command, &result);
-        result
+    pub fn process(&mut self, command: Command) -> Receipt {
+        let receipt = Receipt {
+            number: self.next_number,
+            output: self.answer(&command),
+        };
+        self.next_number += 1;
+        self.observer.observe(&command, &receipt);
+        receipt
     }
 
     fn admissible(&self) -> Vec<Command> {

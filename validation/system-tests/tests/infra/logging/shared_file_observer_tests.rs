@@ -5,6 +5,7 @@ use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::cluster_view::ClusterView;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
+use faction::instance::receipt::Receipt;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -28,11 +29,14 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
-fn make_accepted() -> ProcessResult {
-    ProcessResult::Accepted {
-        cluster_view: make_cluster_view(),
-        admissible: vec![],
-        outcomes: vec![],
+fn make_accepted() -> Receipt {
+    Receipt {
+        number: 1,
+        output: ProcessResult::Accepted {
+            cluster_view: make_cluster_view(),
+            admissible: vec![],
+            outcomes: vec![],
+        },
     }
 }
 
@@ -50,6 +54,10 @@ fn read_file(path: &Path) -> String {
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
     s
+}
+
+fn receipt(output: ProcessResult) -> Receipt {
+    Receipt { number: 1, output }
 }
 
 struct TempFile {
@@ -220,7 +228,7 @@ fn observe_probed_writes_query_event() {
     };
 
     // Act
-    observer.observe(&Command::Probe, &result);
+    observer.observe(&Command::Probe, &receipt(result));
     drop(observer);
 
     // Assert
@@ -241,7 +249,7 @@ fn observe_rejected_writes_rejected_event() {
     };
 
     // Act
-    observer.observe(&Command::DeadlineExpired, &result);
+    observer.observe(&Command::DeadlineExpired, &receipt(result));
     drop(observer);
 
     // Assert
@@ -267,7 +275,7 @@ fn observe_writes_bootstrapped_exit_state() {
     };
 
     // Act
-    observer.observe(&Command::Probe, &result);
+    observer.observe(&Command::Probe, &receipt(result));
     drop(observer);
 
     // Assert
@@ -309,17 +317,17 @@ fn write_json_output_is_valid() {
     );
     observer.observe(
         &Command::Probe,
-        &ProcessResult::Probed {
+        &receipt(ProcessResult::Probed {
             cluster_view: make_cluster_view(),
             admissible: vec![],
-        },
+        }),
     );
     observer.observe(
         &Command::DeadlineExpired,
-        &ProcessResult::Rejected {
+        &receipt(ProcessResult::Rejected {
             cluster_view: make_cluster_view(),
             admissible: vec![],
-        },
+        }),
     );
     drop(observer);
 

@@ -5,6 +5,7 @@ use crate::constants::DEFAULT_SUSPICION_THRESHOLD;
 use crate::constants::HELPERS;
 use crate::infra::fault_settings::FaultSettings;
 use crate::infra::node_faults::NodeFaults;
+use faction::instance::instance_id::InstanceId;
 use faction::quorum::Quorum;
 use std::mem::replace;
 
@@ -308,7 +309,10 @@ impl FactionNode {
     // node, which opens as a started node does; anything else it lets pass.
     fn join(&mut self, message: TransportMessage) -> Vec<OutputMessage> {
         let placeholder = Role::Waiting(Newcomer::new(
-            self.peer_id,
+            InstanceId {
+                node: self.peer_id,
+                incarnation: 1,
+            },
             DEFAULT_SUSPICION_THRESHOLD,
             HELPERS,
             Box::new(NoOpObserver),

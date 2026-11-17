@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Configuration {
     pub peer_id: String,
+    pub incarnation: u64,
     pub peers: Vec<String>,
     pub required_count: u64,
     pub suspicion_threshold: u64,

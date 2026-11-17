@@ -5,6 +5,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use faction::command::Command;
 use faction::config::Config;
+use faction::instance::instance_id::InstanceId;
 use faction::members::Members;
 use faction::miss_count::MissCount;
 use faction::outcome::Outcome;
@@ -12,7 +13,17 @@ use faction::quorum_policy::QuorumPolicy;
 use faction::states::liveness::Liveness;
 
 fn config(threshold: usize) -> Config {
-    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), threshold, 0, false)
+    Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2],
+        QuorumPolicy::new(2),
+        threshold,
+        0,
+        false,
+    )
 }
 
 extern crate alloc;

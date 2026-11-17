@@ -6,6 +6,7 @@ use crate::memory_profile::MemoryProfile;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 
@@ -30,7 +31,10 @@ impl<'a> ReconfigurationSequence<'a> {
         self.counter.start();
         let mut faction = Faction::new(
             Config::new(
-                NODE,
+                InstanceId {
+                    node: NODE,
+                    incarnation: 1,
+                },
                 (NODE..=self.peers).collect(),
                 QuorumPolicy::new(1),
                 1,

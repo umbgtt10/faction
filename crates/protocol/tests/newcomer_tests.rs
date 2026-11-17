@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
@@ -11,13 +12,29 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_protocol::transport_message::TransportMessage;
 
 fn newcomer() -> Newcomer {
-    Newcomer::new(5, 1, 2, Box::new(NoOpObserver))
+    Newcomer::new(
+        InstanceId {
+            node: 5,
+            incarnation: 1,
+        },
+        1,
+        2,
+        Box::new(NoOpObserver),
+    )
 }
 
 #[test]
 fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
     // Arrange
-    let newcomer = Newcomer::new(5, 2, 1, Box::new(NoOpObserver));
+    let newcomer = Newcomer::new(
+        InstanceId {
+            node: 5,
+            incarnation: 1,
+        },
+        2,
+        1,
+        Box::new(NoOpObserver),
+    );
     let membership = TransportMessage::Membership {
         from: 0,
         to: 5,

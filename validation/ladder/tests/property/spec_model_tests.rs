@@ -12,6 +12,7 @@ use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 use faction_spec_model::model::Model;
@@ -26,7 +27,7 @@ proptest! {
         commands in RandomCommands::sequence(40),
     ) {
         // Arrange
-        let config = Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0, false);
+        let config = Config::new(InstanceId { node: 0, incarnation: 1 }, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0, false);
         let mut model = Model::new(
             SpecReader::table(&SpecFiles::matrix()),
             SpecReader::configuration(&SpecWriter::configuration(&config)),
@@ -35,8 +36,8 @@ proptest! {
 
         // Act
         let departure = commands.iter().enumerate().find_map(|(index, command)| {
-            let answered = SpecWriter::result(&faction.process(command.clone()));
-            let modelled = model.process(&SpecWriter::command(command)).result;
+            let answered = SpecWriter::receipt(&faction.process(command.clone()));
+            let modelled = model.process(&SpecWriter::command(command)).receipt;
             (answered != modelled).then(|| {
                 format!("call {}, {command:?}: the crate answers {answered}, the model {modelled}", index + 1)
             })

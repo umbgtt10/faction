@@ -7,6 +7,7 @@ use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::string::String;
 use alloc::vec::Vec;
+use faction::instance::instance_id::InstanceId;
 
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -41,7 +42,10 @@ impl ClusterSimulation {
             .map(|(observer, &peer_id)| {
                 Faction::new(
                     Config::new(
-                        peer_id,
+                        InstanceId {
+                            node: peer_id,
+                            incarnation: 1,
+                        },
                         peer_ids.clone(),
                         QuorumPolicy::new(required_count),
                         1,
@@ -64,7 +68,7 @@ impl ClusterSimulation {
     pub fn all_exited_with(&mut self, mode: Conclusion) -> bool {
         self.peers
             .iter_mut()
-            .all(|n| match n.process(Command::Probe) {
+            .all(|n| match n.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => {
                     (cluster_view.peer_state() == PeerState::Bootstrapped)
                         .then_some(Conclusion::Bootstrapped)
@@ -92,7 +96,7 @@ impl ClusterSimulation {
             .iter()
             .position(|p| *p == peer_id)
             .expect("peer is in the cluster");
-        match self.peers[index].process(Command::Probe) {
+        match self.peers[index].process(Command::Probe).output {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         }
@@ -145,7 +149,7 @@ impl ClusterSimulation {
     }
 
     fn apply_to(&mut self, index: usize, command: Command) -> Vec<Outcome> {
-        match self.peers[index].process(command) {
+        match self.peers[index].process(command).output {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),

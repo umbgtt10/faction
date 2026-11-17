@@ -3,8 +3,8 @@
 
 use crate::support::spec_writer::SpecWriter;
 use faction::command::Command;
+use faction::instance::receipt::Receipt;
 use faction::observer::Observer;
-use faction::process_result::ProcessResult;
 use serde_json::Value;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -25,9 +25,9 @@ impl SpecLog {
 }
 
 impl Observer for SpecLog {
-    fn observe(&mut self, command: &Command, result: &ProcessResult) {
+    fn observe(&mut self, command: &Command, receipt: &Receipt) {
         self.lines
             .borrow_mut()
-            .push(SpecWriter::step(command, result));
+            .push(SpecWriter::step(command, receipt));
     }
 }

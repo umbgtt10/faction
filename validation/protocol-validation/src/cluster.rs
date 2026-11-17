@@ -3,6 +3,7 @@
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use faction::instance::instance_id::InstanceId;
 
 use faction::config::Config;
 use faction::faction::Faction;
@@ -68,7 +69,10 @@ impl Cluster {
             .iter()
             .map(|&id| {
                 let config = Config::new(
-                    id,
+                    InstanceId {
+                        node: id,
+                        incarnation: 1,
+                    },
                     peer_ids.clone(),
                     QuorumPolicy::new(required),
                     suspicion_threshold,
@@ -121,7 +125,10 @@ impl Cluster {
         self.waiting = Some(WaitingNewcomer {
             peer_id,
             newcomer: Newcomer::new(
-                peer_id,
+                InstanceId {
+                    node: peer_id,
+                    incarnation: 1,
+                },
                 self.suspicion_threshold,
                 HELPERS,
                 Box::new(NoOpObserver),
@@ -245,7 +252,10 @@ impl Cluster {
     pub fn restart(&mut self, index: usize, peers: Vec<PeerId>, required: usize, epoch: Epoch) {
         let peer_id = self.peer_ids[index];
         let config = Config::new(
-            peer_id,
+            InstanceId {
+                node: peer_id,
+                incarnation: 1,
+            },
             peers.clone(),
             QuorumPolicy::new(required),
             self.suspicion_threshold,
@@ -332,7 +342,10 @@ impl Cluster {
     // that invites it, with timers of its own.
     fn rejoined(&mut self, index: usize, membership: TransportMessage) -> Vec<OutputMessage> {
         let newcomer = Newcomer::new(
-            self.peer_ids[index],
+            InstanceId {
+                node: self.peer_ids[index],
+                incarnation: 1,
+            },
             self.suspicion_threshold,
             HELPERS,
             Box::new(NoOpObserver),

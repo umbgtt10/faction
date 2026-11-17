@@ -9,6 +9,7 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -155,8 +156,8 @@ proptest! {
 
         // Act
         for command in commands {
-            removed = removed || own_removal(&outcomes(faction.process(command)));
-            let cluster_view = match faction.process(Command::Probe) {
+            removed = removed || own_removal(&outcomes(faction.process(command).output));
+            let cluster_view = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -181,8 +182,8 @@ proptest! {
 
         // Act
         for command in commands {
-            removed = removed || own_removal(&outcomes(faction.process(command)));
-            let cluster_view = match faction.process(Command::Probe) {
+            removed = removed || own_removal(&outcomes(faction.process(command).output));
+            let cluster_view = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -208,15 +209,15 @@ proptest! {
     fn pinged_peers_count_never_decreases_but_by_a_removal(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut faction = faction();
-        let mut previous = match faction.process(Command::Probe) {
+        let mut previous = match faction.process(Command::Probe).output {
     ProcessResult::Probed { cluster_view, .. } => cluster_view,
     _ => unreachable!(),
 };
 
         // Act
         for command in commands {
-            let removed = removed_peer(&outcomes(faction.process(command)));
-            let current = match faction.process(Command::Probe) {
+            let removed = removed_peer(&outcomes(faction.process(command).output));
+            let current = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -234,15 +235,15 @@ proptest! {
     fn collected_peers_count_never_decreases_but_by_a_removal(commands in prop::collection::vec(command_strategy(), 0..128)) {
         // Arrange
         let mut faction = faction();
-        let mut previous = match faction.process(Command::Probe) {
+        let mut previous = match faction.process(Command::Probe).output {
     ProcessResult::Probed { cluster_view, .. } => cluster_view,
     _ => unreachable!(),
 };
 
         // Act
         for command in commands {
-            let removed = removed_peer(&outcomes(faction.process(command)));
-            let current = match faction.process(Command::Probe) {
+            let removed = removed_peer(&outcomes(faction.process(command).output));
+            let current = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -263,16 +264,16 @@ proptest! {
 
         // Act
         for command in commands {
-            let previous = match faction.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match faction.process(command) {
+            let batch = match faction.process(command).output {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = match faction.process(Command::Probe) {
+            let current = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -292,12 +293,12 @@ proptest! {
 
         // Act
         for command in commands {
-            let previous = match faction.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            removed = removed || own_removal(&outcomes(faction.process(command)));
-            let current = match faction.process(Command::Probe) {
+            removed = removed || own_removal(&outcomes(faction.process(command).output));
+            let current = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -326,16 +327,16 @@ proptest! {
 
         // Act
         for command in commands {
-            let previous = match faction.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let batch = match faction.process(command) {
+            let batch = match faction.process(command).output {
                 ProcessResult::Accepted { outcomes, .. } => outcomes,
                 ProcessResult::Probed { .. } => unreachable!(),
                 ProcessResult::Rejected { .. } => vec![],
             };
-            let current = match faction.process(Command::Probe) {
+            let current = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -353,8 +354,8 @@ proptest! {
 
         // Act
         for command in commands {
-            let _ = faction.process(command);
-            let cluster_view = match faction.process(Command::Probe) {
+            let _ = faction.process(command).output;
+            let cluster_view = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -378,8 +379,8 @@ proptest! {
 
         // Act
         for command in commands {
-            let _ = faction.process(command);
-            let cluster_view = match faction.process(Command::Probe) {
+            let _ = faction.process(command).output;
+            let cluster_view = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -403,7 +404,17 @@ fn removed_peer(outputs: &[Outcome]) -> Option<u64> {
 }
 
 fn test_config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false)
+    Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(4),
+        1,
+        0,
+        false,
+    )
 }
 
 fn without(peers: &[u64], peer_id: u64) -> Vec<u64> {

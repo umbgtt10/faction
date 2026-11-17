@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use faction::instance::receipt::Receipt;
 use std::collections::BTreeSet;
 
 use faction::cluster_view::ClusterView;
@@ -145,7 +146,8 @@ impl InvariantObserver {
 }
 
 impl Observer for InvariantObserver {
-    fn observe(&mut self, command: &Command, result: &ProcessResult) {
+    fn observe(&mut self, command: &Command, receipt: &Receipt) {
+        let result = &receipt.output;
         let (view, _) = Self::parts(result);
         self.tell(command, view);
         if let Some(invariant) = self.breached(command, result) {
@@ -157,6 +159,6 @@ impl Observer for InvariantObserver {
         }
         self.epoch = view.epoch();
         self.removed = view.peer_state() == PeerState::Removed;
-        self.inner.observe(command, result);
+        self.inner.observe(command, receipt);
     }
 }

@@ -1,0 +1,158 @@
+{
+  "description": "A node removed while pinging is Removed, keeping the peers it gathered but itself.",
+  "rows": [
+    "participation-accepted",
+    "node-removed"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3"
+    ],
+    "required_count": "3",
+    "suspicion_threshold": "1"
+  },
+  "steps": [
+    {
+      "command": {
+        "ParticipationObserved": {
+          "peer_id": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "ParticipationAccepted": {
+                "peer_id": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Pinging": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [
+              "2"
+            ],
+            "collecting_peers": [],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "RemovalCommitted": {
+          "peer_id": "1"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "MemberRemoved": {
+                "peer_id": "1"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Removed": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [
+              "2"
+            ],
+            "collecting_peers": [],
+            "required_count": "3",
+            "deadline_missed": false,
+            "members": [
+              "2",
+              "3"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            }
+          },
+          "admissible": [
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Removed": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [
+        "2"
+      ],
+      "collecting_peers": [],
+      "required_count": "3",
+      "deadline_missed": false,
+      "members": [
+        "2",
+        "3"
+      ],
+      "reconfiguration": {
+        "None": {}
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "NotTracked": {}
+      }
+    },
+    "admissible": [
+      "Probe"
+    ]
+  }
+}

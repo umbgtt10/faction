@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use faction::command::Command;
+use faction::instance::instance_id::InstanceId;
 use faction_protocol::offer::Offer;
 use faction_protocol::output_message::OutputMessage;
 use faction_protocol::transport_message::TransportMessage;
@@ -69,7 +70,13 @@ fn config_of_an_offer_already_naming_the_node_lists_it_once() {
     let offer = Offer::of(&membership(vec![5, 1]), 5).expect("a membership");
 
     // Act
-    let config = offer.config(5, 1);
+    let config = offer.config(
+        InstanceId {
+            node: 5,
+            incarnation: 1,
+        },
+        1,
+    );
 
     // Assert
     assert_eq!(config.peers(), &[5, 1]);
@@ -81,9 +88,22 @@ fn config_of_an_offer_is_the_newcomer_s_at_its_epoch() {
     let offer = Offer::of(&membership(vec![1]), 5).expect("a membership");
 
     // Act
-    let config = offer.config(5, 3);
+    let config = offer.config(
+        InstanceId {
+            node: 5,
+            incarnation: 2,
+        },
+        3,
+    );
 
     // Assert
+    assert_eq!(
+        config.instance(),
+        InstanceId {
+            node: 5,
+            incarnation: 2
+        }
+    );
     assert_eq!(config.peer_id(), 5);
     assert_eq!(config.peers(), &[1, 5]);
     assert_eq!(config.required_count(), 2);

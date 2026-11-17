@@ -1,0 +1,169 @@
+{
+  "description": "A commit for a peer that is not a member is ignored; a removal committed on a fresh node takes the peer out, and the node stays Initial.",
+  "rows": [
+    "commit-non-member",
+    "removal-committed"
+  ],
+  "configuration": {
+    "peer_id": "1",
+    "peers": [
+      "1",
+      "2",
+      "3"
+    ],
+    "required_count": "1",
+    "suspicion_threshold": "1"
+  },
+  "steps": [
+    {
+      "command": {
+        "RemovalCommitted": {
+          "peer_id": "9"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "NonMemberIgnored": {
+                "peer_id": "9"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "1",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2",
+              "3"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "RemovalCommitted": {
+          "peer_id": "3"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "MemberRemoved": {
+                "peer_id": "3"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "1",
+            "deadline_missed": false,
+            "members": [
+              "1",
+              "2"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            }
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Fresh": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [],
+      "collecting_peers": [],
+      "required_count": "1",
+      "deadline_missed": false,
+      "members": [
+        "1",
+        "2"
+      ],
+      "reconfiguration": {
+        "None": {}
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "NotTracked": {}
+      }
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "LocalParticipationCompleted",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "AdditionCommitted",
+      "RemovalCommitted",
+      "RequiredCountChanged",
+      "Probe"
+    ]
+  }
+}

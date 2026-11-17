@@ -5,6 +5,7 @@ use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
+use faction::instance::receipt::Receipt;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -70,7 +71,10 @@ impl SpecWriter {
     pub fn configuration(config: &Config) -> Value {
         let stated = Self::stated(
             json!({
-                "peer_id": Self::number(config.peer_id()),
+                "instance": {
+                    "node": Self::number(config.instance().node),
+                    "incarnation": Self::number(config.instance().incarnation),
+                },
                 "peers": Self::peers(config.peers()),
                 "required_count": Self::number(config.required_count()),
                 "suspicion_threshold": Self::number(config.suspicion_threshold()),
@@ -108,8 +112,14 @@ impl SpecWriter {
         }
     }
 
-    pub fn step(command: &Command, result: &ProcessResult) -> Value {
-        json!({ "command": Self::command(command), "result": Self::result(result) })
+    // A call's receipt as the specification writes it: its number and its
+    // output.
+    pub fn receipt(receipt: &Receipt) -> Value {
+        json!({ "number": Self::number(receipt.number), "output": Self::result(&receipt.output) })
+    }
+
+    pub fn step(command: &Command, receipt: &Receipt) -> Value {
+        json!({ "command": Self::command(command), "receipt": Self::receipt(receipt) })
     }
 
     fn admissible(commands: &[Command]) -> Value {

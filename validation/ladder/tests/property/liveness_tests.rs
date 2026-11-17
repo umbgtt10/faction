@@ -21,6 +21,7 @@ use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
@@ -31,7 +32,7 @@ use proptest::prelude::*;
 
 // The outcomes and the view a command is answered with.
 fn answered(faction: &mut Faction, command: Command) -> (Vec<Outcome>, ClusterView) {
-    match faction.process(command) {
+    match faction.process(command).output {
         ProcessResult::Accepted {
             outcomes,
             cluster_view,
@@ -46,7 +47,10 @@ fn answered(faction: &mut Faction, command: Command) -> (Vec<Outcome>, ClusterVi
 fn concluded(threshold: usize) -> Faction {
     let mut faction = Faction::new(
         Config::new(
-            0,
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(3),
             threshold,
@@ -66,7 +70,7 @@ fn concluded(threshold: usize) -> Faction {
             epoch: 0,
         },
     ] {
-        let _ = faction.process(command);
+        let _ = faction.process(command).output;
     }
     faction
 }

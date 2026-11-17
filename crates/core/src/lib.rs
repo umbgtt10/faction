@@ -82,6 +82,7 @@
 //! use faction::command::Command;
 //! use faction::config::Config;
 //! use faction::faction::Faction;
+//! use faction::instance::instance_id::InstanceId;
 //! use faction::no_op_observer::NoOpObserver;
 //! use faction::peer_state::PeerState;
 //! use faction::process_result::ProcessResult;
@@ -91,7 +92,7 @@
 //!
 //! // A 5-node cluster. We need 4 to agree before proceeding.
 //! let config = Config::new(
-//!     0,                                 // our peer id
+//!     InstanceId { node: 0, incarnation: 1 }, // our peer id, its first incarnation
 //!     alloc::vec![0, 1, 2, 3, 4],        // all peers
 //!     QuorumPolicy::new(4),              // quorum threshold
 //!     1,                                 // missed probe periods before suspicion
@@ -101,24 +102,24 @@
 //!
 //! let mut machine = Faction::new(config, Box::new(NoOpObserver));
 //!
-//! // Phase 1 — feed participation signals as they arrive from the wire.
-//! assert!(matches!(
-//!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 }),
-//!     ProcessResult::Accepted { .. }
-//! ));
+//! // Phase 1 — feed participation signals as they arrive from the wire. Every
+//! // answer is a receipt: its output, numbered one more than the last.
+//! let receipt = machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 });
+//! assert_eq!(receipt.number, 1);
+//! assert!(matches!(receipt.output, ProcessResult::Accepted { .. }));
 //! machine.process(Command::ParticipationObserved { peer_id: 2, epoch: 0 });
 //!
 //! // A duplicate is accepted but marked ignored — and, like every result,
 //! // it reports the set of commands admissible next.
 //! if let ProcessResult::Accepted { admissible, .. } =
-//!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 })
+//!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 }).output
 //! {
 //!     assert!(admissible.contains(&Command::LocalParticipationCompleted));
 //! }
 //!
 //! // Probe at any time — read-only, zero side effects.
 //! if let ProcessResult::Probed { cluster_view, .. } =
-//!     machine.process(Command::Probe)
+//!     machine.process(Command::Probe).output
 //! {
 //!     assert_eq!(cluster_view.pinging_peers(), &[1, 2]);
 //! }
@@ -130,7 +131,7 @@
 //!
 //! // Self plus peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
 //! let result = machine.process(Command::ReadyObserved { peer_id: 3, epoch: 0 });
-//! if let ProcessResult::Accepted { cluster_view, .. } = result {
+//! if let ProcessResult::Accepted { cluster_view, .. } = result.output {
 //!     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
 //!     // The cluster is live. Hand off to the application.
 //! }
@@ -175,6 +176,7 @@ pub mod command;
 pub mod conclusion;
 pub mod config;
 pub mod faction;
+pub mod instance;
 pub mod members;
 pub mod miss_count;
 pub mod observer;

@@ -3,12 +3,13 @@
 
 use alloc::vec::Vec;
 
+use crate::instance::instance_id::InstanceId;
 use crate::quorum_policy::QuorumPolicy;
 use crate::types::Epoch;
 use crate::types::PeerId;
 
 pub struct Config {
-    peer_id: PeerId,
+    instance: InstanceId,
     peers: Vec<PeerId>,
     quorum_policy: QuorumPolicy,
     suspicion_threshold: usize,
@@ -19,7 +20,7 @@ pub struct Config {
 impl Config {
     #[must_use]
     pub fn new(
-        peer_id: PeerId,
+        instance: InstanceId,
         peers: Vec<PeerId>,
         quorum_policy: QuorumPolicy,
         suspicion_threshold: usize,
@@ -27,7 +28,7 @@ impl Config {
         provisional: bool,
     ) -> Self {
         Self {
-            peer_id,
+            instance,
             peers,
             quorum_policy,
             suspicion_threshold,
@@ -43,6 +44,12 @@ impl Config {
 
     // Whether the membership the node is created with is provisional: a
     // newcomer's, offered by its coordinator, before its own addition commits.
+    // The node and the incarnation the caller created it as.
+    #[must_use]
+    pub const fn instance(&self) -> InstanceId {
+        self.instance
+    }
+
     #[must_use]
     pub const fn is_provisional(&self) -> bool {
         self.provisional
@@ -50,7 +57,7 @@ impl Config {
 
     #[must_use]
     pub const fn peer_id(&self) -> PeerId {
-        self.peer_id
+        self.instance.node
     }
 
     #[must_use]

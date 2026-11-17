@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::config::Config;
+use faction::instance::instance_id::InstanceId;
 use faction::members::Members;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
@@ -40,7 +41,17 @@ fn collecting() -> Stage {
 }
 
 fn config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false)
+    Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(4),
+        1,
+        0,
+        false,
+    )
 }
 
 fn every_command() -> Vec<Command> {

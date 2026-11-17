@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 use faction::command::Command;
+use faction::instance::receipt::Receipt;
 use faction::observer::Observer;
-use faction::process_result::ProcessResult;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-pub type Observations = Arc<Mutex<Vec<(Command, ProcessResult)>>>;
+pub type Observations = Arc<Mutex<Vec<(Command, Receipt)>>>;
 
 pub struct RecordingObserver {
     observations: Observations,
@@ -20,10 +20,10 @@ impl RecordingObserver {
 }
 
 impl Observer for RecordingObserver {
-    fn observe(&mut self, command: &Command, result: &ProcessResult) {
+    fn observe(&mut self, command: &Command, receipt: &Receipt) {
         self.observations
             .lock()
             .unwrap()
-            .push((command.clone(), result.clone()));
+            .push((command.clone(), receipt.clone()));
     }
 }

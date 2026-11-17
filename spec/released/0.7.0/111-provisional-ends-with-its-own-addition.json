@@ -1,0 +1,245 @@
+{
+  "description": "A newcomer's membership stops being provisional when it applies the commit of its own addition, a member already listed, though not when the commit is held already; from then on it sends a member behind the membership.",
+  "rows": [
+    "commit-held",
+    "commit-member",
+    "claim-behind-before-completion"
+  ],
+  "configuration": {
+    "peer_id": "5",
+    "peers": [
+      "0",
+      "5"
+    ],
+    "required_count": "2",
+    "suspicion_threshold": "1",
+    "epoch": "2",
+    "provisional": true
+  },
+  "steps": [
+    {
+      "command": {
+        "AdditionCommitted": {
+          "peer_id": "5",
+          "epoch": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "CommitIgnored": {
+                "epoch": "2"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "0",
+              "5"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            },
+            "epoch": "2",
+            "provisional": true
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged",
+            "MembershipReceived",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "AdditionCommitted": {
+          "peer_id": "5",
+          "epoch": "3"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "DuplicateMemberIgnored": {
+                "peer_id": "5"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Fresh": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "0",
+              "5"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            },
+            "epoch": "3"
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged",
+            "MembershipReceived",
+            "Probe"
+          ]
+        }
+      }
+    },
+    {
+      "command": {
+        "ParticipationObserved": {
+          "peer_id": "0",
+          "epoch": "2"
+        }
+      },
+      "result": {
+        "Accepted": {
+          "outcomes": [
+            {
+              "StaleEpochIgnored": {
+                "peer_id": "0",
+                "epoch": "2"
+              }
+            },
+            {
+              "SendMembership": {
+                "peer_id": "0"
+              }
+            }
+          ],
+          "cluster_view": {
+            "peer_state": {
+              "Pinging": {}
+            },
+            "is_pinging_completed": false,
+            "pinging_peers": [],
+            "collecting_peers": [],
+            "required_count": "2",
+            "deadline_missed": false,
+            "members": [
+              "0",
+              "5"
+            ],
+            "reconfiguration": {
+              "None": {}
+            },
+            "suspected": [],
+            "misses": [],
+            "last_probed": {
+              "None": {}
+            },
+            "quorum": {
+              "NotTracked": {}
+            },
+            "epoch": "3"
+          },
+          "admissible": [
+            "ParticipationObserved",
+            "ReadyObserved",
+            "LocalParticipationCompleted",
+            "DeadlineExpired",
+            "JoinRequested",
+            "JoinApproved",
+            "JoinRejected",
+            "AdditionCommitted",
+            "RemovalCommitted",
+            "RequiredCountChanged",
+            "MembershipReceived",
+            "Probe"
+          ]
+        }
+      }
+    }
+  ],
+  "final": {
+    "cluster_view": {
+      "peer_state": {
+        "Pinging": {}
+      },
+      "is_pinging_completed": false,
+      "pinging_peers": [],
+      "collecting_peers": [],
+      "required_count": "2",
+      "deadline_missed": false,
+      "members": [
+        "0",
+        "5"
+      ],
+      "reconfiguration": {
+        "None": {}
+      },
+      "suspected": [],
+      "misses": [],
+      "last_probed": {
+        "None": {}
+      },
+      "quorum": {
+        "NotTracked": {}
+      },
+      "epoch": "3"
+    },
+    "admissible": [
+      "ParticipationObserved",
+      "ReadyObserved",
+      "LocalParticipationCompleted",
+      "DeadlineExpired",
+      "JoinRequested",
+      "JoinApproved",
+      "JoinRejected",
+      "AdditionCommitted",
+      "RemovalCommitted",
+      "RequiredCountChanged",
+      "MembershipReceived",
+      "Probe"
+    ]
+  }
+}

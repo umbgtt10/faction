@@ -11,7 +11,7 @@ fn model() -> Model {
     Model::new(
         SpecReader::table(&SpecFiles::matrix()),
         SpecReader::configuration(&json!({
-            "peer_id": "1",
+            "instance": {"node": "1", "incarnation": "1"},
             "peers": ["1", "2", "3"],
             "required_count": "2",
             "suspicion_threshold": "1",
@@ -20,12 +20,31 @@ fn model() -> Model {
 }
 
 #[test]
+fn process_numbers_each_receipt_one_more_than_the_last_rejected_and_probed_alike() {
+    // Arrange
+    let mut model = model();
+
+    // Act
+    let numbers = [
+        model.process(&json!({"Probe": {}})).receipt["number"].clone(),
+        model.process(&json!({"DeadlineExpired": {}})).receipt["number"].clone(),
+        model
+            .process(&json!({"ParticipationObserved": {"peer_id": "2"}}))
+            .receipt["number"]
+            .clone(),
+    ];
+
+    // Assert
+    assert_eq!(numbers, [json!("1"), json!("2"), json!("3")]);
+}
+
+#[test]
 fn process_of_a_change_requested_of_a_provisional_concluded_node_is_refused() {
     // Arrange
     let mut model = Model::new(
         SpecReader::table(&SpecFiles::matrix()),
         SpecReader::configuration(&json!({
-            "peer_id": "5",
+            "instance": {"node": "5", "incarnation": "1"},
             "peers": ["0", "5"],
             "required_count": "1",
             "suspicion_threshold": "1",
@@ -45,11 +64,11 @@ fn process_of_a_change_requested_of_a_provisional_concluded_node_is_refused() {
     for (answer, peer_id) in answers.iter().zip(["7", "0"]) {
         assert_eq!(answer.row, "coordination-refused-provisional");
         assert_eq!(
-            answer.result["Accepted"]["outcomes"],
+            answer.receipt["output"]["Accepted"]["outcomes"],
             json!([{"CoordinationRefused": {"peer_id": peer_id}}])
         );
         assert_eq!(
-            answer.result["Accepted"]["cluster_view"]["reconfiguration"],
+            answer.receipt["output"]["Accepted"]["cluster_view"]["reconfiguration"],
             json!({"None": {}})
         );
     }
@@ -61,7 +80,7 @@ fn process_of_a_claim_from_behind_at_a_provisional_node_sends_nothing() {
     let mut model = Model::new(
         SpecReader::table(&SpecFiles::matrix()),
         SpecReader::configuration(&json!({
-            "peer_id": "5",
+            "instance": {"node": "5", "incarnation": "1"},
             "peers": ["1", "5"],
             "required_count": "2",
             "suspicion_threshold": "1",
@@ -76,11 +95,11 @@ fn process_of_a_claim_from_behind_at_a_provisional_node_sends_nothing() {
     // Assert
     assert_eq!(answer.row, "claim-behind-provisional-before-completion");
     assert_eq!(
-        answer.result["Accepted"]["outcomes"],
+        answer.receipt["output"]["Accepted"]["outcomes"],
         json!([{"StaleEpochIgnored": {"peer_id": "1", "epoch": "2"}}])
     );
     assert_eq!(
-        answer.result["Accepted"]["cluster_view"]["provisional"],
+        answer.receipt["output"]["Accepted"]["cluster_view"]["provisional"],
         json!(true)
     );
 }
@@ -97,7 +116,7 @@ fn process_of_a_commit_a_removed_node_rejects_leaves_its_epoch() {
     // Assert
     assert_eq!(answer.row, "not-admitted");
     assert_eq!(
-        answer.result["Rejected"]["cluster_view"]["epoch"],
+        answer.receipt["output"]["Rejected"]["cluster_view"]["epoch"],
         json!("1")
     );
 }
@@ -113,7 +132,7 @@ fn process_of_a_commit_at_a_later_epoch_moves_the_node_s_epoch() {
     // Assert
     assert_eq!(answer.row, "commit-non-member");
     assert_eq!(
-        answer.result["Accepted"]["cluster_view"]["epoch"],
+        answer.receipt["output"]["Accepted"]["cluster_view"]["epoch"],
         json!("2")
     );
 }
@@ -129,7 +148,7 @@ fn process_of_a_deadline_on_a_fresh_node_is_rejected_by_not_admitted() {
     // Assert
     assert_eq!(answer.row, "not-admitted");
     assert_eq!(
-        answer.result["Rejected"]["cluster_view"]["peer_state"],
+        answer.receipt["output"]["Rejected"]["cluster_view"]["peer_state"],
         json!({"Fresh": {}})
     );
 }
@@ -145,7 +164,7 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
     // Assert
     assert_eq!(answer.row, "probed");
     assert_eq!(
-        answer.result,
+        answer.receipt["output"],
         json!({"Probed": {
             "cluster_view": {
                 "peer_state": {"Fresh": {}},
@@ -189,7 +208,7 @@ fn process_of_a_signal_at_a_later_epoch_leaves_the_node_s_epoch() {
     // Assert
     assert_eq!(answer.row, "participation-accepted");
     assert!(
-        answer.result["Accepted"]["cluster_view"]
+        answer.receipt["output"]["Accepted"]["cluster_view"]
             .get("epoch")
             .is_none()
     );
@@ -208,19 +227,19 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
     // Assert
     assert_eq!(answer.row, "addition-requested");
     assert_eq!(
-        answer.result["Accepted"]["outcomes"],
+        answer.receipt["output"]["Accepted"]["outcomes"],
         json!([{"SendMembership": {"peer_id": "4"}}])
     );
     assert_eq!(
-        answer.result["Accepted"]["cluster_view"]["peer_state"],
+        answer.receipt["output"]["Accepted"]["cluster_view"]["peer_state"],
         json!({"Bootstrapped": {}})
     );
     assert_eq!(
-        answer.result["Accepted"]["cluster_view"]["reconfiguration"],
+        answer.receipt["output"]["Accepted"]["cluster_view"]["reconfiguration"],
         json!({"AdditionRequested": {"peer_id": "4"}})
     );
     assert_eq!(
-        answer.result["Accepted"]["admissible"],
+        answer.receipt["output"]["Accepted"]["admissible"],
         json!([
             "ParticipationObserved",
             "JoinRequested",
@@ -253,18 +272,18 @@ fn process_of_the_readiness_the_count_lacks_concludes() {
     // Assert
     assert_eq!(answer.row, "ready-concluded");
     assert_eq!(
-        answer.result["Accepted"]["outcomes"],
+        answer.receipt["output"]["Accepted"]["outcomes"],
         json!([
             {"ReadyAccepted": {"peer_id": "3"}},
             {"Concluded": {"mode": {"Bootstrapped": {}}}},
         ])
     );
     assert_eq!(
-        answer.result["Accepted"]["cluster_view"]["collecting_peers"],
+        answer.receipt["output"]["Accepted"]["cluster_view"]["collecting_peers"],
         json!(["1", "3"])
     );
     assert_eq!(
-        answer.result["Accepted"]["admissible"],
+        answer.receipt["output"]["Accepted"]["admissible"],
         json!([
             "ParticipationObserved",
             "JoinRequested",

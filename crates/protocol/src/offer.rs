@@ -6,6 +6,7 @@ use core::iter::once;
 
 use faction::command::Command;
 use faction::config::Config;
+use faction::instance::instance_id::InstanceId;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::Epoch;
 use faction::types::PeerId;
@@ -88,9 +89,9 @@ impl Offer {
     // The configuration a newcomer `peer_id` is created from: its membership
     // provisional, its own addition yet to commit.
     #[must_use]
-    pub fn config(&self, peer_id: PeerId, suspicion_threshold: usize) -> Config {
+    pub fn config(&self, instance: InstanceId, suspicion_threshold: usize) -> Config {
         Config::new(
-            peer_id,
+            instance,
             self.members.clone(),
             QuorumPolicy::new(self.required_count),
             suspicion_threshold,

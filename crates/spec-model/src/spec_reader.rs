@@ -44,7 +44,8 @@ impl SpecReader {
     #[must_use]
     pub fn configuration(value: &Value) -> Configuration {
         Configuration {
-            peer_id: Self::string(&value["peer_id"]),
+            peer_id: Self::string(&value["instance"]["node"]),
+            incarnation: Self::count(&value["instance"]["incarnation"]),
             peers: Self::list(&value["peers"]).map(Self::string).collect(),
             required_count: Self::count(&value["required_count"]),
             suspicion_threshold: Self::count(&value["suspicion_threshold"]),

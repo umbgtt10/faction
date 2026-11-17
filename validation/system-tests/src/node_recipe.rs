@@ -10,6 +10,7 @@ use crate::infra::timer::faulty::faulty_clock::FaultyClock;
 use crate::infra::timer::faulty::faulty_timer::FaultyTimer;
 use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
+use faction::instance::instance_id::InstanceId;
 use std::cell::RefCell;
 use std::io::stderr;
 use std::rc::Rc;
@@ -252,7 +253,10 @@ impl Roles for NodeRecipe {
             faction_observer,
         );
         let config = Config::new(
-            peer_id,
+            InstanceId {
+                node: peer_id,
+                incarnation: 1,
+            },
             membership.peers.clone(),
             QuorumPolicy::new(membership.required_count),
             self.suspicion_threshold,
@@ -270,7 +274,10 @@ impl Roles for NodeRecipe {
     fn waiting(&self, peer_id: PeerId) -> Role {
         let (faction_observer, _) = self.observers(peer_id);
         Role::Waiting(Newcomer::new(
-            peer_id,
+            InstanceId {
+                node: peer_id,
+                incarnation: 1,
+            },
             self.suspicion_threshold,
             HELPERS,
             Box::new(InvariantObserver::new(

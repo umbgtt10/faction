@@ -25,7 +25,7 @@ pub enum Assert {
 }
 
 pub fn verify(faction: &mut Faction, checks: &[Assert]) -> ClusterView {
-    let cluster_view = match faction.process(Command::Probe) {
+    let cluster_view = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };

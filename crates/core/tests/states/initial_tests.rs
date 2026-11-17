@@ -9,6 +9,7 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
@@ -22,7 +23,17 @@ extern crate alloc;
 
 fn test_faction() -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false),
+        Config::new(
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
+            vec![0, 1, 2, 3, 4],
+            QuorumPolicy::new(4),
+            1,
+            0,
+            false,
+        ),
         Box::new(NoOpObserver),
     )
 }
@@ -55,7 +66,17 @@ fn cluster_view_inherits_correctly() {
 fn new_returns_initial_state() {
     // Arrange & Act
     let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
-    let config = Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0],
+        QuorumPolicy::new(1),
+        1,
+        0,
+        false,
+    );
     let (outcomes, new_state) = initial
         .step(
             Command::ParticipationObserved {
@@ -92,13 +113,13 @@ fn process_accepts_local_participation_completed() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::LocalParticipationCompleted) {
+    let outcomes = match faction.process(Command::LocalParticipationCompleted).output {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         other => panic!("expected Accepted, got {other:?}"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -120,17 +141,20 @@ fn process_accepts_participation_observed() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 1,
-        epoch: 0,
-    }) {
+    let outcomes = match faction
+        .process(Command::ParticipationObserved {
+            peer_id: 1,
+            epoch: 0,
+        })
+        .output
+    {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -148,17 +172,20 @@ fn process_accepts_ready_observed() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 1,
-        epoch: 0,
-    }) {
+    let outcomes = match faction
+        .process(Command::ReadyObserved {
+            peer_id: 1,
+            epoch: 0,
+        })
+        .output
+    {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -173,11 +200,14 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
     let mut faction = test_faction();
 
     // Act
-    let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::AdditionCommitted {
-            peer_id: 9,
-            epoch: 0,
-        }));
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::AdditionCommitted {
+                peer_id: 9,
+                epoch: 0,
+            })
+            .output,
+    );
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberAdmitted { peer_id: 9 }]);
@@ -189,18 +219,28 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
 fn process_local_participation_completed_single_node_bootstraps() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0, false),
+        Config::new(
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
+            vec![0],
+            QuorumPolicy::new(1),
+            1,
+            0,
+            false,
+        ),
         Box::new(NoOpObserver),
     );
 
     // Act
-    let outcomes = match faction.process(Command::LocalParticipationCompleted) {
+    let outcomes = match faction.process(Command::LocalParticipationCompleted).output {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         other => panic!("expected Accepted, got {other:?}"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -222,15 +262,29 @@ fn process_local_participation_completed_single_node_bootstraps() {
 fn process_of_a_member_s_claim_from_behind_refuses_it_and_leaves_initial() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 2, false),
+        Config::new(
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
+            vec![0, 1, 2],
+            QuorumPolicy::new(3),
+            1,
+            2,
+            false,
+        ),
         Box::new(NoOpObserver),
     );
 
     // Act
-    let (outcomes, view, _) = Answers::accepted(faction.process(Command::ParticipationObserved {
-        peer_id: 1,
-        epoch: 1,
-    }));
+    let (outcomes, view, _) = Answers::accepted(
+        faction
+            .process(Command::ParticipationObserved {
+                peer_id: 1,
+                epoch: 1,
+            })
+            .output,
+    );
 
     // Assert
     assert_eq!(
@@ -253,17 +307,20 @@ fn process_participation_non_member_from_initial() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 99,
-        epoch: 0,
-    }) {
+    let outcomes = match faction
+        .process(Command::ParticipationObserved {
+            peer_id: 99,
+            epoch: 0,
+        })
+        .output
+    {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -276,7 +333,7 @@ fn process_participation_non_member_from_initial() {
 fn process_probe_returns_fresh_state() {
     // Arrange & Act
     let mut faction = test_faction();
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -297,17 +354,20 @@ fn process_ready_non_member_from_initial() {
     let mut faction = test_faction();
 
     // Act
-    let outcomes = match faction.process(Command::ReadyObserved {
-        peer_id: 99,
-        epoch: 0,
-    }) {
+    let outcomes = match faction
+        .process(Command::ReadyObserved {
+            peer_id: 99,
+            epoch: 0,
+        })
+        .output
+    {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -322,12 +382,12 @@ fn process_rejects_deadline_expired() {
 
     // Act & Assert
     assert!(matches!(
-        faction.process(Command::DeadlineExpired),
+        faction.process(Command::DeadlineExpired).output,
         ProcessResult::Rejected { .. }
     ));
 
     // Act
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -344,16 +404,16 @@ fn process_rejects_invalid_commands() {
 
     // Act & Assert
     assert!(matches!(
-        faction.process(Command::DeadlineExpired),
+        faction.process(Command::DeadlineExpired).output,
         ProcessResult::Rejected { .. }
     ));
     assert!(matches!(
-        faction.process(Command::DeadlineExpired),
+        faction.process(Command::DeadlineExpired).output,
         ProcessResult::Rejected { .. }
     ));
 
     // Act
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -373,11 +433,14 @@ fn process_removal_committed_of_a_member_takes_it_out_and_stays_fresh() {
     let mut faction = test_faction();
 
     // Act
-    let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RemovalCommitted {
-            peer_id: 4,
-            epoch: 0,
-        }));
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::RemovalCommitted {
+                peer_id: 4,
+                epoch: 0,
+            })
+            .output,
+    );
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 4 }]);
@@ -391,11 +454,14 @@ fn process_required_count_changed_sets_the_count_and_stays_fresh() {
     let mut faction = test_faction();
 
     // Act
-    let (outcomes, cluster_view, _) =
-        Answers::accepted(faction.process(Command::RequiredCountChanged {
-            required_count: 2,
-            epoch: 0,
-        }));
+    let (outcomes, cluster_view, _) = Answers::accepted(
+        faction
+            .process(Command::RequiredCountChanged {
+                required_count: 2,
+                epoch: 0,
+            })
+            .output,
+    );
 
     // Assert
     assert_eq!(
@@ -413,22 +479,25 @@ fn process_stays_in_initial_after_rejected() {
 
     // Act & Assert
     assert!(matches!(
-        faction.process(Command::DeadlineExpired),
+        faction.process(Command::DeadlineExpired).output,
         ProcessResult::Rejected { .. }
     ));
 
     // Act
-    let outcomes = match faction.process(Command::ParticipationObserved {
-        peer_id: 1,
-        epoch: 0,
-    }) {
+    let outcomes = match faction
+        .process(Command::ParticipationObserved {
+            peer_id: 1,
+            epoch: 0,
+        })
+        .output
+    {
         ProcessResult::Accepted { outcomes, .. } => outcomes,
         ProcessResult::Probed { .. } => unreachable!(),
         ProcessResult::Rejected { .. } => panic!("expected accepted"),
     };
 
     // Assert
-    let snap = match faction.process(Command::Probe) {
+    let snap = match faction.process(Command::Probe).output {
         ProcessResult::Probed { cluster_view, .. } => cluster_view,
         _ => unreachable!(),
     };
@@ -443,7 +512,17 @@ fn process_stays_in_initial_after_rejected() {
 fn step_of_a_membership_naming_the_node_keeps_it_initial_holding_the_membership() {
     // Arrange
     let initial = Initial::new(Members::new(vec![0, 1, 2]), QuorumPolicy::new(3));
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2],
+        QuorumPolicy::new(3),
+        1,
+        0,
+        false,
+    );
 
     // Act
     let (outcomes, stage) = initial

@@ -226,6 +226,7 @@ faction = "0.11"
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -234,7 +235,7 @@ use faction::quorum_policy::QuorumPolicy;
 extern crate alloc;
 
 let config = Config::new(
-    0,
+    InstanceId { node: 0, incarnation: 1 },
     alloc::vec![0, 1, 2, 3, 4],
     QuorumPolicy::new(4),
     1,
@@ -252,7 +253,7 @@ let _ = machine.process(Command::ReadyObserved { peer_id: 2, epoch: 0 });
 
 // Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
 let result = machine.process(Command::ReadyObserved { peer_id: 3, epoch: 0 });
-if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
+if let ProcessResult::Accepted { cluster_view, admissible, .. } = result.output {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining

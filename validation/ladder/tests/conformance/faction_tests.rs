@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 // The conformance tier: every vector of the specification, run against the
-// crate as the specification states it -- each step's result, then the final
+// crate as the specification states it -- each step's receipt, then the final
 // answer a closing Probe is given, with an observer that does nothing; every
-// call reported, with the result answered, to one that keeps them -- every
+// call reported, with the receipt answered, to one that keeps them -- every
 // vector and the matrix valid against the schema, and every row of the matrix
 // exercised.
 
@@ -15,10 +15,9 @@ use crate::support::spec_reader::SpecReader;
 use crate::support::spec_writer::SpecWriter;
 use faction::command::Command;
 use faction::faction::Faction;
+use faction::instance::receipt::Receipt;
 use faction::no_op_observer::NoOpObserver;
-use faction::process_result::ProcessResult;
 use serde_json::Value;
-use serde_json::json;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::rc::Rc;
@@ -35,21 +34,21 @@ fn departures(name: &str, vector: &Value) -> Vec<String> {
     let mut departures = Vec::new();
     let steps = vector["steps"].as_array().expect("a vector's steps");
     for (index, step) in steps.iter().enumerate() {
-        let result = growth.as_released(
+        let receipt = growth.as_released(
             name,
-            &SpecWriter::result(&faction.process(SpecReader::command(&step["command"]))),
+            &SpecWriter::receipt(&faction.process(SpecReader::command(&step["command"]))),
         );
-        if result != step["result"] {
+        if receipt != step["receipt"] {
             departures.push(format!(
-                "{name}, step {}: answered {result}, not {}",
+                "{name}, step {}: answered {receipt}, not {}",
                 index + 1,
-                step["result"]
+                step["receipt"]
             ));
         }
     }
-    let closing = growth.as_released(name, &SpecWriter::result(&faction.process(Command::Probe)));
-    let expected = json!({ "Probed": vector["final"] });
-    if closing != expected {
+    let closing = growth.as_released(name, &SpecWriter::receipt(&faction.process(Command::Probe)));
+    let expected = &vector["final"];
+    if closing != *expected {
         departures.push(format!(
             "{name}, final answer: answered {closing}, not {expected}"
         ));
@@ -67,7 +66,7 @@ fn misreport(name: &str, vector: &Value) -> Option<String> {
         SpecReader::configuration(&vector["configuration"]),
         Box::new(RecordingObserver::new(Rc::clone(&calls))),
     );
-    let answered: Vec<(Command, ProcessResult)> = vector["steps"]
+    let answered: Vec<(Command, Receipt)> = vector["steps"]
         .as_array()
         .expect("a vector's steps")
         .iter()
@@ -78,6 +77,31 @@ fn misreport(name: &str, vector: &Value) -> Option<String> {
     let reported = calls.borrow().clone();
     (reported != answered)
         .then(|| format!("{name}: reported {reported:?}, having answered {answered:?}"))
+}
+
+#[test]
+fn configuration_of_every_vector_reads_back_as_written() {
+    // Arrange
+    let vectors = SpecFiles::vectors();
+
+    // Act
+    let departures: Vec<String> = vectors
+        .iter()
+        .filter_map(|(name, vector)| {
+            let read =
+                SpecWriter::configuration(&SpecReader::configuration(&vector["configuration"]));
+            (read != vector["configuration"]).then(|| {
+                format!(
+                    "{name}: read back as {read}, written {}",
+                    vector["configuration"]
+                )
+            })
+        })
+        .collect();
+
+    // Assert
+    assert!(!vectors.is_empty(), "no vector was read");
+    assert!(departures.is_empty(), "{departures:#?}");
 }
 
 #[test]

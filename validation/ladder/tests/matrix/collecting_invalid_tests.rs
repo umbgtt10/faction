@@ -90,7 +90,7 @@ fn invalid_transition(
     // Arrange
     let mut faction = build(init);
     let table = MatrixTable::new(SpecFiles::matrix());
-    let probed = faction.process(Command::Probe);
+    let probed = faction.process(Command::Probe).output;
     let before = table.stage_of(&SpecWriter::result(&probed));
     let old_cluster_view = match probed {
         ProcessResult::Accepted { cluster_view, .. }
@@ -99,7 +99,7 @@ fn invalid_transition(
     };
 
     // Act
-    let result = faction.process(command.clone());
+    let result = faction.process(command.clone()).output;
 
     // Assert
     let departures = table.departures(

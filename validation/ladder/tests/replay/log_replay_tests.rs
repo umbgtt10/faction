@@ -16,6 +16,7 @@ use crate::support::spec_writer::SpecWriter;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::quorum_policy::QuorumPolicy;
 use proptest::prelude::*;
 use serde_json::Value;
@@ -25,7 +26,10 @@ use std::rc::Rc;
 
 fn config(required_count: usize) -> Config {
     Config::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         vec![0, 1, 2, 3, 4],
         QuorumPolicy::new(required_count),
         1,
@@ -109,7 +113,7 @@ proptest! {
 fn replay_of_a_log_altered_at_a_line_departs_there() {
     // Arrange
     let mut log = pinging_log();
-    log[3]["result"]["Accepted"]["outcomes"] = json!([]);
+    log[3]["receipt"]["output"]["Accepted"]["outcomes"] = json!([]);
 
     // Act
     let report = LogReplay::replay(&log);
@@ -119,6 +123,38 @@ fn replay_of_a_log_altered_at_a_line_departs_there() {
     assert_eq!(report.departures.len(), 1);
     assert!(
         report.departures[0].starts_with("line 4:"),
+        "{:?}",
+        report.departures
+    );
+}
+
+#[test]
+fn replay_of_a_log_cut_of_a_probe_departs_at_the_gap_in_its_numbers() {
+    // Arrange
+    let mut log = log_of(
+        config(4),
+        &[
+            Command::ParticipationObserved {
+                peer_id: 1,
+                epoch: 0,
+            },
+            Command::Probe,
+            Command::ParticipationObserved {
+                peer_id: 2,
+                epoch: 0,
+            },
+        ],
+    );
+    log.remove(2);
+
+    // Act
+    let report = LogReplay::replay(&log);
+
+    // Assert
+    assert_eq!(report.reconstructed, 1);
+    assert_eq!(report.departures.len(), 1);
+    assert!(
+        report.departures[0].starts_with("line 3:"),
         "{:?}",
         report.departures
     );

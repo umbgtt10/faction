@@ -5,6 +5,7 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use faction::instance::instance_id::InstanceId;
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
@@ -27,7 +28,10 @@ impl ScenarioHarness {
         for peer_id in peer_set.iter().copied() {
             let faction = Faction::new(
                 Config::new(
-                    peer_id,
+                    InstanceId {
+                        node: peer_id,
+                        incarnation: 1,
+                    },
                     peer_set.clone(),
                     QuorumPolicy::new(required_count),
                     1,
@@ -45,6 +49,7 @@ impl ScenarioHarness {
     pub fn apply_participation(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
         match self.factions[faction_index]
             .process(Command::ParticipationObserved { peer_id, epoch: 0 })
+            .output
         {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
@@ -53,7 +58,10 @@ impl ScenarioHarness {
     }
 
     pub fn apply_ready(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
-        match self.factions[faction_index].process(Command::ReadyObserved { peer_id, epoch: 0 }) {
+        match self.factions[faction_index]
+            .process(Command::ReadyObserved { peer_id, epoch: 0 })
+            .output
+        {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
@@ -61,14 +69,17 @@ impl ScenarioHarness {
     }
 
     pub fn cluster_view(&mut self, faction_index: usize) -> ClusterView {
-        match self.factions[faction_index].process(Command::Probe) {
+        match self.factions[faction_index].process(Command::Probe).output {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         }
     }
 
     pub fn complete_local_participation(&mut self, faction_index: usize) -> Vec<Outcome> {
-        match self.factions[faction_index].process(Command::LocalParticipationCompleted) {
+        match self.factions[faction_index]
+            .process(Command::LocalParticipationCompleted)
+            .output
+        {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
@@ -80,7 +91,10 @@ impl ScenarioHarness {
     }
 
     pub fn expire_deadline(&mut self, faction_index: usize) -> Vec<Outcome> {
-        match self.factions[faction_index].process(Command::DeadlineExpired) {
+        match self.factions[faction_index]
+            .process(Command::DeadlineExpired)
+            .output
+        {
             ProcessResult::Accepted { outcomes, .. } => outcomes,
             ProcessResult::Probed { .. } => unreachable!(),
             ProcessResult::Rejected { .. } => Vec::new(),
