@@ -165,14 +165,14 @@ fn process_of_every_vector_answers_each_step_as_written() {
                 .zip(vector["steps"].as_array().expect("a vector's steps"))
                 .enumerate()
                 .filter(|(_, (answer, step))| {
-                    growth.as_released(name, &answer.result) != step["result"]
+                    growth.as_released(name, &answer.receipt) != step["receipt"]
                 })
                 .map(|(index, (answer, step))| {
                     format!(
                         "{name}, step {}: the model answers {}, the vector {}",
                         index + 1,
-                        answer.result,
-                        step["result"]
+                        answer.receipt,
+                        step["receipt"]
                     )
                 })
                 .collect::<Vec<String>>()
@@ -195,11 +195,11 @@ fn process_of_every_vector_answers_the_closing_probe_with_the_final_answer() {
         .iter()
         .filter_map(|(name, vector)| {
             let (_, closing) = answers(vector);
-            let expected = json!({ "Probed": vector["final"] });
-            (growth.as_released(name, &closing.result) != expected).then(|| {
+            let expected = &vector["final"];
+            (growth.as_released(name, &closing.receipt) != *expected).then(|| {
                 format!(
                     "{name}: the model answers {}, the vector {expected}",
-                    closing.result
+                    closing.receipt
                 )
             })
         })

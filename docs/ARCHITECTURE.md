@@ -268,12 +268,14 @@ Step struct ──────────► outcomes + new_state
 ProcessResult::Accepted { cluster_view, admissible, outcomes }
 ```
 
-Whichever result a command gets, it is reported — `Observer::observe(&command, &result)` —
-and then returned.
+Whichever result a command gets, it is the output of a receipt numbered one more than the
+last — `Receipt { number, output }` — reported, `Observer::observe(&command, &receipt)`, and
+then returned.
 
 ### Process results
 
-`process(command)` returns one of three structured results. There is no error type.
+`process(command)` returns a receipt: one of three structured results, numbered. There is no
+error type.
 Every input produces a defined, handled result.
 
 | Result | Meaning | State mutated? |
@@ -477,9 +479,12 @@ aggregated picture of the cluster from multiple vantage points.
 
 ## Observability
 
-Every call is reported to the `Observer` trait, once: `observe(&command, &result)`,
-with the command and the `ProcessResult` it was answered — an accepted command, a
-rejected one and a probe alike, by the time the result is returned. The result carries
+Every call is reported to the `Observer` trait, once: `observe(&command, &receipt)`,
+with the command and the receipt it was answered — its `ProcessResult` and its number — an
+accepted command, a rejected one and a probe alike, by the time the receipt is returned. A
+gap in a log's numbers proves a line lost, and the configuration's instance — the node and
+the incarnation its caller gave it — tells one run's log from another's
+(`P1-ADR-TheLogIsTheRecord`). The result carries
 the whole view and the admissible commands, so a report is not a log line but the
 answer itself, and a node's reports, in order, are its log (`spec/SPEC.md` §3). The
 view a command found is the one the report before it carried.

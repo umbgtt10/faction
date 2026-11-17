@@ -3,8 +3,10 @@
 
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use serde_json::Value;
+use serde_json::json;
 
 use crate::answer::Answer;
 use crate::configuration::Configuration;
@@ -19,11 +21,13 @@ use crate::view::View;
 use crate::vocabulary::stage::Stage;
 
 // A node as the specification states it: created from its configuration, and
-// answering each command, given in the specification's encoding, with the
-// result the first row of the decision table that applies gives it.
+// answering each command, given in the specification's encoding, with a
+// receipt -- the result the first row of the decision table that applies
+// gives it, numbered one more than the last.
 pub struct Model {
     table: DecisionTable,
     state: NodeState,
+    next_number: u64,
 }
 
 impl Model {
@@ -48,6 +52,7 @@ impl Model {
                 epoch: configuration.epoch,
                 provisional: configuration.provisional,
             },
+            next_number: 1,
         }
     }
 
@@ -76,9 +81,13 @@ impl Model {
             .collect();
         let answer = Answer {
             row: String::from(&row.id),
-            result: row.result.encoded(outcomes, View::of(&state), admissible),
+            receipt: json!({
+                "number": self.next_number.to_string(),
+                "output": row.result.encoded(outcomes, View::of(&state), admissible),
+            }),
         };
         self.state = state;
+        self.next_number += 1;
         answer
     }
 }

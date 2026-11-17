@@ -942,10 +942,10 @@ fn valid_transition(
     // Arrange
     let table = MatrixTable::new(SpecFiles::matrix());
     let mut faction = build(init);
-    let before = table.stage_of(&SpecWriter::result(&faction.process(Command::Probe)));
+    let before = table.stage_of(&SpecWriter::result(&faction.process(Command::Probe).output));
 
     // Act
-    let result = faction.process(command.clone());
+    let result = faction.process(command.clone()).output;
 
     // Assert
     let (results, admissible, returned_view) = match result.clone() {

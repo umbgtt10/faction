@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 use alloc::boxed::Box;
+use alloc::vec;
 use alloc::vec::Vec;
+use faction::instance::instance_id::InstanceId;
 
 use faction::config::Config;
 use faction::faction::Faction;
@@ -36,6 +38,7 @@ const HELPERS: usize = 2;
 // them, and fire only when a test says that much time has passed.
 pub struct Cluster {
     peer_ids: Vec<PeerId>,
+    incarnations: Vec<u64>,
     protocols: Vec<Protocol>,
     timers: Vec<InMemoryTimer>,
     held: Vec<Vec<TimerMessage>>,
@@ -68,7 +71,10 @@ impl Cluster {
             .iter()
             .map(|&id| {
                 let config = Config::new(
-                    id,
+                    InstanceId {
+                        node: id,
+                        incarnation: 1,
+                    },
                     peer_ids.clone(),
                     QuorumPolicy::new(required),
                     suspicion_threshold,
@@ -89,6 +95,7 @@ impl Cluster {
         let transports = InMemoryTransport::new_mesh(&peer_ids);
 
         Self {
+            incarnations: vec![1; peer_ids.len()],
             peer_ids,
             protocols,
             timers,
@@ -121,7 +128,10 @@ impl Cluster {
         self.waiting = Some(WaitingNewcomer {
             peer_id,
             newcomer: Newcomer::new(
-                peer_id,
+                InstanceId {
+                    node: peer_id,
+                    incarnation: 1,
+                },
                 self.suspicion_threshold,
                 HELPERS,
                 Box::new(NoOpObserver),
@@ -245,7 +255,7 @@ impl Cluster {
     pub fn restart(&mut self, index: usize, peers: Vec<PeerId>, required: usize, epoch: Epoch) {
         let peer_id = self.peer_ids[index];
         let config = Config::new(
-            peer_id,
+            self.next_instance(index),
             peers.clone(),
             QuorumPolicy::new(required),
             self.suspicion_threshold,
@@ -328,11 +338,21 @@ impl Cluster {
         )
     }
 
+    // The node at `index` created again: its next incarnation, which the
+    // harness, as the caller, gives it.
+    fn next_instance(&mut self, index: usize) -> InstanceId {
+        self.incarnations[index] += 1;
+        InstanceId {
+            node: self.peer_ids[index],
+            incarnation: self.incarnations[index],
+        }
+    }
+
     // The removed node at `index` a newcomer again, joined from the membership
     // that invites it, with timers of its own.
     fn rejoined(&mut self, index: usize, membership: TransportMessage) -> Vec<OutputMessage> {
         let newcomer = Newcomer::new(
-            self.peer_ids[index],
+            self.next_instance(index),
             self.suspicion_threshold,
             HELPERS,
             Box::new(NoOpObserver),
@@ -429,6 +449,7 @@ impl Cluster {
         match waiting.newcomer.join(message) {
             Ok((protocol, decisions)) => {
                 self.peer_ids.push(waiting.peer_id);
+                self.incarnations.push(1);
                 self.protocols.push(protocol);
                 self.timers.push(waiting.timer);
                 self.held.push(Vec::new());

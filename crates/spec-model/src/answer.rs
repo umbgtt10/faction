@@ -7,5 +7,5 @@ use serde_json::Value;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Answer {
     pub row: String,
-    pub result: Value,
+    pub receipt: Value,
 }

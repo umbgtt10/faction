@@ -5,6 +5,33 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### Every answer numbered, every node an instance
+
+#### Added
+- The specification is 0.8.0: every call is answered with a receipt -- its output, the result
+  it gave before, and a number one more than the instance's last, the first being 1, a rejected
+  command and a probe like the rest -- and every node is an instance, its node and an
+  incarnation the caller gives it, never repeating for that node. A node's log numbers its
+  lines, so a gap proves a line lost. The shape is beggar's and cartel's
+  (`P1-ADR-TheLogIsTheRecord`).
+- `faction::instance::receipt::Receipt { number, output }`,
+  `faction::instance::instance_id::InstanceId { node, incarnation }` and `Config::instance()`.
+
+#### Changed — breaking
+- `Faction::process` returns a `Receipt`, its `output` the `ProcessResult` it returned before.
+- `Observer::observe` is told the command and the `Receipt`.
+- `Config::new` takes an `InstanceId` in place of the peer id; `Config::peer_id()` is its node.
+- faction-protocol: `Newcomer::new` and `Offer::config` take the `InstanceId`.
+- The specification's vectors are re-encoded once, changing no answer: each step a command and
+  its receipt, the configuration's peer id its instance's node at incarnation 1, the final
+  answer the closing `Probe`'s receipt. Their released bytes are kept under
+  `spec/released/0.7.0/`, and `released.json` records both digests; the growth rule allows a
+  re-encoding of every released vector at once, never of an answer.
+
+#### Changed
+- The system tests' node logs carry each call's incarnation and number, and a node restarted
+  or invited back is its node's next incarnation.
+
 ## [0.11.0] — 2026-11-17
 
 ### Published on crates.io

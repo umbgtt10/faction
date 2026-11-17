@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.7.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.8.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -20,7 +20,8 @@ epoch order (§16). 0.6.0 grows by the rule again: a newcomer holds its membersh
 commits, and refuses a claim from behind without sending it (§16); every vector 0.5.x released is answered alike.
 0.7.0 has a provisional node coordinate no change, refusing an addition or a removal it is asked for (§16), and
 withdraws the one released vector that showed one coordinating (§1, §17); every other vector 0.6.0 released is
-answered alike.
+answered alike. 0.8.0 answers every call with a numbered receipt and names every node an instance (§2, §3), and
+re-encodes every vector in force so, once, changing no answer (§1, §17).
 
 ## 1. Conventions
 
@@ -63,7 +64,13 @@ version, and every vector released here passes unchanged there — but one a lat
 withdraws a released vector only to correct a defect the vector shows, never to grow: `released.json` marks it
 withdrawn at that version, and its bytes move, unchanged, from [`vectors/`](vectors/) to [`withdrawn/`](withdrawn/)
 (§17). 0.7.0 withdraws vector 113, in which a provisional node coordinated an addition, offering the newcomer a
-membership no commit made (§16). 0.5.0 grows by the rule: the epoch (§16), a member of
+membership no commit made (§16). A version re-encodes the released vectors only all at once, and only to change
+how they are written, never an answer: `released.json` marks each with the version that re-encoded it and its
+re-encoded bytes' digest, and its released bytes are kept, unchanged, under [`released/`](released/), by the last
+version that wrote them (§17). 0.8.0 re-encodes the 115 vectors in force: each step's result is its receipt's
+output, numbered by the step's position, the closing answer the receipt the closing `Probe` is given, and the
+configuration's peer id its instance's node, at incarnation 1; their bytes as 0.7.0 wrote them are under
+[`released/0.7.0/`](released/0.7.0/). 0.5.0 grows by the rule: the epoch (§16), a member of
 the configuration, the view, three signals and three commits, is omitted wherever it is 0, and a form with no epoch
 holds epoch 0; the command `MembershipReceived` is new, and so are the outcomes it and the epoch bring. 0.6.0 grows by
 it again: whether a node's membership is provisional (§16), a member of the configuration and of the view, is omitted
@@ -74,18 +81,18 @@ rewriting the vectors released before them -- never an outcome -- and 0.4.0 rena
 
 ## 2. A node
 
-**A node is created from its configuration**, and with an observer (§3). The configuration is the node's own peer
-id, its genesis peers, a required count, a suspicion threshold and an epoch, 0 unless it states another: the epoch
-of the membership its peers and count are (§16); and whether that membership is provisional, which it is not unless the
-configuration says so: a newcomer's, created from the membership a coordinator offered it, before its own addition
-commits (§16). The genesis peers include the node itself and list no peer twice; a
-configuration that breaks either is outside this specification. The required count is how many confirmations
-conclude bootstrapping, and any count is one: it is never derived from the number of peers
-([`P0-ADR-ProtocolAgnostic`](../docs/ADRs/P0-ADR-ProtocolAgnostic.md)). The suspicion threshold is how many periods running a member
-must miss before the node suspects it (§14); it is at least one, and a configuration with none is outside this
-specification. The configuration never changes
-([`P1-ADR-ConfigIsImmutableGenesis`](../docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md)); the count in effect starts
-as the configuration's, and changes by its own command alone (§13).
+**A node is created from its configuration**, and with an observer (§3). The configuration is the node's **instance**
+— its node, its own peer id, and an incarnation the caller gives it (§3) — its genesis peers, a required count, a
+suspicion threshold and an epoch, 0 unless it states another: the epoch of the membership its peers and count are
+(§16); and whether that membership is provisional, which it is not unless the configuration says so: a newcomer's,
+created from the membership a coordinator offered it, before its own addition commits (§16). The genesis peers include
+the node itself and list no peer twice; a configuration that breaks either is outside this specification. The required
+count is how many confirmations conclude bootstrapping, and any count is one: it is never derived from the number of
+peers ([`P0-ADR-ProtocolAgnostic`](../docs/ADRs/P0-ADR-ProtocolAgnostic.md)). The suspicion threshold is how many
+periods running a member must miss before the node suspects it (§14); it is at least one, and a configuration with
+none is outside this specification. The configuration never changes
+([`P1-ADR-ConfigIsImmutableGenesis`](../docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md)); the count in effect starts as
+the configuration's, and changes by its own command alone (§13).
 
 **A node is in one of six stages:** `Initial`, created and given nothing yet; `Pinging`, gathering its peers'
 participation; `Collecting`, its own participation completed, gathering readiness; `Bootstrapped`, concluded; and
@@ -106,12 +113,20 @@ has no change in flight, suspects no one, counts no missed period, has probed no
 and its membership is provisional as the configuration says. Members are added (§10, §11),
 removed (§12) and replaced with a membership the node adopts (§16).
 
-## 3. One entry point, one result
+## 3. One entry point, one receipt
 
-**Every call is a command, and every command is answered with a result**: `Accepted`, carrying the outcomes, the
-view and the admissible commands; `Rejected`, carrying the view and the admissible commands; or `Probed`, carrying
-the same two ([`P1-ADR-SingleEntryPoint`](../docs/ADRs/P1-ADR-SingleEntryPoint.md)). The view and the admissible
-commands a result carries are the node's after the call.
+**Every call is a command, and every command is answered with a receipt**: an output and a number. The output is
+the call's result: `Accepted`, carrying the outcomes, the view and the admissible commands; `Rejected`, carrying the
+view and the admissible commands; or `Probed`, carrying the same two
+([`P1-ADR-SingleEntryPoint`](../docs/ADRs/P1-ADR-SingleEntryPoint.md)). The view and the admissible commands a result
+carries are the node's after the call. The number is one more than the instance's previous receipt's, the first being
+1, whatever the output: a rejected command and a probe are numbered like the rest. It is a count the instance keeps
+itself, needing no clock: the same configuration and the same commands give the same numbers.
+
+**An instance is a node and an incarnation.** The caller guarantees an incarnation never repeats for its node: a node
+created again — restarted from its genesis or from a membership, or a removed node made a newcomer again — is a new
+instance, under a new incarnation, and numbers from 1. The instance tells one instance's receipts and log from
+another's; that an incarnation is new is the caller's to keep, never checked.
 
 **The answer is total and deterministic.** Every command has exactly one result in every stage, given by the first
 row of [`matrix.json`](matrix.json) that applies, in the matrix's order. The same state and the same command give the
@@ -128,15 +143,15 @@ that names a peer names the command's `peer_id`, but `SendProbe`, which names th
 `MemberRemoved` answering a membership, which names the node itself (§16); an outcome that carries a required count
 carries the command's, and one that carries an epoch the command's.
 
-**Every call is reported to the node's observer**, given when the node is created: the command and its result,
-exactly once, by the time the result is returned — a rejected command and a probe like the rest. The observer is
+**Every call is reported to the node's observer**, given when the node is created: the command and its receipt,
+exactly once, by the time the receipt is returned — a rejected command and a probe like the rest. The observer is
 told and answers nothing, so it cannot change a result; a node with no use for one is given an observer that does
 nothing ([`P2-ADR-TotalObservability`](../docs/ADRs/P2-ADR-TotalObservability.md)).
 
-**A node's log is its configuration, then one step per call** — the command and its result — in the order the calls
-were made, as its observer was told them. Created from the configuration and given each step's command in turn, a
-conforming node answers each step's result: a log that does not replay was cut, reordered or altered, or written by
-a node that does not conform.
+**A node's log is its configuration, then one step per call** — the command and its receipt — in the order the calls
+were made, as its observer was told them. A gap in the receipts' numbers proves a line lost. Created from the
+configuration and given each step's command in turn, a conforming node answers each step's receipt: a log that does
+not replay was cut, reordered or altered, or written by a node that does not conform.
 
 ## 4. The view
 
@@ -459,9 +474,9 @@ the node has probed no one; a member new to it is alive. Then:
 
 ## 17. Conformance
 
-**A vector is a configuration, steps, and a final answer.** Each step is a command and the result it must be
-answered with. The final answer is what a `Probe` issued after the last step must be answered: the view and the
-admissible commands it is `Probed` with. A vector states nothing of an implementation's representation: it checks
+**A vector is a configuration, steps, and a final answer.** Each step is a command and the receipt it must be
+answered with. The final answer is the receipt a `Probe` issued after the last step must be given: numbered one more
+than the last step's, the view and the admissible commands it is `Probed` with. A vector states nothing of an implementation's representation: it checks
 state the way a caller would.
 
 **Each vector names the rows of the matrix it exercises.** Every vector is valid against the schema's `vector`; the
@@ -470,13 +485,14 @@ row of the matrix is exercised by at least one vector.
 
 **Released vectors are kept.** `released.json` lists every vector of every released version by its file's name, the
 version that released its bytes and the SHA-256 digest of them, and every command a released version names, by its
-name and the first released version to name it. A listed vector is never edited, and a listed command never
-removed. A listed vector a later version withdraws to correct a defect (§1) is marked withdrawn at that version, and its
+name and the first released version to name it. A listed vector is never edited but by a re-encoding (§1), and a
+listed command never removed. A re-encoded vector is marked with the version that re-encoded it and its re-encoded
+bytes' digest, and its released bytes are kept under [`released/`](released/): it answers every step as they do. A listed vector a later version withdraws to correct a defect (§1) is marked withdrawn at that version, and its
 bytes move, unchanged, to [`withdrawn/`](withdrawn/): no implementation is held to it. [`vectors/`](vectors/) holds
 every vector in force.
 
 **An implementation conforms** when, created from each vector's configuration with an observer that does nothing
-and given each step's command in turn, it answers each with the step's result, and the closing `Probe` with the
+and given each step's command in turn, it answers each with the step's receipt, and the closing `Probe` with the
 final answer — for a vector `released.json` lists, the admissible commands among those its version names (§1); and
-when, created with an observer that keeps what it is told, it has reported each of those calls with the result it
+when, created with an observer that keeps what it is told, it has reported each of those calls with the receipt it
 answered, in order, and nothing else.

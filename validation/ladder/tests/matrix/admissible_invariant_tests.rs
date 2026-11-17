@@ -54,7 +54,7 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
     ];
 
     // Arrange — the admissible set the state advertises via Probe
-    let admissible = match build(init).process(Command::Probe) {
+    let admissible = match build(init).process(Command::Probe).output {
         ProcessResult::Probed { admissible, .. } => admissible,
         _ => unreachable!(),
     };
@@ -76,7 +76,7 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
     for candidate in &candidates {
         let in_admissible = admissible.contains(candidate);
         let accepted = !matches!(
-            build(init).process(candidate.clone()),
+            build(init).process(candidate.clone()).output,
             ProcessResult::Rejected { .. }
         );
         assert_eq!(

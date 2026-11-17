@@ -30,5 +30,5 @@ that. Tests need no mocks — they assert on returned `Outcome`s. Persistence,
 being I/O, therefore also lives outside the machine.
 
 ## Enforcement
-`process` returns a `ProcessResult` and no I/O-capable dependency is injected
+`process` returns a `Receipt` — a `ProcessResult` and a count — and no I/O-capable dependency is injected
 or reachable; `no_std` removes most of the I/O surface at compile time.

@@ -13,3 +13,7 @@ pub const HELPERS: usize = 2;
 // How many probe periods running a member must miss before it is suspected,
 // unless a test gives its cluster another threshold.
 pub const DEFAULT_SUSPICION_THRESHOLD: usize = 1;
+
+// A node's first instance's incarnation; every instance it is created as
+// again takes the next.
+pub const FIRST_INCARNATION: u64 = 1;

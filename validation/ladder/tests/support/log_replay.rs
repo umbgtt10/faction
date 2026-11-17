@@ -10,9 +10,9 @@ use serde_json::Value;
 
 // A log -- the configuration, then one step per call -- replayed into a node
 // created from that configuration: each step's command processed, and the
-// result compared with the step's. A node's results carry no number, so a lost
-// line is not told from an altered one: either is a departure, at the first
-// line the replay answers otherwise.
+// receipt compared with the step's. Every receipt is numbered, so a line lost
+// shows at the first line after it, its logged number past the replay's; an
+// altered line departs where it stands.
 pub struct LogReplay;
 
 impl LogReplay {
@@ -30,15 +30,15 @@ impl LogReplay {
             departures: Vec::new(),
         };
         for (index, step) in steps.iter().enumerate() {
-            let result =
-                SpecWriter::result(&faction.process(SpecReader::command(&step["command"])));
-            if result == step["result"] {
+            let receipt =
+                SpecWriter::receipt(&faction.process(SpecReader::command(&step["command"])));
+            if receipt == step["receipt"] {
                 report.reconstructed += 1;
             } else {
                 report.departures.push(format!(
-                    "line {}: replayed {result}, logged {}",
+                    "line {}: replayed {receipt}, logged {}",
                     index + 2,
-                    step["result"]
+                    step["receipt"]
                 ));
             }
         }

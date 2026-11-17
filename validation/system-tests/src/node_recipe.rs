@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::constants::FIRST_INCARNATION;
 use crate::constants::HELPERS;
 use crate::infra::fault_board::FaultBoard;
 use crate::infra::invariants::breaches::Breaches;
@@ -10,6 +11,7 @@ use crate::infra::timer::faulty::faulty_clock::FaultyClock;
 use crate::infra::timer::faulty::faulty_timer::FaultyTimer;
 use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::faulty::faulty_transport::FaultyTransport;
+use faction::instance::instance_id::InstanceId;
 use std::cell::RefCell;
 use std::io::stderr;
 use std::rc::Rc;
@@ -92,12 +94,14 @@ impl NodeRecipe {
             required_count: self.required,
             epoch: 0,
         };
-        self.node_of(peer_id, self.running(peer_id, &genesis), transport)
+        let instance = Self::first(peer_id);
+        self.node_of(instance, self.running(instance, &genesis), transport)
     }
 
     #[must_use]
     pub fn build_newcomer(&self, peer_id: PeerId, transport: Box<dyn Transport>) -> FactionNode {
-        self.node_of(peer_id, self.waiting(peer_id), transport)
+        let instance = Self::first(peer_id);
+        self.node_of(instance, self.waiting(instance), transport)
     }
 
     #[must_use]
@@ -160,12 +164,26 @@ impl NodeRecipe {
         ))
     }
 
+    // A node's first instance.
+    fn first(peer_id: PeerId) -> InstanceId {
+        InstanceId {
+            node: peer_id,
+            incarnation: FIRST_INCARNATION,
+        }
+    }
+
     // A node of `role`, its roles made anew by this recipe.
-    fn node_of(&self, peer_id: PeerId, role: Role, transport: Box<dyn Transport>) -> FactionNode {
-        let (_, node_observer) = self.observers(peer_id);
+    fn node_of(
+        &self,
+        instance: InstanceId,
+        role: Role,
+        transport: Box<dyn Transport>,
+    ) -> FactionNode {
+        let peer_id = instance.node;
+        let (_, node_observer) = self.observers(instance);
         let faults = self.faults.node(peer_id);
         FactionNode::new(
-            peer_id,
+            instance,
             role,
             self.faulty(peer_id, transport, &faults),
             self.timer(peer_id, &faults),
@@ -175,12 +193,12 @@ impl NodeRecipe {
         )
     }
 
-    fn observers(&self, peer_id: PeerId) -> (Box<dyn Observer>, Box<dyn NodeObserver>) {
-        let writer = self.writer(peer_id);
+    fn observers(&self, instance: InstanceId) -> (Box<dyn Observer>, Box<dyn NodeObserver>) {
+        let writer = self.writer(instance.node);
         let faction_observer: Box<dyn Observer> = match &writer {
             Some(writer) => Box::new(SharedFileObserver::new(
                 writer.clone(),
-                peer_id,
+                instance,
                 self.time.wall_clock.clone(),
             )),
             None => Box::new(NoOpObserver),
@@ -188,7 +206,7 @@ impl NodeRecipe {
         let node_observer: Box<dyn NodeObserver> = match &writer {
             Some(writer) => Box::new(SharedFileObserver::new(
                 writer.clone(),
-                peer_id,
+                instance,
                 self.time.wall_clock.clone(),
             )),
             None => Box::new(NoOpNodeObserver),
@@ -242,8 +260,9 @@ impl NodeRecipe {
 // a faction observer of its own on the node's log, behind the invariant
 // observer that reports its breaches.
 impl Roles for NodeRecipe {
-    fn running(&self, peer_id: PeerId, membership: &Membership) -> Role {
-        let (faction_observer, _) = self.observers(peer_id);
+    fn running(&self, instance: InstanceId, membership: &Membership) -> Role {
+        let peer_id = instance.node;
+        let (faction_observer, _) = self.observers(instance);
         let watched = InvariantObserver::new(
             peer_id,
             Some(membership.peers.clone()),
@@ -252,7 +271,7 @@ impl Roles for NodeRecipe {
             faction_observer,
         );
         let config = Config::new(
-            peer_id,
+            instance,
             membership.peers.clone(),
             QuorumPolicy::new(membership.required_count),
             self.suspicion_threshold,
@@ -267,14 +286,14 @@ impl Roles for NodeRecipe {
         )))
     }
 
-    fn waiting(&self, peer_id: PeerId) -> Role {
-        let (faction_observer, _) = self.observers(peer_id);
+    fn waiting(&self, instance: InstanceId) -> Role {
+        let (faction_observer, _) = self.observers(instance);
         Role::Waiting(Newcomer::new(
-            peer_id,
+            instance,
             self.suspicion_threshold,
             HELPERS,
             Box::new(InvariantObserver::new(
-                peer_id,
+                instance.node,
                 None,
                 0,
                 self.breaches.clone(),

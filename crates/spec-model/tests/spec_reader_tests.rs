@@ -148,7 +148,7 @@ fn command_of_a_signal_with_no_epoch_is_at_epoch_0() {
 fn configuration_of_a_configuration_at_an_epoch_reads_it() {
     // Arrange & Act
     let configuration = SpecReader::configuration(&json!({
-        "peer_id": "1",
+        "instance": {"node": "1", "incarnation": "1"},
         "peers": ["1", "2"],
         "required_count": "1",
         "suspicion_threshold": "1",
@@ -163,7 +163,7 @@ fn configuration_of_a_configuration_at_an_epoch_reads_it() {
 fn configuration_of_a_node_keeps_its_peers_in_their_order() {
     // Arrange & Act
     let configuration = SpecReader::configuration(&json!({
-        "peer_id": "2",
+        "instance": {"node": "2", "incarnation": "4"},
         "peers": ["3", "1", "2"],
         "required_count": "18446744073709551615",
         "suspicion_threshold": "3",
@@ -174,6 +174,7 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
         configuration,
         Configuration {
             peer_id: String::from("2"),
+            incarnation: 4,
             peers: NodeStates::peers(&["3", "1", "2"]),
             required_count: u64::MAX,
             suspicion_threshold: 3,
@@ -187,7 +188,7 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
 fn configuration_of_a_provisional_membership_reads_it() {
     // Arrange & Act
     let configuration = SpecReader::configuration(&json!({
-        "peer_id": "5",
+        "instance": {"node": "5", "incarnation": "1"},
         "peers": ["1", "5"],
         "required_count": "1",
         "suspicion_threshold": "1",

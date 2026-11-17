@@ -31,6 +31,16 @@ impl SpecFiles {
         read(Self::root().join("vectors").join(format!("{name}.json"))).ok()
     }
 
+    // A re-encoded vector's released file, byte for byte, as the last version
+    // that wrote it kept it under released/, or none if none kept it.
+    pub fn released_bytes(name: &str) -> Option<Vec<u8>> {
+        let folder = Self::root().join("released");
+        read_dir(&folder)
+            .ok()?
+            .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+            .find_map(|version| read(version.join(format!("{name}.json"))).ok())
+    }
+
     // A withdrawn vector's file, byte for byte, or none if no vector withdrawn
     // has the name.
     pub fn withdrawn_bytes(name: &str) -> Option<Vec<u8>> {

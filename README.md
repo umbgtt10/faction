@@ -22,7 +22,7 @@ consensus begins?
 that answers the question deterministically, observably, and provably.
 
 **Phases 1 to 5 of six are built** (2026-11-16): bootstrapping, dynamic joining, single-node addition, failure
-detection, single-node removal, and epochs and rejoin, conformant to version 0.7.0 of the specification in
+detection, single-node removal, and epochs and rejoin, conformant to version 0.8.0 of the specification in
 [`spec/`](spec/SPEC.md).
 Version 0.11.0 is on [crates.io](https://crates.io/crates/faction).
 
@@ -65,7 +65,7 @@ reproduce and expensive to diagnose.
 - **Embeddable** — `no_std + alloc`, zero `unsafe`. Runs on bare metal, WASM, embedded
   RTOS, and cloud without modification.
 - **Observable** — every call reaches a trait-based `Observer`, once, with the command
-  and its result. Wire it to telemetry, audit logs, or test assertions. No
+  and its receipt: the result, numbered, so a gap in a log proves a line lost. Wire it to telemetry, audit logs, or test assertions. No
   instrumentation surprises.
 - **Queryable** — probe the machine at any time for the current cluster view and the
   set of admissible commands. Zero side effects.
@@ -226,6 +226,7 @@ faction = "0.11"
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -234,7 +235,7 @@ use faction::quorum_policy::QuorumPolicy;
 extern crate alloc;
 
 let config = Config::new(
-    0,
+    InstanceId { node: 0, incarnation: 1 },
     alloc::vec![0, 1, 2, 3, 4],
     QuorumPolicy::new(4),
     1,
@@ -252,7 +253,7 @@ let _ = machine.process(Command::ReadyObserved { peer_id: 2, epoch: 0 });
 
 // Self + peers 1, 2, 3 = 4 confirmations → quorum → Bootstrapped.
 let result = machine.process(Command::ReadyObserved { peer_id: 3, epoch: 0 });
-if let ProcessResult::Accepted { cluster_view, admissible, .. } = result {
+if let ProcessResult::Accepted { cluster_view, admissible, .. } = result.output {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     // Concluded, but not a silent sink: a bootstrapped node still admits
     // `ParticipationObserved` (to re-advertise readiness to a still-joining
@@ -291,10 +292,10 @@ The caller owns the network. `faction` owns the state.
 
 | Package | What it tests | Tests |
 |---|---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 73 rows and 115 conformance vectors, and one withdrawn | — |
-| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 199 |
-| `crates/core/` unit tests | Each type and each step in isolation | 306 |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 230 |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 73 rows and 115 conformance vectors, re-encoded once at 0.8.0 as receipts, and one withdrawn | — |
+| `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 200 |
+| `crates/core/` unit tests | Each type and each step in isolation | 308 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 233 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
 | `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 118 |
@@ -305,7 +306,7 @@ The caller owns the network. `faction` owns the state.
 | `validation/system-tests/` liveness | Members silenced and links cut across spawn/transport | 50 |
 | `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
 | `validation/system-tests/` rejoin | Nodes restarted, re-added, partitioned and ahead, across spawn/transport | 50 |
-| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 343 |
+| `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 346 |
 | `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 96 |
 
 The system test matrix covers every valid combination of spawn model and transport:
@@ -337,8 +338,8 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~2,350 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.7.0 — its independent model and the crate answer all 115 vectors in force as written, each kept as released, and one withdrawn to correct a defect |
-| Total tests | 1,992 |
+| Specification | [`spec/`](./spec/SPEC.md) 0.8.0 — its independent model and the crate answer all 115 vectors in force as written, each kept as released and re-encoded once, changing no answer, and one withdrawn to correct a defect |
+| Total tests | 2,001 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -358,7 +359,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 - **No silent sinks** — the sole conclusion (`Bootstrapped`) still answers a
   still-pinging peer by re-advertising its readiness, and a missed deadline is a
   non-terminal fact — so a concluded node never strands the peers it coordinated.
-- **Observer, not logger** — the `Observer` trait receives every call with its result:
+- **Observer, not logger** — the `Observer` trait receives every call with its receipt:
   an accepted command, a rejected one, a probe. Wire it to anything. The machine does
   not care.
 - **Protocol-agnostic** — `faction` does not know what a peer is, what the network

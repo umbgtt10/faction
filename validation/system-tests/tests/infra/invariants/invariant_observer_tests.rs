@@ -7,6 +7,8 @@ use faction::command::Command;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
+use faction::instance::receipt::Receipt;
 use faction::members::Members;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
@@ -21,11 +23,14 @@ use faction_system_tests::infra::invariants::invariant_observer::InvariantObserv
 use std::sync::Arc;
 use std::sync::Mutex;
 
-fn accepted(cluster_view: ClusterView, outcomes: Vec<Outcome>) -> ProcessResult {
-    ProcessResult::Accepted {
-        cluster_view,
-        admissible: Vec::new(),
-        outcomes,
+fn accepted(cluster_view: ClusterView, outcomes: Vec<Outcome>) -> Receipt {
+    Receipt {
+        number: 1,
+        output: ProcessResult::Accepted {
+            cluster_view,
+            admissible: Vec::new(),
+            outcomes,
+        },
     }
 }
 
@@ -34,7 +39,7 @@ struct CountingObserver {
 }
 
 impl Observer for CountingObserver {
-    fn observe(&mut self, _: &Command, _: &ProcessResult) {
+    fn observe(&mut self, _: &Command, _: &Receipt) {
         *self.calls.lock().unwrap() += 1;
     }
 }
@@ -49,17 +54,23 @@ fn observer(epoch: Epoch, breaches: &Breaches) -> InvariantObserver {
     )
 }
 
-fn probed(cluster_view: ClusterView) -> ProcessResult {
-    ProcessResult::Probed {
-        cluster_view,
-        admissible: Vec::new(),
+fn probed(cluster_view: ClusterView) -> Receipt {
+    Receipt {
+        number: 1,
+        output: ProcessResult::Probed {
+            cluster_view,
+            admissible: Vec::new(),
+        },
     }
 }
 
-fn rejected(cluster_view: ClusterView) -> ProcessResult {
-    ProcessResult::Rejected {
-        cluster_view,
-        admissible: Vec::new(),
+fn rejected(cluster_view: ClusterView) -> Receipt {
+    Receipt {
+        number: 1,
+        output: ProcessResult::Rejected {
+            cluster_view,
+            admissible: Vec::new(),
+        },
     }
 }
 
@@ -71,9 +82,20 @@ fn removed() -> ClusterView {
 
 // The view of node 0 of three, all required, at `epoch`.
 fn view(epoch: Epoch) -> ClusterView {
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, epoch, false);
-    let ProcessResult::Probed { cluster_view, .. } =
-        Faction::new(config, Box::new(NoOpObserver)).process(Command::Probe)
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2],
+        QuorumPolicy::new(3),
+        1,
+        epoch,
+        false,
+    );
+    let ProcessResult::Probed { cluster_view, .. } = Faction::new(config, Box::new(NoOpObserver))
+        .process(Command::Probe)
+        .output
     else {
         panic!("a fresh node answers a probe");
     };
@@ -257,7 +279,17 @@ fn observe_of_a_conclusion_short_of_the_required_count_reports_it() {
 fn observe_of_a_faithful_bootstrap_reports_nothing() {
     // Arrange
     let breaches = Breaches::default();
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1],
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+    );
     let mut faction = Faction::new(config, Box::new(observer(0, &breaches)));
     let commands = [
         Command::ParticipationObserved {
@@ -275,7 +307,7 @@ fn observe_of_a_faithful_bootstrap_reports_nothing() {
     // Act
     let results: Vec<ProcessResult> = commands
         .into_iter()
-        .map(|command| faction.process(command))
+        .map(|command| faction.process(command).output)
         .collect();
 
     // Assert

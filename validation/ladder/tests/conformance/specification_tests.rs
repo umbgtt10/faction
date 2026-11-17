@@ -10,6 +10,8 @@
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_schema::SpecSchema;
 use serde_json::Value;
+use serde_json::from_slice;
+use serde_json::json;
 use sha2::Digest;
 use sha2::Sha256;
 use std::fmt::Write;
@@ -137,6 +139,39 @@ fn names(value: &Value, found: &mut Vec<String>) {
 }
 
 // Every Rust source file under a folder, its subfolders included.
+// A vector as 0.8.0 writes it, from its released form: each step's result its
+// receipt's output, numbered by its position; the closing answer the closing
+// Probe's receipt; the configuration's peer id its instance's node, at
+// incarnation 1 (§1).
+fn reencoded_form(released: &Value) -> Value {
+    let mut configuration = released["configuration"].clone();
+    let node = configuration
+        .as_object_mut()
+        .and_then(|members| members.remove("peer_id"))
+        .expect("a released configuration's peer id");
+    configuration["instance"] = json!({ "node": node, "incarnation": "1" });
+    let steps: Vec<Value> = released["steps"]
+        .as_array()
+        .expect("a vector's steps")
+        .iter()
+        .enumerate()
+        .map(|(index, step)| {
+            json!({
+                "command": step["command"],
+                "receipt": { "number": (index + 1).to_string(), "output": step["result"] },
+            })
+        })
+        .collect();
+    let closing = (steps.len() + 1).to_string();
+    json!({
+        "description": released["description"],
+        "rows": released["rows"],
+        "configuration": configuration,
+        "steps": steps,
+        "final": { "number": closing, "output": { "Probed": released["final"] } },
+    })
+}
+
 fn sources(folder: &Path) -> Vec<PathBuf> {
     read_dir(folder)
         .expect("a source folder")
@@ -271,16 +306,23 @@ fn vector_bytes_of_every_released_vector_are_as_released() {
         .filter_map(|entry| {
             let id = entry["id"].as_str().expect("a released vector's id");
             let expected = entry["sha256"].as_str().expect("its digest");
-            let bytes = if entry.get("withdrawn").is_some() {
-                SpecFiles::withdrawn_bytes(id)
-            } else {
-                SpecFiles::vector_bytes(id)
+            let (bytes, in_force) = match (entry.get("withdrawn"), entry.get("reencoded")) {
+                (Some(_), _) => (SpecFiles::withdrawn_bytes(id), None),
+                (None, Some(reencoded)) => (
+                    SpecFiles::released_bytes(id),
+                    Some(reencoded["sha256"].as_str().expect("its re-encoded digest")),
+                ),
+                (None, None) => (SpecFiles::vector_bytes(id), None),
             };
+            let reencoded_changed = in_force.is_some_and(|reencoded| {
+                SpecFiles::vector_bytes(id).is_none_or(|bytes| digest(&bytes) != reencoded)
+            });
             match bytes {
                 None => Some(format!("{id}: released, and missing")),
                 Some(bytes) if digest(&bytes) != expected => {
                     Some(format!("{id}: released, and changed"))
                 }
+                Some(_) if reencoded_changed => Some(format!("{id}: re-encoded, and changed")),
                 Some(_) => None,
             }
         })
@@ -317,4 +359,31 @@ fn vectors_of_the_specification_hold_no_vector_withdrawn() {
         assert!(!in_force.iter().any(|name| name == id), "{id}");
         assert!(SpecFiles::withdrawn_bytes(id).is_some(), "{id}");
     }
+}
+
+#[test]
+fn vectors_of_the_specification_re_encoded_answer_as_their_released_bytes() {
+    // Arrange
+    let released = SpecFiles::released();
+    let reencoded: Vec<&str> = released["vectors"]
+        .as_array()
+        .expect("the released vectors")
+        .iter()
+        .filter(|entry| entry.get("reencoded").is_some())
+        .map(|entry| entry["id"].as_str().expect("a released vector's id"))
+        .collect();
+
+    // Act
+    let departures: Vec<String> = reencoded
+        .iter()
+        .filter_map(|id| {
+            let before: Value = from_slice(&SpecFiles::released_bytes(id)?).ok()?;
+            let after: Value = from_slice(&SpecFiles::vector_bytes(id)?).ok()?;
+            (after != reencoded_form(&before)).then(|| format!("{id}: re-encoded otherwise"))
+        })
+        .collect();
+
+    // Assert
+    assert_eq!(reencoded.len(), 115);
+    assert!(departures.is_empty(), "{departures:#?}");
 }

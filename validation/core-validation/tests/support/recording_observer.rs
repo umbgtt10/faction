@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 use faction::command::Command;
+use faction::instance::receipt::Receipt;
 use faction::observer::Observer;
-use faction::process_result::ProcessResult;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 // The calls an observer was told of, each with its result, shared with the
 // test that reads them.
-pub type Calls = Rc<RefCell<Vec<(Command, ProcessResult)>>>;
+pub type Calls = Rc<RefCell<Vec<(Command, Receipt)>>>;
 
 // An observer that keeps every call it is told of, in a list its test holds
 // too.
@@ -24,9 +24,9 @@ impl RecordingObserver {
 }
 
 impl Observer for RecordingObserver {
-    fn observe(&mut self, command: &Command, result: &ProcessResult) {
+    fn observe(&mut self, command: &Command, receipt: &Receipt) {
         self.calls
             .borrow_mut()
-            .push((command.clone(), result.clone()));
+            .push((command.clone(), receipt.clone()));
     }
 }

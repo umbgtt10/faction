@@ -5,6 +5,8 @@ use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::cluster_view::ClusterView;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
+use faction::instance::instance_id::InstanceId;
+use faction::instance::receipt::Receipt;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -28,11 +30,14 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
-fn make_accepted() -> ProcessResult {
-    ProcessResult::Accepted {
-        cluster_view: make_cluster_view(),
-        admissible: vec![],
-        outcomes: vec![],
+fn make_accepted() -> Receipt {
+    Receipt {
+        number: 1,
+        output: ProcessResult::Accepted {
+            cluster_view: make_cluster_view(),
+            admissible: vec![],
+            outcomes: vec![],
+        },
     }
 }
 
@@ -45,11 +50,22 @@ fn make_cluster_view() -> ClusterView {
         .build()
 }
 
+fn node_seven() -> InstanceId {
+    InstanceId {
+        node: 7,
+        incarnation: 1,
+    }
+}
+
 fn read_file(path: &Path) -> String {
     let mut f = File::open(path).unwrap();
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
     s
+}
+
+fn receipt(output: ProcessResult) -> Receipt {
+    Receipt { number: 1, output }
 }
 
 struct TempFile {
@@ -90,7 +106,7 @@ fn node_observer_on_idle_does_not_write() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
 
     // Act
     observer.on_idle();
@@ -106,7 +122,7 @@ fn node_observer_on_start_stamps_the_wall_clock_time() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
 
     // Act
     observer.on_start();
@@ -125,7 +141,7 @@ fn node_observer_on_start_writes_start_event() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
 
     // Act
     observer.on_start();
@@ -142,7 +158,7 @@ fn node_observer_on_step_writes_its_decisions_as_a_json_string() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
     let input = InputMessage::Timer(TimerMessage::RetryPing);
     let decisions = vec![
         OutputMessage::Noop,
@@ -164,7 +180,7 @@ fn node_observer_on_step_writes_step_event_with_decision_count() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
     let input = InputMessage::Timer(TimerMessage::RetryPing);
     let decisions = vec![
         OutputMessage::Noop,
@@ -189,7 +205,7 @@ fn observe_accepted_writes_accepted_event() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
     let command = Command::ParticipationObserved {
         peer_id: 3,
         epoch: 0,
@@ -213,14 +229,14 @@ fn observe_probed_writes_query_event() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
     let result = ProcessResult::Probed {
         cluster_view: make_cluster_view(),
         admissible: vec![],
     };
 
     // Act
-    observer.observe(&Command::Probe, &result);
+    observer.observe(&Command::Probe, &receipt(result));
     drop(observer);
 
     // Assert
@@ -234,14 +250,14 @@ fn observe_rejected_writes_rejected_event() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
     let result = ProcessResult::Rejected {
         cluster_view: make_cluster_view(),
         admissible: vec![],
     };
 
     // Act
-    observer.observe(&Command::DeadlineExpired, &result);
+    observer.observe(&Command::DeadlineExpired, &receipt(result));
     drop(observer);
 
     // Assert
@@ -255,7 +271,7 @@ fn observe_writes_bootstrapped_exit_state() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let mut observer = SharedFileObserver::new(writer, node_seven(), wall_clock());
     let view = ClusterViewBuilder::default()
         .with_peer_state(PeerState::Bootstrapped)
         .with_is_pinging_completed(true)
@@ -267,13 +283,46 @@ fn observe_writes_bootstrapped_exit_state() {
     };
 
     // Act
-    observer.observe(&Command::Probe, &result);
+    observer.observe(&Command::Probe, &receipt(result));
     drop(observer);
 
     // Assert
     let content = read_file(tmp.path());
     assert!(content.contains("\"peer_state\":\"Bootstrapped\""));
     assert!(content.contains("\"is_exited\":true"));
+}
+
+#[test]
+fn observe_writes_the_receipt_s_number_and_the_instance_s_incarnation() {
+    // Arrange
+    let tmp = TempFile::new();
+    let writer = tmp.reader();
+    let mut observer = SharedFileObserver::new(
+        writer,
+        InstanceId {
+            node: 7,
+            incarnation: 4,
+        },
+        wall_clock(),
+    );
+
+    // Act
+    observer.observe(
+        &Command::Probe,
+        &Receipt {
+            number: 12,
+            output: ProcessResult::Probed {
+                cluster_view: make_cluster_view(),
+                admissible: vec![],
+            },
+        },
+    );
+    drop(observer);
+
+    // Assert
+    let line: Value = from_str(read_file(tmp.path()).trim_end()).expect("a line of JSON");
+    assert_eq!(line["incarnation"], 4);
+    assert_eq!(line["number"], 12);
 }
 
 #[test]
@@ -296,7 +345,14 @@ fn write_json_output_is_valid() {
     // Arrange
     let tmp = TempFile::new();
     let writer = tmp.reader();
-    let mut observer = SharedFileObserver::new(writer, 3, wall_clock());
+    let mut observer = SharedFileObserver::new(
+        writer,
+        InstanceId {
+            node: 3,
+            incarnation: 1,
+        },
+        wall_clock(),
+    );
 
     // Act
     observer.on_start();
@@ -309,17 +365,17 @@ fn write_json_output_is_valid() {
     );
     observer.observe(
         &Command::Probe,
-        &ProcessResult::Probed {
+        &receipt(ProcessResult::Probed {
             cluster_view: make_cluster_view(),
             admissible: vec![],
-        },
+        }),
     );
     observer.observe(
         &Command::DeadlineExpired,
-        &ProcessResult::Rejected {
+        &receipt(ProcessResult::Rejected {
             cluster_view: make_cluster_view(),
             admissible: vec![],
-        },
+        }),
     );
     drop(observer);
 

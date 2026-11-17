@@ -7,8 +7,8 @@ const RESULTS: [&str; 3] = ["Accepted", "Rejected", "Probed"];
 
 // The growth rule (§1, §17): a vector released at an earlier version is
 // answered alike by every later one, but for the commands a later version
-// added, which its admissible lists do not name. A vector not yet released is
-// answered whole.
+// added, which its receipts' admissible lists do not name. A vector not yet
+// released is answered whole.
 pub struct Growth {
     released: Value,
 }
@@ -18,16 +18,16 @@ impl Growth {
         Self { released }
     }
 
-    // A result as the vector under `name` states it: its admissible commands
-    // kept to those the version that released the vector names.
-    pub fn as_released(&self, name: &str, result: &Value) -> Value {
+    // A receipt as the vector under `name` states it: its output's admissible
+    // commands kept to those the version that released the vector names.
+    pub fn as_released(&self, name: &str, receipt: &Value) -> Value {
         let Some(version) = self.version(name) else {
-            return result.clone();
+            return receipt.clone();
         };
         let named = self.named(&version);
-        let mut kept = result.clone();
+        let mut kept = receipt.clone();
         for answer in RESULTS {
-            if let Some(admissible) = kept
+            if let Some(admissible) = kept["output"]
                 .get_mut(answer)
                 .and_then(|body| body.get_mut("admissible"))
                 .and_then(Value::as_array_mut)

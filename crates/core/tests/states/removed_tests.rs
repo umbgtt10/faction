@@ -5,6 +5,7 @@ use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
 use faction::config::Config;
+use faction::instance::instance_id::InstanceId;
 use faction::members::Members;
 use faction::miss_count::MissCount;
 use faction::outcome::Outcome;
@@ -17,7 +18,17 @@ use faction::state::State;
 use faction::states::removed::Removed;
 
 fn config() -> Config {
-    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 0, false)
+    Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2],
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+    )
 }
 
 extern crate alloc;

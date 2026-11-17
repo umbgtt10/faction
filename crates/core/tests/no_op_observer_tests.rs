@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::process_result::ProcessResult;
@@ -19,7 +20,17 @@ extern crate alloc;
 
 fn faction(observer: Box<dyn Observer>) -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false),
+        Config::new(
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
+            vec![0, 1, 2, 3, 4],
+            QuorumPolicy::new(4),
+            1,
+            0,
+            false,
+        ),
         observer,
     )
 }
@@ -57,7 +68,12 @@ fn process_given_a_no_op_observer_answers_as_given_one_that_records() {
     // Act
     let answers: Vec<(ProcessResult, ProcessResult)> = commands
         .into_iter()
-        .map(|command| (silent.process(command.clone()), recorded.process(command)))
+        .map(|command| {
+            (
+                silent.process(command.clone()).output,
+                recorded.process(command).output,
+            )
+        })
         .collect();
 
     // Assert

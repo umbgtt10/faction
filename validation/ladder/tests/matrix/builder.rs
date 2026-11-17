@@ -6,6 +6,7 @@ use alloc::vec;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 
@@ -20,7 +21,10 @@ pub const THRESHOLD: usize = 5;
 pub fn build(init: Init) -> Faction {
     let mut faction = Faction::new(
         Config::new(
-            0,
+            InstanceId {
+                node: 0,
+                incarnation: 1,
+            },
             vec![0, 1, 2, 3, 4],
             QuorumPolicy::new(THRESHOLD),
             1,
@@ -30,104 +34,134 @@ pub fn build(init: Init) -> Faction {
         Box::new(NoOpObserver),
     );
     if !matches!(init, Init::Initial | Init::InitialAtEpoch) {
-        let _ = faction.process(Command::ParticipationObserved {
-            peer_id: 99,
-            epoch: 0,
-        });
+        let _ = faction
+            .process(Command::ParticipationObserved {
+                peer_id: 99,
+                epoch: 0,
+            })
+            .output;
     }
     match init {
         Init::Initial | Init::InitialAtEpoch => {}
         Init::Fresh => {}
         Init::PingingPeer1Confirmed => {
-            let _ = faction.process(Command::ParticipationObserved {
-                peer_id: 1,
-                epoch: 0,
-            });
+            let _ = faction
+                .process(Command::ParticipationObserved {
+                    peer_id: 1,
+                    epoch: 0,
+                })
+                .output;
         }
         Init::PingingP2Threshold => {
             for peer in 0..5 {
-                let _ = faction.process(Command::ReadyObserved {
-                    peer_id: peer,
-                    epoch: 0,
-                });
+                let _ = faction
+                    .process(Command::ReadyObserved {
+                        peer_id: peer,
+                        epoch: 0,
+                    })
+                    .output;
             }
         }
         Init::CollectingNoReadiness | Init::CollectingAtEpoch => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
         }
         Init::CollectingPeer1Confirmed => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
-            let _ = faction.process(Command::ReadyObserved {
-                peer_id: 1,
-                epoch: 0,
-            });
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
+            let _ = faction
+                .process(Command::ReadyObserved {
+                    peer_id: 1,
+                    epoch: 0,
+                })
+                .output;
         }
         Init::CollectingAlmostQuorum => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
             for peer in 1..4 {
-                let _ = faction.process(Command::ReadyObserved {
-                    peer_id: peer,
-                    epoch: 0,
-                });
+                let _ = faction
+                    .process(Command::ReadyObserved {
+                        peer_id: peer,
+                        epoch: 0,
+                    })
+                    .output;
             }
         }
         Init::Bootstrapped | Init::BootstrappedAtEpoch => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved {
-                    peer_id: peer,
-                    epoch: 0,
-                });
+                let _ = faction
+                    .process(Command::ReadyObserved {
+                        peer_id: peer,
+                        epoch: 0,
+                    })
+                    .output;
             }
         }
         Init::TimedOut => {
-            let _ = faction.process(Command::DeadlineExpired);
+            let _ = faction.process(Command::DeadlineExpired).output;
         }
         Init::Suspecting | Init::Removing | Init::RemovingRevived => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved {
-                    peer_id: peer,
-                    epoch: 0,
-                });
+                let _ = faction
+                    .process(Command::ReadyObserved {
+                        peer_id: peer,
+                        epoch: 0,
+                    })
+                    .output;
             }
-            let _ = faction.process(Command::IndirectProbesMissed { peer_id: SUSPECT });
+            let _ = faction
+                .process(Command::IndirectProbesMissed { peer_id: SUSPECT })
+                .output;
         }
         Init::Removed => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved {
-                    peer_id: peer,
-                    epoch: 0,
-                });
+                let _ = faction
+                    .process(Command::ReadyObserved {
+                        peer_id: peer,
+                        epoch: 0,
+                    })
+                    .output;
             }
-            let _ = faction.process(Command::RemovalCommitted {
-                peer_id: 0,
-                epoch: 0,
-            });
+            let _ = faction
+                .process(Command::RemovalCommitted {
+                    peer_id: 0,
+                    epoch: 0,
+                })
+                .output;
         }
         Init::Reconfiguring | Init::ReconfiguringAcknowledged | Init::ReconfiguringAtEpoch => {
-            let _ = faction.process(Command::LocalParticipationCompleted);
+            let _ = faction.process(Command::LocalParticipationCompleted).output;
             for peer in 1..5 {
-                let _ = faction.process(Command::ReadyObserved {
-                    peer_id: peer,
-                    epoch: 0,
-                });
+                let _ = faction
+                    .process(Command::ReadyObserved {
+                        peer_id: peer,
+                        epoch: 0,
+                    })
+                    .output;
             }
-            let _ = faction.process(Command::AdditionRequested { peer_id: NEWCOMER });
+            let _ = faction
+                .process(Command::AdditionRequested { peer_id: NEWCOMER })
+                .output;
         }
     }
     if matches!(init, Init::ReconfiguringAcknowledged) {
-        let _ = faction.process(Command::MembershipAcknowledged {
-            peer_id: NEWCOMER,
-            epoch: 0,
-        });
+        let _ = faction
+            .process(Command::MembershipAcknowledged {
+                peer_id: NEWCOMER,
+                epoch: 0,
+            })
+            .output;
     }
     if matches!(init, Init::Removing | Init::RemovingRevived) {
-        let _ = faction.process(Command::RemovalRequested { peer_id: SUSPECT });
+        let _ = faction
+            .process(Command::RemovalRequested { peer_id: SUSPECT })
+            .output;
     }
     if matches!(init, Init::RemovingRevived) {
-        let _ = faction.process(Command::PeerHeard { peer_id: SUSPECT });
+        let _ = faction
+            .process(Command::PeerHeard { peer_id: SUSPECT })
+            .output;
     }
     if matches!(
         init,
@@ -136,10 +170,12 @@ pub fn build(init: Init) -> Faction {
             | Init::BootstrappedAtEpoch
             | Init::ReconfiguringAtEpoch
     ) {
-        let _ = faction.process(Command::RequiredCountChanged {
-            required_count: THRESHOLD,
-            epoch: EPOCH,
-        });
+        let _ = faction
+            .process(Command::RequiredCountChanged {
+                required_count: THRESHOLD,
+                epoch: EPOCH,
+            })
+            .output;
     }
     faction
 }

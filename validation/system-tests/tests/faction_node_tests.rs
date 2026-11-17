@@ -6,10 +6,11 @@ use crate::support::recipe;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
+use faction::instance::receipt::Receipt;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::peer_state::PeerState;
-use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
@@ -53,7 +54,17 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         cuts: cuts.clone(),
         ..NodeFaults::default()
     };
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(1), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        peers.clone(),
+        QuorumPolicy::new(1),
+        1,
+        0,
+        false,
+    );
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
@@ -67,7 +78,10 @@ fn concluded() -> (FactionNode, InMemoryTransport, InMemoryTransport, LinkCuts) 
         ProbeStretch::Minimal.factor(),
     );
     let mut node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(FaultyTransport::new(
             0,
@@ -101,9 +115,15 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
         ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
-        5,
+        InstanceId {
+            node: 5,
+            incarnation: 1,
+        },
         Role::Waiting(Newcomer::new(
-            5,
+            InstanceId {
+                node: 5,
+                incarnation: 1,
+            },
             DEFAULT_SUSPICION_THRESHOLD,
             HELPERS,
             Box::new(NoOpObserver),
@@ -120,7 +140,17 @@ fn newcomer() -> (FactionNode, InMemoryTransport) {
 fn node() -> (FactionNode, Arc<SimulatedClock>) {
     let (time, clock) = fake_time();
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        peers.clone(),
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+    );
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers.clone(),
@@ -135,7 +165,10 @@ fn node() -> (FactionNode, Arc<SimulatedClock>) {
     );
     let transport = InMemoryTransport::new_mesh(&peers).remove(0);
     let node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(transport),
         Box::new(timer),
@@ -151,7 +184,17 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
     let (time, _) = fake_time();
     let commands = Arc::new(Mutex::new(Vec::new()));
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        peers.clone(),
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+    );
     let protocol = Protocol::new(
         Faction::new(
             config,
@@ -170,7 +213,10 @@ fn observed() -> (FactionNode, Arc<Mutex<Vec<Command>>>) {
         ProbeStretch::Minimal.factor(),
     );
     let node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(InMemoryTransport::new_mesh(&peers).remove(0)),
         Box::new(timer),
@@ -189,7 +235,17 @@ fn pinging() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
     let outsider = mesh.remove(3);
     let peer_one = mesh.remove(1);
     let peers = vec![0, 1, 2];
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(2), 1, 0, false);
+    let config = Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        peers.clone(),
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+    );
     let protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         peers,
@@ -203,7 +259,10 @@ fn pinging() -> (FactionNode, InMemoryTransport, InMemoryTransport) {
         ProbeStretch::Minimal.factor(),
     );
     let mut node = FactionNode::new(
-        0,
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
         Role::Running(Box::new(protocol)),
         Box::new(mesh.remove(0)),
         Box::new(timer),
@@ -224,7 +283,7 @@ struct Recording {
 }
 
 impl Observer for Recording {
-    fn observe(&mut self, command: &Command, _result: &ProcessResult) {
+    fn observe(&mut self, command: &Command, _receipt: &Receipt) {
         self.commands.lock().unwrap().push(command.clone());
     }
 }
@@ -428,6 +487,71 @@ fn expire_deadline_while_pinging_reports_timed_out() {
 
     // Assert
     assert_eq!(node.peer_state(), PeerState::TimedOut);
+}
+
+#[test]
+fn instance_of_a_removed_node_invited_back_is_its_next_incarnation() {
+    // Arrange
+    let (mut node, mut peer_one, _, _) = concluded();
+    node.commit_removal(0, 1);
+    peer_one.send(
+        0,
+        TransportMessage::Membership {
+            from: 1,
+            to: 0,
+            members: vec![0, 1, 2],
+            required_count: 1,
+            epoch: 2,
+        },
+    );
+
+    // Act
+    while node.step() {}
+
+    // Assert
+    assert_eq!(
+        node.instance(),
+        InstanceId {
+            node: 0,
+            incarnation: 2
+        }
+    );
+}
+
+#[test]
+fn instance_of_a_restarted_node_is_its_next_incarnation() {
+    // Arrange
+    let (mut node, _, _, _) = concluded();
+    let first = node.instance();
+    let membership = Membership {
+        peers: vec![0, 1],
+        required_count: 2,
+        epoch: 3,
+    };
+
+    // Act
+    node.restart(&membership);
+    let second = node.instance();
+    node.restart(&membership);
+
+    // Assert
+    assert_eq!(
+        [first, second, node.instance()],
+        [
+            InstanceId {
+                node: 0,
+                incarnation: 1
+            },
+            InstanceId {
+                node: 0,
+                incarnation: 2
+            },
+            InstanceId {
+                node: 0,
+                incarnation: 3
+            },
+        ]
+    );
 }
 
 #[test]

@@ -61,7 +61,7 @@ impl Protocol {
     }
 
     pub fn cluster_view(&mut self) -> ClusterView {
-        ResultView::of(self.faction.process(Command::Probe))
+        ResultView::of(self.faction.process(Command::Probe).output)
     }
 
     // A change the layer above has committed, at its epoch.
@@ -155,7 +155,7 @@ impl Protocol {
     }
 
     fn apply(&mut self, command: Command) -> Vec<OutputMessage> {
-        match self.faction.process(command) {
+        match self.faction.process(command).output {
             ProcessResult::Accepted {
                 outcomes,
                 cluster_view,

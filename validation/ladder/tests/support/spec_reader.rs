@@ -3,6 +3,7 @@
 
 use faction::command::Command;
 use faction::config::Config;
+use faction::instance::instance_id::InstanceId;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::PeerId;
 use serde_json::Value;
@@ -78,7 +79,10 @@ impl SpecReader {
         let threshold = usize::try_from(Self::number(&value["suspicion_threshold"]))
             .expect("a suspicion threshold this platform can hold");
         Config::new(
-            Self::number(&value["peer_id"]),
+            InstanceId {
+                node: Self::number(&value["instance"]["node"]),
+                incarnation: Self::number(&value["instance"]["incarnation"]),
+            },
             peers,
             QuorumPolicy::new(required),
             threshold,

@@ -33,19 +33,36 @@
         "$ref": "#/$defs/u64"
       }
     },
-    "configuration": {
-      "description": "What a node is created from: its own peer id, its genesis peers, the required count, the suspicion threshold and, unless 0, the epoch of its membership, and, if provisional, that its membership is.",
+    "instance": {
+      "description": "A node and an incarnation the caller guarantees never repeats for that node: what tells one instance's receipts from another's.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "peer_id",
+        "node",
+        "incarnation"
+      ],
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/u64"
+        },
+        "incarnation": {
+          "$ref": "#/$defs/u64"
+        }
+      }
+    },
+    "configuration": {
+      "description": "What a node is created from: its instance -- its node's id and an incarnation -- its genesis peers, the required count, the suspicion threshold and, unless 0, the epoch of its membership, and, if provisional, that its membership is.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance",
         "peers",
         "required_count",
         "suspicion_threshold"
       ],
       "properties": {
-        "peer_id": {
-          "$ref": "#/$defs/u64"
+        "instance": {
+          "$ref": "#/$defs/instance"
         },
         "peers": {
           "$ref": "#/$defs/peers"
@@ -1782,36 +1799,75 @@
         }
       ]
     },
+    "receipt": {
+      "description": "Every call's answer: its output, and its number, one more than the instance's last receipt's, the first being 1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number",
+        "output"
+      ],
+      "properties": {
+        "number": {
+          "$ref": "#/$defs/positive_u64"
+        },
+        "output": {
+          "$ref": "#/$defs/result"
+        }
+      }
+    },
     "step": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "command",
-        "result"
+        "receipt"
       ],
       "properties": {
         "command": {
           "$ref": "#/$defs/command"
         },
-        "result": {
-          "$ref": "#/$defs/result"
+        "receipt": {
+          "$ref": "#/$defs/receipt"
         }
       }
     },
     "final": {
-      "description": "What a Probe after the last step must be answered: the view and the admissible commands.",
+      "description": "The receipt a Probe after the last step must be given: numbered one more than the last step's, the view and the admissible commands.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "cluster_view",
-        "admissible"
+        "number",
+        "output"
       ],
       "properties": {
-        "cluster_view": {
-          "$ref": "#/$defs/cluster_view"
+        "number": {
+          "$ref": "#/$defs/positive_u64"
         },
-        "admissible": {
-          "$ref": "#/$defs/admissible"
+        "output": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "Probed"
+          ],
+          "properties": {
+            "Probed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cluster_view",
+                "admissible"
+              ],
+              "properties": {
+                "cluster_view": {
+                  "$ref": "#/$defs/cluster_view"
+                },
+                "admissible": {
+                  "$ref": "#/$defs/admissible"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2052,7 +2108,7 @@
       }
     },
     "released": {
-      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them, and the version that withdrew it, if one did; and every command a released version names, by its name and the first released version to name it.",
+      "description": "Every vector of every released version, by its file's name, the version that released its bytes and the SHA-256 digest of them, the version that withdrew it, if one did, and the version that re-encoded it, if one did, with its re-encoded bytes' digest; and every command a released version names, by its name and the first released version to name it.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2104,6 +2160,24 @@
               },
               "withdrawn": {
                 "type": "string"
+              },
+              "reencoded": {
+                "description": "The version that re-encoded the vector, changing no answer, and the SHA-256 digest of its re-encoded bytes; its released bytes are kept under released/, by the last version that wrote them.",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "sha256"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
               }
             }
           }

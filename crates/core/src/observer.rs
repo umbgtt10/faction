@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 use crate::command::Command;
-use crate::process_result::ProcessResult;
+use crate::instance::receipt::Receipt;
 
 pub trait Observer {
-    fn observe(&mut self, command: &Command, result: &ProcessResult);
+    fn observe(&mut self, command: &Command, receipt: &Receipt);
 }

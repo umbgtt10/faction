@@ -7,6 +7,7 @@ use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::faction::Faction;
+use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -50,8 +51,8 @@ proptest! {
 
         // Act
         for command in commands {
-            let _ = faction.process(command);
-            let cluster_view = match faction.process(Command::Probe) {
+            let _ = faction.process(command).output;
+            let cluster_view = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -69,8 +70,8 @@ proptest! {
 
         // Act
         for command in commands {
-            let _ = faction.process(command);
-            let cluster_view = match faction.process(Command::Probe) {
+            let _ = faction.process(command).output;
+            let cluster_view = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -89,20 +90,20 @@ proptest! {
 
         // Act
         for command in commands {
-            let _ = faction.process(command);
+            let _ = faction.process(command).output;
         }
 
-        let previous = match faction.process(Command::Probe) {
+        let previous = match faction.process(Command::Probe).output {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
-        let first_status = faction.process(Command::LocalParticipationCompleted);
-        let after_first = match faction.process(Command::Probe) {
+        let first_status = faction.process(Command::LocalParticipationCompleted).output;
+        let after_first = match faction.process(Command::Probe).output {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
-        let second_status = faction.process(Command::LocalParticipationCompleted);
-        let after_second = match faction.process(Command::Probe) {
+        let second_status = faction.process(Command::LocalParticipationCompleted).output;
+        let after_second = match faction.process(Command::Probe).output {
             ProcessResult::Probed { cluster_view, .. } => cluster_view,
             _ => unreachable!(),
         };
@@ -127,12 +128,12 @@ proptest! {
 
         // Act
         for command in commands {
-            let previous = match faction.process(Command::Probe) {
+            let previous = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
-            let _ = faction.process(command);
-            let current = match faction.process(Command::Probe) {
+            let _ = faction.process(command).output;
+            let current = match faction.process(Command::Probe).output {
                 ProcessResult::Probed { cluster_view, .. } => cluster_view,
                 _ => unreachable!(),
             };
@@ -144,5 +145,15 @@ proptest! {
 }
 
 fn test_config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false)
+    Config::new(
+        InstanceId {
+            node: 0,
+            incarnation: 1,
+        },
+        vec![0, 1, 2, 3, 4],
+        QuorumPolicy::new(4),
+        1,
+        0,
+        false,
+    )
 }

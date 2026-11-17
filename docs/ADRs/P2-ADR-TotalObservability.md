@@ -1,6 +1,6 @@
 # P2-ADR-TotalObservability
 
-- **Status:** Accepted; amended 2026-11-12 — one report per call, the command and its result
+- **Status:** Accepted; amended 2026-11-12 — one report per call, the command and its result; amended 2026-11-17 — the result on a numbered receipt
 - **Date:** 2026-07-19
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting
@@ -13,9 +13,9 @@ hard-to-reproduce bugs live — the rejections and no-ops, not the happy path.
 
 ## Decision
 Every command reaching `process` is reported to the injected `Observer`
-exactly once, on every path, by one method: `observe(&command, &result)`,
-with the command and the `ProcessResult` it was answered — `Accepted`,
-`Rejected` or `Probed` — by the time the result is returned. The observer is
+exactly once, on every path, by one method: `observe(&command, &receipt)`,
+with the command and the receipt it was answered — its output, `Accepted`,
+`Rejected` or `Probed`, and its number — by the time the receipt is returned. The observer is
 told and answers nothing. It is a channel distinct from the result returned to
 the caller: the outcomes say *what the caller must do*, the report says *what
 happened*, and a node's reports, in order, are its log.
