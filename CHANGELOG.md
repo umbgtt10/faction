@@ -5,6 +5,13 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-11-17
+
+### Published on crates.io
+
+Conforms to the specification's version 0.6.0, grown by its rule from 0.5.x: its 113 vectors are released and
+kept, and the 108 of 0.5.0 pass unchanged.
+
 ### The chaos validation: what it found, fixed
 
 #### Added

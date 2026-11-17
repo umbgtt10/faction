@@ -625,6 +625,31 @@
    "id": "108-partitioned-node-catches-up",
    "version": "0.5.0",
    "sha256": "10971764b05b5b37d2337367412304f12af6a876c71f74af045a023a81848bc1"
+  },
+  {
+   "id": "109-provisional-claims-from-behind-before-completion",
+   "version": "0.6.0",
+   "sha256": "7dfef0142094268889b0c16ff2591ac42155c47acb87d2159aa1278ad51a6ed0"
+  },
+  {
+   "id": "110-provisional-claims-from-behind-after-completion",
+   "version": "0.6.0",
+   "sha256": "0f3eada0a6167405151f83a9a9b04d24d1381d5ca3617707513aff6068ca26a8"
+  },
+  {
+   "id": "111-provisional-ends-with-its-own-addition",
+   "version": "0.6.0",
+   "sha256": "5e8297df18048b8b83194e54bbcd382e1e05f4dad07399756ddebc2e45473719"
+  },
+  {
+   "id": "112-provisional-ends-with-an-adopted-membership",
+   "version": "0.6.0",
+   "sha256": "40c0326fb923c936138a3755b78c9e9388fc042883db3bec982c8faead3c8640"
+  },
+  {
+   "id": "113-provisional-acknowledgement-from-behind-and-removal",
+   "version": "0.6.0",
+   "sha256": "dc02e998f55780bb50b2879a4f64daca021f204b3456155e67d4be0f2fee849e"
   }
  ]
 }
