@@ -5,6 +5,12 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Fixed
+- An adopted membership's missed periods are listed in its members' order, as the specification
+  says (§1, §16): a node kept them in the order of the membership it held before, so a view after
+  an adoption that reordered members who had missed periods differed from the specification's.
+  The property tier found it, the crate against the independent model, and keeps the case.
+
 ## [0.10.0] — 2026-11-17
 
 ### Published on crates.io

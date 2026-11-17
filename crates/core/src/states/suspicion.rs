@@ -53,12 +53,7 @@ impl Suspicion {
         members: &Members,
         threshold: usize,
     ) -> (Outcome, Self) {
-        let misses = self
-            .misses
-            .iter()
-            .find(|miss| miss.peer_id == peer_id)
-            .map_or(0, |miss| miss.misses)
-            + 1;
+        let misses = self.missed(peer_id).map_or(0, |miss| miss.misses) + 1;
         if misses < threshold {
             (
                 Outcome::MissCounted { peer_id, misses },
@@ -89,16 +84,16 @@ impl Suspicion {
         &self.misses
     }
 
-    // Whom it suspects, and the periods missed, among `members` alone.
+    // Whom it suspects, in the order suspected, and the periods missed, in
+    // the order of `members`, among `members` alone.
     #[must_use]
     pub fn of_members(&self, members: &Members) -> Self {
         Self {
             suspected: members.retained(&self.suspected),
-            misses: self
-                .misses
+            misses: members
+                .as_slice()
                 .iter()
-                .copied()
-                .filter(|miss| members.is_member(miss.peer_id))
+                .filter_map(|member| self.missed(*member))
                 .collect(),
         }
     }
@@ -117,10 +112,7 @@ impl Suspicion {
                 if *member == peer_id {
                     Some(MissCount { peer_id, misses })
                 } else {
-                    self.misses
-                        .iter()
-                        .copied()
-                        .find(|miss| miss.peer_id == *member)
+                    self.missed(*member)
                 }
             })
             .collect()
@@ -141,5 +133,13 @@ impl Suspicion {
                 .filter(|miss| miss.peer_id != peer_id)
                 .collect(),
         }
+    }
+
+    // The periods `peer_id` has missed, if it has missed any.
+    fn missed(&self, peer_id: PeerId) -> Option<MissCount> {
+        self.misses
+            .iter()
+            .copied()
+            .find(|miss| miss.peer_id == peer_id)
     }
 }
