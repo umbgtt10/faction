@@ -22,6 +22,12 @@ release since names the version it conforms to.
   each ping, and the answers' backlog kept it from answering a probe in time. The soak's case is
   a chaos regression.
 
+#### Changed
+- The chaos soak starts, when given no seed, from the wall clock's nanoseconds: it counted
+  seconds, so soaks run an hour apart began 3,600 seeds apart and the second replayed nearly
+  every seed the first had played. And the regressions file keeps a seed once: a soak finding a
+  seed failing again records nothing new.
+
 ## [0.12.0] — 2026-11-17
 
 ### Published on crates.io

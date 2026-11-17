@@ -5,6 +5,7 @@ pub mod chaos_engine;
 pub mod chaos_run;
 pub mod deterministic_engine;
 pub mod fault_schedule;
+pub mod fresh_seed;
 pub mod real_engine;
 pub mod real_list;
 pub mod regression;

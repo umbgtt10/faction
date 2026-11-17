@@ -14,6 +14,7 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use faction_chaos::draw::generated_scenarios::GeneratedScenarios;
+use faction_chaos::engine::fresh_seed::FreshSeed;
 use faction_chaos::engine::real_list::RealList;
 use faction_chaos::engine::regressions::Regressions;
 use faction_chaos::engine::replay::Replay;
@@ -69,7 +70,7 @@ fn main() -> ExitCode {
             ended.is_ok()
         }
         Ok(Invocation::Soak { from, limit }) => {
-            let from = from.unwrap_or_else(|| SystemWallClock.now().timestamp().unsigned_abs());
+            let from = from.unwrap_or_else(|| FreshSeed::new(Arc::new(SystemWallClock)).seed());
             let failed = Soak::new(
                 from,
                 limit,
