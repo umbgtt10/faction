@@ -24,6 +24,11 @@ release since names the version it conforms to.
   correct a defect, never to grow; `released.json` marks it withdrawn at 0.7.0, and its bytes
   are kept in `spec/withdrawn/`.
 
+#### Changed
+- The chaos tier's layer above asks a newcomer to coordinate once added, as it asks any peer no
+  change removes: refused while its membership is provisional, coordinating once its own addition
+  commits.
+
 #### Fixed
 - An adopted membership's missed periods are listed in its members' order, as the specification
   says (§1, §16): a node kept them in the order of the membership it held before, so a view after

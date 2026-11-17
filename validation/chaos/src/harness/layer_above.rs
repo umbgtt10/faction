@@ -10,6 +10,7 @@ use faction_system_tests::membership::Membership;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 
 use crate::harness::committed_log::CommittedLog;
+use crate::harness::coordinators::Coordinators;
 use crate::model::change::Change;
 use crate::model::planned_change::PlannedChange;
 use crate::model::scenario::Scenario;
@@ -28,9 +29,10 @@ enum Progress {
 }
 
 // The layer above the nodes, played as a consensus layer would play it. It
-// asks a coordinator -- a genesis member no change removes -- for each
-// planned change once it is due, commits the proposals it sees one at a
-// time, numbering them, and commits a new required count of its own accord.
+// asks a coordinator -- any peer no change removes, a newcomer among them
+// once added -- for each planned change once it is due, commits the
+// proposals it sees one at a time, numbering them, and commits a new
+// required count of its own accord.
 // A request a coordinator refused, or lost, it asks again. It reports to
 // every running node the commits it lacks, in epoch order, up to
 // `delivery_lag` rounds late and, at `duplicates` percent, twice: a node
@@ -51,16 +53,6 @@ impl LayerAbove {
     #[must_use]
     pub fn new(scenario: &Scenario) -> Self {
         let genesis: Vec<PeerId> = (0..scenario.nodes as PeerId).collect();
-        let coordinators = genesis
-            .iter()
-            .copied()
-            .filter(|peer_id| {
-                !scenario
-                    .changes
-                    .iter()
-                    .any(|planned| planned.change == Change::Removal { peer_id: *peer_id })
-            })
-            .collect();
         Self {
             plan: scenario.changes.clone(),
             progress: vec![Progress::Waiting { retry_at: 0 }; scenario.changes.len()],
@@ -69,7 +61,7 @@ impl LayerAbove {
                 required_count: scenario.required_count,
                 epoch: 0,
             }),
-            coordinators,
+            coordinators: Coordinators::of(scenario),
             due: Vec::new(),
             dice: Dice::new(scenario.seed.wrapping_mul(SEED_MIX) ^ DICE_SALT),
             delivery_lag: scenario.delivery_lag,

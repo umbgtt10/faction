@@ -306,7 +306,7 @@ The caller owns the network. `faction` owns the state.
 | `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
 | `validation/system-tests/` rejoin | Nodes restarted, re-added, partitioned and ahead, across spawn/transport | 50 |
 | `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 343 |
-| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 95 |
+| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 96 |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -338,7 +338,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 |---|---|
 | Core productive LOC | ~2,350 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.7.0 — its independent model and the crate answer all 115 vectors in force as written, each kept as released, and one withdrawn to correct a defect |
-| Total tests | 1,991 |
+| Total tests | 1,992 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
