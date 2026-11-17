@@ -9,7 +9,6 @@ use std::fs::write;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use faction::peer_state::PeerState;
@@ -18,15 +17,17 @@ use faction::types::Epoch;
 use faction::types::PeerId;
 use faction_protocol::commit::Commit;
 
+use crate::infra::fault_settings::FaultSettings;
 use crate::join::approver::Approver;
 use crate::join::committer::Committer;
 use crate::join::joining::Joining;
 use crate::membership::Membership;
 use crate::node::Node;
 use crate::node_snapshot::NodeSnapshot;
+use crate::poll_expired::PollExpired;
 use crate::spawn::Spawn;
+use crate::time_ports::TimePorts;
 use crate::timer_delay::TimerDelay;
-use crate::traits::pause::Pause;
 
 pub struct Cluster {
     nodes: Vec<Node>,
@@ -36,7 +37,7 @@ pub struct Cluster {
     started: bool,
     joining: Option<Joining>,
     log_dir: Option<PathBuf>,
-    pause: Arc<dyn Pause>,
+    time: TimePorts,
     added_addrs: Vec<(PeerId, SocketAddr)>,
     epoch: Cell<Epoch>,
     missed: RefCell<Vec<(PeerId, Commit)>>,
@@ -51,7 +52,7 @@ impl Cluster {
         timer_delay: TimerDelay,
         joining: Option<Joining>,
         log_dir: Option<PathBuf>,
-        pause: Arc<dyn Pause>,
+        time: TimePorts,
     ) -> Self {
         Self {
             nodes,
@@ -61,7 +62,7 @@ impl Cluster {
             started: false,
             joining,
             log_dir,
-            pause,
+            time,
             added_addrs: Vec::new(),
             epoch: Cell::new(0),
             missed: RefCell::new(Vec::new()),
@@ -264,7 +265,7 @@ impl Cluster {
         self.start_all();
         while !holds(self) {
             self.step_all();
-            self.pause.pause(self.poll_delay);
+            self.time.pause.pause(self.poll_delay);
         }
     }
 
@@ -272,7 +273,7 @@ impl Cluster {
         self.start_all();
         while !self.is_bootstrapped() {
             self.step_all();
-            self.pause.pause(self.poll_delay);
+            self.time.pause.pause(self.poll_delay);
         }
     }
 
@@ -285,7 +286,7 @@ impl Cluster {
         };
         while self.nodes[coordinator].snapshot().reconfiguration != proposed {
             self.step_all();
-            self.pause.pause(self.poll_delay);
+            self.time.pause.pause(self.poll_delay);
         }
     }
 
@@ -294,6 +295,35 @@ impl Cluster {
     pub fn poll_until_removal_proposed(&mut self, coordinator: usize, peer_id: PeerId) {
         let proposed = Reconfiguration::RemovalRequested { peer_id };
         self.poll_until(|cluster| cluster.snapshot(coordinator).reconfiguration == proposed);
+    }
+
+    // Until `holds`, or the deadline: what the poll waited for, named, if it
+    // gave up -- the deadline read on the cluster's own clock.
+    pub fn poll_within(
+        &mut self,
+        deadline: Duration,
+        waiting_for: &str,
+        holds: impl Fn(&Self) -> bool,
+    ) -> Result<(), PollExpired> {
+        self.start_all();
+        let until = self.time.clock.now() + deadline;
+        while !holds(self) {
+            if self.time.clock.now() >= until {
+                return Err(PollExpired {
+                    waiting_for: String::from(waiting_for),
+                    deadline,
+                });
+            }
+            self.step_all();
+            self.time.pause.pause(self.poll_delay);
+        }
+        Ok(())
+    }
+
+    // A commit reported to the node `peer_id` alone: the layer above reaching
+    // one node in its own time.
+    pub fn report_commit(&self, peer_id: PeerId, commit: Commit) {
+        Self::report(self.node_of(peer_id), commit);
     }
 
     pub fn request_addition(&self, coordinator: usize, newcomer_id: PeerId) {
@@ -310,11 +340,16 @@ impl Cluster {
         self.node_of(peer_id).restart(membership);
     }
 
+    // The faults of the node `peer_id` set to `settings`, whatever runs it.
+    pub fn set_faults(&self, peer_id: PeerId, settings: &FaultSettings) {
+        self.node_of(peer_id).set_faults(settings);
+    }
+
     pub fn settle(&mut self, rounds: usize) {
         self.start_all();
         for _ in 0..rounds {
             self.step_all();
-            self.pause.pause(self.poll_delay);
+            self.time.pause.pause(self.poll_delay);
         }
     }
 
@@ -338,6 +373,11 @@ impl Cluster {
             node.start();
         }
         self.started = true;
+    }
+
+    // One input of the node at `index` taken, if it had one: whether it had.
+    pub fn step(&self, index: usize) -> bool {
+        self.nodes[index].step()
     }
 
     pub fn step_all(&mut self) {

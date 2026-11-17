@@ -6,6 +6,7 @@ use std::sync::mpsc::Sender;
 use faction::types::Epoch;
 use faction::types::PeerId;
 
+use crate::infra::fault_settings::FaultSettings;
 use crate::membership::Membership;
 
 pub enum NodeCommand {
@@ -23,5 +24,6 @@ pub enum NodeCommand {
     Cut(PeerId, Sender<()>),
     Mend(PeerId, Sender<()>),
     Restart(Membership, Sender<()>),
+    SetFaults(Box<FaultSettings>, Sender<()>),
     Shutdown,
 }

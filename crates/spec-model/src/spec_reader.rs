@@ -49,6 +49,10 @@ impl SpecReader {
             required_count: Self::count(&value["required_count"]),
             suspicion_threshold: Self::count(&value["suspicion_threshold"]),
             epoch: value.get("epoch").map_or(0, Self::count),
+            provisional: value
+                .get("provisional")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
         }
     }
 

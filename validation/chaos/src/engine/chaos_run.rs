@@ -1,0 +1,161 @@
+// Copyright (c) 2025-2026 Umberto Gotti
+// SPDX-License-Identifier: MIT
+
+use std::path::PathBuf;
+
+use faction::types::PeerId;
+use faction_system_tests::cluster::Cluster;
+use faction_system_tests::infra::invariants::breaches::Breaches;
+
+use crate::engine::chaos_engine::ChaosEngine;
+use crate::engine::fault_schedule::FaultSchedule;
+use crate::harness::layer_above::LayerAbove;
+use crate::model::change::Change;
+use crate::model::restart_from::RestartFrom;
+use crate::model::restart_plan::RestartPlan;
+use crate::model::scenario::Scenario;
+use crate::oracle::expected_end::ExpectedEnd;
+use crate::oracle::failure::Failure;
+
+// A scenario played on an engine: each round the faults in force are set on
+// the nodes, the layer above acts, and the engine plays the round. Once the
+// chaos ends every fault heals -- a node down, or with its timer side dead,
+// restarted -- and the run waits for the end state the committed log implies,
+// every invariant of a node it runs in-process watched throughout. It
+// announces no fault it injects, and logs nothing unless given a folder.
+pub struct ChaosRun {
+    scenario: Scenario,
+    cluster: Cluster,
+    engine: Box<dyn ChaosEngine>,
+    breaches: Breaches,
+    schedule: FaultSchedule,
+    layer: LayerAbove,
+}
+
+impl ChaosRun {
+    #[must_use]
+    pub fn new(scenario: Scenario, engine: Box<dyn ChaosEngine>, log_dir: Option<PathBuf>) -> Self {
+        let breaches = Breaches::default();
+        let builder = engine
+            .builder(&scenario)
+            .suspicion_threshold(scenario.suspicion_threshold)
+            .breaches(breaches.clone())
+            .silent();
+        let mut cluster = match log_dir {
+            Some(dir) => builder.log_dir(dir),
+            None => builder,
+        }
+        .build();
+        cluster.start_all();
+        let peers = Self::peers(&scenario);
+        for peer_id in peers[scenario.nodes..].iter().copied() {
+            cluster.add_newcomer(peer_id);
+        }
+        let schedule =
+            FaultSchedule::new(scenario.faults.clone(), scenario.restarts.clone(), peers);
+        let layer = LayerAbove::new(&scenario);
+        Self {
+            scenario,
+            cluster,
+            engine,
+            breaches,
+            schedule,
+            layer,
+        }
+    }
+
+    // The scenario played: the round its end state was reached at, or how it
+    // failed.
+    pub fn run(mut self) -> Result<u64, Failure> {
+        let deadline = self.scenario.chaos_rounds + self.scenario.quiescence_rounds;
+        for round in 0..=deadline {
+            self.disturb(round);
+            self.layer.act(round, &self.cluster);
+            self.engine.round(&self.cluster);
+            if let Some(breach) = self.breaches.first() {
+                return Err(Failure::Breach { round, breach });
+            }
+            if round >= self.scenario.chaos_rounds
+                && self.layer.settled()
+                && self.departure().is_none()
+            {
+                return Ok(round);
+            }
+        }
+        Err(self.failure(deadline))
+    }
+
+    // The first node short of the end state, and what it was expected to show.
+    fn departure(&self) -> Option<(PeerId, String)> {
+        let expected = ExpectedEnd::new(self.layer.log());
+        (0..self.cluster.node_count()).find_map(|index| {
+            let peer_id = index as PeerId;
+            expected
+                .departure(peer_id, &self.cluster.snapshot(index))
+                .map(|shown| (peer_id, shown))
+        })
+    }
+
+    // The chaos of `round`: its faults set and its restarts made; at its end,
+    // every fault healed and the commits reported at once.
+    fn disturb(&mut self, round: u64) {
+        if round < self.scenario.chaos_rounds {
+            self.schedule.apply(round, &self.cluster);
+            for plan in self.schedule.restarts_at(round) {
+                self.restart(plan);
+            }
+        } else if round == self.scenario.chaos_rounds {
+            self.schedule.heal(&self.cluster);
+            for peer_id in self.schedule.healed_by_restart(round) {
+                self.restart(RestartPlan {
+                    peer_id,
+                    at: round,
+                    down_for: 0,
+                    from: RestartFrom::Snapshot { behind: 0 },
+                });
+            }
+            self.layer.quiesce();
+        }
+    }
+
+    fn failure(&self, round: u64) -> Failure {
+        match self.departure() {
+            Some((peer_id, expected)) => Failure::Diverged {
+                round,
+                peer_id,
+                expected,
+                found: Box::new(self.cluster.snapshot(peer_id as usize)),
+            },
+            None => Failure::Uncommitted { round },
+        }
+    }
+
+    // Every peer the scenario runs: the genesis peers and the newcomers its
+    // changes add, numbered on from them.
+    fn peers(scenario: &Scenario) -> Vec<PeerId> {
+        let last = scenario
+            .changes
+            .iter()
+            .filter_map(|planned| match planned.change {
+                Change::Addition { peer_id } => Some(peer_id + 1),
+                _ => None,
+            })
+            .max()
+            .unwrap_or(0)
+            .max(scenario.nodes as PeerId);
+        (0..last).collect()
+    }
+
+    // A node created again from its genesis, or from a membership of the log
+    // `behind` commits short of what it holds.
+    fn restart(&self, plan: RestartPlan) {
+        let log = self.layer.log();
+        let held = log.after(self.cluster.snapshot(plan.peer_id as usize).epoch);
+        let prefix = match plan.from {
+            RestartFrom::Genesis => 0,
+            RestartFrom::Snapshot { behind } => held.saturating_sub(behind),
+        };
+        self.cluster
+            .restart(plan.peer_id, log.membership_at(prefix));
+    }
+}

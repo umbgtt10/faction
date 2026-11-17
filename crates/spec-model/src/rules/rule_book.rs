@@ -7,7 +7,7 @@ use crate::rules::change::Change;
 use crate::rules::rule::Rule;
 use crate::rules::situation::Situation;
 
-const RULES: [(&str, Rule); 70] = [
+const RULES: [(&str, Rule); 73] = [
     (
         "probed",
         Rule {
@@ -37,9 +37,23 @@ const RULES: [(&str, Rule); 70] = [
         },
     ),
     (
+        "claim-behind-provisional-before-completion",
+        Rule {
+            situation: Situation::ProvisionalClaimIsBehind,
+            change: Change::Nothing,
+        },
+    ),
+    (
         "claim-behind-before-completion",
         Rule {
             situation: Situation::ClaimIsBehind,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "claim-behind-provisional",
+        Rule {
+            situation: Situation::ProvisionalClaimIsBehind,
             change: Change::Nothing,
         },
     ),
@@ -173,6 +187,13 @@ const RULES: [(&str, Rule); 70] = [
         "acknowledgement-ignored",
         Rule {
             situation: Situation::AcknowledgementNotAwaited,
+            change: Change::Nothing,
+        },
+    ),
+    (
+        "acknowledgement-behind-provisional",
+        Rule {
+            situation: Situation::ProvisionalClaimIsBehind,
             change: Change::Nothing,
         },
     ),

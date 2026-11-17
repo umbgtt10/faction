@@ -1,0 +1,30 @@
+[package]
+name = "faction-chaos"
+version = "0.1.0"
+edition.workspace = true
+rust-version = "1.85"
+license.workspace = true
+description = "Seeded chaos scenarios for faction: changes under network and timer faults, checked against the end state the committed log implies."
+repository = "https://github.com/umbgtt10/faction"
+homepage = "https://github.com/umbgtt10/faction"
+documentation = "https://docs.rs/faction"
+readme = "../../README.md"
+keywords = ["cluster", "chaos", "testing", "distributed", "faults"]
+categories = ["development-tools::testing"]
+autotests = false
+publish = false
+
+[dependencies]
+chrono.workspace = true
+faction.workspace = true
+faction-protocol.workspace = true
+faction-system-tests.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+rstest.workspace = true
+
+[[test]]
+name = "all_tests"
+path = "tests/all_tests.rs"

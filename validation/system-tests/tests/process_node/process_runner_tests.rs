@@ -4,6 +4,7 @@
 use crate::support::SharedOutput;
 use crate::support::fake_time;
 use crate::support::in_memory_node;
+use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::infra::network::address_book::AddressBook;
 use faction_system_tests::process_node::process_command::ProcessCommand;
 use faction_system_tests::process_node::process_runner::ProcessRunner;
@@ -22,6 +23,15 @@ fn runner(
     commands: Receiver<ProcessCommand>,
     idle_delay: Duration,
 ) -> (ProcessRunner, SharedOutput, AddressBook) {
+    runner_living(time, commands, idle_delay, NODE_LIFETIME)
+}
+
+fn runner_living(
+    time: TimePorts,
+    commands: Receiver<ProcessCommand>,
+    idle_delay: Duration,
+    lifetime: Duration,
+) -> (ProcessRunner, SharedOutput, AddressBook) {
     let output = SharedOutput::default();
     let address_book: AddressBook = Arc::new(Mutex::new(Vec::new()));
     let runner = ProcessRunner::new(
@@ -31,6 +41,7 @@ fn runner(
         Box::new(output.clone()),
         time,
         idle_delay,
+        lifetime,
     );
     (runner, output, address_book)
 }
@@ -69,7 +80,7 @@ fn run_applies_a_command_then_acknowledges_it() {
     // Assert
     assert_eq!(
         output.text(),
-        "state Fresh 3 2 none - off 0\nstate Fresh 4 2 none - off 0\nack\nstate Fresh 4 2 none - off 0\n"
+        "state Fresh 3 2 none - off 0 0,1,2\nstate Fresh 4 2 none - off 0 0,1,2,5\nack\nstate Fresh 4 2 none - off 0 0,1,2,5\n"
     );
 }
 
@@ -110,7 +121,27 @@ fn run_applies_the_addition_commands_and_acknowledges_each() {
     // Assert
     let text = output.text();
     assert_eq!(text.matches("ack").count(), 4);
-    assert!(text.ends_with("state Fresh 4 3 none - off 2\n"), "{text}");
+    assert!(
+        text.ends_with("state Fresh 4 3 none - off 2 0,1,2,7\n"),
+        "{text}"
+    );
+}
+
+#[test]
+fn run_applies_the_faults_and_acknowledges_them() {
+    // Arrange
+    let (time, _) = fake_time();
+    let (_sender, receiver) = sent(&[
+        ProcessCommand::Faults(Box::default()),
+        ProcessCommand::Shutdown,
+    ]);
+    let (runner, output, _) = runner(time, receiver, Duration::from_millis(10));
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert_eq!(output.text().matches("ack").count(), 1);
 }
 
 #[test]
@@ -131,7 +162,10 @@ fn run_applies_the_join_commands_without_admitting() {
     // Assert
     let text = output.text();
     assert_eq!(text.matches("ack").count(), 3);
-    assert!(text.ends_with("state Fresh 3 2 none - off 0\n"), "{text}");
+    assert!(
+        text.ends_with("state Fresh 3 2 none - off 0 0,1,2\n"),
+        "{text}"
+    );
 }
 
 #[test]
@@ -152,7 +186,10 @@ fn run_applies_the_removal_commands_and_acknowledges_each() {
     // Assert
     let text = output.text();
     assert_eq!(text.matches("ack").count(), 3);
-    assert!(text.ends_with("state Fresh 2 2 none - off 1\n"), "{text}");
+    assert!(
+        text.ends_with("state Fresh 2 2 none - off 1 0,1\n"),
+        "{text}"
+    );
 }
 
 #[test]
@@ -182,5 +219,29 @@ fn run_without_commands_ends_once_its_lifetime_is_over() {
 
     // Assert
     assert!(clock.now() >= Duration::from_secs(30), "{:?}", clock.now());
-    assert!(output.text().starts_with("state Fresh 3 2 none - off 0\n"));
+    assert!(
+        output
+            .text()
+            .starts_with("state Fresh 3 2 none - off 0 0,1,2\n")
+    );
+}
+
+#[test]
+fn run_without_commands_ends_once_the_lifetime_it_was_given_is_over() {
+    // Arrange
+    let (time, clock) = fake_time();
+    let (_sender, receiver) = sent(&[]);
+    let (runner, _, _) = runner_living(
+        time,
+        receiver,
+        Duration::from_millis(10),
+        Duration::from_secs(2),
+    );
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert!(clock.now() >= Duration::from_secs(2), "{:?}", clock.now());
+    assert!(clock.now() < NODE_LIFETIME, "{:?}", clock.now());
 }

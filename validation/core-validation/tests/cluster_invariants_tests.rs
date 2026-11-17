@@ -26,6 +26,7 @@ fn concluded(collecting_peers: Vec<PeerId>, required_count: usize) -> ClusterVie
         None,
         Quorum::Held,
         0,
+        false,
     )
 }
 
@@ -46,6 +47,7 @@ fn pinging(pinging_peers: Vec<PeerId>, collecting_peers: Vec<PeerId>) -> Cluster
         None,
         Quorum::NotTracked,
         0,
+        false,
     )
 }
 

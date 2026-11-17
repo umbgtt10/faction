@@ -47,6 +47,18 @@ fn to_string_of_a_broken_rule_says_so() {
 }
 
 #[test]
+fn to_string_of_a_failed_chaos_run_names_its_exit_code() {
+    // Arrange
+    let failure = GateFailure::ChaosFailed { exit_code: Some(1) };
+
+    // Act
+    let shown = failure.to_string();
+
+    // Assert
+    assert_eq!(shown, "a chaos run failed, exit code Some(1)");
+}
+
+#[test]
 fn to_string_of_a_failed_system_test_carries_the_exit_code() {
     // Arrange
     let failure = GateFailure::SystemTestFailed { exit_code: None };

@@ -15,6 +15,8 @@ use faction_protocol::timer_message::TimerMessage;
 use faction_system_tests::infra::logging::shared_file_observer::SharedFileObserver;
 use faction_system_tests::infra::logging::shared_writer::SharedWriter;
 use faction_system_tests::node_observer::NodeObserver;
+use serde_json::Value;
+use serde_json::from_str;
 use std::env::temp_dir;
 use std::fs;
 use std::fs::File;
@@ -133,6 +135,28 @@ fn node_observer_on_start_writes_start_event() {
     let content = read_file(tmp.path());
     assert!(content.contains("\"event\":\"start\""));
     assert!(content.contains("\"peer_id\":7"));
+}
+
+#[test]
+fn node_observer_on_step_writes_its_decisions_as_a_json_string() {
+    // Arrange
+    let tmp = TempFile::new();
+    let writer = tmp.reader();
+    let mut observer = SharedFileObserver::new(writer, 7, wall_clock());
+    let input = InputMessage::Timer(TimerMessage::RetryPing);
+    let decisions = vec![
+        OutputMessage::Noop,
+        OutputMessage::BroadcastReady { epoch: 0 },
+    ];
+
+    // Act
+    observer.on_step(&input, &decisions);
+    drop(observer);
+
+    // Assert
+    let line: Value = from_str(read_file(tmp.path()).trim_end()).expect("a step line is JSON");
+    assert_eq!(line["decisions"], "[Noop, BroadcastReady { epoch: 0 }]");
+    assert_eq!(line["input"], "Timer(RetryPing)");
 }
 
 #[test]

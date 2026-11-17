@@ -4,6 +4,11 @@
 use crate::support::fake_time;
 use crate::support::recipe;
 use faction::peer_state::PeerState;
+use faction_system_tests::constants::NODE_LIFETIME;
+use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::invariants::breaches::Breaches;
+use faction_system_tests::infra::logging::logs::Logs;
+use faction_system_tests::infra::timer::timer_delays::TimerDelays;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node::Node;
 use faction_system_tests::node_recipe::NodeRecipe;
@@ -53,11 +58,16 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
     let recipe = NodeRecipe::new(
         1,
         1,
-        Duration::from_millis(10),
-        Duration::from_secs(10),
-        ProbeStretch::Minimal.factor(),
-        Some(dir.clone()),
+        TimerDelays {
+            delay: Duration::from_millis(10),
+            deadline_delay: Duration::from_secs(10),
+            probe_stretch: ProbeStretch::Minimal.factor(),
+            lifetime: NODE_LIFETIME,
+        },
+        Logs::Files(dir.clone()),
         time,
+        FaultBoard::default(),
+        Breaches::default(),
     );
     let transport = InMemoryTransport::new_mesh(&[0]).remove(0);
 

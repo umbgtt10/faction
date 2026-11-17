@@ -65,6 +65,7 @@ fn faction(genesis: Epoch, required_count: usize) -> Faction {
             QuorumPolicy::new(required_count),
             1,
             genesis,
+            false,
         ),
         Box::new(NoOpObserver),
     )

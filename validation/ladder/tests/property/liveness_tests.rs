@@ -45,7 +45,14 @@ fn answered(faction: &mut Faction, command: Command) -> (Vec<Outcome>, ClusterVi
 // Concluded: its own completion and two peers' readiness reach three.
 fn concluded(threshold: usize) -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(3), threshold, 0),
+        Config::new(
+            0,
+            vec![0, 1, 2, 3, 4],
+            QuorumPolicy::new(3),
+            threshold,
+            0,
+            false,
+        ),
         Box::new(NoOpObserver),
     );
     for command in [

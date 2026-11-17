@@ -26,17 +26,19 @@ pub struct ClusterViewBuilder {
     last_probed: Option<PeerId>,
     quorum: Quorum,
     epoch: Epoch,
+    provisional: bool,
 }
 
 impl ClusterViewBuilder {
     #[must_use]
     pub fn from_view(view: &ClusterView) -> Self {
-        Self::from_view_at(view, view.epoch())
+        Self::from_view_at(view, view.epoch(), view.is_provisional())
     }
 
-    // A view's builder, the view moved to `epoch`.
+    // A view's builder, the view moved to `epoch`, its membership
+    // `provisional` or not (§16).
     #[must_use]
-    pub fn from_view_at(view: &ClusterView, epoch: Epoch) -> Self {
+    pub fn from_view_at(view: &ClusterView, epoch: Epoch, provisional: bool) -> Self {
         Self {
             peer_state: view.peer_state(),
             is_pinging_completed: view.is_pinging_completed(),
@@ -51,6 +53,7 @@ impl ClusterViewBuilder {
             last_probed: view.last_probed(),
             quorum: view.quorum(),
             epoch,
+            provisional,
         }
     }
 
@@ -70,6 +73,7 @@ impl ClusterViewBuilder {
             self.last_probed,
             self.quorum,
             self.epoch,
+            self.provisional,
         )
     }
 
@@ -162,6 +166,7 @@ impl Default for ClusterViewBuilder {
             last_probed: None,
             quorum: Quorum::NotTracked,
             epoch: 0,
+            provisional: false,
         }
     }
 }

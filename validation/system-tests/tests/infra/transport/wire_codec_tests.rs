@@ -14,12 +14,14 @@ fn every_message() -> Vec<TransportMessage> {
         TransportMessage::Bootstrapped { from: 7 },
         TransportMessage::Membership {
             from: 0,
+            to: u64::MAX,
             members: vec![0, 1, u64::MAX],
             required_count: 2,
             epoch: 9,
         },
         TransportMessage::Membership {
             from: 4,
+            to: 3,
             members: vec![],
             required_count: 0,
             epoch: 0,
@@ -79,6 +81,7 @@ fn decode_of_a_membership_whose_members_overrun_the_frame_is_none() {
     // Arrange
     let mut frame = WireCodec::encode(&TransportMessage::Membership {
         from: 0,
+        to: 2,
         members: vec![1],
         required_count: 1,
         epoch: 0,

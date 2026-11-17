@@ -33,9 +33,32 @@ stage1:
     cargo fmt {{fmt_mode}}
     cargo clippy --workspace --all-targets -- -D warnings
     cargo check -p faction -p faction-core-validation -p faction-protocol -p faction-protocol-validation -p faction-spec-model --no-default-features --lib --target thumbv7em-none-eabihf
-    cargo test -p faction -p faction-core-validation -p faction-ladder -p faction-memory -p faction-protocol -p faction-protocol-validation -p faction-spec-model -p xtask
+    cargo test -p faction -p faction-chaos -p faction-core-validation -p faction-ladder -p faction-memory -p faction-protocol -p faction-protocol-validation -p faction-spec-model -p xtask
     cargo test -p faction-system-tests --lib --bins
     cargo xtask system-tests
+
+# The chaos validation once: the deterministic engine's single run of seeds
+# and every regression recorded, as stage 1 runs them; then the real engine's
+# list -- three seeds in each of the six thread and process cases, on the
+# machine's clock -- its logs in logs/chaos/<run>/, the newest 50 runs kept.
+chaos:
+    cargo test -q -p faction-chaos
+    cargo xtask chaos real
+
+# Chaos seeds played on the deterministic engine, one after another: for an
+# hour, or as long as CHAOS_DURATION says (seconds, or with s, m or h), or for
+# CHAOS_SCENARIOS scenarios, from a fresh seed or from CHAOS_SEED. Each failure
+# is replayed with its logs, shrunk and recorded in
+# validation/chaos/chaos-regressions.json; the run's logs go to
+# logs/chaos/<run>/, the newest 50 runs kept.
+chaos-soak:
+    cargo xtask chaos soak
+
+# One chaos seed replayed on the deterministic engine, every node's log
+# written under logs/chaos/<run>/<seed>/ with their consolidation, the newest
+# 50 runs kept: the run a failure reported, to be read.
+chaos-replay seed:
+    cargo xtask chaos replay {{seed}}
 
 # House rules, duplication, CRAP, coverage, mirrored tests, file risk and
 # dependencies, in that order: see xtask/src/main.rs.

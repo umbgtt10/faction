@@ -10,7 +10,7 @@ extern crate alloc;
 #[test]
 fn epoch_is_the_one_given() {
     // Arrange
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 6);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, 6, false);
 
     // Act
     let epoch = config.epoch();
@@ -20,12 +20,27 @@ fn epoch_is_the_one_given() {
 }
 
 #[test]
+fn is_provisional_is_the_one_given() {
+    // Arrange
+    let newcomer = Config::new(5, vec![0, 5], QuorumPolicy::new(1), 1, 2, true);
+
+    // Act
+    let provisional = [
+        newcomer.is_provisional(),
+        Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0, false).is_provisional(),
+    ];
+
+    // Assert
+    assert_eq!(provisional, [true, false]);
+}
+
+#[test]
 fn new_stores_provided_values() {
     // Arrange
     let peers = vec![0, 1, 2, 3, 4];
 
     // Act
-    let config = Config::new(0, peers.clone(), QuorumPolicy::new(3), 1, 0);
+    let config = Config::new(0, peers.clone(), QuorumPolicy::new(3), 1, 0, false);
 
     // Assert
     assert_eq!(config.peer_id(), 0);
@@ -38,7 +53,7 @@ fn new_stores_provided_values() {
 #[test]
 fn suspicion_threshold_is_the_one_given() {
     // Arrange
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 3, 0);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 3, 0, false);
 
     // Act
     let threshold = config.suspicion_threshold();

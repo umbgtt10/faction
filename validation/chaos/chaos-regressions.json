@@ -1,0 +1,658 @@
+[
+  {
+    "seed": 1794853604,
+    "failure": "round 3282: node 2 expected NodeSnapshot { peer_state: Bootstrapped, member_count: 3, members: [0, 1, 2], required_count: 3, reconfiguration: None, suspected: [], quorum: Held, epoch: 0 }, found NodeSnapshot { peer_state: Bootstrapped, member_count: 3, members: [0, 1, 2], required_count: 3, reconfiguration: None, suspected: [0, 1], quorum: Lost, epoch: 0 }",
+    "scenario": {
+      "seed": 1794853604,
+      "nodes": 3,
+      "required_count": 3,
+      "suspicion_threshold": 2,
+      "changes": [],
+      "faults": [
+        {
+          "peer_id": 2,
+          "from": 112,
+          "until": 364,
+          "fault": {
+            "Transport": {
+              "loss": 0,
+              "duplication": 0,
+              "delay": 0,
+              "reorder": 0,
+              "partition": 0,
+              "asymmetric": 0,
+              "selective": 0,
+              "selective_target": "Ready",
+              "misdelivery": 0,
+              "first_contact_lost": 0,
+              "unreachable": [],
+              "head_of_line": false,
+              "inbox": 0,
+              "size_loss": 0,
+              "burst_loss": 0,
+              "mute": true,
+              "deaf": false,
+              "starved": false,
+              "seed": 6601341533429132334
+            }
+          }
+        }
+      ],
+      "restarts": [
+        {
+          "peer_id": 2,
+          "at": 255,
+          "down_for": 27,
+          "from": {
+            "Snapshot": {
+              "behind": 1
+            }
+          }
+        }
+      ],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 282,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 1794853185,
+    "failure": "round 3125: node 2 expected Removed at epoch 2, found NodeSnapshot { peer_state: Collecting, member_count: 5, members: [0, 1, 3, 4, 2], required_count: 3, reconfiguration: None, suspected: [], quorum: NotTracked, epoch: 2 }",
+    "scenario": {
+      "seed": 1794853185,
+      "nodes": 4,
+      "required_count": 3,
+      "suspicion_threshold": 3,
+      "changes": [
+        {
+          "change": {
+            "Addition": {
+              "peer_id": 4
+            }
+          },
+          "due": 28,
+          "after": null
+        },
+        {
+          "change": {
+            "Removal": {
+              "peer_id": 2
+            }
+          },
+          "due": 57,
+          "after": null
+        }
+      ],
+      "faults": [
+        {
+          "peer_id": 1,
+          "from": 79,
+          "until": 141,
+          "fault": {
+            "Transport": {
+              "loss": 0,
+              "duplication": 0,
+              "delay": 0,
+              "reorder": 0,
+              "partition": 0,
+              "asymmetric": 0,
+              "selective": 0,
+              "selective_target": "Ready",
+              "misdelivery": 23,
+              "first_contact_lost": 0,
+              "unreachable": [],
+              "head_of_line": false,
+              "inbox": 0,
+              "size_loss": 0,
+              "burst_loss": 0,
+              "mute": false,
+              "deaf": false,
+              "starved": false,
+              "seed": 6662450550933702949
+            }
+          }
+        },
+        {
+          "peer_id": 0,
+          "from": 77,
+          "until": 205,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 45,
+              "replace": false,
+              "starved": false,
+              "dead": false,
+              "seed": 9315696294094580906
+            }
+          }
+        },
+        {
+          "peer_id": 4,
+          "from": 45,
+          "until": 161,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 38,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": false,
+              "seed": 1751463209977336993
+            }
+          }
+        }
+      ],
+      "restarts": [
+        {
+          "peer_id": 3,
+          "at": 83,
+          "down_for": 10,
+          "from": {
+            "Snapshot": {
+              "behind": 2
+            }
+          }
+        }
+      ],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 125,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 1794856760,
+    "failure": "round 3162: node 1 expected Removed at epoch 1, found NodeSnapshot { peer_state: Bootstrapped, member_count: 5, members: [0, 2, 3, 1, 4], required_count: 2, reconfiguration: None, suspected: [], quorum: Held, epoch: 3 }",
+    "scenario": {
+      "seed": 1794856760,
+      "nodes": 5,
+      "required_count": 2,
+      "suspicion_threshold": 1,
+      "changes": [
+        {
+          "change": {
+            "Removal": {
+              "peer_id": 4
+            }
+          },
+          "due": 72,
+          "after": null
+        },
+        {
+          "change": {
+            "Addition": {
+              "peer_id": 4
+            }
+          },
+          "due": 134,
+          "after": 0
+        },
+        {
+          "change": {
+            "Removal": {
+              "peer_id": 1
+            }
+          },
+          "due": 60,
+          "after": null
+        }
+      ],
+      "faults": [
+        {
+          "peer_id": 0,
+          "from": 10,
+          "until": 108,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 18,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": false,
+              "seed": 8223574015034583630
+            }
+          }
+        },
+        {
+          "peer_id": 3,
+          "from": 38,
+          "until": 200,
+          "fault": {
+            "Transport": {
+              "loss": 0,
+              "duplication": 0,
+              "delay": 0,
+              "reorder": 0,
+              "partition": 0,
+              "asymmetric": 0,
+              "selective": 0,
+              "selective_target": "Ready",
+              "misdelivery": 28,
+              "first_contact_lost": 0,
+              "unreachable": [],
+              "head_of_line": false,
+              "inbox": 0,
+              "size_loss": 0,
+              "burst_loss": 0,
+              "mute": false,
+              "deaf": false,
+              "starved": false,
+              "seed": 18324629231987012171
+            }
+          }
+        }
+      ],
+      "restarts": [],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 162,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 1794855532,
+    "failure": "round 3232: node 1 expected NodeSnapshot { peer_state: Bootstrapped, member_count: 1, members: [1], required_count: 1, reconfiguration: None, suspected: [], quorum: Held, epoch: 3 }, found NodeSnapshot { peer_state: Bootstrapped, member_count: 2, members: [1, 2], required_count: 1, reconfiguration: None, suspected: [], quorum: Held, epoch: 3 }",
+    "scenario": {
+      "seed": 1794855532,
+      "nodes": 3,
+      "required_count": 1,
+      "suspicion_threshold": 2,
+      "changes": [
+        {
+          "change": {
+            "Removal": {
+              "peer_id": 2
+            }
+          },
+          "due": 0,
+          "after": null
+        },
+        {
+          "change": {
+            "Addition": {
+              "peer_id": 2
+            }
+          },
+          "due": 97,
+          "after": 0
+        },
+        {
+          "change": {
+            "Removal": {
+              "peer_id": 0
+            }
+          },
+          "due": 63,
+          "after": null
+        },
+        {
+          "change": {
+            "RequiredCount": {
+              "required_count": 1
+            }
+          },
+          "due": 64,
+          "after": null
+        }
+      ],
+      "faults": [],
+      "restarts": [
+        {
+          "peer_id": 1,
+          "at": 141,
+          "down_for": 10,
+          "from": "Genesis"
+        },
+        {
+          "peer_id": 1,
+          "at": 98,
+          "down_for": 27,
+          "from": {
+            "Snapshot": {
+              "behind": 2
+            }
+          }
+        }
+      ],
+      "delivery_lag": 2,
+      "duplicates": 10,
+      "chaos_rounds": 232,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 7000357,
+    "failure": "round 3116: node 2 expected NodeSnapshot { peer_state: Bootstrapped, member_count: 4, members: [0, 1, 2, 3], required_count: 2, reconfiguration: None, suspected: [], quorum: Held, epoch: 0 }, found NodeSnapshot { peer_state: Pinging, member_count: 4, members: [0, 1, 2, 3], required_count: 2, reconfiguration: None, suspected: [], quorum: NotTracked, epoch: 0 }",
+    "scenario": {
+      "seed": 7000357,
+      "nodes": 4,
+      "required_count": 2,
+      "suspicion_threshold": 1,
+      "changes": [],
+      "faults": [
+        {
+          "peer_id": 2,
+          "from": 107,
+          "until": 230,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 25,
+              "replace": false,
+              "starved": false,
+              "dead": false,
+              "seed": 9619098242623503604
+            }
+          }
+        },
+        {
+          "peer_id": 2,
+          "from": 45,
+          "until": 121,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": true,
+              "seed": 12994165777397038105
+            }
+          }
+        }
+      ],
+      "restarts": [
+        {
+          "peer_id": 2,
+          "at": 43,
+          "down_for": 24,
+          "from": {
+            "Snapshot": {
+              "behind": 2
+            }
+          }
+        }
+      ],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 116,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 7000379,
+    "failure": "round 3262: node 1 expected NodeSnapshot { peer_state: Bootstrapped, member_count: 3, members: [0, 1, 2], required_count: 3, reconfiguration: None, suspected: [], quorum: Held, epoch: 0 }, found NodeSnapshot { peer_state: Bootstrapped, member_count: 3, members: [0, 1, 2], required_count: 3, reconfiguration: AdditionRequested { peer_id: 4 }, suspected: [], quorum: Held, epoch: 0 }",
+    "scenario": {
+      "seed": 7000379,
+      "nodes": 3,
+      "required_count": 3,
+      "suspicion_threshold": 1,
+      "changes": [
+        {
+          "change": {
+            "Addition": {
+              "peer_id": 4
+            }
+          },
+          "due": 128,
+          "after": null
+        }
+      ],
+      "faults": [
+        {
+          "peer_id": 1,
+          "from": 129,
+          "until": 272,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": true,
+              "seed": 1594122696034070693
+            }
+          }
+        },
+        {
+          "peer_id": 1,
+          "from": 80,
+          "until": 259,
+          "fault": {
+            "Transport": {
+              "loss": 0,
+              "duplication": 0,
+              "delay": 0,
+              "reorder": 0,
+              "partition": 0,
+              "asymmetric": 0,
+              "selective": 0,
+              "selective_target": "Ready",
+              "misdelivery": 0,
+              "first_contact_lost": 2,
+              "unreachable": [],
+              "head_of_line": false,
+              "inbox": 0,
+              "size_loss": 0,
+              "burst_loss": 0,
+              "mute": false,
+              "deaf": false,
+              "starved": false,
+              "seed": 4261228026913153304
+            }
+          }
+        },
+        {
+          "peer_id": 1,
+          "from": 187,
+          "until": 283,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 47,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": false,
+              "seed": 6180247210108968777
+            }
+          }
+        }
+      ],
+      "restarts": [],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 262,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 7000718,
+    "failure": "round 3149: node 0 expected NodeSnapshot { peer_state: Bootstrapped, member_count: 3, members: [0, 1, 2], required_count: 2, reconfiguration: None, suspected: [], quorum: Held, epoch: 0 }, found NodeSnapshot { peer_state: Pinging, member_count: 3, members: [0, 1, 2], required_count: 2, reconfiguration: None, suspected: [], quorum: NotTracked, epoch: 0 }",
+    "scenario": {
+      "seed": 7000718,
+      "nodes": 3,
+      "required_count": 2,
+      "suspicion_threshold": 2,
+      "changes": [],
+      "faults": [
+        {
+          "peer_id": 0,
+          "from": 136,
+          "until": 169,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": true,
+              "dead": false,
+              "seed": 17318453309460742998
+            }
+          }
+        },
+        {
+          "peer_id": 0,
+          "from": 111,
+          "until": 228,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": true,
+              "seed": 9823531649829735958
+            }
+          }
+        }
+      ],
+      "restarts": [
+        {
+          "peer_id": 0,
+          "at": 105,
+          "down_for": 5,
+          "from": "Genesis"
+        }
+      ],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 149,
+      "quiescence_rounds": 3000
+    }
+  },
+  {
+    "seed": 7004610,
+    "failure": "round 3138: node 0 expected NodeSnapshot { peer_state: Bootstrapped, member_count: 5, members: [0, 1, 2, 3, 4], required_count: 4, reconfiguration: None, suspected: [], quorum: Held, epoch: 0 }, found NodeSnapshot { peer_state: Bootstrapped, member_count: 5, members: [0, 1, 2, 3, 4], required_count: 4, reconfiguration: None, suspected: [4], quorum: Held, epoch: 0 }",
+    "scenario": {
+      "seed": 7004610,
+      "nodes": 5,
+      "required_count": 4,
+      "suspicion_threshold": 1,
+      "changes": [],
+      "faults": [
+        {
+          "peer_id": 0,
+          "from": 62,
+          "until": 195,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 0,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": true,
+              "seed": 2827406779431109041
+            }
+          }
+        },
+        {
+          "peer_id": 0,
+          "from": 68,
+          "until": 213,
+          "fault": {
+            "Transport": {
+              "loss": 0,
+              "duplication": 0,
+              "delay": 0,
+              "reorder": 0,
+              "partition": 0,
+              "asymmetric": 0,
+              "selective": 0,
+              "selective_target": "Ready",
+              "misdelivery": 0,
+              "first_contact_lost": 0,
+              "unreachable": [],
+              "head_of_line": false,
+              "inbox": 0,
+              "size_loss": 0,
+              "burst_loss": 26,
+              "mute": false,
+              "deaf": false,
+              "starved": false,
+              "seed": 12741281674555487150
+            }
+          }
+        },
+        {
+          "peer_id": 0,
+          "from": 43,
+          "until": 127,
+          "fault": {
+            "Transport": {
+              "loss": 0,
+              "duplication": 0,
+              "delay": 0,
+              "reorder": 0,
+              "partition": 0,
+              "asymmetric": 0,
+              "selective": 0,
+              "selective_target": "Ready",
+              "misdelivery": 0,
+              "first_contact_lost": 0,
+              "unreachable": [],
+              "head_of_line": false,
+              "inbox": 0,
+              "size_loss": 0,
+              "burst_loss": 0,
+              "mute": false,
+              "deaf": false,
+              "starved": true,
+              "seed": 15471048272686849310
+            }
+          }
+        },
+        {
+          "peer_id": 0,
+          "from": 124,
+          "until": 141,
+          "fault": {
+            "Timer": {
+              "late": 0,
+              "reorder": 10,
+              "duplicate": 0,
+              "lost_cancel": 0,
+              "replace": false,
+              "starved": false,
+              "dead": false,
+              "seed": 9145011407960595427
+            }
+          }
+        }
+      ],
+      "restarts": [
+        {
+          "peer_id": 3,
+          "at": 25,
+          "down_for": 13,
+          "from": "Genesis"
+        }
+      ],
+      "delivery_lag": 0,
+      "duplicates": 0,
+      "chaos_rounds": 138,
+      "quiescence_rounds": 3000
+    }
+  }
+]

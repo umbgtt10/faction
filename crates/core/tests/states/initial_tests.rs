@@ -22,7 +22,7 @@ extern crate alloc;
 
 fn test_faction() -> Faction {
     Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false),
         Box::new(NoOpObserver),
     )
 }
@@ -55,7 +55,7 @@ fn cluster_view_inherits_correctly() {
 fn new_returns_initial_state() {
     // Arrange & Act
     let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
-    let config = Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0);
+    let config = Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0, false);
     let (outcomes, new_state) = initial
         .step(
             Command::ParticipationObserved {
@@ -189,7 +189,7 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
 fn process_local_participation_completed_single_node_bootstraps() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0),
+        Config::new(0, vec![0], QuorumPolicy::new(1), 1, 0, false),
         Box::new(NoOpObserver),
     );
 
@@ -222,7 +222,7 @@ fn process_local_participation_completed_single_node_bootstraps() {
 fn process_of_a_member_s_claim_from_behind_refuses_it_and_leaves_initial() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 2),
+        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 2, false),
         Box::new(NoOpObserver),
     );
 
@@ -443,7 +443,7 @@ fn process_stays_in_initial_after_rejected() {
 fn step_of_a_membership_naming_the_node_keeps_it_initial_holding_the_membership() {
     // Arrange
     let initial = Initial::new(Members::new(vec![0, 1, 2]), QuorumPolicy::new(3));
-    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0, false);
 
     // Act
     let (outcomes, stage) = initial

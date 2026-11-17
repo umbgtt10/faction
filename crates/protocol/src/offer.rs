@@ -15,7 +15,9 @@ use crate::transport_message::TransportMessage;
 
 // A membership a peer sends a node, as the node takes it: as a newcomer does,
 // its members and the node itself, the required count and their epoch -- a
-// member's reply to a claim from behind, or a coordinator's invitation.
+// member's reply to a claim from behind, or a coordinator's invitation. Only a
+// membership addressed to the node is one: another node's, delivered to it,
+// is no offer, so a misdelivered invitation brings no one back.
 pub struct Offer {
     from: PeerId,
     members: Vec<PeerId>,
@@ -25,16 +27,17 @@ pub struct Offer {
 
 impl Offer {
     // The membership `message` carries, as the node `peer_id` takes it; none
-    // for any other message.
+    // for a membership addressed to another peer, nor for any other message.
     #[must_use]
     pub fn of(message: &TransportMessage, peer_id: PeerId) -> Option<Self> {
         match message {
             TransportMessage::Membership {
                 from,
+                to,
                 members,
                 required_count,
                 epoch,
-            } => Some(Self {
+            } if *to == peer_id => Some(Self {
                 from: *from,
                 members: members
                     .iter()
@@ -82,7 +85,8 @@ impl Offer {
         }
     }
 
-    // The configuration a newcomer `peer_id` is created from.
+    // The configuration a newcomer `peer_id` is created from: its membership
+    // provisional, its own addition yet to commit.
     #[must_use]
     pub fn config(&self, peer_id: PeerId, suspicion_threshold: usize) -> Config {
         Config::new(
@@ -91,6 +95,7 @@ impl Offer {
             QuorumPolicy::new(self.required_count),
             suspicion_threshold,
             self.epoch,
+            true,
         )
     }
 }

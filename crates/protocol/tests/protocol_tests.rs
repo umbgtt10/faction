@@ -37,6 +37,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
         to: peer_id,
         message: TransportMessage::Membership {
             from: 0,
+            to: peer_id,
             members: vec![0, 1],
             required_count: 2,
             epoch: 0,
@@ -47,7 +48,7 @@ fn membership_for(peer_id: u64) -> OutputMessage {
 // Node 0 of members 0 to 3, requiring one, concluded by its own completion,
 // asking one helper.
 fn of_four() -> Protocol {
-    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1, 0);
+    let config = Config::new(0, vec![0, 1, 2, 3], QuorumPolicy::new(1), 1, 0, false);
     let mut protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1, 2, 3],
@@ -66,7 +67,7 @@ fn protocol() -> Protocol {
 
 // Node 0 of members 0 and 1, requiring two, created at `epoch`.
 fn protocol_at(epoch: u64) -> Protocol {
-    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, epoch);
+    let config = Config::new(0, vec![0, 1], QuorumPolicy::new(2), 1, epoch, false);
     Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
         vec![0, 1],
@@ -226,13 +227,18 @@ fn decide_after_bootstrapped_re_advertises_on_ping_and_ignores_ready() {
         epoch: 0,
     }));
 
-    // Act & Assert — a member's ping re-advertises this node's readiness
+    // Act & Assert — a member's ping re-advertises this node's readiness to it
     let on_ping = protocol.decide(InputMessage::Transport(TransportMessage::Ping {
         from: 1,
         epoch: 0,
     }));
-    assert_eq!(on_ping.len(), 1);
-    assert!(matches!(on_ping[0], OutputMessage::BroadcastReady { .. }));
+    assert_eq!(
+        on_ping,
+        vec![OutputMessage::Send {
+            to: 1,
+            message: TransportMessage::Ready { from: 0, epoch: 0 },
+        }]
+    );
 
     // Act & Assert — a duplicate ready draws no reply
     let on_ready = protocol.decide(InputMessage::Transport(TransportMessage::Ready {
@@ -416,6 +422,7 @@ fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_
     // Act
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
         from: 7,
+        to: 0,
         members: vec![7],
         required_count: 1,
         epoch: 3,
@@ -457,6 +464,25 @@ fn decide_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
 }
 
 #[test]
+fn decide_membership_addressed_to_another_peer_is_ignored() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
+        from: 7,
+        to: 9,
+        members: vec![7],
+        required_count: 1,
+        epoch: 3,
+    }));
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(protocol.cluster_view().epoch(), 0);
+}
+
+#[test]
 fn decide_membership_at_a_running_node_acknowledges_it() {
     // Arrange
     let mut protocol = protocol();
@@ -464,6 +490,7 @@ fn decide_membership_at_a_running_node_acknowledges_it() {
     // Act
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
         from: 7,
+        to: 0,
         members: vec![7],
         required_count: 1,
         epoch: 0,
@@ -498,6 +525,7 @@ fn decide_ping_from_behind_is_answered_with_the_membership_at_the_node_s_epoch()
                 to: 1,
                 message: TransportMessage::Membership {
                     from: 0,
+                    to: 1,
                     members: vec![0, 1],
                     required_count: 2,
                     epoch: 2,
@@ -1049,11 +1077,35 @@ fn initialize_with_two_peers_produces_decisions() {
 }
 
 #[test]
+fn invites_of_a_membership_addressed_to_another_peer_is_false() {
+    // Arrange
+    let mut protocol = protocol();
+    let _ = protocol.commit(Commit::Removal {
+        peer_id: 0,
+        epoch: 1,
+    });
+    let addressed_to_nine = TransportMessage::Membership {
+        from: 1,
+        to: 9,
+        members: vec![1],
+        required_count: 1,
+        epoch: 2,
+    };
+
+    // Act
+    let invited = protocol.invites(&addressed_to_nine);
+
+    // Assert
+    assert!(!invited);
+}
+
+#[test]
 fn invites_of_a_membership_holds_once_the_node_is_removed_alone() {
     // Arrange
     let mut protocol = protocol();
     let membership = TransportMessage::Membership {
         from: 1,
+        to: 0,
         members: vec![1],
         required_count: 1,
         epoch: 2,
@@ -1095,6 +1147,7 @@ fn request_addition_after_a_removal_sends_the_membership_without_the_removed_mem
             to: 5,
             message: TransportMessage::Membership {
                 from: 0,
+                to: 5,
                 members: vec![0, 1, 3],
                 required_count: 1,
                 epoch: 0

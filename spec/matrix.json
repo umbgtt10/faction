@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "admits": {
     "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
@@ -46,6 +46,15 @@
       "next": "unchanged"
     },
     {
+      "id": "claim-behind-provisional-before-completion",
+      "stages": ["Initial", "Pinging"],
+      "commands": ["ParticipationObserved", "ReadyObserved"],
+      "situation": "`epoch` is below the node's and its membership provisional: the member's claim is refused, and nothing sent",
+      "result": "Accepted",
+      "outcomes": ["StaleEpochIgnored"],
+      "next": "Pinging"
+    },
+    {
       "id": "claim-behind-before-completion",
       "stages": ["Initial", "Pinging"],
       "commands": ["ParticipationObserved", "ReadyObserved"],
@@ -53,6 +62,15 @@
       "result": "Accepted",
       "outcomes": ["StaleEpochIgnored", "SendMembership"],
       "next": "Pinging"
+    },
+    {
+      "id": "claim-behind-provisional",
+      "stages": ["Collecting", "Bootstrapped", "Reconfiguring"],
+      "commands": ["ParticipationObserved", "ReadyObserved"],
+      "situation": "`epoch` is below the node's and its membership provisional: the member's claim is refused, and nothing sent",
+      "result": "Accepted",
+      "outcomes": ["StaleEpochIgnored"],
+      "next": "unchanged"
     },
     {
       "id": "claim-behind",
@@ -223,6 +241,15 @@
       "situation": "the change in flight is not an addition requested of `peer_id`: another peer's, one acknowledged already, or a removal",
       "result": "Accepted",
       "outcomes": ["AcknowledgementIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "acknowledgement-behind-provisional",
+      "stages": ["Reconfiguring"],
+      "commands": ["MembershipAcknowledged"],
+      "situation": "`epoch` is below the node's and its membership provisional: the acknowledgement is refused, and nothing sent",
+      "result": "Accepted",
+      "outcomes": ["StaleEpochIgnored"],
       "next": "unchanged"
     },
     {

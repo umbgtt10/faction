@@ -17,7 +17,7 @@ use faction::state::State;
 use faction::states::removed::Removed;
 
 fn config() -> Config {
-    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 0)
+    Config::new(0, vec![0, 1, 2], QuorumPolicy::new(2), 1, 0, false)
 }
 
 extern crate alloc;

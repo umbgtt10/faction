@@ -35,6 +35,7 @@ pub enum Situation {
     QuorumCannotSpare,
     CompletionLosesQuorum,
     ClaimIsBehind,
+    ProvisionalClaimIsBehind,
     CommitIsHeld,
     MembershipIsHeld,
     MembershipNamesNode,
@@ -98,6 +99,7 @@ impl Situation {
                         .holds(command, state, admitted)
             }
             Situation::ClaimIsBehind => command.epoch < state.epoch,
+            Situation::ProvisionalClaimIsBehind => state.provisional && command.epoch < state.epoch,
             Situation::CommitIsHeld => (1..=state.epoch).contains(&command.epoch),
             Situation::MembershipIsHeld => command.epoch <= state.epoch,
             Situation::MembershipNamesNode => command.members.contains(&state.peer_id),

@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::traits::monotonic_clock::MonotonicClock;
 use faction_system_tests::traits::pause::Pause;
 use std::sync::Arc;
@@ -9,12 +9,12 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 pub struct FakePause {
-    clock: Arc<FakeMonotonicClock>,
+    clock: Arc<SimulatedClock>,
     asked: Mutex<Vec<Duration>>,
 }
 
 impl FakePause {
-    pub fn advancing(clock: Arc<FakeMonotonicClock>) -> Self {
+    pub fn advancing(clock: Arc<SimulatedClock>) -> Self {
         Self {
             clock,
             asked: Mutex::new(Vec::new()),
@@ -36,7 +36,7 @@ impl Pause for FakePause {
 #[test]
 fn pause_of_a_fake_advances_its_clock_and_records_the_duration() {
     // Arrange
-    let clock = Arc::new(FakeMonotonicClock::at(Duration::ZERO));
+    let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
     let pause = FakePause::advancing(Arc::clone(&clock));
 
     // Act

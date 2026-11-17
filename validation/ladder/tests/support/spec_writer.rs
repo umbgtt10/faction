@@ -68,7 +68,7 @@ impl SpecWriter {
     }
 
     pub fn configuration(config: &Config) -> Value {
-        Self::stated(
+        let stated = Self::stated(
             json!({
                 "peer_id": Self::number(config.peer_id()),
                 "peers": Self::peers(config.peers()),
@@ -76,7 +76,8 @@ impl SpecWriter {
                 "suspicion_threshold": Self::number(config.suspicion_threshold()),
             }),
             config.epoch(),
-        )
+        );
+        Self::provisional(stated, config.is_provisional())
     }
 
     pub fn result(result: &ProcessResult) -> Value {
@@ -273,6 +274,14 @@ impl SpecWriter {
     }
 
     // A payload with the epoch among its members, unless it is 0 (§1).
+    // A payload with the membership stated provisional, if it is.
+    fn provisional(mut payload: Value, provisional: bool) -> Value {
+        if provisional {
+            payload["provisional"] = Value::Bool(true);
+        }
+        payload
+    }
+
     fn stated(mut payload: Value, epoch: Epoch) -> Value {
         if epoch > 0 {
             payload["epoch"] = Self::number(epoch);
@@ -281,7 +290,7 @@ impl SpecWriter {
     }
 
     fn view(view: &ClusterView) -> Value {
-        Self::stated(
+        let stated = Self::stated(
             json!({
                 "peer_state": Self::peer_state(view.peer_state()),
                 "is_pinging_completed": view.is_pinging_completed(),
@@ -306,6 +315,7 @@ impl SpecWriter {
                 "quorum": Self::quorum(view.quorum()),
             }),
             view.epoch(),
-        )
+        );
+        Self::provisional(stated, view.is_provisional())
     }
 }

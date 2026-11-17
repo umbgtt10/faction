@@ -15,6 +15,7 @@ use crate::stage::Stage;
 use crate::state::State;
 use crate::states::epoch_rule::EpochRule;
 use crate::states::initial::Initial;
+use crate::states::provisional_rule::ProvisionalRule;
 
 pub struct Faction {
     config: Config,
@@ -34,7 +35,9 @@ impl Faction {
             .with_required_count(config.required_count())
             .with_members(Members::new(config.peers().to_vec()))
             .build();
-        let base = ClusterViewBuilder::from_view_at(&genesis, config.epoch()).build();
+        let base =
+            ClusterViewBuilder::from_view_at(&genesis, config.epoch(), config.is_provisional())
+                .build();
         let cluster_view = stage.cluster_view(&base);
         Self {
             config,
@@ -56,16 +59,21 @@ impl Faction {
             .admissible_commands(&self.config, self.cluster_view.epoch())
     }
 
-    // The node's epoch is its view's: an accepted command moves it as the
-    // epoch's rule says, before the stage shows itself.
+    // The node's epoch is its view's, and so is whether its membership is
+    // provisional: an accepted command moves each as its rule says, before
+    // the stage shows itself, and a provisional node sends no membership.
     fn answer(&mut self, command: &Command) -> ProcessResult {
         let epoch = self.cluster_view.epoch();
+        let provisional =
+            ProvisionalRule::new(self.config.peer_id(), self.cluster_view.is_provisional());
         match self.stage.step(command.clone(), &self.config, epoch) {
             Some((outcomes, stage)) => {
                 self.stage = stage;
+                let outcomes = provisional.answered(outcomes);
                 let moved = ClusterViewBuilder::from_view_at(
                     &self.cluster_view,
                     EpochRule::new(epoch).after(command),
+                    provisional.after(command, &outcomes),
                 )
                 .build();
                 self.cluster_view = self.stage.cluster_view(&moved);

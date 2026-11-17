@@ -21,6 +21,7 @@ pub enum TransportMessage {
     },
     Membership {
         from: PeerId,
+        to: PeerId,
         members: Vec<PeerId>,
         required_count: usize,
         epoch: Epoch,

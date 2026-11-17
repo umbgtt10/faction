@@ -17,6 +17,7 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
     let snapshot = Arc::new(Mutex::new(NodeSnapshot {
         peer_state: PeerState::Pinging,
         member_count: 9,
+        members: vec![9],
         required_count: 9,
         reconfiguration: Reconfiguration::AdditionAcknowledged { peer_id: 9 },
         suspected: vec![9],
@@ -33,13 +34,13 @@ fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
 }
 
 #[rstest]
-#[case("state Fresh 2 3 none - off 5", PeerState::Fresh)]
-#[case("state Pinging 2 3 none - off 5", PeerState::Pinging)]
-#[case("state Collecting 2 3 none - off 5", PeerState::Collecting)]
-#[case("state Bootstrapped 2 3 none - off 5", PeerState::Bootstrapped)]
-#[case("state TimedOut 2 3 none - off 5", PeerState::TimedOut)]
-#[case("state Removed 2 3 none - off 5", PeerState::Removed)]
-#[case("state Weird 2 3 none - off 5", PeerState::Fresh)]
+#[case("state Fresh 2 3 none - off 5 0,1", PeerState::Fresh)]
+#[case("state Pinging 2 3 none - off 5 0,1", PeerState::Pinging)]
+#[case("state Collecting 2 3 none - off 5 0,1", PeerState::Collecting)]
+#[case("state Bootstrapped 2 3 none - off 5 0,1", PeerState::Bootstrapped)]
+#[case("state TimedOut 2 3 none - off 5 0,1", PeerState::TimedOut)]
+#[case("state Removed 2 3 none - off 5 0,1", PeerState::Removed)]
+#[case("state Weird 2 3 none - off 5 0,1", PeerState::Fresh)]
 fn spawn_reads_a_state_line_into_the_snapshot(
     #[case] line: &'static str,
     #[case] peer_state: PeerState,
@@ -53,6 +54,7 @@ fn spawn_reads_a_state_line_into_the_snapshot(
         NodeSnapshot {
             peer_state,
             member_count: 2,
+            members: vec![0, 1],
             required_count: 3,
             reconfiguration: Reconfiguration::None,
             suspected: Vec::new(),
@@ -63,10 +65,10 @@ fn spawn_reads_a_state_line_into_the_snapshot(
 }
 
 #[rstest]
-#[case("state Bootstrapped 3 2 none - held 0", Reconfiguration::None)]
-#[case("state Bootstrapped 3 2 requested:7 - held 0", Reconfiguration::AdditionRequested { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 acknowledged:7 - held 0", Reconfiguration::AdditionAcknowledged { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 removing:7 - held 0", Reconfiguration::RemovalRequested { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 none - held 0 0,1", Reconfiguration::None)]
+#[case("state Bootstrapped 3 2 requested:7 - held 0 0,1", Reconfiguration::AdditionRequested { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 acknowledged:7 - held 0 0,1", Reconfiguration::AdditionAcknowledged { peer_id: 7 })]
+#[case("state Bootstrapped 3 2 removing:7 - held 0 0,1", Reconfiguration::RemovalRequested { peer_id: 7 })]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
     #[case] reconfiguration: Reconfiguration,
@@ -79,9 +81,20 @@ fn spawn_reads_the_addition_of_a_state_line(
 }
 
 #[rstest]
-#[case("state Bootstrapped 5 3 none - held 0", Vec::new(), Quorum::Held)]
-#[case("state Bootstrapped 5 3 none 4,2 lost 0", vec![4, 2], Quorum::Lost)]
-#[case("state Pinging 5 3 none - off 0", Vec::new(), Quorum::NotTracked)]
+#[case("state Bootstrapped 3 2 none - held 4 0,2,5", vec![0, 2, 5])]
+#[case("state Removed 2 2 none - off 4 -", Vec::new())]
+fn spawn_reads_the_members_of_a_state_line(#[case] line: &'static str, #[case] members: Vec<u64>) {
+    // Arrange & Act
+    let (snapshot, _) = read(line);
+
+    // Assert
+    assert_eq!(snapshot.members, members);
+}
+
+#[rstest]
+#[case("state Bootstrapped 5 3 none - held 0 0,1", Vec::new(), Quorum::Held)]
+#[case("state Bootstrapped 5 3 none 4,2 lost 0 0,1", vec![4, 2], Quorum::Lost)]
+#[case("state Pinging 5 3 none - off 0 0,1", Vec::new(), Quorum::NotTracked)]
 fn spawn_reads_the_suspected_members_and_the_quorum_of_a_state_line(
     #[case] line: &'static str,
     #[case] suspected: Vec<u64>,

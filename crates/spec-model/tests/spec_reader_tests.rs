@@ -178,8 +178,25 @@ fn configuration_of_a_node_keeps_its_peers_in_their_order() {
             required_count: u64::MAX,
             suspicion_threshold: 3,
             epoch: 0,
+            provisional: false,
         }
     );
+}
+
+#[test]
+fn configuration_of_a_provisional_membership_reads_it() {
+    // Arrange & Act
+    let configuration = SpecReader::configuration(&json!({
+        "peer_id": "5",
+        "peers": ["1", "5"],
+        "required_count": "1",
+        "suspicion_threshold": "1",
+        "epoch": "3",
+        "provisional": true,
+    }));
+
+    // Assert
+    assert!(configuration.provisional);
 }
 
 #[test]

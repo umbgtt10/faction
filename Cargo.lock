@@ -317,6 +317,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "faction-chaos"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "faction",
+ "faction-protocol",
+ "faction-system-tests",
+ "rstest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "faction-core-validation"
 version = "0.8.0"
 dependencies = [
@@ -379,6 +392,8 @@ dependencies = [
  "faction-protocol",
  "prost",
  "rstest",
+ "serde",
+ "serde_json",
  "tokio",
  "tokio-stream",
  "tonic",

@@ -10,6 +10,9 @@ use std::thread::spawn;
 use faction::types::Epoch;
 use faction::types::PeerId;
 
+use serde_json::from_str;
+
+use crate::infra::fault_settings::FaultSettings;
 use crate::membership::Membership;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,6 +32,7 @@ pub enum ProcessCommand {
     Mend(PeerId),
     Peer(PeerId, SocketAddr),
     Restart(Membership),
+    Faults(Box<FaultSettings>),
     Shutdown,
 }
 
@@ -73,6 +77,9 @@ impl ProcessCommand {
                     .map(|peer| peer.parse().ok())
                     .collect::<Option<Vec<PeerId>>>()?,
             })),
+            "faults" => from_str(line.split_once(' ')?.1)
+                .ok()
+                .map(|settings| Self::Faults(Box::new(settings))),
             "shutdown" => Some(Self::Shutdown),
             _ => None,
         }

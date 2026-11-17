@@ -258,6 +258,7 @@ fn to_command_transport_membership_panics() {
     let _ = translator().to_command(
         InputMessage::Transport(TransportMessage::Membership {
             from: 0,
+            to: 0,
             members: vec![0, 1],
             required_count: 2,
             epoch: 0,
@@ -349,6 +350,25 @@ fn to_command_transport_relayed_probe_answer_panics() {
             relay_for: Some(2),
         }),
         0,
+    );
+}
+
+#[test]
+fn to_output_messages_acknowledge_rejoin_sends_the_readiness_to_that_peer_alone() {
+    // Arrange
+    let translator = translator();
+
+    // Act
+    let result =
+        translator.to_output_messages(vec![Outcome::AcknowledgeRejoin { peer_id: 1 }], &view(), 0);
+
+    // Assert
+    assert_eq!(
+        result,
+        vec![OutputMessage::Send {
+            to: 1,
+            message: TransportMessage::Ready { from: 0, epoch: 0 },
+        }]
     );
 }
 
@@ -738,6 +758,7 @@ fn to_output_messages_send_membership_sends_the_view_s_membership_and_schedules_
                 to: 5,
                 message: TransportMessage::Membership {
                     from: 0,
+                    to: 5,
                     members: vec![0, 1, 2],
                     required_count: 2,
                     epoch: 0

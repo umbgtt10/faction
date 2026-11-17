@@ -3,7 +3,8 @@
 
 use crate::constants::DEFAULT_SUSPICION_THRESHOLD;
 use crate::constants::HELPERS;
-use crate::infra::transport::faulty::link_cuts::LinkCuts;
+use crate::infra::fault_settings::FaultSettings;
+use crate::infra::node_faults::NodeFaults;
 use faction::quorum::Quorum;
 use std::mem::replace;
 
@@ -43,7 +44,7 @@ pub struct FactionNode {
     transport: Box<dyn Transport>,
     timer: Box<dyn Timer>,
     observer: Box<dyn NodeObserver>,
-    cuts: LinkCuts,
+    faults: NodeFaults,
     roles: Box<dyn Roles>,
     started: bool,
     toggle_timer_and_transport: bool,
@@ -57,7 +58,7 @@ impl FactionNode {
         transport: Box<dyn Transport>,
         timer: Box<dyn Timer>,
         observer: Box<dyn NodeObserver>,
-        cuts: LinkCuts,
+        faults: NodeFaults,
         roles: Box<dyn Roles>,
     ) -> Self {
         let mut node = Self {
@@ -67,7 +68,7 @@ impl FactionNode {
             transport,
             timer,
             observer,
-            cuts,
+            faults,
             roles,
             started: false,
             toggle_timer_and_transport: true,
@@ -111,7 +112,7 @@ impl FactionNode {
     // The link to `peer_id` cut, as the transport this node's cuts are shared
     // with drops what crosses it.
     pub fn cut(&mut self, peer_id: PeerId) {
-        self.cuts.cut(peer_id);
+        self.faults.cuts.cut(peer_id);
     }
 
     pub fn deny(&mut self, peer_id: PeerId) {
@@ -127,7 +128,7 @@ impl FactionNode {
     }
 
     pub fn mend(&mut self, peer_id: PeerId) {
-        self.cuts.mend(peer_id);
+        self.faults.cuts.mend(peer_id);
     }
 
     #[must_use]
@@ -163,6 +164,14 @@ impl FactionNode {
         }
     }
 
+    // The node's transport, timer and clock set to `settings`, as the layers
+    // it was built on read them.
+    pub fn set_faults(&mut self, settings: &FaultSettings) {
+        self.faults.transport.set(settings.transport.clone());
+        self.faults.timer.set(settings.timer);
+        self.faults.clock.set(settings.clock);
+    }
+
     #[must_use]
     pub fn snapshot(&mut self) -> NodeSnapshot {
         match &mut self.role {
@@ -171,6 +180,7 @@ impl FactionNode {
                 NodeSnapshot {
                     peer_state: view.peer_state(),
                     member_count: view.members().as_slice().len(),
+                    members: view.members().as_slice().to_vec(),
                     required_count: view.required_count(),
                     reconfiguration: view.reconfiguration(),
                     suspected: view.suspected().to_vec(),
@@ -181,6 +191,7 @@ impl FactionNode {
             Role::Waiting(_) => NodeSnapshot {
                 peer_state: PeerState::Fresh,
                 member_count: 0,
+                members: Vec::new(),
                 required_count: 0,
                 reconfiguration: Reconfiguration::None,
                 suspected: Vec::new(),
@@ -203,33 +214,15 @@ impl FactionNode {
     }
 
     pub fn step(&mut self) -> bool {
-        let message = if self.toggle_timer_and_transport {
-            match self.timer.poll() {
-                Some(TimerEvent::Fire(timer_msg)) => InputMessage::Timer(timer_msg),
-                None => {
-                    self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
-                    self.observer.on_idle();
-                    return false;
-                }
-            }
-        } else {
-            match self.transport.recv() {
-                Some(transport_msg) => InputMessage::Transport(transport_msg),
-                None => {
-                    self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
-                    self.observer.on_idle();
-                    return false;
-                }
-            }
+        let Some(message) = self.next_input() else {
+            self.observer.on_idle();
+            return false;
         };
-
         let decisions = self.decide(message.clone());
         self.observer.on_step(&message, &decisions);
         for decision in decisions {
             self.dispatch(decision);
         }
-
-        self.toggle_timer_and_transport = !self.toggle_timer_and_transport;
         true
     }
 
@@ -339,6 +332,19 @@ impl FactionNode {
         }
     }
 
+    // The next input: from the side whose turn it is, its timer or its
+    // transport, or from the other if that one holds none -- a node idle only
+    // when neither does.
+    fn next_input(&mut self) -> Option<InputMessage> {
+        let timer_first = self.toggle_timer_and_transport;
+        self.toggle_timer_and_transport = !timer_first;
+        if timer_first {
+            self.timer_input().or_else(|| self.transport_input())
+        } else {
+            self.transport_input().or_else(|| self.timer_input())
+        }
+    }
+
     // What a node does first, its deadline set with it.
     fn opening(decisions: Vec<OutputMessage>) -> Vec<OutputMessage> {
         decisions
@@ -353,5 +359,15 @@ impl FactionNode {
         if let Role::Running(protocol) = &mut self.role {
             self.peers = protocol.cluster_view().members().as_slice().to_vec();
         }
+    }
+
+    fn timer_input(&mut self) -> Option<InputMessage> {
+        self.timer
+            .poll()
+            .map(|TimerEvent::Fire(message)| InputMessage::Timer(message))
+    }
+
+    fn transport_input(&mut self) -> Option<InputMessage> {
+        self.transport.recv().map(InputMessage::Transport)
     }
 }

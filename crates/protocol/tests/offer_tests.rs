@@ -9,6 +9,7 @@ use faction_protocol::transport_message::TransportMessage;
 fn membership(members: Vec<u64>) -> TransportMessage {
     TransportMessage::Membership {
         from: 1,
+        to: 5,
         members,
         required_count: 2,
         epoch: 4,
@@ -88,6 +89,24 @@ fn config_of_an_offer_is_the_newcomer_s_at_its_epoch() {
     assert_eq!(config.required_count(), 2);
     assert_eq!(config.suspicion_threshold(), 3);
     assert_eq!(config.epoch(), 4);
+}
+
+#[test]
+fn of_a_membership_addressed_to_another_peer_is_no_offer() {
+    // Arrange
+    let addressed_to_six = TransportMessage::Membership {
+        from: 1,
+        to: 6,
+        members: vec![1],
+        required_count: 1,
+        epoch: 4,
+    };
+
+    // Act
+    let offer = Offer::of(&addressed_to_six, 5);
+
+    // Assert
+    assert!(offer.is_none());
 }
 
 #[test]

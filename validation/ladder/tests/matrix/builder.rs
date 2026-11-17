@@ -19,7 +19,14 @@ pub const THRESHOLD: usize = 5;
 
 pub fn build(init: Init) -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1, 0),
+        Config::new(
+            0,
+            vec![0, 1, 2, 3, 4],
+            QuorumPolicy::new(THRESHOLD),
+            1,
+            0,
+            false,
+        ),
         Box::new(NoOpObserver),
     );
     if !matches!(init, Init::Initial | Init::InitialAtEpoch) {

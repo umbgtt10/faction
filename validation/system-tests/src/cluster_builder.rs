@@ -18,8 +18,13 @@ use faction_protocol::transport::Transport;
 
 use crate::cluster::Cluster;
 use crate::constants::DEFAULT_DEADLINE_CYCLES;
+use crate::constants::NODE_LIFETIME;
+use crate::infra::fault_board::FaultBoard;
+use crate::infra::invariants::breaches::Breaches;
+use crate::infra::logging::logs::Logs;
 use crate::infra::network::port_allocator::PortAllocator;
 use crate::infra::network::tcp_readiness::TcpReadiness;
+use crate::infra::timer::timer_delays::TimerDelays;
 use crate::infra::transport::channels::channels_transport::ChannelsTransport;
 use crate::infra::transport::grpc::grpc_transport::GrpcTransport;
 use crate::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
@@ -55,6 +60,10 @@ pub struct ClusterBuilder {
     suspicion_threshold: usize,
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
+    lifetime: Duration,
+    silent: bool,
+    faults: FaultBoard,
+    breaches: Breaches,
 }
 
 impl ClusterBuilder {
@@ -71,7 +80,19 @@ impl ClusterBuilder {
             suspicion_threshold: DEFAULT_SUSPICION_THRESHOLD,
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
+            lifetime: NODE_LIFETIME,
+            silent: false,
+            faults: FaultBoard::default(),
+            breaches: Breaches::default(),
         }
+    }
+
+    // The board its in-process nodes' invariant observers report into, which
+    // the caller keeps to read the first breach.
+    #[must_use]
+    pub fn breaches(mut self, breaches: Breaches) -> Self {
+        self.breaches = breaches;
+        self
     }
 
     #[must_use]
@@ -87,11 +108,16 @@ impl ClusterBuilder {
         let recipe = NodeRecipe::new(
             self.node_required,
             self.suspicion_threshold,
-            delay,
-            delay * self.freshness_margin,
-            self.probe_stretch.factor(),
-            self.log_dir.clone(),
+            TimerDelays {
+                delay,
+                deadline_delay: delay * self.freshness_margin,
+                probe_stretch: self.probe_stretch.factor(),
+                lifetime: self.lifetime,
+            },
+            self.logs(),
             self.time.clone(),
+            self.faults.clone(),
+            self.breaches.clone(),
         );
 
         let nodes: Vec<Node> = peer_ids
@@ -115,13 +141,31 @@ impl ClusterBuilder {
             self.timer_delay,
             joining,
             self.log_dir,
-            self.time.pause,
+            self.time,
         )
+    }
+
+    // The board its in-process nodes read their faults from, which the caller
+    // keeps to switch them while the cluster runs; a process node's are its
+    // own.
+    #[must_use]
+    pub fn faults(mut self, board: FaultBoard) -> Self {
+        self.faults = board;
+        self
     }
 
     #[must_use]
     pub fn freshness_margin(mut self, cycles: u32) -> Self {
         self.freshness_margin = cycles;
+        self
+    }
+
+    // How long each node that runs on its own -- a thread's, a process's --
+    // runs before it stops, as a backstop against one its cluster never
+    // drops: thirty seconds unless set.
+    #[must_use]
+    pub fn lifetime(mut self, lifetime: Duration) -> Self {
+        self.lifetime = lifetime;
         self
     }
 
@@ -139,6 +183,14 @@ impl ClusterBuilder {
     #[must_use]
     pub fn probe_stretch(mut self, stretch: ProbeStretch) -> Self {
         self.probe_stretch = stretch;
+        self
+    }
+
+    // A cluster whose nodes announce none of the faults they inject, nor log
+    // anything, unless given a log folder.
+    #[must_use]
+    pub fn silent(mut self) -> Self {
+        self.silent = true;
         self
     }
 
@@ -198,6 +250,7 @@ impl ClusterBuilder {
             self.freshness_margin,
             self.probe_stretch.factor(),
             self.log_dir.clone(),
+            self.lifetime,
             TcpReadiness::new(self.time.clone(), PROCESS_READINESS_TIMEOUT),
         );
 
@@ -219,19 +272,41 @@ impl ClusterBuilder {
             self.timer_delay,
             Some(joining),
             self.log_dir,
-            self.time.pause,
+            self.time,
         )
     }
 
+    // Where its in-process nodes log: their folder, if given one; else
+    // nowhere, if silent; else their faults on stderr.
+    fn logs(&self) -> Logs {
+        match (&self.log_dir, self.silent) {
+            (Some(dir), _) => Logs::Files(dir.clone()),
+            (None, true) => Logs::Silent,
+            (None, false) => Logs::Stderr,
+        }
+    }
+
+    // The process node's binary: beside the running one -- a binary's, as
+    // the chaos binary is -- or a folder above it -- a test binary's, which
+    // runs from deps/.
     fn node_binary() -> String {
         env_var("CARGO_BIN_EXE_faction_node")
             .ok()
             .unwrap_or_else(|| {
-                let mut path = current_exe().expect("cannot determine current executable path");
-                path.pop();
-                path.pop();
-                path.push("faction-node");
-                path.set_extension(EXE_EXTENSION);
+                let exe = current_exe().expect("cannot determine current executable path");
+                let beside = exe
+                    .with_file_name("faction-node")
+                    .with_extension(EXE_EXTENSION);
+                let path = if beside.exists() {
+                    beside
+                } else {
+                    let mut above = exe;
+                    above.pop();
+                    above.pop();
+                    above.push("faction-node");
+                    above.set_extension(EXE_EXTENSION);
+                    above
+                };
                 path.to_string_lossy().to_string()
             })
     }

@@ -56,6 +56,7 @@ fn parse_reads_every_required_argument() {
     assert_eq!(config.probe_stretch, ProbeStretch::Minimal.factor());
     assert_eq!(config.transport, TransportKind::Tcp);
     assert_eq!(config.timer_delay_ms, 20);
+    assert_eq!(config.lifetime_ms, 30_000);
     assert_eq!(config.listen_addr, addr("127.0.0.1:4001"));
     assert_eq!(
         config.peer_addrs,
@@ -90,6 +91,8 @@ fn parse_reads_the_optional_arguments_and_a_grpc_transport() {
         "logs/node-1.jsonl",
         "--transport",
         "grpc",
+        "--lifetime-ms",
+        "600000",
     ]);
 
     // Act
@@ -100,6 +103,7 @@ fn parse_reads_the_optional_arguments_and_a_grpc_transport() {
     assert_eq!(config.probe_stretch, 3);
     assert_eq!(config.log_path, Some(PathBuf::from("logs/node-1.jsonl")));
     assert_eq!(config.transport, TransportKind::Grpc);
+    assert_eq!(config.lifetime_ms, 600_000);
 }
 
 #[test]

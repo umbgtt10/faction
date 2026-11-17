@@ -19,8 +19,10 @@ use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
 use faction::types::PeerId;
+use serde_json::to_string;
 
 use crate::faction_node::FactionNode;
+use crate::infra::fault_settings::FaultSettings;
 use crate::membership::Membership;
 use crate::node_command::NodeCommand;
 use crate::node_snapshot::NodeSnapshot;
@@ -32,6 +34,7 @@ use crate::time_ports::TimePorts;
 const FRESH: NodeSnapshot = NodeSnapshot {
     peer_state: PeerState::Fresh,
     member_count: 0,
+    members: Vec::new(),
     required_count: 0,
     reconfiguration: Reconfiguration::None,
     suspected: Vec::new(),
@@ -82,12 +85,21 @@ impl Node {
         build: impl FnOnce() -> FactionNode + Send + 'static,
         time: TimePorts,
         idle_delay: Duration,
+        lifetime: Duration,
     ) -> Self {
         let snapshot = Arc::new(Mutex::new(FRESH));
         let thread_snapshot = snapshot.clone();
         let (commands, command_receiver) = channel();
         let handle = spawn(move || {
-            ThreadRunner::new(build(), command_receiver, thread_snapshot, time, idle_delay).run();
+            ThreadRunner::new(
+                build(),
+                command_receiver,
+                thread_snapshot,
+                time,
+                idle_delay,
+                lifetime,
+            )
+            .run();
         });
         Self::Thread {
             snapshot,
@@ -287,6 +299,23 @@ impl Node {
         }
     }
 
+    // The node's faults set to `settings`: in place for a task's node, by
+    // command for a thread's, and on its command stream, as JSON, for a
+    // process's.
+    pub fn set_faults(&self, settings: &FaultSettings) {
+        match self {
+            Self::Task { node } => node.borrow_mut().set_faults(settings),
+            Self::Thread { commands, .. } => {
+                let settings = Box::new(settings.clone());
+                Self::send_command(commands, |ack| NodeCommand::SetFaults(settings, ack));
+            }
+            Self::Process { channel, .. } => channel.send(&format!(
+                "faults {}",
+                to_string(settings).expect("fault settings written as JSON")
+            )),
+        }
+    }
+
     pub fn shutdown(&mut self) {
         match self {
             Self::Thread {
@@ -326,9 +355,12 @@ impl Node {
         }
     }
 
-    pub fn step(&self) {
-        if let Self::Task { node } = self {
-            node.borrow_mut().step();
+    // One input of a task node's taken, if it had one: whether it had. A
+    // thread's or a process's node steps on its own.
+    pub fn step(&self) -> bool {
+        match self {
+            Self::Task { node } => node.borrow_mut().step(),
+            Self::Thread { .. } | Self::Process { .. } => false,
         }
     }
 

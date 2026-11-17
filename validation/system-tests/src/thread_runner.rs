@@ -7,7 +7,6 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
-use crate::constants::NODE_LIFETIME;
 use crate::faction_node::FactionNode;
 use crate::node_command::NodeCommand;
 use crate::node_snapshot::NodeSnapshot;
@@ -19,6 +18,7 @@ pub struct ThreadRunner {
     snapshot: Arc<Mutex<NodeSnapshot>>,
     time: TimePorts,
     idle_delay: Duration,
+    lifetime: Duration,
 }
 
 impl ThreadRunner {
@@ -29,6 +29,7 @@ impl ThreadRunner {
         snapshot: Arc<Mutex<NodeSnapshot>>,
         time: TimePorts,
         idle_delay: Duration,
+        lifetime: Duration,
     ) -> Self {
         Self {
             node,
@@ -36,13 +37,14 @@ impl ThreadRunner {
             snapshot,
             time,
             idle_delay,
+            lifetime,
         }
     }
 
     pub fn run(mut self) {
         self.node.start();
         self.publish();
-        let deadline = self.time.clock.now() + NODE_LIFETIME;
+        let deadline = self.time.clock.now() + self.lifetime;
         while self.drain_commands() {
             let had_work = self.node.step();
             self.publish();
@@ -113,6 +115,10 @@ impl ThreadRunner {
                 }
                 Ok(NodeCommand::Restart(membership, ack)) => {
                     self.node.restart(&membership);
+                    ack
+                }
+                Ok(NodeCommand::SetFaults(settings, ack)) => {
+                    self.node.set_faults(&settings);
                     ack
                 }
                 Ok(NodeCommand::Shutdown) | Err(TryRecvError::Disconnected) => return false,

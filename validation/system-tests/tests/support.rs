@@ -1,14 +1,19 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use crate::traits::pause_tests::FakePause;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::types::PeerId;
+use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::faction_node::FactionNode;
+use faction_system_tests::infra::fault_board::FaultBoard;
+use faction_system_tests::infra::invariants::breaches::Breaches;
+use faction_system_tests::infra::logging::logs::Logs;
 use faction_system_tests::infra::timer::real::std_monotonic_clock::StdMonotonicClock;
 use faction_system_tests::infra::timer::real::system_wall_clock::SystemWallClock;
 use faction_system_tests::infra::timer::real::thread_pause::ThreadPause;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
+use faction_system_tests::infra::timer::timer_delays::TimerDelays;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::node_recipe::NodeRecipe;
 use faction_system_tests::probe_stretch::ProbeStretch;
@@ -25,8 +30,8 @@ use std::time::Duration;
 
 const LOG_RUN: &str = "FACTION_LOG_RUN";
 
-pub fn fake_time() -> (TimePorts, Arc<FakeMonotonicClock>) {
-    let clock = Arc::new(FakeMonotonicClock::at(Duration::ZERO));
+pub fn fake_time() -> (TimePorts, Arc<SimulatedClock>) {
+    let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
     let time = TimePorts {
         clock: clock.clone(),
         pause: Arc::new(FakePause::advancing(clock.clone())),
@@ -45,7 +50,7 @@ pub fn log_dir(label: &str) -> PathBuf {
 }
 
 fn logs_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../logs")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../logs/system")
 }
 
 pub fn real_time() -> TimePorts {
@@ -60,11 +65,16 @@ pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
     NodeRecipe::new(
         required,
         1,
-        Duration::from_millis(10),
-        Duration::from_secs(10),
-        ProbeStretch::Minimal.factor(),
-        None,
+        TimerDelays {
+            delay: Duration::from_millis(10),
+            deadline_delay: Duration::from_secs(10),
+            probe_stretch: ProbeStretch::Minimal.factor(),
+            lifetime: NODE_LIFETIME,
+        },
+        Logs::Stderr,
         time.clone(),
+        FaultBoard::default(),
+        Breaches::default(),
     )
 }
 

@@ -43,6 +43,7 @@ impl<'a> ConclusionSequence<'a> {
                 QuorumPolicy::new(self.peers as usize),
                 1,
                 0,
+                false,
             ),
             Box::new(NoOpObserver),
         );

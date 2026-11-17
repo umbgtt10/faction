@@ -5,6 +5,39 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+#### Added
+- The specification is 0.6.0, grown by its rule from 0.5.x: a newcomer holds its membership
+  provisionally -- the configuration and the view state it, omitted when not -- and refuses a
+  claim from behind, before or after its completion, or an acknowledgement from behind,
+  without sending the membership (`StaleEpochIgnored` alone). The membership stops being
+  provisional when the node applies its own addition's commit, adopts a membership, or is
+  removed. Three rows, vectors 109 to 113.
+
+#### Changed — breaking
+- `Config::new` takes whether the membership is provisional, and `ClusterView::new` whether
+  the view's is; `Config::is_provisional` and `ClusterView::is_provisional` say so.
+- faction-protocol: `Offer::config` creates a newcomer's configuration provisional.
+
+#### Fixed
+- faction-protocol: a membership names the peer it is addressed to, and a node takes as
+  an offer only a membership addressed to it -- a newcomer joins from it, a removed node
+  is invited back by it, a running node adopts it. A membership delivered to another
+  node, as a transport that misdelivers can, is ignored: a removed node no longer comes
+  back on another peer's invitation, believing itself a member no one else holds.
+- faction-protocol: a node answers a member still pinging it (`AcknowledgeRejoin`) by sending
+  its readiness to that member alone, as the specification says, instead of broadcasting it
+  to every member. Each round of a straggler's pings drew n x (n - 1) messages from n
+  concluded members where n were needed, the concluded receivers ignoring theirs.
+
+#### Changed
+- The specification is 0.5.1: it answers every command as 0.5.0 does, and states what the
+  layer above owes a node — its commits in epoch order. A commit reported after one at a
+  higher epoch is ignored as held, and its change lost to the node, which cannot see the gap;
+  a caller that cannot keep the order hands the node a membership instead.
+- ARCHITECTURE states the reference protocol's timer rule — a retry re-arms until its answer
+  comes, a timeout and a one-shot never re-arm — and the runtime's contract: a timer fires at
+  least once.
+
 ## [0.9.0] — 2026-11-16
 
 ### Published on crates.io

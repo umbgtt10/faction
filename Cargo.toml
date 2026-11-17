@@ -3,6 +3,7 @@ members = [
     "crates/core",
     "crates/protocol",
     "crates/spec-model",
+    "validation/chaos",
     "validation/core-validation",
     "validation/ladder",
     "validation/memory",
@@ -22,6 +23,7 @@ chrono = "0.4"
 faction = { path = "crates/core" }
 faction-core-validation = { path = "validation/core-validation" }
 faction-protocol = { path = "crates/protocol" }
+faction-system-tests = { path = "validation/system-tests" }
 faction-spec-model = { path = "crates/spec-model" }
 proptest = "1"
 prost = "0.13"

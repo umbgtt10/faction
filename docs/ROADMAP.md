@@ -3,7 +3,8 @@
 **Crate:** `faction`  
 **License:** MIT  
 **Last updated:** 2026-11-16  
-**Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0)
+**Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0); the chaos
+validation built on the branch `chaos` (specification 0.6.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -352,6 +353,50 @@ over an invitation that would guess the layer above's next number.
 
 ---
 
+## Cross-cutting — Chaos validation
+
+**Status:** Built, on the branch `chaos`; the proposal is `docs/[PROPOSAL] CHAOS-VALIDATION.md`  
+**Order:** after Phase 5, before Phase 6  
+**Not a numbered phase:** it removes no limitation; it checks the phases built so far
+together, and it is how we learn what Phase 6 must guarantee once changes interleave.
+
+`faction` answers: *"Whatever the network and the timers do, and in whatever order the
+changes land, does every node end where the committed changes say it must — and is it
+safe along the way?"*
+
+A seed draws a scenario: a cluster, membership changes from several coordinators in partly
+random order, and the faults of the network and of the timers. The harness plays the layer
+above, committing one change at a time in epoch order, late or twice, never reordered.
+Every invariant is watched while the faults play; once they heal, every node is checked
+against the end state the committed log implies — computed, never observed. A deterministic
+engine plays the scenarios on task nodes and a simulated clock, a seed replaying exactly; a
+real one on thread and process nodes over the four transports, on the machine's clock. A
+failure is replayed with every node's log, shrunk to the smallest scenario that still fails,
+and recorded as a regression stage 1 replays.
+
+**What it settled.** Phase 2 wired its fault layer for an assessment it left open: whether
+some convergence-critical signal, once lost, is never sent again — a permanent stall below
+100 % loss. The chaos validation is that assessment, over every fault it was to run — loss,
+duplication, delay, reordering, partitions, one-way links, a kind of message dropped — and
+more, from the bootstrap on: a lost signal nothing repeats leaves a node short of the end
+state once the faults heal, which the oracle reports. No lost signal stalled a cluster.
+The protocol's findings were of another kind — in the table below — and every stall the
+soaks met was the harness's own. Three limits stand: under faults that never heal, liveness
+is the caller's, the deadline and the freshness margin tuned against the loss rate; a lying
+peer, corruption among its ways, is the Notary's; and a new transport, UDP or WebSocket, is
+breadth, not a failure mode the fault layer does not inject already.
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| Specification | 0.5.1 — the layer above owes a node its commits in epoch order; 0.6.0 — a newcomer holds its membership provisionally |
+| Findings, fixed | A membership taken by a node it was not addressed to; a newcomer answering from behind with a membership not yet committed; a member's ping answered with a broadcast to every member |
+| Deterministic engine | 300 seeds and 8 regressions in stage 1; fresh seeds on demand (`just chaos-soak`) |
+| Real engine | 3 seeds in each of the 6 thread and process cases, on demand (`just chaos`) |
+
+---
+
 ## Phase 6 — Concurrent membership changes
 
 **Status:** Planned  
@@ -390,11 +435,12 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.5.0 written |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.6.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0, released in 0.8.0) |
 | 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
+| cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Built (branch `chaos`; specification 0.5.1 and 0.6.0) |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 
 ---

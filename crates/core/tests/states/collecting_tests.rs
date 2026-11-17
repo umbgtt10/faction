@@ -25,7 +25,14 @@ extern crate alloc;
 
 fn faction_in_collecting() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(THRESHOLD), 1, 0),
+        Config::new(
+            0,
+            vec![0, 1, 2, 3, 4],
+            QuorumPolicy::new(THRESHOLD),
+            1,
+            0,
+            false,
+        ),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::ParticipationObserved {
@@ -356,7 +363,7 @@ fn process_ignores_non_member_participation() {
 fn process_of_a_membership_whose_count_the_collecting_peers_reach_concludes() {
     // Arrange
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0),
+        Config::new(0, vec![0, 1, 2], QuorumPolicy::new(3), 1, 0, false),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::LocalParticipationCompleted);

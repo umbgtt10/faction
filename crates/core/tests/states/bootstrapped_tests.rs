@@ -31,7 +31,7 @@ fn concluded() -> Bootstrapped {
 }
 
 fn config() -> Config {
-    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0)
+    Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false)
 }
 
 extern crate alloc;
@@ -48,7 +48,7 @@ fn needing_all_three() -> Bootstrapped {
 
 fn reach_bootstrapped() -> Faction {
     let mut faction = Faction::new(
-        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0),
+        Config::new(0, vec![0, 1, 2, 3, 4], QuorumPolicy::new(4), 1, 0, false),
         Box::new(NoOpObserver),
     );
     let _ = faction.process(Command::ParticipationObserved {

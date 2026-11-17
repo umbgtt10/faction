@@ -5,9 +5,10 @@ use crate::support::fake_time;
 use crate::support::in_memory_node;
 use crate::support::real_time;
 use crate::support::recipe;
-use crate::traits::monotonic_clock_tests::FakeMonotonicClock;
 use faction::peer_state::PeerState;
+use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::infra::network::tcp_readiness::TcpReadiness;
+use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::transport::in_memory::in_memory_transport::InMemoryTransport;
 use faction_system_tests::membership::Membership;
 use faction_system_tests::node::Node;
@@ -58,11 +59,12 @@ fn spec() -> ProcessSpec {
         100,
         ProbeStretch::Minimal.factor(),
         None,
+        NODE_LIFETIME,
         TcpReadiness::new(real_time(), Duration::from_secs(30)),
     )
 }
 
-fn task_node() -> (Node, Arc<FakeMonotonicClock>) {
+fn task_node() -> (Node, Arc<SimulatedClock>) {
     let (time, clock) = fake_time();
     let node = in_memory_node(&[0, 1, 2], 2, &time);
     (Node::task(Rc::new(RefCell::new(node))), clock)
@@ -76,6 +78,7 @@ fn thread_node() -> Node {
         move || recipe.build(0, vec![0], Box::new(transport)),
         time,
         Duration::from_millis(1),
+        NODE_LIFETIME,
     )
 }
 

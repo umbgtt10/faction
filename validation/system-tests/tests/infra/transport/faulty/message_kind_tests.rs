@@ -36,6 +36,7 @@ fn of_a_membership_is_membership() {
     // Arrange & Act
     let kind = MessageKind::of(&TransportMessage::Membership {
         from: 1,
+        to: 1,
         members: vec![1],
         required_count: 1,
         epoch: 0,

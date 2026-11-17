@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.5.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.6.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -15,7 +15,9 @@ node probing its members and suspecting those it cannot reach; quorum, its membe
 the epoch, the version of the membership a node holds, with which a claim from behind is refused, a commit already
 held ignored and a newer membership adopted, a removed node's way back among them; and the probe. Each command with
 every row it has. 0.5.0 is the first version to grow by the rule of §1: every vector 0.4.0 and 0.4.1 released is
-answered alike.
+answered alike. 0.5.1 answers every command as 0.5.0 does, and states what the layer above owes a node: its commits in
+epoch order (§16). 0.6.0 grows by the rule again: a newcomer holds its membership provisionally until its own addition
+commits, and refuses a claim from behind without sending it (§16); every vector 0.5.x released is answered alike.
 
 ## 1. Conventions
 
@@ -56,7 +58,9 @@ names, are the vector's. The commands a released version names are those [`relea
 that version or an earlier one (§17). Every answer this version gives is therefore given the same by every later
 version, and every vector released here passes unchanged there. 0.5.0 grows by the rule: the epoch (§16), a member of
 the configuration, the view, three signals and three commits, is omitted wherever it is 0, and a form with no epoch
-holds epoch 0; the command `MembershipReceived` is new, and so are the outcomes it and the epoch bring. Before the rule was written the encoding grew in place: 0.2.0,
+holds epoch 0; the command `MembershipReceived` is new, and so are the outcomes it and the epoch bring. 0.6.0 grows by
+it again: whether a node's membership is provisional (§16), a member of the configuration and of the view, is omitted
+wherever it is not. Before the rule was written the encoding grew in place: 0.2.0,
 0.3.0 and 0.4.0 each added fields to the view and the configuration, and commands to what earlier stages admit,
 rewriting the vectors released before them -- never an outcome -- and 0.4.0 renamed the view's `addition` to
 `reconfiguration`.
@@ -65,7 +69,9 @@ rewriting the vectors released before them -- never an outcome -- and 0.4.0 rena
 
 **A node is created from its configuration**, and with an observer (§3). The configuration is the node's own peer
 id, its genesis peers, a required count, a suspicion threshold and an epoch, 0 unless it states another: the epoch
-of the membership its peers and count are (§16). The genesis peers include the node itself and list no peer twice; a
+of the membership its peers and count are (§16); and whether that membership is provisional, which it is not unless the
+configuration says so: a newcomer's, created from the membership a coordinator offered it, before its own addition
+commits (§16). The genesis peers include the node itself and list no peer twice; a
 configuration that breaks either is outside this specification. The required count is how many confirmations
 conclude bootstrapping, and any count is one: it is never derived from the number of peers
 ([`P0-ADR-ProtocolAgnostic`](../docs/ADRs/P0-ADR-ProtocolAgnostic.md)). The suspicion threshold is how many periods running a member
@@ -87,9 +93,10 @@ until it adopts a membership that names it.
 
 **Besides its stage a node holds** its members, its pinging peers, its collecting peers, whether it has missed its
 deadline, the required count in effect, the change in flight, its suspected peers, the periods each member has missed,
-the member it probed last and its epoch. A fresh node's members are its genesis peers; it has no pinging or collecting
-peer, has not missed its deadline, its required count is the configuration's, it has no change in flight, suspects no
-one, counts no missed period, has probed no one, and its epoch is the configuration's. Members are added (§10, §11),
+the member it probed last, its epoch, and whether its membership is provisional. A fresh node's members are its genesis
+peers; it has no pinging or collecting peer, has not missed its deadline, its required count is the configuration's, it
+has no change in flight, suspects no one, counts no missed period, has probed no one, its epoch is the configuration's,
+and its membership is provisional as the configuration says. Members are added (§10, §11),
 removed (§12) and replaced with a membership the node adopts (§16).
 
 ## 3. One entry point, one result
@@ -128,7 +135,8 @@ a node that does not conform.
 
 **The view is what a node shows of its state**: its peer state, whether its pinging is completed, its pinging
 peers, its collecting peers, its required count, whether it has missed its deadline, its members, its reconfiguration, its
-suspected peers, its missed periods, the member it probed last, its quorum, and its epoch (§16), omitted at 0.
+suspected peers, its missed periods, the member it probed last, its quorum, its epoch (§16), omitted at 0, and whether
+its membership is provisional (§16), omitted when it is not.
 
 **The peer state** is `Fresh` while the node is `Initial`, `Bootstrapped` once it has concluded — `Bootstrapped` or
 `Reconfiguring` — `Removed` once it is removed, and otherwise its stage, `Pinging` or `Collecting`, or `TimedOut` if it has missed its deadline. A missed deadline is a fact the view
@@ -385,6 +393,12 @@ changes: the node holds that membership already, or a later one. This comes befo
 node's own removal's included, so a commit reported twice, or after the node adopted a membership past it, is applied
 once.
 
+**The layer above reports its commits to a node in epoch order.** It may report one late, or twice; it never reports
+one after a commit at a higher epoch. A commit reported out of order is held already by the node, ignored, and its
+change lost to it — epochs need not be contiguous, so the node cannot see the gap — which is outside this
+specification. A caller that cannot keep the order hands the node a membership instead (`MembershipReceived`), which
+carries the whole of it.
+
 **Every other commit moves the epoch.** A commit the node accepts and does not ignore leaves the node at the commit's
 epoch, if it is above the node's, whatever else its row says — a commit answered `DuplicateMemberIgnored` or
 `NonMemberIgnored` among them.
@@ -397,6 +411,16 @@ changes nothing, but that an `Initial` node is now `Pinging`. A non-member's sig
 epoch (§6, §7), and so is an acknowledgement not awaited (§11). A claim at the node's epoch or above is answered as
 before: the node behind is this one, and the membership will reach it. Liveness carries no epoch: being alive is not a
 claim on a membership, and a member slow to apply a commit is never suspected for it.
+
+**A provisional node sends no membership**
+([`P1-ADR-ANewcomerHoldsItsMembershipProvisionally`](../docs/ADRs/P1-ADR-ANewcomerHoldsItsMembershipProvisionally.md)).
+A newcomer holds the membership its coordinator offered it, and itself,
+before the layer above has committed its addition: its membership is provisional, and a peer adopting it would hold a
+member no commit added. A node whose membership is provisional refuses a claim from behind as any node does,
+`StaleEpochIgnored`, carrying the peer and its epoch, and sends the peer nothing: a member that holds a committed
+membership will. Its membership stops being provisional, once and for all, when the node applies the commit of its own
+addition — at an epoch above its own, whatever else its row says, `DuplicateMemberIgnored` among them — when it adopts
+a membership, and when it is removed (§12). Nothing else changes it.
 
 **`MembershipReceived`** hands the node a membership: members, a required count and their epoch. It is admitted in
 every stage. Whether the membership is genuine is the caller's to check before it reports it

@@ -32,6 +32,7 @@ impl ScenarioHarness {
                     QuorumPolicy::new(required_count),
                     1,
                     0,
+                    false,
                 ),
                 Box::new(NoOpObserver),
             );

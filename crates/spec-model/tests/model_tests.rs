@@ -20,6 +20,36 @@ fn model() -> Model {
 }
 
 #[test]
+fn process_of_a_claim_from_behind_at_a_provisional_node_sends_nothing() {
+    // Arrange
+    let mut model = Model::new(
+        SpecReader::table(&SpecFiles::matrix()),
+        SpecReader::configuration(&json!({
+            "peer_id": "5",
+            "peers": ["1", "5"],
+            "required_count": "2",
+            "suspicion_threshold": "1",
+            "epoch": "3",
+            "provisional": true,
+        })),
+    );
+
+    // Act
+    let answer = model.process(&json!({"ParticipationObserved": {"peer_id": "1", "epoch": "2"}}));
+
+    // Assert
+    assert_eq!(answer.row, "claim-behind-provisional-before-completion");
+    assert_eq!(
+        answer.result["Accepted"]["outcomes"],
+        json!([{"StaleEpochIgnored": {"peer_id": "1", "epoch": "2"}}])
+    );
+    assert_eq!(
+        answer.result["Accepted"]["cluster_view"]["provisional"],
+        json!(true)
+    );
+}
+
+#[test]
 fn process_of_a_commit_a_removed_node_rejects_leaves_its_epoch() {
     // Arrange
     let mut model = model();

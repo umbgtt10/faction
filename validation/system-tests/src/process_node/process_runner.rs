@@ -10,7 +10,6 @@ use std::time::Duration;
 
 use faction::reconfiguration::Reconfiguration;
 
-use crate::constants::NODE_LIFETIME;
 use crate::faction_node::FactionNode;
 use crate::infra::network::address_book::AddressBook;
 use crate::process_node::process_command::ProcessCommand;
@@ -23,6 +22,7 @@ pub struct ProcessRunner {
     out: Box<dyn Write + Send>,
     time: TimePorts,
     idle_delay: Duration,
+    lifetime: Duration,
 }
 
 impl ProcessRunner {
@@ -34,6 +34,7 @@ impl ProcessRunner {
         out: Box<dyn Write + Send>,
         time: TimePorts,
         idle_delay: Duration,
+        lifetime: Duration,
     ) -> Self {
         Self {
             node,
@@ -42,13 +43,14 @@ impl ProcessRunner {
             out,
             time,
             idle_delay,
+            lifetime,
         }
     }
 
     pub fn run(mut self) {
         self.node.start();
         self.emit_state();
-        let deadline = self.time.clock.now() + NODE_LIFETIME;
+        let deadline = self.time.clock.now() + self.lifetime;
         while self.drain_commands() {
             let had_work = self.node.step();
             self.emit_state();
@@ -87,6 +89,7 @@ impl ProcessRunner {
                 self.address_book.lock().unwrap().push((peer_id, addr));
             }
             ProcessCommand::Restart(membership) => self.node.restart(&membership),
+            ProcessCommand::Faults(settings) => self.node.set_faults(&settings),
             ProcessCommand::Shutdown => {}
         }
     }
@@ -114,16 +117,32 @@ impl ProcessRunner {
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
-            "state {:?} {} {} {} {} {} {}",
+            "state {:?} {} {} {} {} {} {} {}",
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
             Self::reconfiguration(snapshot.reconfiguration),
-            Self::suspected(&snapshot.suspected),
+            Self::peers(&snapshot.suspected),
             Self::quorum(snapshot.quorum),
-            snapshot.epoch
+            snapshot.epoch,
+            Self::peers(&snapshot.members)
         );
         let _ = self.out.flush();
+    }
+
+    // The suspected members as the state line writes them: by id, comma
+    // separated, or a dash for none.
+    // Peers as the state line writes them: `-` for none.
+    fn peers(peers: &[PeerId]) -> String {
+        if peers.is_empty() {
+            String::from("-")
+        } else {
+            peers
+                .iter()
+                .map(PeerId::to_string)
+                .collect::<Vec<String>>()
+                .join(",")
+        }
     }
 
     // The quorum as the state line writes it.
@@ -143,20 +162,6 @@ impl ProcessRunner {
             Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
             Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
             Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
-        }
-    }
-
-    // The suspected members as the state line writes them: by id, comma
-    // separated, or a dash for none.
-    fn suspected(suspected: &[PeerId]) -> String {
-        if suspected.is_empty() {
-            String::from("-")
-        } else {
-            suspected
-                .iter()
-                .map(PeerId::to_string)
-                .collect::<Vec<String>>()
-                .join(",")
         }
     }
 }
