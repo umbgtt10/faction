@@ -1,12 +1,45 @@
-# [PROPOSAL] Chaos validation — seeded scenarios, an expected end state
+# [IMPLEMENTED] Chaos validation — seeded scenarios, an expected end state
 
-**Status:** accepted 2026-11-16, every decision of §11 as proposed, at the owner's "Deal": two engines, the
-deterministic one primary; the layer above committing one change at a time, in epoch order; the timer rule and
-at-least-once firing; the deterministic single run in stage 1, the rest on demand; the commit order in the
-specification's 0.5.1; and Embassy's faults as mapped in §5. Built on the branch `chaos`.
+**Status:** implemented on the branch `chaos`, 2026-11-16, merged 2026-11-17 (`419aa88`), every decision of §11 as
+accepted at the owner's "Deal" — two engines, the deterministic one primary; the layer above committing one change at
+a time, in epoch order; the timer rule and at-least-once firing; the deterministic single run in stage 1, the rest on
+demand; the commit order in the specification's 0.5.1; and Embassy's faults as mapped in §5 — and the plan as
+accepted, but for these departures, each found while building:
 
-**Releases:** none of the crate. The specification 0.5.1 states what the layer above owes a node: its commits in
-epoch order. Answers are unchanged.
+- **What it found was fixed, and the crate is released after all.** §6 kept every finding a decision for the owner;
+  three were the protocol's, each reported first and fixed at the owner's word in a commit of its own, so the crate
+  goes out as 0.10.0. A membership names the peer it is addressed to, and a node takes as an offer only one addressed
+  to it: a removed node a misdelivered membership reached came back, believing itself a member no one held
+  (`4fb34ac`). A newcomer holds its membership provisionally until its own addition commits, and refuses a claim from
+  behind without sending it: one spread a member the log never committed (the specification's 0.6.0, `536ce73`). A
+  member still pinging is answered alone: the broadcast drew n × (n − 1) readiness messages where n were needed
+  (`c2a28b4`).
+- **The harness had findings of its own, each fixed with its test.** A node stepped idle whenever the side its turn
+  named was empty, so a thread's or a process's node read one message a delay, and eight of them fell seconds behind
+  and missed nearly every probe; a node's lifetime, thirty seconds, stopped process nodes in the middle of a run, and
+  is now its cluster's to give; a step's log line was no JSON; a timer side one window killed was revived by a later
+  window; a restart at the chaos's end was skipped; a newcomer never added was expected a member; and seeds 2k and
+  2k + 1 drew the same scenario.
+- **The real engine plays six cases, not ten.** Task nodes are the deterministic engine's; the real one runs thread
+  nodes over the four transports and process nodes over TCP and gRPC — three seeds each, eighteen runs, some seven
+  minutes, under `just chaos`.
+- **Restarts and a dead timer side fall only on genesis members no change removes,** so a newcomer never crashes.
+  Network faults fall on any node: a newcomer mute or deaf still wedges a coordinator under head-of-line blocking,
+  the shape of §5's first threat; and a clock runs twenty-one times slow or twice fast, its second. No soak failed
+  for either.
+- **The four documenting tests of §7 were not written.** Commits reordered, a change lost, was shown once, by
+  reordering the layer above's deliveries by hand, which the oracle caught. A lost `LocalParticipationCompleted`, a
+  timer side that never wakes and a fast clock are drawn as faults quiescence heals, checked for safety while they
+  last; no test documents the stall each leaves when nothing heals it.
+- **A run is silent, its logs on replay.** At the owner's word a run announces no fault; a failing seed is replayed
+  with every node's log, `just chaos-replay <seed>`. `logs/system/` and `logs/chaos/` keep the newest fifty runs
+  each, a folder a run, named for its start.
+- **The single run is 300 seeds,** ten cases of thirty, some four seconds in stage 1, with every regression
+  recorded: eight, all passing.
+
+**Releases:** the crate's 0.10.0, for what the suite found. The specification's 0.5.1 states what the layer above
+owes a node, its commits in epoch order, its answers unchanged; its 0.6.0 grows by the rule, a newcomer's
+provisional membership.
 **Order:** after Phase 5, before Phase 6. Phase 6 is where interleavings start to matter, and this suite is how we
 learn what Phase 6 must guarantee.
 

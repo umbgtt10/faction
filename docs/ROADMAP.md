@@ -2,9 +2,9 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-11-16  
+**Last updated:** 2026-11-17  
 **Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0); the chaos
-validation built on the branch `chaos` (specification 0.6.0)
+validation built (specification 0.6.0, for the crate's 0.10.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -355,7 +355,8 @@ over an invitation that would guess the layer above's next number.
 
 ## Cross-cutting — Chaos validation
 
-**Status:** Built, on the branch `chaos`; the proposal is `docs/[PROPOSAL] CHAOS-VALIDATION.md`  
+**Status:** ✅ Complete (specification 0.6.0, for the crate's 0.10.0); the plan as built is
+`docs/history/[IMPLEMENTED] CHAOS-VALIDATION.md`  
 **Order:** after Phase 5, before Phase 6  
 **Not a numbered phase:** it removes no limitation; it checks the phases built so far
 together, and it is how we learn what Phase 6 must guarantee once changes interleave.
@@ -440,7 +441,7 @@ release candidate.
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0, released in 0.8.0) |
 | 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
-| cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Built (branch `chaos`; specification 0.5.1 and 0.6.0) |
+| cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Complete (specification 0.6.0, for the crate's 0.10.0) |
 | 6 | Concurrent membership changes | After Phase 5 | Planned |
 
 ---

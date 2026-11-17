@@ -5,6 +5,8 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### The chaos validation: what it found, fixed
+
 #### Added
 - The specification is 0.6.0, grown by its rule from 0.5.x: a newcomer holds its membership
   provisionally -- the configuration and the view state it, omitted when not -- and refuses a
@@ -12,11 +14,21 @@ release since names the version it conforms to.
   without sending the membership (`StaleEpochIgnored` alone). The membership stops being
   provisional when the node applies its own addition's commit, adopts a membership, or is
   removed. Three rows, vectors 109 to 113.
+- A ninth tier of the testing ladder, chaos (`validation/chaos/`): scenarios drawn from a seed --
+  membership changes in partly random order under the network's and the timers' faults --
+  every invariant watched while they play, and every node checked, once they heal, against the
+  end state the committed log implies; on a deterministic engine whose seeds replay exactly and
+  whose failures shrink into recorded regressions, and on a real one over threads and processes.
+  Stage 1 runs 300 seeds and every regression; `just chaos`, `just chaos-soak` and
+  `just chaos-replay <seed>` the rest.
 
 #### Changed — breaking
 - `Config::new` takes whether the membership is provisional, and `ClusterView::new` whether
   the view's is; `Config::is_provisional` and `ClusterView::is_provisional` say so.
 - faction-protocol: `Offer::config` creates a newcomer's configuration provisional.
+- faction-protocol: `TransportMessage::Membership` names the peer it is addressed to, `to`: a
+  caller that builds or matches the message names its addressee, and a caller's codec carries it
+  on the wire, or a node ignores every membership as addressed to another.
 
 #### Fixed
 - faction-protocol: a membership names the peer it is addressed to, and a node takes as
