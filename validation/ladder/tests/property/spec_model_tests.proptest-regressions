@@ -1,7 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc 48ea99f1cd6195cf494550ad925fc5ae49b1dd54e36245e419b972d2d55b45bf # shrinks to required_count = 0, threshold = 2, commands = [LocalParticipationCompleted, IndirectProbesMissed { peer_id: 4 }, IndirectProbesMissed { peer_id: 3 }, MembershipReceived { members: [1, 0, 4, 2, 3], required_count: 0, epoch: 1 }]
