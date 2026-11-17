@@ -408,7 +408,9 @@ again, by whoever runs it (`Protocol::invites`), and joins from it.
 
 The reference protocol schedules nine timers, and follows one rule: a retry re-arms itself
 when it fires, until the answer it waits for arrives; a period re-arms while it applies; a
-timeout and a one-shot never re-arm — the firing is the verdict, or the act.
+timeout and a one-shot never re-arm — the firing is the verdict, or the act. Re-arming
+cancels every copy of the timer still pending before it schedules the next, so a firing the
+runtime delivers twice leaves one chain, never two.
 
 | Timer | Kind | On firing |
 |---|---|---|

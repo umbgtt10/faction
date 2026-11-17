@@ -15,6 +15,12 @@ release since names the version it conforms to.
   catching it up, as a membership naming it, adopted a member no commit had made, and caught a
   restarted peer up with it. The soaks found it four times in 3.7 million seeds; each case is a
   chaos regression.
+- faction-protocol: a retry or a period that re-arms -- `RetryPing`, `RetryReady`,
+  `RetryMembership`, `ProbeDue` -- cancels every pending copy of itself before it schedules the
+  next. A firing the runtime delivers twice, as its contract allows, left two chains, and
+  repeated duplication multiplied them: a node pinged four times a round, every member answering
+  each ping, and the answers' backlog kept it from answering a probe in time. The soak's case is
+  a chaos regression.
 
 ## [0.12.0] — 2026-11-17
 

@@ -780,6 +780,9 @@ fn to_output_messages_send_membership_sends_the_view_s_membership_and_schedules_
                     epoch: 0
                 },
             },
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership {
+                peer_id: 5
+            })),
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryMembership {
                 peer_id: 5
             })),

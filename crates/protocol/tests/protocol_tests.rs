@@ -580,6 +580,7 @@ fn decide_ping_from_behind_is_answered_with_the_membership_at_the_node_s_epoch()
                     epoch: 2,
                 },
             },
+            OutputMessage::Cancel(retry_membership(1)),
             OutputMessage::Schedule(retry_membership(1)),
         ]
     );
@@ -718,6 +719,7 @@ fn decide_probe_due_probes_the_next_member_schedules_its_timeout_and_the_next_pe
                 },
             },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 })),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeDue)),
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
         ]
     );
@@ -902,6 +904,7 @@ fn decide_retry_membership_while_requested_resends_and_reschedules() {
         decisions,
         vec![
             membership_for(5),
+            OutputMessage::Cancel(retry_membership(5)),
             OutputMessage::Schedule(retry_membership(5))
         ]
     );
@@ -936,12 +939,15 @@ fn decide_retry_ping_while_active_produces_broadcast_and_retry() {
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::BroadcastPing { .. }));
-    assert!(matches!(
-        decisions[1],
-        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
-    ));
+    assert_eq!(
+        decisions[1..],
+        [
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
+        ]
+    );
 }
 
 #[test]
@@ -984,12 +990,15 @@ fn decide_retry_ready_while_active_produces_broadcast_and_retry() {
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryReady));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::BroadcastReady { .. }));
-    assert!(matches!(
-        decisions[1],
-        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
-    ));
+    assert_eq!(
+        decisions[1..],
+        [
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+        ]
+    );
 }
 
 #[test]
@@ -1218,6 +1227,7 @@ fn request_addition_of_a_newcomer_sends_it_the_membership_and_schedules_the_retr
         decisions,
         vec![
             membership_for(5),
+            OutputMessage::Cancel(retry_membership(5)),
             OutputMessage::Schedule(retry_membership(5))
         ]
     );
