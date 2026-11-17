@@ -23,9 +23,11 @@ pub enum OutputMessage {
     },
     ProposeAddition {
         peer_id: PeerId,
+        epoch: Epoch,
     },
     ProposeRemoval {
         peer_id: PeerId,
+        epoch: Epoch,
     },
     Noop,
 }

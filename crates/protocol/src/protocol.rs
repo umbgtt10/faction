@@ -11,6 +11,7 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use crate::commit::Commit;
@@ -99,6 +100,11 @@ impl Protocol {
                 self.apply(command)
             }
         }
+    }
+
+    // A proposal the layer above declined at `epoch`, decided again (§17).
+    pub fn decline(&mut self, peer_id: PeerId, epoch: Epoch) -> Vec<OutputMessage> {
+        self.apply(Command::ProposalDeclined { peer_id, epoch })
     }
 
     pub fn deny(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {

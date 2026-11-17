@@ -21,9 +21,12 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
 - `Outcome::DeclineIgnored`: a decline naming no proposal in flight.
 - `Bootstrapped::can_spare`, public: whether the quorum can spare a member, as a removal requested and a removal
   declined are both decided by it.
+- faction-protocol: `Protocol::decline(peer_id, epoch)`, a declined proposal reaching the machine.
 
 #### Changed
 - **Breaking:** `Command` and `Outcome` gain a variant each.
+- **Breaking:** faction-protocol's `OutputMessage::ProposeAddition` and `ProposeRemoval` carry the epoch the proposal
+  was decided at, the view's, for the caller to submit with the change.
 
 ### What eight hours of chaos soak found
 

@@ -506,7 +506,10 @@ fn decide_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
     assert_eq!(
         decisions,
         vec![
-            OutputMessage::ProposeAddition { peer_id: 5 },
+            OutputMessage::ProposeAddition {
+                peer_id: 5,
+                epoch: 0
+            },
             OutputMessage::Cancel(retry_membership(5)),
         ]
     );
@@ -1056,6 +1059,54 @@ fn decide_timer_participation_observed_produces_noop() {
 }
 
 #[test]
+fn decline_of_a_removal_the_quorum_can_no_longer_spare_gives_it_up_asking_nothing() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+    protocol.commit(Commit::RequiredCount {
+        required_count: 4,
+        epoch: 3,
+    });
+
+    // Act
+    let decisions = protocol.decline(2, 3);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::None
+    );
+}
+
+#[test]
+fn decline_of_a_removal_the_quorum_can_spare_proposes_it_again_at_the_node_s_epoch() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+    protocol.commit(Commit::RequiredCount {
+        required_count: 2,
+        epoch: 3,
+    });
+
+    // Act
+    let decisions = protocol.decline(2, 3);
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![OutputMessage::ProposeRemoval {
+            peer_id: 2,
+            epoch: 3
+        }]
+    );
+    assert_eq!(
+        protocol.cluster_view().reconfiguration(),
+        Reconfiguration::RemovalRequested { peer_id: 2 }
+    );
+}
+
+#[test]
 fn deny_peer_leaves_members_unchanged() {
     // Arrange
     let mut protocol = protocol();
@@ -1261,7 +1312,10 @@ fn request_removal_of_a_member_the_quorum_can_spare_proposes_it() {
     // Assert
     assert_eq!(
         decisions,
-        vec![OutputMessage::ProposeRemoval { peer_id: 2 }]
+        vec![OutputMessage::ProposeRemoval {
+            peer_id: 2,
+            epoch: 0
+        }]
     );
     assert_eq!(
         protocol.cluster_view().reconfiguration(),
