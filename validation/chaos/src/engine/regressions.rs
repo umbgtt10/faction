@@ -33,9 +33,13 @@ impl Regressions {
         }
     }
 
-    // `regression` added to those the file holds.
+    // `regression` added to those the file holds, unless one of its seed is
+    // there already: a seed fails alike every time it is played.
     pub fn record(&self, regression: Regression) -> Result<(), RegressionsError> {
         let mut regressions = self.load()?;
+        if regressions.iter().any(|held| held.seed == regression.seed) {
+            return Ok(());
+        }
         regressions.push(regression);
         let text =
             to_string_pretty(&regressions).map_err(|error| self.error(&error.to_string()))?;

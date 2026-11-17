@@ -9,6 +9,9 @@
 # cargo-deny's defaults: vulnerabilities, unsound and unmaintained crates and
 # yanked versions fail. An advisory accepted here needs its id and its reason:
 #   ignore = [{ id = "RUSTSEC-...", reason = "..." }]
+ignore = [
+    { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained, with no safe upgrade; only the validation packages faction-system-tests and faction-chaos use it, for the wall clock their logs are stamped with, and no published crate depends on it" },
+]
 
 [licenses]
 # BSD-3-Clause for axum, under tonic, in the system tests' gRPC transport only:

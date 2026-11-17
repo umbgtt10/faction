@@ -180,6 +180,7 @@ impl MessageTranslator {
                         epoch: view.epoch(),
                     },
                 },
+                OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership { peer_id })),
                 OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryMembership {
                     peer_id,
                 })),

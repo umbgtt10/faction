@@ -88,8 +88,7 @@ impl Protocol {
                 match Offer::of(&message, self.local_peer_id) {
                     Some(offer) => {
                         let taken = self.apply(offer.command());
-                        let epoch = self.cluster_view().epoch();
-                        offer.acknowledged(taken, self.local_peer_id, epoch)
+                        offer.answered(taken, self.local_peer_id, &self.cluster_view())
                     }
                     None => vec![OutputMessage::Noop],
                 }
@@ -176,9 +175,10 @@ impl Protocol {
             self.apply(Command::ProbeDue)
                 .into_iter()
                 .filter(|output| *output != OutputMessage::Noop)
-                .chain([OutputMessage::Schedule(TimerEvent::Fire(
-                    TimerMessage::ProbeDue,
-                ))])
+                .chain([
+                    OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeDue)),
+                    OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
+                ])
                 .collect()
         } else {
             vec![OutputMessage::Noop]
@@ -209,10 +209,12 @@ impl Protocol {
             (PeerState::Bootstrapped | PeerState::Removed, _) => vec![OutputMessage::Noop],
             (_, TimerMessage::RetryPing) => vec![
                 OutputMessage::BroadcastPing { epoch },
+                OutputMessage::Cancel(TimerEvent::Fire(retry.clone())),
                 OutputMessage::Schedule(TimerEvent::Fire(retry)),
             ],
             _ => vec![
                 OutputMessage::BroadcastReady { epoch },
+                OutputMessage::Cancel(TimerEvent::Fire(retry.clone())),
                 OutputMessage::Schedule(TimerEvent::Fire(retry)),
             ],
         }

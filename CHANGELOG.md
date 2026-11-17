@@ -5,6 +5,29 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### What eight hours of chaos soak found
+
+#### Fixed
+- faction-protocol: a running node takes a membership as it was sent -- one that does not name
+  the node removes it, as the specification says (§16) -- and acknowledges every membership it
+  takes but one that removed it. It added itself to every membership, as a newcomer does, so a
+  node behind its own removal took the coordinator's invitation to re-add it, or a member's reply
+  catching it up, as a membership naming it, adopted a member no commit had made, and caught a
+  restarted peer up with it. The soaks found it four times in 3.7 million seeds; each case is a
+  chaos regression.
+- faction-protocol: a retry or a period that re-arms -- `RetryPing`, `RetryReady`,
+  `RetryMembership`, `ProbeDue` -- cancels every pending copy of itself before it schedules the
+  next. A firing the runtime delivers twice, as its contract allows, left two chains, and
+  repeated duplication multiplied them: a node pinged four times a round, every member answering
+  each ping, and the answers' backlog kept it from answering a probe in time. The soak's case is
+  a chaos regression.
+
+#### Changed
+- The chaos soak starts, when given no seed, from the wall clock's nanoseconds: it counted
+  seconds, so soaks run an hour apart began 3,600 seeds apart and the second replayed nearly
+  every seed the first had played. And the regressions file keeps a seed once: a soak finding a
+  seed failing again records nothing new.
+
 ## [0.12.0] — 2026-11-17
 
 ### Published on crates.io

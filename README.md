@@ -298,7 +298,7 @@ The caller owns the network. `faction` owns the state.
 | `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them, liveness's invariants, removal's and the epoch's; logs replayed | 233 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
-| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 118 |
+| `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 121 |
 | `validation/protocol-validation/` | Convergence sweeps across cluster/quorum sizes, an addition under loss, liveness with time passing at a test's word, removal, and epochs and rejoin | 198 |
 | `validation/system-tests/` convergence | Bootstrapping across spawn/transport | 20 |
 | `validation/system-tests/` joining | Dynamic joining across spawn/transport | 61 |
@@ -307,7 +307,7 @@ The caller owns the network. `faction` owns the state.
 | `validation/system-tests/` removal | Nodes removed from a running cluster across spawn/transport | 50 |
 | `validation/system-tests/` rejoin | Nodes restarted, re-added, partitioned and ahead, across spawn/transport | 50 |
 | `validation/system-tests/` infrastructure | TCP, gRPC, channels, in-memory plumbing, timers and clocks, faults, the invariant observer, the process node and the harness itself | 346 |
-| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 96 |
+| `validation/chaos/` | Seeded chaos: membership changes in partly random order under network and timer faults, every invariant watched and every node's end state computed from the committed log; a deterministic engine whose seeds replay exactly and whose failures shrink into regressions, and a real one over threads and processes | 99 |
 
 The system test matrix covers every valid combination of spawn model and transport:
 
@@ -339,7 +339,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 |---|---|
 | Core productive LOC | ~2,350 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.8.0 — its independent model and the crate answer all 115 vectors in force as written, each kept as released and re-encoded once, changing no answer, and one withdrawn to correct a defect |
-| Total tests | 2,001 |
+| Total tests | 2,007 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |

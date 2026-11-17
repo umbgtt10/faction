@@ -68,6 +68,32 @@ fn record_adds_the_regression_whole_to_those_the_file_holds() {
 }
 
 #[test]
+fn record_of_a_seed_already_held_keeps_the_one_held() {
+    // Arrange
+    let path = path("record-twice");
+    let regressions = Regressions::new(path.clone());
+    let held = Regression {
+        seed: 4,
+        failure: String::from("round 9: a planned change never committed"),
+        scenario: Generator::new(4).scenario(),
+    };
+    regressions.record(held.clone()).unwrap();
+
+    // Act
+    regressions
+        .record(Regression {
+            failure: String::from("round 11: a planned change never committed"),
+            ..held.clone()
+        })
+        .unwrap();
+
+    // Assert
+    let loaded = regressions.load();
+    remove_file(&path).ok();
+    assert_eq!(loaded, Ok(vec![held]));
+}
+
+#[test]
 fn to_string_of_an_error_names_the_file_and_the_reason() {
     // Arrange
     let error = RegressionsError {

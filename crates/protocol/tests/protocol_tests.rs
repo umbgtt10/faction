@@ -436,7 +436,7 @@ fn decide_local_completion_produces_broadcast_ready_and_retry() {
 }
 
 #[test]
-fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_it() {
+fn decide_membership_above_the_epoch_naming_the_node_is_adopted_and_acknowledged_at_it() {
     // Arrange
     let mut protocol = protocol();
 
@@ -444,7 +444,7 @@ fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_
     let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
         from: 7,
         to: 0,
-        members: vec![7],
+        members: vec![7, 0],
         required_count: 1,
         epoch: 3,
     }));
@@ -460,6 +460,34 @@ fn decide_membership_above_the_epoch_is_taken_with_the_node_and_acknowledged_at_
     );
     assert_eq!(view.members().as_slice(), &[7, 0]);
     assert_eq!(view.required_count(), 1);
+    assert_eq!(view.epoch(), 3);
+}
+
+#[test]
+fn decide_membership_above_the_epoch_not_naming_the_node_removes_it_and_acknowledges_nothing() {
+    // Arrange
+    let mut protocol = protocol();
+
+    // Act
+    let decisions = protocol.decide(InputMessage::Transport(TransportMessage::Membership {
+        from: 7,
+        to: 0,
+        members: vec![7],
+        required_count: 1,
+        epoch: 3,
+    }));
+
+    // Assert
+    let view = protocol.cluster_view();
+    assert!(!decisions.iter().any(|decision| matches!(
+        decision,
+        OutputMessage::Send {
+            message: TransportMessage::MembershipAcknowledged { .. },
+            ..
+        }
+    )));
+    assert_eq!(view.peer_state(), PeerState::Removed);
+    assert_eq!(view.members().as_slice(), &[7]);
     assert_eq!(view.epoch(), 3);
 }
 
@@ -552,6 +580,7 @@ fn decide_ping_from_behind_is_answered_with_the_membership_at_the_node_s_epoch()
                     epoch: 2,
                 },
             },
+            OutputMessage::Cancel(retry_membership(1)),
             OutputMessage::Schedule(retry_membership(1)),
         ]
     );
@@ -690,6 +719,7 @@ fn decide_probe_due_probes_the_next_member_schedules_its_timeout_and_the_next_pe
                 },
             },
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeMissed { peer_id: 1 })),
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::ProbeDue)),
             OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::ProbeDue)),
         ]
     );
@@ -874,6 +904,7 @@ fn decide_retry_membership_while_requested_resends_and_reschedules() {
         decisions,
         vec![
             membership_for(5),
+            OutputMessage::Cancel(retry_membership(5)),
             OutputMessage::Schedule(retry_membership(5))
         ]
     );
@@ -908,12 +939,15 @@ fn decide_retry_ping_while_active_produces_broadcast_and_retry() {
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryPing));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::BroadcastPing { .. }));
-    assert!(matches!(
-        decisions[1],
-        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing))
-    ));
+    assert_eq!(
+        decisions[1..],
+        [
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryPing)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryPing)),
+        ]
+    );
 }
 
 #[test]
@@ -956,12 +990,15 @@ fn decide_retry_ready_while_active_produces_broadcast_and_retry() {
     let decisions = protocol.decide(InputMessage::Timer(TimerMessage::RetryReady));
 
     // Assert
-    assert_eq!(decisions.len(), 2);
+    assert_eq!(decisions.len(), 3);
     assert!(matches!(decisions[0], OutputMessage::BroadcastReady { .. }));
-    assert!(matches!(
-        decisions[1],
-        OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady))
-    ));
+    assert_eq!(
+        decisions[1..],
+        [
+            OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryReady)),
+            OutputMessage::Schedule(TimerEvent::Fire(TimerMessage::RetryReady)),
+        ]
+    );
 }
 
 #[test]
@@ -1190,6 +1227,7 @@ fn request_addition_of_a_newcomer_sends_it_the_membership_and_schedules_the_retr
         decisions,
         vec![
             membership_for(5),
+            OutputMessage::Cancel(retry_membership(5)),
             OutputMessage::Schedule(retry_membership(5))
         ]
     );

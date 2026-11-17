@@ -4,9 +4,11 @@
 use alloc::vec::Vec;
 use core::iter::once;
 
+use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::instance::instance_id::InstanceId;
+use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::Epoch;
 use faction::types::PeerId;
@@ -14,11 +16,12 @@ use faction::types::PeerId;
 use crate::output_message::OutputMessage;
 use crate::transport_message::TransportMessage;
 
-// A membership a peer sends a node, as the node takes it: as a newcomer does,
-// its members and the node itself, the required count and their epoch -- a
-// member's reply to a claim from behind, or a coordinator's invitation. Only a
-// membership addressed to the node is one: another node's, delivered to it,
-// is no offer, so a misdelivered invitation brings no one back.
+// A membership a peer sends a node -- a member's reply to a claim from behind,
+// or a coordinator's invitation -- its members as sent, the required count and
+// their epoch. A running node takes it as sent: one that does not name the
+// node removes it (§16). A newcomer takes it with itself among the members.
+// Only a membership addressed to the node is one: another node's, delivered to
+// it, is no offer, so a misdelivered invitation brings no one back.
 pub struct Offer {
     from: PeerId,
     members: Vec<PeerId>,
@@ -40,11 +43,7 @@ impl Offer {
                 epoch,
             } if *to == peer_id => Some(Self {
                 from: *from,
-                members: members
-                    .iter()
-                    .copied()
-                    .chain((!members.contains(&peer_id)).then_some(peer_id))
-                    .collect(),
+                members: members.clone(),
                 required_count: *required_count,
                 epoch: *epoch,
             }),
@@ -76,7 +75,26 @@ impl Offer {
         .collect()
     }
 
-    // The command a running node is given for the offer.
+    // What a running node does once it has taken the offer, as `view` shows
+    // it after: the offer acknowledged at its epoch, then `taken` -- but by a
+    // node it removed, which has nothing to acknowledge: the invitation that
+    // brings it back reaches it removed.
+    #[must_use]
+    pub fn answered(
+        &self,
+        taken: Vec<OutputMessage>,
+        peer_id: PeerId,
+        view: &ClusterView,
+    ) -> Vec<OutputMessage> {
+        if view.peer_state() == PeerState::Removed {
+            taken
+        } else {
+            self.acknowledged(taken, peer_id, view.epoch())
+        }
+    }
+
+    // The command a running node is given for the offer: the membership as
+    // sent.
     #[must_use]
     pub fn command(&self) -> Command {
         Command::MembershipReceived {
@@ -86,13 +104,18 @@ impl Offer {
         }
     }
 
-    // The configuration a newcomer `peer_id` is created from: its membership
-    // provisional, its own addition yet to commit.
+    // The configuration a newcomer is created from: the offer's members and
+    // the newcomer itself, its membership provisional, its own addition yet to
+    // commit.
     #[must_use]
     pub fn config(&self, instance: InstanceId, suspicion_threshold: usize) -> Config {
         Config::new(
             instance,
-            self.members.clone(),
+            self.members
+                .iter()
+                .copied()
+                .chain((!self.members.contains(&instance.node)).then_some(instance.node))
+                .collect(),
             QuorumPolicy::new(self.required_count),
             suspicion_threshold,
             self.epoch,
