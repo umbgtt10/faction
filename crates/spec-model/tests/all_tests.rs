@@ -3,6 +3,7 @@
 
 pub mod adoption_tests;
 pub mod epoch_tests;
+pub mod in_flight_tests;
 pub mod liveness_tests;
 pub mod model_tests;
 pub mod provisional_tests;

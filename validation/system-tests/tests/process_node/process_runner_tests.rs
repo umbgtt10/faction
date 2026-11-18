@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::SharedOutput;
+use crate::support::concluded_node;
 use crate::support::fake_time;
 use crate::support::in_memory_node;
 use faction_system_tests::constants::NODE_LIFETIME;
@@ -244,4 +245,36 @@ fn run_without_commands_ends_once_the_lifetime_it_was_given_is_over() {
     // Assert
     assert!(clock.now() >= Duration::from_secs(2), "{:?}", clock.now());
     assert!(clock.now() < NODE_LIFETIME, "{:?}", clock.now());
+}
+
+#[test]
+fn run_writes_each_proposal_before_the_state_and_applies_a_decline() {
+    // Arrange
+    let (time, clock) = fake_time();
+    let (_sender, receiver) = sent(&[
+        ProcessCommand::RequestRemoval(2),
+        ProcessCommand::Decline(2, 0),
+        ProcessCommand::Shutdown,
+    ]);
+    let output = SharedOutput::default();
+    let runner = ProcessRunner::new(
+        concluded_node(&time, &clock),
+        receiver,
+        Arc::new(Mutex::new(Vec::new())),
+        Box::new(output.clone()),
+        time,
+        Duration::from_millis(10),
+        NODE_LIFETIME,
+    );
+
+    // Act
+    runner.run();
+
+    // Assert
+    let text = output.text();
+    assert_eq!(
+        text.matches("proposal removal 2 0\nstate").count(),
+        2,
+        "{text}"
+    );
 }

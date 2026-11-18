@@ -22,7 +22,7 @@ fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
         3,
         true,
         Members::new(vec![0, 1, 2]),
-        Reconfiguration::None,
+        vec![],
         vec![],
         vec![],
         None,
@@ -47,7 +47,7 @@ fn new_missed_deadline_after_removal_stays_removed() {
         3,
         true,
         Members::new(vec![1, 2]),
-        Reconfiguration::None,
+        vec![],
         vec![],
         vec![],
         None,
@@ -72,7 +72,7 @@ fn new_stores_every_field() {
         2,
         true,
         Members::new(vec![4, 5, 6]),
-        Reconfiguration::AdditionAcknowledged { peer_id: 7 },
+        vec![Reconfiguration::AdditionAcknowledged { peer_id: 7 }],
         vec![6],
         vec![MissCount {
             peer_id: 5,
@@ -94,8 +94,8 @@ fn new_stores_every_field() {
     assert!(view.deadline_missed());
     assert_eq!(view.members().as_slice(), &[4, 5, 6]);
     assert_eq!(
-        view.reconfiguration(),
-        Reconfiguration::AdditionAcknowledged { peer_id: 7 }
+        view.reconfigurations(),
+        [Reconfiguration::AdditionAcknowledged { peer_id: 7 }]
     );
     assert_eq!(view.suspected(), &[6]);
     assert_eq!(

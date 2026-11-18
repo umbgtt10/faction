@@ -22,6 +22,7 @@ fn failing() -> Scenario {
         nodes: 3,
         required_count: 2,
         suspicion_threshold: 1,
+        changes_in_flight: Vec::new(),
         changes: vec![
             planned(Change::Removal { peer_id: 2 }, None),
             planned(Change::Addition { peer_id: 2 }, Some(0)),

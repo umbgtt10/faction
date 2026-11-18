@@ -10,6 +10,8 @@ use faction::instance::instance_id::InstanceId;
 use faction::no_op_observer::NoOpObserver;
 use faction::quorum_policy::QuorumPolicy;
 
+// The changes a coordinating node may hold in flight at once.
+pub const BOUND: usize = 2;
 // The epoch a node built at an epoch holds: the count's commit took it there.
 pub const EPOCH: u64 = 2;
 // The peer whose addition a reconfiguring node has in flight.
@@ -30,6 +32,11 @@ pub fn build(init: Init) -> Faction {
             1,
             0,
             false,
+            if matches!(init, Init::Coordinating) {
+                BOUND
+            } else {
+                1
+            },
         ),
         Box::new(NoOpObserver),
     );
@@ -130,7 +137,10 @@ pub fn build(init: Init) -> Faction {
                 })
                 .output;
         }
-        Init::Reconfiguring | Init::ReconfiguringAcknowledged | Init::ReconfiguringAtEpoch => {
+        Init::Reconfiguring
+        | Init::ReconfiguringAcknowledged
+        | Init::ReconfiguringAtEpoch
+        | Init::Coordinating => {
             let _ = faction.process(Command::LocalParticipationCompleted).output;
             for peer in 1..5 {
                 let _ = faction
@@ -195,6 +205,7 @@ pub enum Init {
     TimedOut,
     Reconfiguring,
     ReconfiguringAcknowledged,
+    Coordinating,
     Suspecting,
     Removing,
     RemovingRevived,

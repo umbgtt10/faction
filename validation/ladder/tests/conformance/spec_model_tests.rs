@@ -63,6 +63,7 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
         CommandName::AdditionAborted,
         CommandName::RemovalRequested,
         CommandName::RemovalAborted,
+        CommandName::ProposalDeclined,
     ];
     let liveness = [
         CommandName::ProbeDue,
@@ -114,6 +115,29 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
             ],
         ),
         (
+            Stage::Coordinating,
+            vec![
+                CommandName::ParticipationObserved,
+                CommandName::JoinRequested,
+                CommandName::JoinRejected,
+                CommandName::AdditionRequested,
+                CommandName::MembershipAcknowledged,
+                CommandName::AdditionCommitted,
+                CommandName::AdditionAborted,
+                CommandName::RemovalRequested,
+                CommandName::RemovalCommitted,
+                CommandName::RemovalAborted,
+                CommandName::ProposalDeclined,
+                CommandName::RequiredCountChanged,
+                CommandName::MembershipReceived,
+                CommandName::ProbeDue,
+                CommandName::PeerHeard,
+                CommandName::ProbeMissed,
+                CommandName::IndirectProbesMissed,
+                CommandName::Probe,
+            ],
+        ),
+        (
             Stage::Reconfiguring,
             vec![
                 CommandName::ParticipationObserved,
@@ -124,6 +148,7 @@ fn admits_of_the_matrix_is_what_the_prose_states() {
                 CommandName::AdditionAborted,
                 CommandName::RemovalCommitted,
                 CommandName::RemovalAborted,
+                CommandName::ProposalDeclined,
                 CommandName::RequiredCountChanged,
                 CommandName::MembershipReceived,
                 CommandName::ProbeDue,
@@ -180,7 +205,7 @@ fn process_of_every_vector_answers_each_step_as_written() {
         .collect();
 
     // Assert
-    assert_eq!(vectors.len(), 115);
+    assert_eq!(vectors.len(), 125);
     assert!(departures.is_empty(), "{departures:#?}");
 }
 

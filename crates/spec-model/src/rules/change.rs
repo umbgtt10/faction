@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 
 use crate::adoption::Adoption;
 use crate::command::Command;
+use crate::in_flight::InFlight;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
 use crate::reconfiguration::Reconfiguration;
@@ -71,20 +72,23 @@ impl Change {
                 ..state.clone()
             },
             Change::AdditionPends => NodeState {
-                reconfiguration: Reconfiguration::AdditionRequested(Self::named(peer_id)),
+                reconfigurations: InFlight::pending(
+                    state,
+                    Reconfiguration::AdditionRequested(Self::named(peer_id)),
+                ),
                 ..state.clone()
             },
             Change::AdditionAcknowledged => NodeState {
-                reconfiguration: Reconfiguration::AdditionAcknowledged(Self::named(peer_id)),
+                reconfigurations: InFlight::acknowledged(state, &Self::named(peer_id)),
                 ..state.clone()
             },
             Change::AdditionWithdrawn | Change::RemovalWithdrawn => NodeState {
-                reconfiguration: Reconfiguration::None,
+                reconfigurations: InFlight::ended(state, &Self::named(peer_id)),
                 ..state.clone()
             },
             Change::AdditionCompletes => NodeState {
+                reconfigurations: InFlight::ended(state, &Self::named(peer_id.clone())),
                 members: Self::appended(&state.members, peer_id),
-                reconfiguration: Reconfiguration::None,
                 ..state.clone()
             },
             Change::CountSet => NodeState {
@@ -122,22 +126,31 @@ impl Change {
                 }
             }
             Change::RemovalPends => NodeState {
-                reconfiguration: Reconfiguration::RemovalRequested(Self::named(peer_id)),
+                reconfigurations: InFlight::pending(
+                    state,
+                    Reconfiguration::RemovalRequested(Self::named(peer_id)),
+                ),
                 ..state.clone()
             },
             Change::PeerRemoved => Self::removed(state, &Self::named(peer_id)),
-            Change::RemovalCompletes => NodeState {
-                reconfiguration: Reconfiguration::None,
-                ..Self::removed(state, &Self::named(peer_id))
-            },
+            Change::RemovalCompletes => {
+                let peer_id = Self::named(peer_id);
+                NodeState {
+                    reconfigurations: InFlight::ended(state, &peer_id),
+                    ..Self::removed(state, &peer_id)
+                }
+            }
             Change::NodeRemoved => NodeState {
                 suspected: Vec::new(),
                 misses: BTreeMap::new(),
                 last_probed: None,
-                reconfiguration: Reconfiguration::None,
+                reconfigurations: Vec::new(),
                 completed_before_removal: matches!(
                     state.stage,
-                    Stage::Collecting | Stage::Bootstrapped | Stage::Reconfiguring
+                    Stage::Collecting
+                        | Stage::Bootstrapped
+                        | Stage::Coordinating
+                        | Stage::Reconfiguring
                 ),
                 ..Self::removed(state, &state.peer_id)
             },

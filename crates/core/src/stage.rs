@@ -11,6 +11,7 @@ use crate::outcome::Outcome;
 use crate::state::State;
 use crate::states::bootstrapped::Bootstrapped;
 use crate::states::collecting::Collecting;
+use crate::states::coordinating::Coordinating;
 use crate::states::epoch_rule::EpochRule;
 use crate::states::initial::Initial;
 use crate::states::pinging::Pinging;
@@ -18,7 +19,7 @@ use crate::states::reconfiguring::Reconfiguring;
 use crate::states::removed::Removed;
 use crate::types::Epoch;
 
-const COMMANDS: [Command; 21] = [
+const COMMANDS: [Command; 22] = [
     Command::ParticipationObserved {
         peer_id: 0,
         epoch: 0,
@@ -48,6 +49,10 @@ const COMMANDS: [Command; 21] = [
         epoch: 0,
     },
     Command::RemovalAborted { peer_id: 0 },
+    Command::ProposalDeclined {
+        peer_id: 0,
+        epoch: 0,
+    },
     Command::RequiredCountChanged {
         required_count: 0,
         epoch: 0,
@@ -70,6 +75,7 @@ pub enum Stage {
     Pinging(Pinging),
     Collecting(Collecting),
     Bootstrapped(Bootstrapped),
+    Coordinating(Coordinating),
     Reconfiguring(Reconfiguring),
     Removed(Removed),
 }
@@ -91,6 +97,7 @@ impl Stage {
             Self::Pinging(pinging) => pinging,
             Self::Collecting(collecting) => collecting,
             Self::Bootstrapped(bootstrapped) => bootstrapped,
+            Self::Coordinating(coordinating) => coordinating,
             Self::Reconfiguring(reconfiguring) => reconfiguring,
             Self::Removed(removed) => removed,
         }

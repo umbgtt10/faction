@@ -1,6 +1,6 @@
 # P1-ADR-AdditionThroughTheLayerThatCommits
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-17 — a coordinator holds up to its bound of changes in flight
 - **Date:** 2026-11-13
 - **Priority:** P1 (derived from `P0-ADR-ProtocolAgnostic`)
 - **Phase:** 3
@@ -23,6 +23,12 @@ acknowledged it. Every node, in every stage, applies the commit the layer above
 reports (`AdditionCommitted`); the coordinator's addition ends with it, or with
 an abort (`AdditionAborted`). The required count changes by its own command
 (`RequiredCountChanged`), reported with the commit it belongs to.
+
+**Amended 2026-11-17, Phase 6.** A coordinator holds up to its bound of changes in flight, 1 unless its
+configuration states another, in `Coordinating` below the bound and `Reconfiguring` at it; no two changes in flight
+name one peer, the removals in flight are counted together, and each change ends on its own
+(`P1-ADR-SeveralChangesInFlight`). With the bound at 1 the decision above stands as written. The layer above commits a
+proposal only while it is still valid (`P1-ADR-AProposalIsCommittedOnlyWhileValid`).
 
 ## Forcing constraints / Evidence
 One addition at a time is a stage, so admission refuses a second structurally —

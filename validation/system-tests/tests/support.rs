@@ -3,9 +3,11 @@
 
 use crate::traits::pause_tests::FakePause;
 use crate::traits::wall_clock_tests::FakeWallClock;
+use faction::peer_state::PeerState;
 use faction::types::PeerId;
 use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::faction_node::FactionNode;
+use faction_system_tests::infra::coordination::Coordination;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::logging::logs::Logs;
@@ -29,6 +31,18 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 const LOG_RUN: &str = "FACTION_LOG_RUN";
+
+// Node 0 of members 0, 1 and 2, requiring one, started and concluded on the
+// simulated clock.
+pub fn concluded_node(time: &TimePorts, clock: &SimulatedClock) -> FactionNode {
+    let mut node = in_memory_node(&[0, 1, 2], 1, time);
+    node.start();
+    while node.peer_state() != PeerState::Bootstrapped {
+        clock.advance(Duration::from_millis(10));
+        node.step();
+    }
+    node
+}
 
 pub fn fake_time() -> (TimePorts, Arc<SimulatedClock>) {
     let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
@@ -64,7 +78,7 @@ pub fn real_time() -> TimePorts {
 pub fn recipe(required: usize, time: &TimePorts) -> NodeRecipe {
     NodeRecipe::new(
         required,
-        1,
+        Coordination::new(1, Vec::new()),
         TimerDelays {
             delay: Duration::from_millis(10),
             deadline_delay: Duration::from_secs(10),

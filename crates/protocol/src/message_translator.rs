@@ -186,10 +186,16 @@ impl MessageTranslator {
                 })),
             ],
             Outcome::ProposeAddition { peer_id } => vec![
-                OutputMessage::ProposeAddition { peer_id },
+                OutputMessage::ProposeAddition {
+                    peer_id,
+                    epoch: view.epoch(),
+                },
                 OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership { peer_id })),
             ],
-            Outcome::ProposeRemoval { peer_id } => vec![OutputMessage::ProposeRemoval { peer_id }],
+            Outcome::ProposeRemoval { peer_id } => vec![OutputMessage::ProposeRemoval {
+                peer_id,
+                epoch: view.epoch(),
+            }],
             Outcome::AdditionWithdrawn { peer_id } => vec![OutputMessage::Cancel(
                 TimerEvent::Fire(TimerMessage::RetryMembership { peer_id }),
             )],

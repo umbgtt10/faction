@@ -11,6 +11,7 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::reconfiguration::Reconfiguration;
+use faction::types::Epoch;
 use faction::types::PeerId;
 
 use crate::commit::Commit;
@@ -101,6 +102,11 @@ impl Protocol {
         }
     }
 
+    // A proposal the layer above declined at `epoch`, decided again (§17).
+    pub fn decline(&mut self, peer_id: PeerId, epoch: Epoch) -> Vec<OutputMessage> {
+        self.apply(Command::ProposalDeclined { peer_id, epoch })
+    }
+
     pub fn deny(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         self.apply(Command::JoinRejected { peer_id })
     }
@@ -189,7 +195,10 @@ impl Protocol {
     // acknowledgement, and its retry with it; nothing once it has come.
     fn resend_membership(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
         let view = self.cluster_view();
-        if view.reconfiguration() == (Reconfiguration::AdditionRequested { peer_id }) {
+        if view
+            .reconfigurations()
+            .contains(&Reconfiguration::AdditionRequested { peer_id })
+        {
             self.translator.to_output_messages(
                 vec![Outcome::SendMembership { peer_id }],
                 &view,

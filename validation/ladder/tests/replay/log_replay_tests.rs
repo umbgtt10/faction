@@ -35,6 +35,7 @@ fn config(required_count: usize) -> Config {
         1,
         0,
         false,
+        1,
     )
 }
 

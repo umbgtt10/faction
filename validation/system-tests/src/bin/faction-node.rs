@@ -5,6 +5,7 @@
 
 use faction::instance::instance_id::InstanceId;
 use faction_system_tests::constants::FIRST_INCARNATION;
+use faction_system_tests::infra::coordination::Coordination;
 use std::env::args;
 use std::fs::create_dir_all;
 use std::io::BufReader;
@@ -110,7 +111,7 @@ fn main() {
 
     let recipe = NodeRecipe::new(
         config.required,
-        config.suspicion_threshold,
+        Coordination::new(config.suspicion_threshold, config.bounds.clone()),
         TimerDelays {
             delay,
             deadline_delay,

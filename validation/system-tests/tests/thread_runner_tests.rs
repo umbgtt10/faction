@@ -1,12 +1,13 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::support::concluded_node;
 use crate::support::fake_time;
 use crate::support::in_memory_node;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::constants::NODE_LIFETIME;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::node_command::NodeCommand;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::thread_runner::ThreadRunner;
@@ -16,13 +17,17 @@ use std::sync::Mutex;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+fn proposals() -> Arc<Mutex<Vec<Proposal>>> {
+    Arc::new(Mutex::new(Vec::new()))
+}
+
 fn snapshot() -> Arc<Mutex<NodeSnapshot>> {
     Arc::new(Mutex::new(NodeSnapshot {
         peer_state: PeerState::Fresh,
         member_count: 0,
         members: Vec::new(),
         required_count: 0,
-        reconfiguration: Reconfiguration::None,
+        reconfigurations: Vec::new(),
         suspected: Vec::new(),
         quorum: Quorum::NotTracked,
         epoch: 0,
@@ -41,6 +46,7 @@ fn new_publishes_nothing_until_run() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         published.clone(),
+        proposals(),
         time,
         Duration::from_millis(10),
         NODE_LIFETIME,
@@ -63,6 +69,7 @@ fn run_applies_a_cut_and_a_mend_and_acknowledges_each() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         snapshot(),
+        proposals(),
         time,
         Duration::from_millis(10),
         NODE_LIFETIME,
@@ -99,6 +106,7 @@ fn run_applies_the_addition_commands_and_acknowledges_each() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         published.clone(),
+        proposals(),
         time,
         Duration::from_millis(10),
         NODE_LIFETIME,
@@ -127,6 +135,7 @@ fn run_applies_the_commands_before_a_shutdown_and_acknowledges_them() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         published.clone(),
+        proposals(),
         time,
         Duration::from_millis(10),
         NODE_LIFETIME,
@@ -159,6 +168,7 @@ fn run_applies_the_removal_commands_and_acknowledges_each() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         published.clone(),
+        proposals(),
         time,
         Duration::from_millis(10),
         NODE_LIFETIME,
@@ -173,6 +183,46 @@ fn run_applies_the_removal_commands_and_acknowledges_each() {
 }
 
 #[test]
+fn run_publishes_each_proposal_and_applies_a_decline() {
+    // Arrange
+    let (time, clock) = fake_time();
+    let node = concluded_node(&time, &clock);
+    let (commands, receiver) = channel();
+    let (ack, acks) = channel();
+    commands
+        .send(NodeCommand::RequestRemoval(2, ack.clone()))
+        .unwrap();
+    commands.send(NodeCommand::Decline(2, 0, ack)).unwrap();
+    commands.send(NodeCommand::Shutdown).unwrap();
+    let published = proposals();
+    let runner = ThreadRunner::new(
+        node,
+        receiver,
+        snapshot(),
+        published.clone(),
+        time,
+        Duration::from_millis(10),
+        NODE_LIFETIME,
+    );
+
+    // Act
+    runner.run();
+
+    // Assert
+    assert_eq!(acks.try_iter().count(), 2);
+    assert_eq!(
+        *published.lock().unwrap(),
+        vec![
+            Proposal::Removal {
+                peer_id: 2,
+                epoch: 0
+            };
+            2
+        ]
+    );
+}
+
+#[test]
 fn run_without_commands_ends_once_its_lifetime_is_over() {
     // Arrange
     let (time, clock) = fake_time();
@@ -182,6 +232,7 @@ fn run_without_commands_ends_once_its_lifetime_is_over() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         published.clone(),
+        proposals(),
         time,
         Duration::from_secs(10),
         NODE_LIFETIME,
@@ -205,6 +256,7 @@ fn run_without_commands_ends_once_the_lifetime_it_was_given_is_over() {
         in_memory_node(&[0, 1, 2], 2, &time),
         receiver,
         published.clone(),
+        proposals(),
         time,
         Duration::from_secs(10),
         Duration::from_secs(2),

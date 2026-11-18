@@ -56,6 +56,8 @@ impl RandomCommands {
                 .prop_map(|(peer_id, epoch)| Command::RemovalCommitted { peer_id, epoch }),
             peer.clone()
                 .prop_map(|peer_id| Command::RemovalAborted { peer_id }),
+            (peer.clone(), epoch.clone())
+                .prop_map(|(peer_id, epoch)| Command::ProposalDeclined { peer_id, epoch }),
             (0usize..=6, epoch).prop_map(|(required_count, epoch)| {
                 Command::RequiredCountChanged {
                     required_count,

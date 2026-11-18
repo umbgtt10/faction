@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+pub mod coordination;
 pub mod dice;
 pub mod fault_board;
 pub mod fault_settings;
@@ -9,5 +10,6 @@ pub mod live_policy;
 pub mod logging;
 pub mod network;
 pub mod node_faults;
+pub mod proposal;
 pub mod timer;
 pub mod transport;

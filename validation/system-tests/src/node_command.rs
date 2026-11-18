@@ -20,6 +20,7 @@ pub enum NodeCommand {
     RequestRemoval(PeerId, Sender<()>),
     CommitRemoval(PeerId, Epoch, Sender<()>),
     AbortRemoval(PeerId, Sender<()>),
+    Decline(PeerId, Epoch, Sender<()>),
     ChangeRequiredCount(usize, Epoch, Sender<()>),
     Cut(PeerId, Sender<()>),
     Mend(PeerId, Sender<()>),

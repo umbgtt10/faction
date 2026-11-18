@@ -5,6 +5,61 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+### Phase 6, first half: a proposal committed only while it is still valid
+
+Conforms to the specification's version 0.9.0: every vector 0.8.0 released is answered alike, and five new ones,
+117 to 121, show a proposal declined and decided again.
+
+#### Added
+- The specification states what the layer above owes a proposal (§17): it is decided at the epoch its answer's view
+  shows, and the layer above commits it only while no change committed since conflicts with it -- one naming the same
+  peer, or, for a removal, another removal or a new required count. The rule reads the committed changes alone.
+- `Command::ProposalDeclined { peer_id, epoch }`: the layer above reports a proposal it declined, after the commits up
+  to the epoch it declined it at, and the coordinator decides the change again on its present view -- an addition
+  proposed again, a removal proposed again while the quorum can spare its member and given up, `RemovalRefused`, once
+  it cannot. `Reconfiguring` admits it; every other stage rejects it.
+- `Outcome::DeclineIgnored`: a decline naming no proposal in flight.
+- `Bootstrapped::can_spare(peer_id, removing)`, public: whether the quorum can spare a member with every other
+  member whose removal is in flight gone too, as a removal requested and a removal declined are both decided by it.
+- Several changes in flight on one coordinator, up to its bound: `Config::new` takes `changes_in_flight`, and
+  `Config::changes_in_flight()` gives it; a new stage, `Coordinating`, with changes in flight fewer than the bound,
+  answers as `Reconfiguring` does and takes another request too; `InFlight` holds the changes, no two naming one
+  peer, each ending on its own -- a commit, an abort or a decline given up ends its change alone, and an adopted
+  membership gives up every change, one `ChangeAbandoned` each. `Bootstrapped::requested` answers a request with the
+  changes in flight. The specification's 0.9.0 says so (§2, §11, §12, §16, §17): the bound is omitted at 1, so every
+  vector 0.8.0 released is answered alike, and vectors 122 to 126 show a coordinator bound to two or three.
+- `Outcome::DuplicateChangeIgnored`: a request naming a peer with a change in flight.
+- faction-protocol: `Protocol::decline(peer_id, epoch)`, a declined proposal reaching the machine.
+
+#### Changed
+- **Breaking:** `Command` gains a variant and `Outcome` two; `Config::new` takes the bound; `Stage` gains
+  `Coordinating`; `Reconfiguring::new` takes an `InFlight`.
+- **Breaking:** the view lists the changes in flight: `ClusterView::reconfigurations()`, in the order requested and
+  empty with none, replaces `reconfiguration()`, and `ClusterViewBuilder::with_reconfigurations` replaces
+  `with_reconfiguration`; `Reconfiguration` loses `None`. The specification re-encodes every vector in force once
+  more, the view's `reconfiguration` becoming `reconfigurations`, changing no answer; `released.json` lists every
+  re-encoding of a vector, and the bytes 0.8.0 wrote are kept under `spec/released/0.8.0/`.
+- **Breaking:** faction-protocol's `OutputMessage::ProposeAddition` and `ProposeRemoval` carry the epoch the proposal
+  was decided at, the view's, for the caller to submit with the change.
+- **Breaking:** faction-protocol's `Newcomer::new` takes the newcomer's bound of changes in flight, and
+  `Offer::config` gives its configuration the bound.
+
+#### Validation
+- The chaos tier's layer above commits by the specification's rule alone: it takes every proposal a node makes, with
+  its epoch, commits the first no change committed since conflicts with, declines the rest, and reports each decline to
+  its coordinator once the coordinator holds the epoch it was declined at. The guard it kept of its own -- a peer added
+  that is no member, a member removed above the count -- is retired; a proposal the rule admits that the log cannot
+  hold fails the run. The system tests' nodes surface their proposals and take a decline, on tasks, threads and
+  processes alike.
+- Each chaos scenario draws every peer a bound of one to three changes in flight, and the layer above asks a
+  coordinator for as many changes as its bound has room for, so several changes race on one coordinator as well as
+  across coordinators; a recorded regression, drawn before, keeps every bound at one. The system tests give each node
+  its bound, by its peer id (`ClusterBuilder::changes_in_flight`, a process node's `--bounds`).
+- In half the chaos scenarios every planned change comes due in one round, and the layer above asks a coordinator
+  holding changes already before one holding none, so changes pile up on one coordinator as far as its bound lets them:
+  over 3,000 scenarios a coordinator held two changes in flight in 3,321 rounds and three in 491, where it had in 202
+  and 6.
+
 ### What eight hours of chaos soak found
 
 #### Fixed

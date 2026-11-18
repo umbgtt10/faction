@@ -13,4 +13,5 @@ pub struct Configuration {
     pub suspicion_threshold: u64,
     pub epoch: u64,
     pub provisional: bool,
+    pub changes_in_flight: u64,
 }

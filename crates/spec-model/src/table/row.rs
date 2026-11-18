@@ -4,6 +4,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::table::next::Next;
 use crate::vocabulary::command_name::CommandName;
 use crate::vocabulary::outcome_name::OutcomeName;
 use crate::vocabulary::result_name::ResultName;
@@ -16,5 +17,5 @@ pub struct Row {
     pub commands: Vec<CommandName>,
     pub result: ResultName,
     pub outcomes: Vec<OutcomeName>,
-    pub next: Option<Stage>,
+    pub next: Next,
 }

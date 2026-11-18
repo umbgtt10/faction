@@ -22,6 +22,7 @@ fn of_a_scenario_names_its_genesis_members_and_newcomers_no_change_removes() {
         nodes: 3,
         required_count: 1,
         suspicion_threshold: 1,
+        changes_in_flight: Vec::new(),
         changes: vec![
             planned(Change::Addition { peer_id: 3 }),
             planned(Change::Removal { peer_id: 1 }),

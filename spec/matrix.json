@@ -1,17 +1,18 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "admits": {
     "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Collecting": ["ParticipationObserved", "ReadyObserved", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Bootstrapped": ["ParticipationObserved", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "AdditionCommitted", "RemovalRequested", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
-    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
+    "Coordinating": ["ParticipationObserved", "JoinRequested", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "ProposalDeclined", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
+    "Reconfiguring": ["ParticipationObserved", "JoinRequested", "JoinRejected", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalCommitted", "RemovalAborted", "ProposalDeclined", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed", "Probe"],
     "Removed": ["MembershipReceived", "Probe"]
   },
   "rows": [
     {
       "id": "probed",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring", "Removed"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring", "Removed"],
       "commands": ["Probe"],
       "situation": "always",
       "result": "Probed",
@@ -20,8 +21,8 @@
     },
     {
       "id": "not-admitted",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring", "Removed"],
-      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring", "Removed"],
+      "commands": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionRequested", "MembershipAcknowledged", "AdditionCommitted", "AdditionAborted", "RemovalRequested", "RemovalCommitted", "RemovalAborted", "ProposalDeclined", "RequiredCountChanged", "MembershipReceived", "ProbeDue", "PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
       "situation": "the stage does not admit the command (`admits`)",
       "result": "Rejected",
       "outcomes": [],
@@ -38,7 +39,7 @@
     },
     {
       "id": "non-member",
-      "stages": ["Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ParticipationObserved", "ReadyObserved"],
       "situation": "`peer_id` is not a member",
       "result": "Accepted",
@@ -65,7 +66,7 @@
     },
     {
       "id": "claim-behind-provisional",
-      "stages": ["Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ParticipationObserved", "ReadyObserved"],
       "situation": "`epoch` is below the node's and its membership provisional: the member's claim is refused, and nothing sent",
       "result": "Accepted",
@@ -74,7 +75,7 @@
     },
     {
       "id": "claim-behind",
-      "stages": ["Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ParticipationObserved", "ReadyObserved"],
       "situation": "`epoch` is below the node's: the member's claim is refused, and the member sent the membership",
       "result": "Accepted",
@@ -101,7 +102,7 @@
     },
     {
       "id": "rejoin-acknowledged",
-      "stages": ["Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ParticipationObserved"],
       "situation": "otherwise: `peer_id` is a member",
       "result": "Accepted",
@@ -173,7 +174,7 @@
     },
     {
       "id": "join-requested",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["JoinRequested"],
       "situation": "always",
       "result": "Accepted",
@@ -209,7 +210,7 @@
     },
     {
       "id": "join-denied",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["JoinRejected"],
       "situation": "always: a member stays one",
       "result": "Accepted",
@@ -218,7 +219,7 @@
     },
     {
       "id": "coordination-refused-provisional",
-      "stages": ["Bootstrapped"],
+      "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["AdditionRequested", "RemovalRequested"],
       "situation": "the node's membership is provisional: it coordinates no change until its own addition commits",
       "result": "Accepted",
@@ -226,8 +227,17 @@
       "next": "unchanged"
     },
     {
+      "id": "change-duplicate",
+      "stages": ["Coordinating"],
+      "commands": ["AdditionRequested", "RemovalRequested"],
+      "situation": "a change of `peer_id` is in flight: no two changes in flight name one peer",
+      "result": "Accepted",
+      "outcomes": ["DuplicateChangeIgnored"],
+      "next": "unchanged"
+    },
+    {
       "id": "addition-member",
-      "stages": ["Bootstrapped"],
+      "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["AdditionRequested"],
       "situation": "`peer_id` is a member",
       "result": "Accepted",
@@ -236,25 +246,25 @@
     },
     {
       "id": "addition-requested",
-      "stages": ["Bootstrapped"],
+      "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["AdditionRequested"],
       "situation": "otherwise: the addition of `peer_id` is requested",
       "result": "Accepted",
       "outcomes": ["SendMembership"],
-      "next": "Reconfiguring"
+      "next": "changes-in-flight"
     },
     {
       "id": "acknowledgement-ignored",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["MembershipAcknowledged"],
-      "situation": "the change in flight is not an addition requested of `peer_id`: another peer's, one acknowledged already, or a removal",
+      "situation": "no addition of `peer_id` is requested: none is in flight, or it is acknowledged already",
       "result": "Accepted",
       "outcomes": ["AcknowledgementIgnored"],
       "next": "unchanged"
     },
     {
       "id": "acknowledgement-behind",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["MembershipAcknowledged"],
       "situation": "`epoch` is below the node's: the acknowledgement is refused, and `peer_id` sent the membership",
       "result": "Accepted",
@@ -263,43 +273,79 @@
     },
     {
       "id": "acknowledgement-accepted",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["MembershipAcknowledged"],
-      "situation": "otherwise: the addition is acknowledged",
+      "situation": "otherwise: the addition of `peer_id` is acknowledged",
       "result": "Accepted",
       "outcomes": ["ProposeAddition"],
       "next": "unchanged"
     },
     {
       "id": "abort-ignored",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["AdditionAborted", "RemovalAborted"],
-      "situation": "the change in flight is not the one the command aborts: the addition of `peer_id` for `AdditionAborted`, its removal for `RemovalAborted`",
+      "situation": "no change the command aborts is in flight: the addition of `peer_id` for `AdditionAborted`, its removal for `RemovalAborted`",
       "result": "Accepted",
       "outcomes": ["AbortIgnored"],
       "next": "unchanged"
     },
     {
       "id": "addition-aborted",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["AdditionAborted"],
-      "situation": "otherwise: no addition is in flight",
+      "situation": "otherwise: the addition of `peer_id` is in flight no more",
       "result": "Accepted",
       "outcomes": ["AdditionWithdrawn"],
-      "next": "Bootstrapped"
+      "next": "changes-in-flight"
     },
     {
       "id": "removal-aborted",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["RemovalAborted"],
-      "situation": "otherwise: no change is in flight",
+      "situation": "otherwise: the removal of `peer_id` is in flight no more",
       "result": "Accepted",
       "outcomes": ["RemovalWithdrawn"],
-      "next": "Bootstrapped"
+      "next": "changes-in-flight"
+    },
+    {
+      "id": "decline-ignored",
+      "stages": ["Coordinating", "Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "no proposal of `peer_id` is in flight: no change of `peer_id` is, or its addition is not yet acknowledged",
+      "result": "Accepted",
+      "outcomes": ["DeclineIgnored"],
+      "next": "unchanged"
+    },
+    {
+      "id": "decline-addition",
+      "stages": ["Coordinating", "Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "the addition of `peer_id` is acknowledged: it is proposed again, at the node's epoch",
+      "result": "Accepted",
+      "outcomes": ["ProposeAddition"],
+      "next": "unchanged"
+    },
+    {
+      "id": "decline-removal-refused",
+      "stages": ["Coordinating", "Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "the removal of `peer_id` is in flight, `peer_id` is not suspected, and without it and every other member whose removal is in flight the members not suspected would number fewer than the required count: it is given up",
+      "result": "Accepted",
+      "outcomes": ["RemovalRefused"],
+      "next": "changes-in-flight"
+    },
+    {
+      "id": "decline-removal",
+      "stages": ["Coordinating", "Reconfiguring"],
+      "commands": ["ProposalDeclined"],
+      "situation": "otherwise: the removal of `peer_id` is in flight, and it is proposed again, at the node's epoch",
+      "result": "Accepted",
+      "outcomes": ["ProposeRemoval"],
+      "next": "unchanged"
     },
     {
       "id": "commit-held",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["AdditionCommitted", "RemovalCommitted", "RequiredCountChanged"],
       "situation": "`epoch` is one or more, at or below the node's: the node holds the membership the commit makes already",
       "result": "Accepted",
@@ -308,7 +354,7 @@
     },
     {
       "id": "commit-member",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["AdditionCommitted"],
       "situation": "`peer_id` is a member",
       "result": "Accepted",
@@ -317,25 +363,25 @@
     },
     {
       "id": "completion-restores-quorum",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["AdditionCommitted"],
-      "situation": "the addition in flight is of `peer_id`: it becomes the last member, no addition is in flight, and the quorum, lost, is held again",
+      "situation": "an addition of `peer_id` is in flight: it becomes the last member, its addition is in flight no more, and the quorum, lost, is held again",
       "result": "Accepted",
       "outcomes": ["MemberAdmitted", "QuorumRestored"],
-      "next": "Bootstrapped"
+      "next": "changes-in-flight"
     },
     {
       "id": "addition-completed",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["AdditionCommitted"],
-      "situation": "the addition in flight is of `peer_id`: it becomes the last member, and no addition is in flight",
+      "situation": "an addition of `peer_id` is in flight: it becomes the last member, and its addition is in flight no more",
       "result": "Accepted",
       "outcomes": ["MemberAdmitted"],
-      "next": "Bootstrapped"
+      "next": "changes-in-flight"
     },
     {
       "id": "commit-restores-quorum",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["AdditionCommitted"],
       "situation": "`peer_id` becomes the last member, and the quorum, lost, is held again",
       "result": "Accepted",
@@ -344,7 +390,7 @@
     },
     {
       "id": "addition-committed",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["AdditionCommitted"],
       "situation": "otherwise: `peer_id` becomes the last member",
       "result": "Accepted",
@@ -353,7 +399,7 @@
     },
     {
       "id": "removal-non-member",
-      "stages": ["Bootstrapped"],
+      "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["RemovalRequested"],
       "situation": "`peer_id` is not a member",
       "result": "Accepted",
@@ -362,25 +408,25 @@
     },
     {
       "id": "removal-refused",
-      "stages": ["Bootstrapped"],
+      "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["RemovalRequested"],
-      "situation": "`peer_id` is not suspected, and without it the members not suspected would number fewer than the required count",
+      "situation": "`peer_id` is not suspected, and without it and every member whose removal is in flight the members not suspected would number fewer than the required count",
       "result": "Accepted",
       "outcomes": ["RemovalRefused"],
       "next": "unchanged"
     },
     {
       "id": "removal-requested",
-      "stages": ["Bootstrapped"],
+      "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["RemovalRequested"],
       "situation": "otherwise: the removal of `peer_id` is requested",
       "result": "Accepted",
       "outcomes": ["ProposeRemoval"],
-      "next": "Reconfiguring"
+      "next": "changes-in-flight"
     },
     {
       "id": "commit-non-member",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RemovalCommitted"],
       "situation": "`peer_id` is not a member",
       "result": "Accepted",
@@ -389,7 +435,7 @@
     },
     {
       "id": "node-removed",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RemovalCommitted"],
       "situation": "`peer_id` is the node itself: it is no longer a member, tracks no liveness and has no change in flight",
       "result": "Accepted",
@@ -398,25 +444,25 @@
     },
     {
       "id": "removal-completion-loses-quorum",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["RemovalCommitted"],
-      "situation": "the removal in flight is of `peer_id`: it is no longer a member, no change is in flight, and the quorum, held, is lost",
+      "situation": "a removal of `peer_id` is in flight: it is no longer a member, its removal is in flight no more, and the quorum, held, is lost",
       "result": "Accepted",
       "outcomes": ["MemberRemoved", "QuorumLost"],
-      "next": "Bootstrapped"
+      "next": "changes-in-flight"
     },
     {
       "id": "removal-completed",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["RemovalCommitted"],
-      "situation": "the removal in flight is of `peer_id`: it is no longer a member, and no change is in flight",
+      "situation": "a removal of `peer_id` is in flight: it is no longer a member, and its removal is in flight no more",
       "result": "Accepted",
       "outcomes": ["MemberRemoved"],
-      "next": "Bootstrapped"
+      "next": "changes-in-flight"
     },
     {
       "id": "removal-loses-quorum",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RemovalCommitted"],
       "situation": "`peer_id` is no longer a member, and the quorum, held, is lost",
       "result": "Accepted",
@@ -425,7 +471,7 @@
     },
     {
       "id": "removal-committed",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RemovalCommitted"],
       "situation": "otherwise: `peer_id` is no longer a member",
       "result": "Accepted",
@@ -443,7 +489,7 @@
     },
     {
       "id": "count-loses-quorum",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RequiredCountChanged"],
       "situation": "with `required_count` in effect, the quorum, held, is lost",
       "result": "Accepted",
@@ -452,7 +498,7 @@
     },
     {
       "id": "count-restores-quorum",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RequiredCountChanged"],
       "situation": "with `required_count` in effect, the quorum, lost, is held again",
       "result": "Accepted",
@@ -461,7 +507,7 @@
     },
     {
       "id": "count-set",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["RequiredCountChanged"],
       "situation": "otherwise: `required_count` is the count in effect",
       "result": "Accepted",
@@ -470,7 +516,7 @@
     },
     {
       "id": "membership-held",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring", "Removed"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring", "Removed"],
       "commands": ["MembershipReceived"],
       "situation": "`epoch` is at or below the node's",
       "result": "Accepted",
@@ -488,7 +534,7 @@
     },
     {
       "id": "membership-removes-node",
-      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Reconfiguring"],
+      "stages": ["Initial", "Pinging", "Collecting", "Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["MembershipReceived"],
       "situation": "`members` does not name the node: the membership is adopted, and the node removed as by its own removal",
       "result": "Accepted",
@@ -506,27 +552,27 @@
     },
     {
       "id": "abandonment-loses-quorum",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["MembershipReceived"],
-      "situation": "the membership adopted, the change in flight is given up, and the quorum, held, is lost",
+      "situation": "the membership adopted, every change in flight is given up, and the quorum, held, is lost",
       "result": "Accepted",
       "outcomes": ["MembershipAdopted", "ChangeAbandoned", "QuorumLost"],
       "next": "Bootstrapped"
     },
     {
       "id": "abandonment-restores-quorum",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["MembershipReceived"],
-      "situation": "the membership adopted, the change in flight is given up, and the quorum, lost, is held again",
+      "situation": "the membership adopted, every change in flight is given up, and the quorum, lost, is held again",
       "result": "Accepted",
       "outcomes": ["MembershipAdopted", "ChangeAbandoned", "QuorumRestored"],
       "next": "Bootstrapped"
     },
     {
       "id": "change-abandoned",
-      "stages": ["Reconfiguring"],
+      "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["MembershipReceived"],
-      "situation": "the membership adopted, the change in flight is given up",
+      "situation": "the membership adopted, every change in flight is given up",
       "result": "Accepted",
       "outcomes": ["MembershipAdopted", "ChangeAbandoned"],
       "next": "Bootstrapped"
@@ -560,7 +606,7 @@
     },
     {
       "id": "probe-alone",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ProbeDue"],
       "situation": "the node is its only member",
       "result": "Accepted",
@@ -569,7 +615,7 @@
     },
     {
       "id": "probe-due",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ProbeDue"],
       "situation": "otherwise: the member after the one probed last, in the members' order and past the last back to the first, the node skipped, is probed, and is the one probed last",
       "result": "Accepted",
@@ -578,7 +624,7 @@
     },
     {
       "id": "liveness-self",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
       "situation": "`peer_id` is the node itself",
       "result": "Accepted",
@@ -587,7 +633,7 @@
     },
     {
       "id": "liveness-non-member",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["PeerHeard", "ProbeMissed", "IndirectProbesMissed"],
       "situation": "`peer_id` is not a member",
       "result": "Accepted",
@@ -596,7 +642,7 @@
     },
     {
       "id": "revival-restores-quorum",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["PeerHeard"],
       "situation": "`peer_id` is suspected: it is no longer, and the quorum, lost, is held again",
       "result": "Accepted",
@@ -605,7 +651,7 @@
     },
     {
       "id": "peer-revived",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["PeerHeard"],
       "situation": "`peer_id` is suspected: it is no longer",
       "result": "Accepted",
@@ -614,7 +660,7 @@
     },
     {
       "id": "alive-noted",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["PeerHeard"],
       "situation": "otherwise: `peer_id` has missed no period",
       "result": "Accepted",
@@ -623,7 +669,7 @@
     },
     {
       "id": "miss-of-a-suspect",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ProbeMissed", "IndirectProbesMissed"],
       "situation": "`peer_id` is suspected",
       "result": "Accepted",
@@ -632,7 +678,7 @@
     },
     {
       "id": "probe-missed",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["ProbeMissed"],
       "situation": "otherwise: the members not suspected but the node and `peer_id` are listed to probe it",
       "result": "Accepted",
@@ -641,7 +687,7 @@
     },
     {
       "id": "suspicion-loses-quorum",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["IndirectProbesMissed"],
       "situation": "with this period `peer_id` has missed as many as the suspicion threshold: it is suspected, and the quorum, held, is lost",
       "result": "Accepted",
@@ -650,7 +696,7 @@
     },
     {
       "id": "peer-suspected",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["IndirectProbesMissed"],
       "situation": "with this period `peer_id` has missed as many as the suspicion threshold: it becomes the last suspected peer, and has missed no period",
       "result": "Accepted",
@@ -659,7 +705,7 @@
     },
     {
       "id": "miss-counted",
-      "stages": ["Bootstrapped", "Reconfiguring"],
+      "stages": ["Bootstrapped", "Coordinating", "Reconfiguring"],
       "commands": ["IndirectProbesMissed"],
       "situation": "otherwise: `peer_id` has missed one period more",
       "result": "Accepted",

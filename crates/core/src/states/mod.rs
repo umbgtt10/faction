@@ -4,7 +4,9 @@
 pub mod adoption;
 pub mod bootstrapped;
 pub mod collecting;
+pub mod coordinating;
 pub mod epoch_rule;
+pub mod in_flight;
 pub mod liveness;
 pub mod local_completion_step;
 pub mod membership_decision;

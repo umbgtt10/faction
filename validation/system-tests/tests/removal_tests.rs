@@ -9,7 +9,6 @@ use crate::support::log_dir;
 use crate::support::real_time;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::probe_stretch::ProbeStretch;
@@ -81,10 +80,7 @@ fn a_removal_that_would_lose_the_quorum_is_refused(
     cluster.request_removal(COORDINATOR, 1);
 
     // Assert
-    assert_eq!(
-        cluster.snapshot(COORDINATOR).reconfiguration,
-        Reconfiguration::None
-    );
+    assert!(cluster.snapshot(COORDINATOR).reconfigurations.is_empty());
     assert!((0..3).all(|index| cluster.snapshot(index).member_count == 3));
 }
 
@@ -186,10 +182,7 @@ fn an_aborted_removal_keeps_the_member(
     cluster.abort_removal(COORDINATOR, 3);
 
     // Assert
-    assert_eq!(
-        cluster.snapshot(COORDINATOR).reconfiguration,
-        Reconfiguration::None
-    );
+    assert!(cluster.snapshot(COORDINATOR).reconfigurations.is_empty());
     assert!((0..4).all(|index| cluster.snapshot(index).member_count == 4));
 }
 

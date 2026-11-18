@@ -73,6 +73,15 @@ fn parse_cut_reads_the_peer() {
 }
 
 #[test]
+fn parse_decline_reads_the_peer_and_the_epoch() {
+    // Arrange & Act
+    let command = ProcessCommand::parse("decline 2 3");
+
+    // Assert
+    assert_eq!(command, Some(ProcessCommand::Decline(2, 3)));
+}
+
+#[test]
 fn parse_deny_reads_the_peer() {
     // Arrange & Act
     let command = ProcessCommand::parse("deny 4");

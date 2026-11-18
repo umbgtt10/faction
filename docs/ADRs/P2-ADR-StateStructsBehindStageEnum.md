@@ -1,6 +1,6 @@
 # P2-ADR-StateStructsBehindStageEnum
 
-- **Status:** Accepted
+- **Status:** Accepted; amended 2026-11-17 — `Coordinating` wraps `Reconfiguring`
 - **Date:** 2026-11-12
 - **Priority:** P2 (structural)
 - **Phase:** cross-cutting
@@ -53,7 +53,8 @@ be reached. A state
 that hands over to another builds that `Stage` variant itself, so the states
 know `Stage`'s variants — the price of returning owned data instead of a trait
 object. What two states answer alike lives in one struct they share rather than
-in a state of its own: `Reconfiguring` wraps `Bootstrapped`, and both answer
+in a state of its own: `Reconfiguring` wraps `Bootstrapped`, `Coordinating` wraps
+`Reconfiguring` and takes a request besides, and both answer
 liveness through `Liveness` — `Probing` and `Suspicion` under `states/` — so its
 rows are written once. What removes a node -- its own removal committed, or a
 membership not naming it -- answered alike by every stage but `Removed`, is each

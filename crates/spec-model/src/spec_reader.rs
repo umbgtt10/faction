@@ -9,13 +9,12 @@ use serde_json::Value;
 use crate::command::Command;
 use crate::configuration::Configuration;
 use crate::table::decision_table::DecisionTable;
+use crate::table::next::Next;
 use crate::table::row::Row;
 use crate::vocabulary::command_name::CommandName;
 use crate::vocabulary::outcome_name::OutcomeName;
 use crate::vocabulary::result_name::ResultName;
 use crate::vocabulary::stage::Stage;
-
-const UNCHANGED: &str = "unchanged";
 
 // The specification's encoding read: a command, a configuration, the decision
 // table. What it reads is valid against the schema, or outside the
@@ -54,6 +53,7 @@ impl SpecReader {
                 .get("provisional")
                 .and_then(Value::as_bool)
                 .unwrap_or(false),
+            changes_in_flight: value.get("changes_in_flight").map_or(1, Self::count),
         }
     }
 
@@ -100,7 +100,7 @@ impl SpecReader {
             outcomes: Self::names(&value["outcomes"])
                 .map(OutcomeName::of)
                 .collect(),
-            next: (next != UNCHANGED).then(|| Stage::of(next)),
+            next: Next::of(next),
         }
     }
 

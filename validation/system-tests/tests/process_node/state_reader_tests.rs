@@ -4,6 +4,7 @@
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 use faction_system_tests::process_node::state_reader::StateReader;
 use rstest::rstest;
@@ -13,19 +14,32 @@ use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::channel;
 
+fn fresh() -> Arc<Mutex<NodeSnapshot>> {
+    Arc::new(Mutex::new(NodeSnapshot {
+        peer_state: PeerState::Fresh,
+        member_count: 0,
+        members: Vec::new(),
+        required_count: 0,
+        reconfigurations: Vec::new(),
+        suspected: Vec::new(),
+        quorum: Quorum::NotTracked,
+        epoch: 0,
+    }))
+}
+
 fn read(output: &'static str) -> (NodeSnapshot, Receiver<()>) {
     let snapshot = Arc::new(Mutex::new(NodeSnapshot {
         peer_state: PeerState::Pinging,
         member_count: 9,
         members: vec![9],
         required_count: 9,
-        reconfiguration: Reconfiguration::AdditionAcknowledged { peer_id: 9 },
+        reconfigurations: vec![Reconfiguration::AdditionAcknowledged { peer_id: 9 }],
         suspected: vec![9],
         quorum: Quorum::Lost,
         epoch: 0,
     }));
     let (acks, ack_receiver) = channel();
-    StateReader::new(snapshot.clone(), acks)
+    StateReader::new(snapshot.clone(), Arc::new(Mutex::new(Vec::new())), acks)
         .spawn(Cursor::new(output))
         .join()
         .unwrap();
@@ -56,7 +70,7 @@ fn spawn_reads_a_state_line_into_the_snapshot(
             member_count: 2,
             members: vec![0, 1],
             required_count: 3,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             quorum: Quorum::NotTracked,
             epoch: 5,
@@ -65,19 +79,42 @@ fn spawn_reads_a_state_line_into_the_snapshot(
 }
 
 #[rstest]
-#[case("state Bootstrapped 3 2 none - held 0 0,1", Reconfiguration::None)]
-#[case("state Bootstrapped 3 2 requested:7 - held 0 0,1", Reconfiguration::AdditionRequested { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 acknowledged:7 - held 0 0,1", Reconfiguration::AdditionAcknowledged { peer_id: 7 })]
-#[case("state Bootstrapped 3 2 removing:7 - held 0 0,1", Reconfiguration::RemovalRequested { peer_id: 7 })]
+#[case("proposal addition 7 3\n", vec![Proposal::Addition { peer_id: 7, epoch: 3 }])]
+#[case("proposal removal 2 1\nproposal removal 2 4\n", vec![Proposal::Removal { peer_id: 2, epoch: 1 }, Proposal::Removal { peer_id: 2, epoch: 4 }])]
+#[case("proposal removal 2\nproposal merger 2 1\n", vec![])]
+fn spawn_reads_each_proposal_line_into_the_proposals(
+    #[case] output: &'static str,
+    #[case] expected: Vec<Proposal>,
+) {
+    // Arrange
+    let proposals = Arc::new(Mutex::new(Vec::new()));
+    let (acks, _) = channel();
+
+    // Act
+    StateReader::new(fresh(), proposals.clone(), acks)
+        .spawn(Cursor::new(output))
+        .join()
+        .unwrap();
+
+    // Assert
+    assert_eq!(*proposals.lock().unwrap(), expected);
+}
+
+#[rstest]
+#[case("state Bootstrapped 3 2 none - held 0 0,1", vec![])]
+#[case("state Bootstrapped 3 2 requested:7 - held 0 0,1", vec![Reconfiguration::AdditionRequested { peer_id: 7 }])]
+#[case("state Bootstrapped 3 2 acknowledged:7 - held 0 0,1", vec![Reconfiguration::AdditionAcknowledged { peer_id: 7 }])]
+#[case("state Bootstrapped 3 2 removing:7 - held 0 0,1", vec![Reconfiguration::RemovalRequested { peer_id: 7 }])]
+#[case("state Bootstrapped 3 2 requested:7,removing:2 - held 0 0,1", vec![Reconfiguration::AdditionRequested { peer_id: 7 }, Reconfiguration::RemovalRequested { peer_id: 2 }])]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
-    #[case] reconfiguration: Reconfiguration,
+    #[case] reconfigurations: Vec<Reconfiguration>,
 ) {
     // Arrange & Act
     let (snapshot, _) = read(line);
 
     // Assert
-    assert_eq!(snapshot.reconfiguration, reconfiguration);
+    assert_eq!(snapshot.reconfigurations, reconfigurations);
 }
 
 #[rstest]

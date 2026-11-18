@@ -18,7 +18,6 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::reconfiguration::Reconfiguration;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -36,6 +35,7 @@ fn fresh() -> Faction {
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     )
@@ -104,6 +104,7 @@ fn recording_faction() -> (Faction, Observations) {
             1,
             0,
             false,
+            1,
         ),
         Box::new(RecordingObserver::new(Arc::clone(&observations))),
     );
@@ -141,6 +142,7 @@ fn a_provisional_newcomer_withholds_its_membership_until_its_own_addition_commit
             1,
             2,
             true,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -324,6 +326,7 @@ fn process_accepted_admissible_equals_subsequent_probe() {
         1,
         0,
         false,
+        1,
     );
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
 
@@ -360,6 +363,7 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
         1,
         0,
         false,
+        1,
     );
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
     let _ = faction
@@ -452,6 +456,7 @@ fn process_accepted_into_pinging_reports_pinging_s_admissible_set() {
         1,
         0,
         false,
+        1,
     );
     let mut faction = Faction::new(config, Box::new(NoOpObserver));
 
@@ -1052,6 +1057,7 @@ fn process_of_a_change_requested_of_a_provisional_node_is_refused_until_its_addi
             1,
             2,
             true,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -1062,7 +1068,7 @@ fn process_of_a_change_requested_of_a_provisional_node_is_refused_until_its_addi
         process(&mut newcomer, Command::AdditionRequested { peer_id: 7 }),
         process(&mut newcomer, Command::RemovalRequested { peer_id: 0 }),
     ];
-    let still = probe(&mut newcomer).reconfiguration();
+    let still = probe(&mut newcomer).reconfigurations().to_vec();
     process(
         &mut newcomer,
         Command::AdditionCommitted {
@@ -1080,7 +1086,7 @@ fn process_of_a_change_requested_of_a_provisional_node_is_refused_until_its_addi
             vec![Outcome::CoordinationRefused { peer_id: 0 }],
         ]
     );
-    assert_eq!(still, Reconfiguration::None);
+    assert!(still.is_empty());
     assert_eq!(coordinated, vec![Outcome::SendMembership { peer_id: 7 }]);
 }
 
@@ -1098,6 +1104,7 @@ fn process_of_a_commit_above_the_epoch_moves_it_and_one_held_already_does_not() 
             1,
             0,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -1134,6 +1141,7 @@ fn process_of_a_probe_shows_the_epoch_the_node_was_created_at() {
             1,
             4,
             false,
+            1,
         ),
         Box::new(NoOpObserver),
     );
@@ -1161,6 +1169,7 @@ fn process_probe_does_not_mutate_state() {
         1,
         0,
         false,
+        1,
     );
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
@@ -1193,6 +1202,7 @@ fn process_probe_returns_cluster_view_with_initial_state() {
         1,
         0,
         false,
+        1,
     );
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);
@@ -1225,6 +1235,7 @@ fn process_probe_works_after_valid_inputs() {
         1,
         0,
         false,
+        1,
     );
     let observer = Box::new(NoOpObserver);
     let mut faction = Faction::new(config, observer);

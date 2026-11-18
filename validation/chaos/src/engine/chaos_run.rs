@@ -39,6 +39,7 @@ impl ChaosRun {
         let builder = engine
             .builder(&scenario)
             .suspicion_threshold(scenario.suspicion_threshold)
+            .changes_in_flight(scenario.changes_in_flight.clone())
             .breaches(breaches.clone())
             .silent();
         let mut cluster = match log_dir {
@@ -71,6 +72,12 @@ impl ChaosRun {
         for round in 0..=deadline {
             self.disturb(round);
             self.layer.act(round, &self.cluster);
+            if let Some(commit) = self.layer.flaw() {
+                return Err(Failure::Unsound {
+                    round,
+                    commit: commit.to_string(),
+                });
+            }
             self.engine.round(&self.cluster);
             if let Some(breach) = self.breaches.first() {
                 return Err(Failure::Breach { round, breach });

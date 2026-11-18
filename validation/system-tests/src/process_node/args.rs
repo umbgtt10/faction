@@ -27,6 +27,7 @@ impl Args {
         let mut peers: Option<Vec<PeerId>> = None;
         let mut required: Option<usize> = None;
         let mut suspicion_threshold: Option<usize> = None;
+        let mut bounds: Vec<usize> = Vec::new();
         let mut freshness_margin: Option<u64> = None;
         let mut probe_stretch: Option<u32> = None;
         let mut transport: Option<TransportKind> = None;
@@ -53,6 +54,14 @@ impl Args {
                             .map(|s| s.parse().expect("invalid peer id in --peers"))
                             .collect(),
                     );
+                }
+                "--bounds" => {
+                    i += 1;
+                    bounds = self.args[i]
+                        .split(',')
+                        .filter(|bound| !bound.is_empty())
+                        .map(|bound| bound.parse().expect("invalid bound in --bounds"))
+                        .collect();
                 }
                 "--required" => {
                     i += 1;
@@ -125,6 +134,7 @@ impl Args {
             peers: peers.expect("missing --peers"),
             required: required.expect("missing --required"),
             suspicion_threshold: suspicion_threshold.expect("missing --suspicion-threshold"),
+            bounds,
             freshness_margin: freshness_margin.unwrap_or(2),
             probe_stretch: probe_stretch.unwrap_or(ProbeStretch::Minimal.factor()),
             transport: transport.expect("missing --transport"),

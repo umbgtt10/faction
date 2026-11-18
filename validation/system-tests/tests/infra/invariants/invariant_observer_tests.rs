@@ -92,6 +92,7 @@ fn view(epoch: Epoch) -> ClusterView {
         1,
         epoch,
         false,
+        1,
     );
     let ProcessResult::Probed { cluster_view, .. } = Faction::new(config, Box::new(NoOpObserver))
         .process(Command::Probe)
@@ -289,6 +290,7 @@ fn observe_of_a_faithful_bootstrap_reports_nothing() {
         1,
         0,
         false,
+        1,
     );
     let mut faction = Faction::new(config, Box::new(observer(0, &breaches)));
     let commands = [

@@ -149,6 +149,29 @@ fn holds_always_in_any_situation_is_true() {
 }
 
 #[test]
+fn holds_change_in_flight_for_a_peer_with_a_change_in_flight_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(removal("4"));
+
+    // Act
+    let holds = [
+        Situation::ChangeInFlight.holds(
+            &naming(CommandName::AdditionRequested, "4"),
+            &state,
+            &ADMITTED,
+        ),
+        Situation::ChangeInFlight.holds(
+            &naming(CommandName::RemovalRequested, "2"),
+            &state,
+            &ADMITTED,
+        ),
+    ];
+
+    // Assert
+    assert_eq!(holds, [true, false]);
+}
+
+#[test]
 fn holds_claim_is_behind_below_the_node_s_epoch_only() {
     // Arrange
     let claims = [0, 1, 2].map(|epoch| at_epoch(CommandName::ReadyObserved, epoch, &[]));
@@ -270,6 +293,70 @@ fn holds_count_concludes_when_the_collecting_peers_reach_the_new_count_is_true()
 
     // Assert
     assert!(holds);
+}
+
+#[test]
+fn holds_decline_not_awaited_for_another_peer_s_removal_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(removal("4"));
+
+    // Act
+    let holds = Situation::DeclineNotAwaited.holds(
+        &naming(CommandName::ProposalDeclined, "5"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_decline_not_awaited_for_the_acknowledged_addition_is_false() {
+    // Arrange
+    let state = NodeStates::reconfiguring(acknowledged("4"));
+
+    // Act
+    let holds = Situation::DeclineNotAwaited.holds(
+        &naming(CommandName::ProposalDeclined, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
+}
+
+#[test]
+fn holds_decline_not_awaited_for_the_addition_not_yet_acknowledged_is_true() {
+    // Arrange
+    let state = NodeStates::reconfiguring(requested("4"));
+
+    // Act
+    let holds = Situation::DeclineNotAwaited.holds(
+        &naming(CommandName::ProposalDeclined, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(holds);
+}
+
+#[test]
+fn holds_decline_not_awaited_for_the_removal_in_flight_is_false() {
+    // Arrange
+    let state = NodeStates::reconfiguring(removal("4"));
+
+    // Act
+    let holds = Situation::DeclineNotAwaited.holds(
+        &naming(CommandName::ProposalDeclined, "4"),
+        &state,
+        &ADMITTED,
+    );
+
+    // Assert
+    assert!(!holds);
 }
 
 #[test]
@@ -855,6 +942,33 @@ fn holds_quorum_cannot_spare_a_member_the_count_needs_is_true() {
 
     // Assert
     assert!(holds);
+}
+
+#[test]
+fn holds_quorum_cannot_spare_a_member_the_removals_in_flight_leave_needed_is_true() {
+    // Arrange
+    let state = NodeState {
+        required_count: 1,
+        reconfigurations: vec![removal("3"), removal("2")],
+        ..NodeStates::concluded()
+    };
+
+    // Act
+    let holds = [
+        Situation::QuorumCannotSpare.holds(
+            &naming(CommandName::RemovalRequested, "1"),
+            &state,
+            &ADMITTED,
+        ),
+        Situation::QuorumCannotSpare.holds(
+            &naming(CommandName::ProposalDeclined, "2"),
+            &state,
+            &ADMITTED,
+        ),
+    ];
+
+    // Assert
+    assert_eq!(holds, [true, false]);
 }
 
 #[test]

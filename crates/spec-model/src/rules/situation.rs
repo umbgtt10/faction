@@ -21,6 +21,8 @@ pub enum Situation {
     PeerConcludes,
     NodeConcludes,
     AcknowledgementNotAwaited,
+    ChangeInFlight,
+    DeclineNotAwaited,
     PeerIsPending,
     PeerIsNotPending,
     CountConcludes,
@@ -61,11 +63,22 @@ impl Situation {
             Situation::NodeConcludes => {
                 Self::reaches_required_count(&Change::NodeCollects.applied(command, state))
             }
-            Situation::AcknowledgementNotAwaited => {
-                !matches!(&state.reconfiguration, Reconfiguration::AdditionRequested(pending) if Some(pending) == peer_id)
-            }
-            Situation::PeerIsPending => Self::is_pending(command, &state.reconfiguration),
-            Situation::PeerIsNotPending => !Self::is_pending(command, &state.reconfiguration),
+            Situation::AcknowledgementNotAwaited => !state.reconfigurations.iter().any(
+                |change| matches!(change, Reconfiguration::AdditionRequested(pending) if Some(pending) == peer_id),
+            ),
+            Situation::ChangeInFlight => state
+                .reconfigurations
+                .iter()
+                .any(|change| Self::names(change, peer_id)),
+            Situation::DeclineNotAwaited => !state.reconfigurations.iter().any(|change| {
+                matches!(
+                    change,
+                    Reconfiguration::AdditionAcknowledged(proposed)
+                        | Reconfiguration::RemovalRequested(proposed) if Some(proposed) == peer_id
+                )
+            }),
+            Situation::PeerIsPending => Self::is_pending(command, &state.reconfigurations),
+            Situation::PeerIsNotPending => !Self::is_pending(command, &state.reconfigurations),
             Situation::CountConcludes => {
                 Self::reaches_required_count(&Change::CountSet.applied(command, state))
             }
@@ -82,7 +95,7 @@ impl Situation {
                     && !Liveness::holds_quorum(&change.applied(command, state))
             }
             Situation::CompletionRestoresQuorum => {
-                Self::is_pending(command, &state.reconfiguration)
+                Self::is_pending(command, &state.reconfigurations)
                     && Situation::RestoresQuorum(Change::AdditionCompletes)
                         .holds(command, state, admitted)
             }
@@ -92,10 +105,12 @@ impl Situation {
             }
             Situation::QuorumCannotSpare => {
                 !Self::lists(&state.suspected, peer_id)
-                    && !Liveness::holds_quorum(&Change::PeerRemoved.applied(command, state))
+                    && !Liveness::holds_quorum(&Self::without_removals(
+                        &Change::PeerRemoved.applied(command, state),
+                    ))
             }
             Situation::CompletionLosesQuorum => {
-                Self::is_pending(command, &state.reconfiguration)
+                Self::is_pending(command, &state.reconfigurations)
                     && Situation::LosesQuorum(Change::RemovalCompletes)
                         .holds(command, state, admitted)
             }
@@ -112,26 +127,34 @@ impl Situation {
         }
     }
 
-    // Whether the change the command commits or aborts is the one in flight: a
+    // Whether the change the command commits or aborts is in flight: a
     // removal's of `peer_id` for a removal's command, an addition's otherwise.
-    fn is_pending(command: &Command, reconfiguration: &Reconfiguration) -> bool {
+    fn is_pending(command: &Command, reconfigurations: &[Reconfiguration]) -> bool {
         let peer_id = command.peer_id.as_ref();
-        if matches!(
+        let removal = matches!(
             command.name,
             CommandName::RemovalCommitted | CommandName::RemovalAborted
-        ) {
-            matches!(reconfiguration, Reconfiguration::RemovalRequested(pending) if Some(pending) == peer_id)
-        } else {
-            matches!(
-                reconfiguration,
-                Reconfiguration::AdditionRequested(pending)
-                    | Reconfiguration::AdditionAcknowledged(pending) if Some(pending) == peer_id
-            )
-        }
+        );
+        reconfigurations.iter().any(|change| match change {
+            Reconfiguration::RemovalRequested(pending) => removal && Some(pending) == peer_id,
+            Reconfiguration::AdditionRequested(pending)
+            | Reconfiguration::AdditionAcknowledged(pending) => {
+                !removal && Some(pending) == peer_id
+            }
+        })
     }
 
     fn lists(peers: &[String], peer_id: Option<&String>) -> bool {
         peer_id.is_some_and(|peer_id| peers.contains(peer_id))
+    }
+
+    // Whether `change` names `peer_id`.
+    fn names(change: &Reconfiguration, peer_id: Option<&String>) -> bool {
+        match change {
+            Reconfiguration::AdditionRequested(named)
+            | Reconfiguration::AdditionAcknowledged(named)
+            | Reconfiguration::RemovalRequested(named) => Some(named) == peer_id,
+        }
     }
 
     fn reaches_required_count(state: &NodeState) -> bool {
@@ -142,5 +165,23 @@ impl Situation {
         command.peer_id.as_ref().is_some_and(|peer_id| {
             Liveness::misses(state, peer_id) + 1 >= state.suspicion_threshold
         })
+    }
+
+    // The node with every member whose removal is in flight no longer one: the
+    // removals in flight counted together (§12).
+    fn without_removals(state: &NodeState) -> NodeState {
+        NodeState {
+            members: state
+                .members
+                .iter()
+                .filter(|member| {
+                    !state
+                        .reconfigurations
+                        .contains(&Reconfiguration::RemovalRequested((*member).clone()))
+                })
+                .cloned()
+                .collect(),
+            ..state.clone()
+        }
     }
 }

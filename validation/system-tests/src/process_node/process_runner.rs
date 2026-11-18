@@ -12,6 +12,7 @@ use faction::reconfiguration::Reconfiguration;
 
 use crate::faction_node::FactionNode;
 use crate::infra::network::address_book::AddressBook;
+use crate::infra::proposal::Proposal;
 use crate::process_node::process_command::ProcessCommand;
 use crate::time_ports::TimePorts;
 
@@ -80,6 +81,7 @@ impl ProcessRunner {
                 self.node.commit_removal(peer_id, epoch);
             }
             ProcessCommand::AbortRemoval(peer_id) => self.node.abort_removal(peer_id),
+            ProcessCommand::Decline(peer_id, epoch) => self.node.decline(peer_id, epoch),
             ProcessCommand::RequiredCount(required_count, epoch) => {
                 self.node.change_required_count(required_count, epoch);
             }
@@ -113,7 +115,11 @@ impl ProcessRunner {
         let _ = self.out.flush();
     }
 
+    // What the node proposed, a line each, then its state.
     fn emit_state(&mut self) {
+        for proposal in self.node.take_proposals() {
+            let _ = writeln!(self.out, "{}", Self::proposal(proposal));
+        }
         let snapshot = self.node.snapshot();
         let _ = writeln!(
             self.out,
@@ -121,7 +127,7 @@ impl ProcessRunner {
             snapshot.peer_state,
             snapshot.member_count,
             snapshot.required_count,
-            Self::reconfiguration(snapshot.reconfiguration),
+            Self::reconfigurations(&snapshot.reconfigurations),
             Self::peers(&snapshot.suspected),
             Self::quorum(snapshot.quorum),
             snapshot.epoch,
@@ -145,6 +151,14 @@ impl ProcessRunner {
         }
     }
 
+    // A proposal as its line writes it: its kind, its peer and its epoch.
+    fn proposal(proposal: Proposal) -> String {
+        match proposal {
+            Proposal::Addition { peer_id, epoch } => format!("proposal addition {peer_id} {epoch}"),
+            Proposal::Removal { peer_id, epoch } => format!("proposal removal {peer_id} {epoch}"),
+        }
+    }
+
     // The quorum as the state line writes it.
     fn quorum(quorum: Quorum) -> &'static str {
         match quorum {
@@ -154,14 +168,27 @@ impl ProcessRunner {
         }
     }
 
-    // The change in flight as the state line writes it: none, an addition
-    // requested of a peer or acknowledged by it, or a peer's removal.
+    // A change in flight as the state line writes it: an addition requested of
+    // a peer or acknowledged by it, or a peer's removal.
     fn reconfiguration(reconfiguration: Reconfiguration) -> String {
         match reconfiguration {
-            Reconfiguration::None => String::from("none"),
             Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
             Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
             Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
+        }
+    }
+
+    // The changes in flight as the state line writes them: `none`, or each in
+    // the order requested, comma separated.
+    fn reconfigurations(reconfigurations: &[Reconfiguration]) -> String {
+        if reconfigurations.is_empty() {
+            String::from("none")
+        } else {
+            reconfigurations
+                .iter()
+                .map(|change| Self::reconfiguration(*change))
+                .collect::<Vec<String>>()
+                .join(",")
         }
     }
 }

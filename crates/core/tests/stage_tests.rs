@@ -16,6 +16,8 @@ use faction::stage::Stage;
 use faction::state::State;
 use faction::states::bootstrapped::Bootstrapped;
 use faction::states::collecting::Collecting;
+use faction::states::coordinating::Coordinating;
+use faction::states::in_flight::InFlight;
 use faction::states::initial::Initial;
 use faction::states::pinging::Pinging;
 use faction::states::reconfiguring::Reconfiguring;
@@ -51,7 +53,16 @@ fn config() -> Config {
         1,
         0,
         false,
+        1,
     )
+}
+
+// The same node bound to more than its one change in flight.
+fn coordinating() -> Stage {
+    Stage::Coordinating(Coordinating::new(Reconfiguring::new(
+        Bootstrapped::new(members(), QuorumPolicy::new(4), vec![1], vec![0, 1, 2, 3]),
+        InFlight::default().with(Reconfiguration::AdditionRequested { peer_id: 9 }),
+    )))
 }
 
 fn every_command() -> Vec<Command> {
@@ -85,6 +96,10 @@ fn every_command() -> Vec<Command> {
             epoch: 0,
         },
         Command::RemovalAborted { peer_id: 0 },
+        Command::ProposalDeclined {
+            peer_id: 0,
+            epoch: 0,
+        },
         Command::RequiredCountChanged {
             required_count: 0,
             epoch: 0,
@@ -115,6 +130,7 @@ fn every_command_but_a_concluded_node_s_own() -> Vec<Command> {
                     | Command::AdditionAborted { .. }
                     | Command::RemovalRequested { .. }
                     | Command::RemovalAborted { .. }
+                    | Command::ProposalDeclined { .. }
                     | Command::ProbeDue
                     | Command::PeerHeard { .. }
                     | Command::ProbeMissed { .. }
@@ -141,7 +157,7 @@ fn pinging() -> Stage {
 fn reconfiguring() -> Stage {
     Stage::Reconfiguring(Reconfiguring::new(
         Bootstrapped::new(members(), QuorumPolicy::new(4), vec![1], vec![0, 1, 2, 3]),
-        Reconfiguration::AdditionRequested { peer_id: 9 },
+        InFlight::default().with(Reconfiguration::AdditionRequested { peer_id: 9 }),
     ))
 }
 
@@ -240,6 +256,32 @@ fn admissible_commands_collecting_returns_all_but_its_completion_and_a_concluded
 }
 
 #[test]
+fn admissible_commands_coordinating_returns_what_reconfiguring_admits_and_both_requests() {
+    // Arrange
+    let stage = coordinating();
+
+    // Act
+    let admissible = stage.admissible_commands(&config(), 0);
+
+    // Assert
+    let reconfiguring = reconfiguring().admissible_commands(&config(), 0);
+    let requests = [
+        Command::AdditionRequested { peer_id: 0 },
+        Command::RemovalRequested { peer_id: 0 },
+    ];
+    assert_eq!(
+        admissible
+            .iter()
+            .filter(|command| !requests.contains(command))
+            .cloned()
+            .collect::<Vec<Command>>(),
+        reconfiguring
+    );
+    assert!(requests.iter().all(|request| admissible.contains(request)));
+    assert_eq!(admissible.len(), reconfiguring.len() + 2);
+}
+
+#[test]
 fn admissible_commands_initial_returns_all_but_the_deadline_and_a_concluded_node_s_own() {
     // Arrange
     let stage = initial();
@@ -330,6 +372,10 @@ fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an
                 epoch: 0
             },
             Command::RemovalAborted { peer_id: 0 },
+            Command::ProposalDeclined {
+                peer_id: 0,
+                epoch: 0
+            },
             Command::RequiredCountChanged {
                 required_count: 0,
                 epoch: 0
@@ -442,8 +488,8 @@ fn cluster_view_reconfiguring_reports_bootstrapped_with_the_addition_requested()
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
-        cluster_view.reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 9 }
+        cluster_view.reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
     assert_eq!(cluster_view.collecting_peers(), &[0, 1, 2, 3]);
 }
@@ -736,7 +782,7 @@ fn step_removed_answers_a_membership_alone_and_leaves_a_probe_to_the_node() {
         .collect();
 
     // Assert
-    let membership = 15;
-    let expected: Vec<bool> = (0..21).map(|index| index == membership).collect();
+    let membership = 16;
+    let expected: Vec<bool> = (0..22).map(|index| index == membership).collect();
     assert_eq!(answered, expected);
 }

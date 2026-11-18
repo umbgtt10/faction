@@ -4,14 +4,11 @@
     {
       "kind": "exact",
       "fingerprint": "00c8e51c72bf7bf1",
-      "members": 10,
+      "members": 7,
       "names": [
         "Protocol::abort_addition",
         "Protocol::abort_removal",
         "Protocol::admit",
-        "Protocol::change_required_count",
-        "Protocol::commit_addition",
-        "Protocol::commit_removal",
         "Protocol::deny",
         "Protocol::request_addition",
         "Protocol::request_join",
@@ -57,7 +54,7 @@
         "ClusterViewBuilder::with_misses",
         "ClusterViewBuilder::with_peer_state",
         "ClusterViewBuilder::with_quorum",
-        "ClusterViewBuilder::with_reconfiguration",
+        "ClusterViewBuilder::with_reconfigurations",
         "ClusterViewBuilder::with_required_count",
         "ClusterViewBuilder::with_suspected"
       ]
@@ -85,11 +82,12 @@
     {
       "kind": "exact",
       "fingerprint": "cccf62d6f64bd154",
-      "members": 17,
+      "members": 18,
       "names": [
         "ClusterView::collecting_peers",
         "ClusterView::misses",
         "ClusterView::pinging_peers",
+        "ClusterView::reconfigurations",
         "ClusterView::suspected",
         "Members::as_slice",
         "ReadyStep::confirmed_peers",

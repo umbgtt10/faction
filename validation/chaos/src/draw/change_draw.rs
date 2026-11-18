@@ -7,6 +7,7 @@ use faction_system_tests::infra::dice::Dice;
 use crate::model::change::Change;
 use crate::model::planned_change::PlannedChange;
 
+const BURST_PERCENT: u8 = 50;
 const COUNT_CHANGE_PERCENT: u8 = 30;
 const MAX_NEWCOMERS: u64 = 2;
 const MAX_REMOVALS: usize = 2;
@@ -16,9 +17,12 @@ const READDITION_PERCENT: u8 = 50;
 // whatever order they commit: genesis members removed never below the
 // required count -- the initial one, or the one a count change sets --
 // newcomers numbered on from the genesis peers, and a removed member taken
-// back only after its removal.
+// back only after its removal. In half the scenarios every change comes due
+// in one round, a burst, so that several are in flight at once; in the
+// others each in a round of its own.
 pub struct ChangeDraw {
     dice: Dice,
+    burst: Option<u64>,
 }
 
 impl ChangeDraw {
@@ -26,6 +30,7 @@ impl ChangeDraw {
     pub fn new(seed: u64) -> Self {
         Self {
             dice: Dice::new(seed),
+            burst: None,
         }
     }
 
@@ -37,6 +42,10 @@ impl ChangeDraw {
         required_count: usize,
         chaos_rounds: u64,
     ) -> Vec<PlannedChange> {
+        self.burst = self
+            .dice
+            .rolls(BURST_PERCENT)
+            .then(|| self.dice.below(chaos_rounds));
         let removed = self.removed(nodes, required_count);
         let newcomers = self.dice.below(MAX_NEWCOMERS + 1);
         let mut changes: Vec<PlannedChange> = (0..newcomers)
@@ -72,7 +81,7 @@ impl ChangeDraw {
     ) -> PlannedChange {
         PlannedChange {
             change,
-            due: self.dice.below(chaos_rounds),
+            due: self.burst.unwrap_or_else(|| self.dice.below(chaos_rounds)),
             after,
         }
     }

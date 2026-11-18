@@ -13,6 +13,7 @@ use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::fault_settings::FaultSettings;
 use faction_system_tests::infra::invariants::breaches::Breaches;
+use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
 use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
@@ -54,14 +55,17 @@ fn abort_addition_of_a_requested_addition_withdraws_it() {
     cluster.poll_until_bootstrapped();
     cluster.add_newcomer(3);
     cluster.request_addition(1, 3);
-    let requested = cluster.snapshot(1).reconfiguration;
+    let requested = cluster.snapshot(1).reconfigurations;
 
     // Act
     cluster.abort_addition(1, 3);
 
     // Assert
-    assert_eq!(requested, Reconfiguration::AdditionRequested { peer_id: 3 });
-    assert_eq!(cluster.snapshot(1).reconfiguration, Reconfiguration::None);
+    assert_eq!(
+        requested,
+        [Reconfiguration::AdditionRequested { peer_id: 3 }]
+    );
+    assert!(cluster.snapshot(1).reconfigurations.is_empty());
 }
 
 #[test]
@@ -76,8 +80,30 @@ fn abort_removal_of_a_requested_removal_withdraws_it() {
     cluster.abort_removal(1, 2);
 
     // Assert
-    assert_eq!(cluster.snapshot(1).reconfiguration, Reconfiguration::None);
+    assert!(cluster.snapshot(1).reconfigurations.is_empty());
     assert_eq!(cluster.snapshot(1).member_count, 3);
+}
+
+#[test]
+fn changes_in_flight_lets_a_node_hold_as_many_changes_as_its_bound() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 1, real_time())
+        .changes_in_flight(vec![2])
+        .build();
+    cluster.poll_until_bootstrapped();
+
+    // Act
+    cluster.request_removal(0, 2);
+    cluster.request_removal(0, 1);
+
+    // Assert
+    assert_eq!(
+        cluster.snapshot(0).reconfigurations,
+        [
+            Reconfiguration::RemovalRequested { peer_id: 2 },
+            Reconfiguration::RemovalRequested { peer_id: 1 }
+        ]
+    );
 }
 
 #[test]
@@ -295,6 +321,28 @@ fn report_commit_reports_the_commit_to_that_node_alone() {
     assert_eq!(cluster.snapshot(1).members, vec![0, 1, 5]);
     assert_eq!(cluster.snapshot(1).epoch, 1);
     assert_eq!(cluster.snapshot(0).members, vec![0, 1]);
+}
+
+#[test]
+fn report_decline_reports_the_decline_to_that_node_alone() {
+    // Arrange
+    let mut cluster = ClusterBuilder::new(3, 2, real_time()).build();
+    cluster.poll_until_bootstrapped();
+    cluster.request_removal(1, 2);
+    cluster.poll_until_removal_proposed(1, 2);
+    let proposed = cluster.take_proposals(1);
+
+    // Act
+    cluster.report_decline(1, 2, 0);
+
+    // Assert
+    let removal = Proposal::Removal {
+        peer_id: 2,
+        epoch: 0,
+    };
+    assert_eq!(proposed, vec![removal]);
+    assert_eq!(cluster.take_proposals(1), vec![removal]);
+    assert!(cluster.take_proposals(0).is_empty());
 }
 
 #[test]

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use faction::peer_state::PeerState;
+use faction::reconfiguration::Reconfiguration;
 use faction_chaos::harness::layer_above::LayerAbove;
 use faction_chaos::model::change::Change;
 use faction_chaos::model::planned_change::PlannedChange;
@@ -28,6 +29,15 @@ fn cluster() -> (Cluster, Arc<SimulatedClock>) {
     cluster.start_all();
     cluster.add_newcomer(3);
     (cluster, clock)
+}
+
+// A change planned for round `due`.
+fn due_at(change: Change, due: u64) -> PlannedChange {
+    PlannedChange {
+        change,
+        due,
+        after: None,
+    }
 }
 
 fn planned(change: Change, after: Option<usize>) -> PlannedChange {
@@ -58,6 +68,7 @@ fn scenario(changes: Vec<PlannedChange>, delivery_lag: u64) -> Scenario {
         nodes: 3,
         required_count: 2,
         suspicion_threshold: 1,
+        changes_in_flight: Vec::new(),
         changes,
         faults: Vec::new(),
         restarts: Vec::new(),
@@ -66,6 +77,89 @@ fn scenario(changes: Vec<PlannedChange>, delivery_lag: u64) -> Scenario {
         chaos_rounds: 100,
         quiescence_rounds: 100,
     }
+}
+
+#[test]
+fn act_asks_a_coordinator_for_as_many_changes_as_its_bound_at_once() {
+    // Arrange
+    let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
+    let time = TimePorts {
+        clock: clock.clone(),
+        pause: clock.clone(),
+        wall_clock: Arc::new(SystemWallClock),
+    };
+    let mut cluster = ClusterBuilder::new(3, 1, time)
+        .changes_in_flight(vec![2])
+        .build();
+    cluster.start_all();
+    let mut layer = LayerAbove::new(&Scenario {
+        changes_in_flight: vec![2],
+        required_count: 1,
+        ..scenario(
+            vec![
+                due_at(Change::Removal { peer_id: 2 }, 40),
+                due_at(Change::Removal { peer_id: 1 }, 40),
+            ],
+            0,
+        )
+    });
+    play(&mut layer, &cluster, &clock, 40);
+
+    // Act
+    layer.act(40, &cluster);
+
+    // Assert
+    assert_eq!(
+        cluster.snapshot(0).reconfigurations,
+        [
+            Reconfiguration::RemovalRequested { peer_id: 2 },
+            Reconfiguration::RemovalRequested { peer_id: 1 }
+        ]
+    );
+}
+
+#[test]
+fn act_asks_a_coordinator_holding_changes_before_one_holding_none() {
+    // Arrange
+    let held_by = |seed: u64| {
+        let clock = Arc::new(SimulatedClock::at(Duration::ZERO));
+        let time = TimePorts {
+            clock: clock.clone(),
+            pause: clock.clone(),
+            wall_clock: Arc::new(SystemWallClock),
+        };
+        let mut cluster = ClusterBuilder::new(3, 1, time)
+            .changes_in_flight(vec![2, 2])
+            .build();
+        cluster.start_all();
+        cluster.add_newcomer(3);
+        let mut layer = LayerAbove::new(&Scenario {
+            seed,
+            changes_in_flight: vec![2, 2],
+            required_count: 1,
+            ..scenario(
+                vec![
+                    due_at(Change::Removal { peer_id: 2 }, 40),
+                    due_at(Change::Addition { peer_id: 3 }, 40),
+                ],
+                0,
+            )
+        });
+        play(&mut layer, &cluster, &clock, 40);
+        layer.act(40, &cluster);
+        let mut held = [
+            cluster.snapshot(0).reconfigurations.len(),
+            cluster.snapshot(1).reconfigurations.len(),
+        ];
+        held.sort_unstable();
+        held
+    };
+
+    // Act
+    let held: Vec<[usize; 2]> = (0..8).map(held_by).collect();
+
+    // Assert
+    assert_eq!(held, vec![[0, 2]; 8]);
 }
 
 #[test]
@@ -118,6 +212,66 @@ fn act_commits_an_addition_once_its_newcomer_acknowledges() {
 }
 
 #[test]
+fn act_declines_a_removal_a_new_count_conflicts_with_and_commits_it_proposed_again() {
+    // Arrange
+    let (cluster, clock) = cluster();
+    let mut layer = LayerAbove::new(&scenario(
+        vec![
+            due_at(Change::RequiredCount { required_count: 1 }, 40),
+            due_at(Change::Removal { peer_id: 1 }, 40),
+        ],
+        0,
+    ));
+
+    // Act
+    play(&mut layer, &cluster, &clock, 200);
+
+    // Assert
+    assert_eq!(
+        layer.log().commits(),
+        [
+            Commit::RequiredCount {
+                required_count: 1,
+                epoch: 1
+            },
+            Commit::Removal {
+                peer_id: 1,
+                epoch: 2
+            },
+        ]
+    );
+    assert!(layer.settled());
+    assert_eq!(layer.flaw(), None);
+}
+
+#[test]
+fn act_gives_up_a_removal_a_raised_count_can_no_longer_spare() {
+    // Arrange
+    let (cluster, clock) = cluster();
+    let mut layer = LayerAbove::new(&scenario(
+        vec![
+            due_at(Change::RequiredCount { required_count: 3 }, 40),
+            due_at(Change::Removal { peer_id: 1 }, 40),
+        ],
+        0,
+    ));
+
+    // Act
+    play(&mut layer, &cluster, &clock, 200);
+
+    // Assert
+    assert_eq!(
+        layer.log().commits(),
+        [Commit::RequiredCount {
+            required_count: 3,
+            epoch: 1
+        }]
+    );
+    assert!(!layer.settled());
+    assert_eq!(cluster.snapshot(1).members, vec![0, 1, 2]);
+}
+
+#[test]
 fn act_takes_a_removed_member_back_only_after_its_removal() {
     // Arrange
     let (cluster, clock) = cluster();
@@ -148,6 +302,15 @@ fn act_takes_a_removed_member_back_only_after_its_removal() {
     );
     assert_eq!(cluster.node_state(2), PeerState::Bootstrapped);
     assert_eq!(cluster.snapshot(2).epoch, 2);
+}
+
+#[test]
+fn flaw_of_a_layer_yet_to_act_is_none() {
+    // Arrange & Act
+    let layer = LayerAbove::new(&scenario(Vec::new(), 0));
+
+    // Assert
+    assert_eq!(layer.flaw(), None);
 }
 
 #[test]

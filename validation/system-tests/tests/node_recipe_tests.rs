@@ -5,6 +5,7 @@ use crate::support::fake_time;
 use crate::support::recipe;
 use faction::peer_state::PeerState;
 use faction_system_tests::constants::NODE_LIFETIME;
+use faction_system_tests::infra::coordination::Coordination;
 use faction_system_tests::infra::fault_board::FaultBoard;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 use faction_system_tests::infra::logging::logs::Logs;
@@ -57,7 +58,7 @@ fn new_with_a_log_directory_builds_nodes_that_log() {
     create_dir_all(&dir).unwrap();
     let recipe = NodeRecipe::new(
         1,
-        1,
+        Coordination::new(1, Vec::new()),
         TimerDelays {
             delay: Duration::from_millis(10),
             deadline_delay: Duration::from_secs(10),

@@ -4,7 +4,6 @@
 use faction::command::Command;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction_chaos::oracle::failure::Failure;
 use faction_system_tests::infra::invariants::breach::Breach;
 use faction_system_tests::node_snapshot::NodeSnapshot;
@@ -52,7 +51,7 @@ fn to_string_of_a_divergence_names_what_was_expected_and_found() {
             member_count: 1,
             members: vec![1],
             required_count: 1,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             quorum: Quorum::Held,
             epoch: 1,
@@ -64,4 +63,22 @@ fn to_string_of_a_divergence_names_what_was_expected_and_found() {
 
     // Assert
     assert!(text.starts_with("round 40: node 1 expected Removed at epoch 2, found NodeSnapshot"));
+}
+
+#[test]
+fn to_string_of_an_unsound_commit_names_it() {
+    // Arrange
+    let failure = Failure::Unsound {
+        round: 12,
+        commit: String::from("Addition { peer_id: 1 } at epoch 4"),
+    };
+
+    // Act
+    let text = failure.to_string();
+
+    // Assert
+    assert_eq!(
+        text,
+        "round 12: the commit rule admitted Addition { peer_id: 1 } at epoch 4, which the log cannot hold"
+    );
 }

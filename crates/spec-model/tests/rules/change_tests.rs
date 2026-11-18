@@ -65,7 +65,7 @@ fn applied_addition_completes_makes_the_peer_the_last_member_and_ends_the_additi
         changed,
         NodeState {
             members: NodeStates::peers(&["1", "2", "3", "4"]),
-            ..NodeStates::reconfiguring(Reconfiguration::None)
+            ..NodeStates::of(Stage::Reconfiguring, &[], &["1"])
         }
     );
 }
@@ -83,7 +83,7 @@ fn applied_addition_pends_requests_the_addition_of_the_peer() {
     assert_eq!(
         changed,
         NodeState {
-            reconfiguration: Reconfiguration::AdditionRequested(String::from("4")),
+            reconfigurations: vec![Reconfiguration::AdditionRequested(String::from("4"))],
             ..concluded
         }
     );
@@ -100,7 +100,7 @@ fn applied_addition_withdrawn_leaves_no_addition_in_flight() {
     let changed = Change::AdditionWithdrawn.applied(&abort, &acknowledged);
 
     // Assert
-    assert_eq!(changed, NodeStates::reconfiguring(Reconfiguration::None));
+    assert_eq!(changed, NodeStates::of(Stage::Reconfiguring, &[], &["1"]));
 }
 
 #[test]
@@ -148,7 +148,7 @@ fn applied_membership_adopted_replaces_the_membership_and_keeps_its_members_in_e
             members: NodeStates::peers(&["3", "1", "4"]),
             required_count: 1,
             epoch: 5,
-            reconfiguration: Reconfiguration::None,
+            reconfigurations: Vec::new(),
             suspected: Vec::new(),
             misses: NodeStates::misses(&[("3", 1)]),
             last_probed: None,
@@ -344,7 +344,7 @@ fn applied_node_removed_leaves_the_node_out_with_no_liveness_and_no_change_in_fl
             members: NodeStates::peers(&["2", "3"]),
             collecting_peers: Vec::new(),
             completed_before_removal: true,
-            ..NodeStates::reconfiguring(Reconfiguration::None)
+            ..NodeStates::of(Stage::Reconfiguring, &[], &["1"])
         }
     );
 }
@@ -547,7 +547,7 @@ fn applied_removal_completes_takes_the_peer_out_and_ends_the_removal() {
         changed,
         NodeState {
             members: NodeStates::peers(&["1", "3"]),
-            ..NodeStates::reconfiguring(Reconfiguration::None)
+            ..NodeStates::of(Stage::Reconfiguring, &[], &["1"])
         }
     );
 }
@@ -565,7 +565,7 @@ fn applied_removal_pends_requests_the_removal_of_the_peer() {
     assert_eq!(
         changed,
         NodeState {
-            reconfiguration: Reconfiguration::RemovalRequested(String::from("2")),
+            reconfigurations: vec![Reconfiguration::RemovalRequested(String::from("2"))],
             ..concluded
         }
     );
@@ -581,5 +581,5 @@ fn applied_removal_withdrawn_leaves_no_change_in_flight() {
     let changed = Change::RemovalWithdrawn.applied(&abort, &requested);
 
     // Assert
-    assert_eq!(changed, NodeStates::reconfiguring(Reconfiguration::None));
+    assert_eq!(changed, NodeStates::of(Stage::Reconfiguring, &[], &["1"]));
 }

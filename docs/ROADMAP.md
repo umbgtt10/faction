@@ -402,33 +402,46 @@ breadth, not a failure mode the fault layer does not inject already.
 
 ## Phase 6 — Concurrent membership changes
 
-**Status:** Planned  
-**Depends on:** Phase 5 complete  
-**Removes limitation:** L6 — single-change-at-a-time constraint  
+**Status:** ✅ Built — specification 0.9.0, for the crate's 0.13.0 (`docs/[PROPOSAL] PHASE-6-CONCURRENT-CHANGES.md`,
+accepted)
+**Depends on:** Phase 5 complete
+**Removes limitation:** L6 — single-change-at-a-time constraint
 
-`faction` answers: *"Can multiple membership changes be in flight simultaneously
-under load?"*
+`faction` answers: *"Can several membership changes be in flight at once — and is every one committed safe by
+construction, not by the caller's diligence?"*
 
-The single-change-at-a-time constraint from Phases 3–4 is lifted. The machine
-gains a bounded concurrent change queue with defined overflow behavior.
+**A — a proposal committed only while it is still valid** (`P1-ADR-AProposalIsCommittedOnlyWhileValid`). A proposal
+is decided at the epoch its answer's view shows; the layer above commits it only while no change committed since
+conflicts with it — one naming the same peer, or, for a removal, another removal or a new count — and reports one it
+declines to the coordinator, `ProposalDeclined`, which decides the change again: an addition proposed again, a removal
+proposed again while the quorum can spare it and given up once it cannot.
 
-**Concurrent change sequencing.** Additions and removals are serialized into a
-bounded queue. The caller provides the bound. Queue overflow produces a defined
-`QueueFull` rejection, not a panic.
+**C — several changes in flight** (`P1-ADR-SeveralChangesInFlight`). The configuration's bound, `changes_in_flight`,
+1 unless stated; a new stage, `Coordinating`, below the bound; no two changes in flight naming one peer,
+`DuplicateChangeIgnored`; the removals in flight counted together; each change ending on its own, an adoption giving up
+every change; the view listing them, `reconfigurations`, re-encoded once.
 
-**New inputs:**
-- `EnqueueAdd { node }` — caller requests addition; queued, not executed immediately
-- `EnqueueRemove { node }` — caller requests removal; queued
-- `Dequeued { node }` — change pulled from queue, ready for execution
-- `FlushQueue` — caller drains the queue
+**Settled in the proposal, against the draft above it:** the queue (`EnqueueAdd`, `Dequeued`, `QueueFull`,
+`FlushQueue`) is dropped — ordering is the layer above's; batched changes, several committed at one epoch, are a
+later phase if a protocol asks.
 
-**New outputs:**
-- `QueueFull { reason }` — bounded queue exhausted
-- `ChangeDequeued { node, kind }` — change ready for caller to process
-- `QueueDrained` — all queued changes processed
+**New command:** `ProposalDeclined { peer_id, epoch }`. **New outcomes:** `DeclineIgnored`, `DuplicateChangeIgnored`.
+**New stage:** `Coordinating`. **New configuration member:** `changes_in_flight`.
 
-**Gate:** 100% `(state, input)` coverage. Publication readiness review. crates.io
-release candidate.
+**In the reference protocol,** a proposal carries its epoch, a decline reaches the machine, and a newcomer joins with
+its bound. **In the chaos tier,** the layer above commits by the rule alone and lets every proposal race, each peer is
+drawn a bound of one to three, and the rule never admitting a change the log cannot hold is watched.
+
+**Delivered:**
+
+| Metric | Value |
+|---|---|
+| Specification | 0.9.0 — 78 rows, 125 vectors in force, every row exercised, every released vector re-encoded once more and answered alike |
+| Property invariants | A node never holds more changes than its bound nor two naming one peer; a removal it proposes leaves the count with the removals in flight; it takes a request exactly while concluded below its bound; a declined removal is proposed again exactly when the quorum can spare it |
+| Chaos | Bounds of one to three, and changes piled onto one coordinator; eight one-hour soaks, 4,229,796 scenarios, with no failure |
+
+**Gate:** 100% `(state, input)` coverage; eight one-hour soaks with no failure; then 0.13.0. 1.0 is later, at the
+owner's word.
 
 ---
 
@@ -438,14 +451,14 @@ release candidate.
 |---|---|---|---|
 | 0 | Static membership, cluster bootstrapping | — | ✅ Complete |
 | 1 | Dynamic joining | 4–6 weeks | ✅ Complete (core logic); HW validation in progress |
-| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.8.0 written |
+| cross-cutting | Specification & conformance suite | Before Phase 3 | Specification 0.9.0 written |
 | 2 | Failure detection (SWIM) | 4–6 weeks | ✅ Complete (specification 0.3.0, released in 0.7.0) |
 | 3 | Single-node addition | 4–6 weeks | ✅ Complete (specification 0.2.0, released in 0.6.0) |
 | 4 | Single-node removal | 4–6 weeks | ✅ Complete (specification 0.4.0, released in 0.8.0) |
 | 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
 | cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Complete (specification 0.6.0, for the crate's 0.10.0) |
 | cross-cutting | Numbered receipts | Before Phase 6 | ✅ Complete (specification 0.8.0, for the crate's 0.12.0) |
-| 6 | Concurrent membership changes | After Phase 5 | Planned |
+| 6 | Concurrent membership changes | After Phase 5 | ✅ Built (specification 0.9.0, for the crate's 0.13.0) |
 
 ---
 

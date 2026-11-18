@@ -80,6 +80,7 @@ impl Cluster {
                     suspicion_threshold,
                     0,
                     false,
+                    1,
                 );
                 Protocol::new(
                     Faction::new(config, Box::new(NoOpObserver)),
@@ -133,6 +134,7 @@ impl Cluster {
                     incarnation: 1,
                 },
                 self.suspicion_threshold,
+                1,
                 HELPERS,
                 Box::new(NoOpObserver),
             ),
@@ -235,8 +237,11 @@ impl Cluster {
 
     // Every node's timer and transport stepped in turn, then the newcomer's,
     // the given number of rounds.
-    pub fn reconfiguration(&mut self, index: usize) -> Reconfiguration {
-        self.protocols[index].cluster_view().reconfiguration()
+    pub fn reconfigurations(&mut self, index: usize) -> Vec<Reconfiguration> {
+        self.protocols[index]
+            .cluster_view()
+            .reconfigurations()
+            .to_vec()
     }
 
     pub fn request_addition(&mut self, index: usize, peer_id: PeerId) {
@@ -261,6 +266,7 @@ impl Cluster {
             self.suspicion_threshold,
             epoch,
             false,
+            1,
         );
         self.protocols[index] = Protocol::new(
             Faction::new(config, Box::new(NoOpObserver)),
@@ -354,6 +360,7 @@ impl Cluster {
         let newcomer = Newcomer::new(
             self.next_instance(index),
             self.suspicion_threshold,
+            1,
             HELPERS,
             Box::new(NoOpObserver),
         );

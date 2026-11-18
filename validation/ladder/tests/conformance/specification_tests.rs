@@ -103,11 +103,47 @@ fn digest(bytes: &[u8]) -> String {
         })
 }
 
+// Every Rust source file under a folder, its subfolders included.
+// The form of a released vector whose digest is `expected`: kept under
+// released/ once a re-encoding replaced it, in force under vectors/ otherwise.
+fn form(id: &str, expected: &str) -> Option<Vec<u8>> {
+    SpecFiles::released_bytes(id)
+        .into_iter()
+        .chain(SpecFiles::vector_bytes(id))
+        .find(|bytes| digest(bytes) == expected)
+}
+
 fn identifier(text: &str) -> &str {
     let end = text
         .find(|character: char| !(character.is_alphanumeric() || character == '_'))
         .unwrap_or(text.len());
     &text[..end]
+}
+
+// A vector as 0.9.0 writes it, from the form 0.8.0 wrote: every view's change
+// in flight a list, `None` the empty one (§1).
+fn listed_form(written: &Value) -> Value {
+    match written {
+        Value::Object(members) => {
+            let is_view = members.contains_key("peer_state");
+            Value::Object(
+                members
+                    .iter()
+                    .map(|(key, value)| match (is_view, key.as_str()) {
+                        (true, "reconfiguration") if *value == json!({ "None": {} }) => {
+                            (String::from("reconfigurations"), json!([]))
+                        }
+                        (true, "reconfiguration") => {
+                            (String::from("reconfigurations"), json!([value]))
+                        }
+                        _ => (key.clone(), listed_form(value)),
+                    })
+                    .collect(),
+            )
+        }
+        Value::Array(items) => Value::Array(items.iter().map(listed_form).collect()),
+        other => other.clone(),
+    }
 }
 
 // Every name the schema gives a definition, a member or a value of an
@@ -138,7 +174,6 @@ fn names(value: &Value, found: &mut Vec<String>) {
     }
 }
 
-// Every Rust source file under a folder, its subfolders included.
 // A vector as 0.8.0 writes it, from its released form: each step's result its
 // receipt's output, numbered by its position; the closing answer the closing
 // Probe's receipt; the configuration's peer id its instance's node, at
@@ -170,6 +205,15 @@ fn reencoded_form(released: &Value) -> Value {
         "steps": steps,
         "final": { "number": closing, "output": { "Probed": released["final"] } },
     })
+}
+
+// What the re-encoding of `version` writes of a vector's form before it.
+fn reencoding(version: &str, before: &Value) -> Value {
+    match version {
+        "0.8.0" => reencoded_form(before),
+        "0.9.0" => listed_form(before),
+        other => panic!("no re-encoding at {other}"),
+    }
 }
 
 fn sources(folder: &Path) -> Vec<PathBuf> {
@@ -306,23 +350,37 @@ fn vector_bytes_of_every_released_vector_are_as_released() {
         .filter_map(|entry| {
             let id = entry["id"].as_str().expect("a released vector's id");
             let expected = entry["sha256"].as_str().expect("its digest");
-            let (bytes, in_force) = match (entry.get("withdrawn"), entry.get("reencoded")) {
-                (Some(_), _) => (SpecFiles::withdrawn_bytes(id), None),
-                (None, Some(reencoded)) => (
-                    SpecFiles::released_bytes(id),
-                    Some(reencoded["sha256"].as_str().expect("its re-encoded digest")),
-                ),
-                (None, None) => (SpecFiles::vector_bytes(id), None),
+            let reencodings: Vec<&str> = entry
+                .get("reencoded")
+                .and_then(Value::as_array)
+                .map(|list| {
+                    list.iter()
+                        .map(|reencoding| {
+                            reencoding["sha256"].as_str().expect("a re-encoded digest")
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            let bytes = match (entry.get("withdrawn"), reencodings.last()) {
+                (Some(_), _) => SpecFiles::withdrawn_bytes(id),
+                (None, Some(_)) => form(id, expected),
+                (None, None) => SpecFiles::vector_bytes(id),
             };
-            let reencoded_changed = in_force.is_some_and(|reencoded| {
-                SpecFiles::vector_bytes(id).is_none_or(|bytes| digest(&bytes) != reencoded)
+            let in_force = reencodings.last().is_none_or(|last| {
+                SpecFiles::vector_bytes(id).is_some_and(|bytes| digest(&bytes) == *last)
             });
+            let replaced_kept = reencodings
+                .iter()
+                .rev()
+                .skip(1)
+                .all(|replaced| form(id, replaced).is_some());
             match bytes {
                 None => Some(format!("{id}: released, and missing")),
                 Some(bytes) if digest(&bytes) != expected => {
                     Some(format!("{id}: released, and changed"))
                 }
-                Some(_) if reencoded_changed => Some(format!("{id}: re-encoded, and changed")),
+                Some(_) if !in_force => Some(format!("{id}: re-encoded, and changed")),
+                Some(_) if !replaced_kept => Some(format!("{id}: re-encoded, and a form lost")),
                 Some(_) => None,
             }
         })
@@ -365,21 +423,38 @@ fn vectors_of_the_specification_hold_no_vector_withdrawn() {
 fn vectors_of_the_specification_re_encoded_answer_as_their_released_bytes() {
     // Arrange
     let released = SpecFiles::released();
-    let reencoded: Vec<&str> = released["vectors"]
+    let reencoded: Vec<&Value> = released["vectors"]
         .as_array()
         .expect("the released vectors")
         .iter()
         .filter(|entry| entry.get("reencoded").is_some())
-        .map(|entry| entry["id"].as_str().expect("a released vector's id"))
         .collect();
 
     // Act
     let departures: Vec<String> = reencoded
         .iter()
-        .filter_map(|id| {
-            let before: Value = from_slice(&SpecFiles::released_bytes(id)?).ok()?;
-            let after: Value = from_slice(&SpecFiles::vector_bytes(id)?).ok()?;
-            (after != reencoded_form(&before)).then(|| format!("{id}: re-encoded otherwise"))
+        .flat_map(|entry| {
+            let id = entry["id"].as_str().expect("a released vector's id");
+            let mut digests = vec![entry["sha256"].as_str().expect("its digest")];
+            let mut versions = Vec::new();
+            for reencoding in entry["reencoded"].as_array().expect("its re-encodings") {
+                digests.push(reencoding["sha256"].as_str().expect("a re-encoded digest"));
+                versions.push(
+                    reencoding["version"]
+                        .as_str()
+                        .expect("a re-encoding's version"),
+                );
+            }
+            versions
+                .into_iter()
+                .zip(digests.windows(2))
+                .filter_map(|(version, pair)| {
+                    let before: Value = from_slice(&form(id, pair[0])?).ok()?;
+                    let after: Value = from_slice(&form(id, pair[1])?).ok()?;
+                    (after != reencoding(version, &before))
+                        .then(|| format!("{id}: re-encoded at {version} otherwise"))
+                })
+                .collect::<Vec<String>>()
         })
         .collect();
 

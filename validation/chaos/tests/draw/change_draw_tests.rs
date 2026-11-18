@@ -43,6 +43,23 @@ fn changes_are_due_within_the_chaos() {
 }
 
 #[test]
+fn changes_come_due_together_in_some_scenarios_and_apart_in_others() {
+    // Arrange & Act
+    let drawn = drawn();
+
+    // Assert
+    let several: Vec<&Vec<PlannedChange>> = drawn
+        .iter()
+        .map(|(_, _, changes)| changes)
+        .filter(|changes| changes.len() >= 2)
+        .collect();
+    let together =
+        |changes: &&Vec<PlannedChange>| changes.iter().all(|planned| planned.due == changes[0].due);
+    assert!(several.iter().any(together));
+    assert!(several.iter().any(|changes| !together(changes)));
+}
+
+#[test]
 fn changes_never_remove_below_any_required_count() {
     // Arrange & Act
     let drawn = drawn();

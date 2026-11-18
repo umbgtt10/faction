@@ -160,7 +160,7 @@ fn a_removal_in_flight_refuses_an_addition_and_an_addition_in_flight_a_removal()
     cluster.add_newcomer(NEWCOMER);
     cluster.request_removal(0, 1);
     cluster.request_addition(0, NEWCOMER);
-    let while_removing = cluster.reconfiguration(0);
+    let while_removing = cluster.reconfigurations(0);
     cluster.abort_removal(0, 1);
     cluster.request_addition(0, NEWCOMER);
 
@@ -170,11 +170,11 @@ fn a_removal_in_flight_refuses_an_addition_and_an_addition_in_flight_a_removal()
     // Assert
     assert_eq!(
         while_removing,
-        Reconfiguration::RemovalRequested { peer_id: 1 }
+        [Reconfiguration::RemovalRequested { peer_id: 1 }]
     );
     assert_eq!(
-        cluster.reconfiguration(0),
-        Reconfiguration::AdditionRequested { peer_id: NEWCOMER }
+        cluster.reconfigurations(0),
+        [Reconfiguration::AdditionRequested { peer_id: NEWCOMER }]
     );
 }
 
@@ -216,7 +216,7 @@ fn a_suspect_is_removed_and_every_node_shows_the_members_without_it() {
     assert_eq!(cluster.members(2), vec![0, 2]);
     assert_eq!(cluster.node_state(1), PeerState::Removed);
     assert_eq!(cluster.quorum(0), Quorum::Held);
-    assert_eq!(cluster.reconfiguration(0), Reconfiguration::None);
+    assert!(cluster.reconfigurations(0).is_empty());
 }
 
 #[test]
@@ -229,7 +229,7 @@ fn an_abort_withdraws_the_removal_and_the_member_stays_on_every_node() {
     cluster.abort_removal(0, 1);
 
     // Assert
-    assert_eq!(cluster.reconfiguration(0), Reconfiguration::None);
+    assert!(cluster.reconfigurations(0).is_empty());
     for index in 0..3 {
         assert_eq!(cluster.members(index), vec![0, 1, 2]);
     }

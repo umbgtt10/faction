@@ -21,6 +21,7 @@ use crate::transport_message::TransportMessage;
 pub struct Newcomer {
     instance: InstanceId,
     suspicion_threshold: usize,
+    changes_in_flight: usize,
     helpers: usize,
     observer: Box<dyn Observer>,
 }
@@ -28,18 +29,20 @@ pub struct Newcomer {
 impl Newcomer {
     // The instance it becomes -- its node's id and an incarnation the caller
     // gives it, new to its node -- and the tolerance its deployment gives it:
-    // the suspicion threshold its node is created with, and how many helpers
-    // it asks.
+    // the suspicion threshold its node is created with, its bound of changes
+    // in flight, and how many helpers it asks.
     #[must_use]
     pub fn new(
         instance: InstanceId,
         suspicion_threshold: usize,
+        changes_in_flight: usize,
         helpers: usize,
         observer: Box<dyn Observer>,
     ) -> Self {
         Self {
             instance,
             suspicion_threshold,
+            changes_in_flight,
             helpers,
             observer,
         }
@@ -52,7 +55,11 @@ impl Newcomer {
         let Some(offer) = Offer::of(&message, peer_id) else {
             return Err(self);
         };
-        let config = offer.config(self.instance, self.suspicion_threshold);
+        let config = offer.config(
+            self.instance,
+            self.suspicion_threshold,
+            self.changes_in_flight,
+        );
         let epoch = config.epoch();
         let peers = config.peers().to_vec();
         let mut protocol = Protocol::new(

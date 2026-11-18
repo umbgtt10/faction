@@ -640,19 +640,25 @@ fn to_output_messages_peer_revived_cancels_the_member_s_timeouts() {
 }
 
 #[test]
-fn to_output_messages_propose_addition_proposes_it_and_cancels_the_retry() {
+fn to_output_messages_propose_addition_proposes_it_at_the_view_s_epoch_and_cancels_the_retry() {
     // Arrange
     let translator = translator();
 
     // Act
-    let result =
-        translator.to_output_messages(vec![Outcome::ProposeAddition { peer_id: 5 }], &view(), 0);
+    let result = translator.to_output_messages(
+        vec![Outcome::ProposeAddition { peer_id: 5 }],
+        &ClusterViewBuilder::from_view_at(&view(), 4, false).build(),
+        0,
+    );
 
     // Assert
     assert_eq!(
         result,
         vec![
-            OutputMessage::ProposeAddition { peer_id: 5 },
+            OutputMessage::ProposeAddition {
+                peer_id: 5,
+                epoch: 4
+            },
             OutputMessage::Cancel(TimerEvent::Fire(TimerMessage::RetryMembership {
                 peer_id: 5
             })),
@@ -661,16 +667,25 @@ fn to_output_messages_propose_addition_proposes_it_and_cancels_the_retry() {
 }
 
 #[test]
-fn to_output_messages_propose_removal_proposes_it() {
+fn to_output_messages_propose_removal_proposes_it_at_the_view_s_epoch() {
     // Arrange
     let translator = translator();
 
     // Act
-    let outputs =
-        translator.to_output_messages(vec![Outcome::ProposeRemoval { peer_id: 2 }], &view(), 0);
+    let outputs = translator.to_output_messages(
+        vec![Outcome::ProposeRemoval { peer_id: 2 }],
+        &ClusterViewBuilder::from_view_at(&view(), 4, false).build(),
+        0,
+    );
 
     // Assert
-    assert_eq!(outputs, vec![OutputMessage::ProposeRemoval { peer_id: 2 }]);
+    assert_eq!(
+        outputs,
+        vec![OutputMessage::ProposeRemoval {
+            peer_id: 2,
+            epoch: 4
+        }]
+    );
 }
 
 #[test]

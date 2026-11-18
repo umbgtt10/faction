@@ -1,0 +1,183 @@
+{
+  "description": "A newcomer holding its membership provisionally is removed: the commit of its own removal ends the provisional membership.",
+  "rows": [
+    "local-concluded",
+    "node-removed"
+  ],
+  "configuration": {
+    "instance": {
+      "node": "5",
+      "incarnation": "1"
+    },
+    "peers": [
+      "0",
+      "5"
+    ],
+    "required_count": "1",
+    "suspicion_threshold": "1",
+    "epoch": "2",
+    "provisional": true
+  },
+  "steps": [
+    {
+      "command": {
+        "LocalParticipationCompleted": {}
+      },
+      "receipt": {
+        "number": "1",
+        "output": {
+          "Accepted": {
+            "outcomes": [
+              {
+                "LocalParticipationCompleted": {}
+              },
+              {
+                "BroadcastLocalReady": {}
+              },
+              {
+                "Concluded": {
+                  "mode": {
+                    "Bootstrapped": {}
+                  }
+                }
+              }
+            ],
+            "cluster_view": {
+              "peer_state": {
+                "Bootstrapped": {}
+              },
+              "is_pinging_completed": true,
+              "pinging_peers": [],
+              "collecting_peers": [
+                "5"
+              ],
+              "required_count": "1",
+              "deadline_missed": false,
+              "members": [
+                "0",
+                "5"
+              ],
+              "reconfiguration": {
+                "None": {}
+              },
+              "suspected": [],
+              "misses": [],
+              "last_probed": {
+                "None": {}
+              },
+              "quorum": {
+                "Held": {}
+              },
+              "epoch": "2",
+              "provisional": true
+            },
+            "admissible": [
+              "ParticipationObserved",
+              "JoinRequested",
+              "JoinApproved",
+              "JoinRejected",
+              "AdditionRequested",
+              "AdditionCommitted",
+              "RemovalRequested",
+              "RemovalCommitted",
+              "RequiredCountChanged",
+              "MembershipReceived",
+              "ProbeDue",
+              "PeerHeard",
+              "ProbeMissed",
+              "IndirectProbesMissed",
+              "Probe"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "command": {
+        "RemovalCommitted": {
+          "peer_id": "5",
+          "epoch": "3"
+        }
+      },
+      "receipt": {
+        "number": "2",
+        "output": {
+          "Accepted": {
+            "outcomes": [
+              {
+                "MemberRemoved": {
+                  "peer_id": "5"
+                }
+              }
+            ],
+            "cluster_view": {
+              "peer_state": {
+                "Removed": {}
+              },
+              "is_pinging_completed": true,
+              "pinging_peers": [],
+              "collecting_peers": [],
+              "required_count": "1",
+              "deadline_missed": false,
+              "members": [
+                "0"
+              ],
+              "reconfiguration": {
+                "None": {}
+              },
+              "suspected": [],
+              "misses": [],
+              "last_probed": {
+                "None": {}
+              },
+              "quorum": {
+                "NotTracked": {}
+              },
+              "epoch": "3"
+            },
+            "admissible": [
+              "MembershipReceived",
+              "Probe"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "final": {
+    "number": "3",
+    "output": {
+      "Probed": {
+        "cluster_view": {
+          "peer_state": {
+            "Removed": {}
+          },
+          "is_pinging_completed": true,
+          "pinging_peers": [],
+          "collecting_peers": [],
+          "required_count": "1",
+          "deadline_missed": false,
+          "members": [
+            "0"
+          ],
+          "reconfiguration": {
+            "None": {}
+          },
+          "suspected": [],
+          "misses": [],
+          "last_probed": {
+            "None": {}
+          },
+          "quorum": {
+            "NotTracked": {}
+          },
+          "epoch": "3"
+        },
+        "admissible": [
+          "MembershipReceived",
+          "Probe"
+        ]
+      }
+    }
+  }
+}

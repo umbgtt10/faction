@@ -54,6 +54,10 @@ impl SpecReader {
                 epoch: epoch(),
             },
             "RemovalAborted" => Command::RemovalAborted { peer_id: peer_id() },
+            "ProposalDeclined" => Command::ProposalDeclined {
+                peer_id: peer_id(),
+                epoch: epoch(),
+            },
             "RequiredCountChanged" => Command::RequiredCountChanged {
                 required_count: required_count(),
                 epoch: epoch(),
@@ -91,6 +95,10 @@ impl SpecReader {
                 .get("provisional")
                 .and_then(Value::as_bool)
                 .unwrap_or(false),
+            value
+                .get("changes_in_flight")
+                .map_or(Ok(1), |bound| usize::try_from(Self::number(bound)))
+                .expect("a bound this platform can hold"),
         )
     }
 

@@ -137,7 +137,7 @@ fn a_removed_node_invited_back_joins_as_a_newcomer() {
     // Act
     cluster.request_addition(0, 3);
     cluster.run(ROUNDS);
-    let acknowledged = cluster.reconfiguration(0);
+    let acknowledged = cluster.reconfigurations(0);
     for index in 0..4 {
         cluster.commit(
             index,
@@ -153,7 +153,7 @@ fn a_removed_node_invited_back_joins_as_a_newcomer() {
     assert_eq!(removed, PeerState::Removed);
     assert_eq!(
         acknowledged,
-        Reconfiguration::AdditionAcknowledged { peer_id: 3 }
+        [Reconfiguration::AdditionAcknowledged { peer_id: 3 }]
     );
     assert!(cluster.is_bootstrapped());
     assert!((0..4).all(|index| cluster.members(index).len() == 4 && cluster.epoch(index) == 2));

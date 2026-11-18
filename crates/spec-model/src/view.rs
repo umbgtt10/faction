@@ -39,14 +39,21 @@ impl View {
                 "peer_state": Variant::unit(Self::peer_state(state)),
                 "is_pinging_completed": matches!(
                     state.stage,
-                    Stage::Collecting | Stage::Bootstrapped | Stage::Reconfiguring
+                    Stage::Collecting
+                        | Stage::Bootstrapped
+                        | Stage::Coordinating
+                        | Stage::Reconfiguring
                 ) || state.completed_before_removal,
                 "pinging_peers": state.pinging_peers,
                 "collecting_peers": state.collecting_peers,
                 "required_count": state.required_count.to_string(),
                 "deadline_missed": state.deadline_missed,
                 "members": state.members,
-                "reconfiguration": Self::reconfiguration(&state.reconfiguration),
+                "reconfigurations": state
+                    .reconfigurations
+                    .iter()
+                    .map(Self::reconfiguration)
+                    .collect::<Vec<Value>>(),
                 "suspected": state.suspected,
                 "misses": Self::misses(state),
                 "last_probed": Self::last_probed(state.last_probed.as_ref()),
@@ -60,7 +67,6 @@ impl View {
     #[must_use]
     pub fn reconfiguration(reconfiguration: &Reconfiguration) -> Value {
         match reconfiguration {
-            Reconfiguration::None => Variant::unit(NONE),
             Reconfiguration::AdditionRequested(peer_id) => {
                 Variant::of(ADDITION_REQUESTED, json!({"peer_id": peer_id}))
             }
@@ -96,7 +102,7 @@ impl View {
     fn peer_state(state: &NodeState) -> &'static str {
         match (state.stage, state.deadline_missed) {
             (Stage::Initial, _) => FRESH,
-            (Stage::Bootstrapped | Stage::Reconfiguring, _) => BOOTSTRAPPED,
+            (Stage::Bootstrapped | Stage::Coordinating | Stage::Reconfiguring, _) => BOOTSTRAPPED,
             (Stage::Removed, _) => REMOVED,
             (_, false) => state.stage.name(),
             (_, true) => TIMED_OUT,
@@ -105,8 +111,8 @@ impl View {
 
     fn quorum(state: &NodeState) -> &'static str {
         match (state.stage, Liveness::holds_quorum(state)) {
-            (Stage::Bootstrapped | Stage::Reconfiguring, true) => HELD,
-            (Stage::Bootstrapped | Stage::Reconfiguring, false) => LOST,
+            (Stage::Bootstrapped | Stage::Coordinating | Stage::Reconfiguring, true) => HELD,
+            (Stage::Bootstrapped | Stage::Coordinating | Stage::Reconfiguring, false) => LOST,
             _ => NOT_TRACKED,
         }
     }

@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.8.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.9.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -19,9 +19,13 @@ answered alike. 0.5.1 answers every command as 0.5.0 does, and states what the l
 epoch order (§16). 0.6.0 grows by the rule again: a newcomer holds its membership provisionally until its own addition
 commits, and refuses a claim from behind without sending it (§16); every vector 0.5.x released is answered alike.
 0.7.0 has a provisional node coordinate no change, refusing an addition or a removal it is asked for (§16), and
-withdraws the one released vector that showed one coordinating (§1, §17); every other vector 0.6.0 released is
+withdraws the one released vector that showed one coordinating (§1, §18); every other vector 0.6.0 released is
 answered alike. 0.8.0 answers every call with a numbered receipt and names every node an instance (§2, §3), and
-re-encodes every vector in force so, once, changing no answer (§1, §17).
+re-encodes every vector in force so, once, changing no answer (§1, §18). 0.9.0 states what the layer above owes a
+proposal — to commit it only while no change committed since conflicts with it — and has the coordinator decide a
+declined proposal again (§17); lets a coordinator hold several changes in flight, up to a bound its configuration
+states, in a new stage, `Coordinating` (§2, §11, §12); and re-encodes every vector in force once more, the view's
+changes in flight a list (§1, §4). Every vector 0.8.0 released is answered alike.
 
 ## 1. Conventions
 
@@ -34,16 +38,16 @@ any u64.
 nothing carries the empty object: `{"Probe": {}}`, `{"Fresh": {}}`.
 
 **Names are the vocabulary's.** A command says what the caller observed — a peer's signal, its own completion, the
-deadline, a join decision, an addition's or a removal's progress, a new required count, a membership handed to it, a
-probe period, a member heard from or missed — or, `Probe`, asks. An outcome says what happened to the signal, or, in the imperative, what the caller must now do:
+deadline, a join decision, an addition's or a removal's progress, a proposal declined, a new required count, a
+membership handed to it, a probe period, a member heard from or missed — or, `Probe`, asks. An outcome says what happened to the signal, or, in the imperative, what the caller must now do:
 `BroadcastLocalReady`, `AcknowledgeRejoin`, `EmitJoinRequest`, `SendMembership`, `ProposeAddition`, `ProposeRemoval`,
 `SendProbe`, `SendIndirectProbes`.
 
 **A list of commands by name** is in the commands' order: `ParticipationObserved`, `ReadyObserved`,
 `LocalParticipationCompleted`, `DeadlineExpired`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionRequested`,
 `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RemovalRequested`, `RemovalCommitted`,
-`RemovalAborted`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`,
-`IndirectProbesMissed`, `Probe`.
+`RemovalAborted`, `ProposalDeclined`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`,
+`ProbeMissed`, `IndirectProbesMissed`, `Probe`.
 
 **A list of peers is in arrival order.** The members are the configuration's peers in its order — or, once the node
 has adopted a membership, that membership's members in its order (§16) — then each admitted or added peer as it is
@@ -59,25 +63,30 @@ identical, and a list never holds a peer twice
 version's behaviour, and a command a later version adds is named in no earlier vector's admissible commands: an
 implementation conforms to a vector of an earlier version when the commands it admits, among those that version
 names, are the vector's. The commands a released version names are those [`released.json`](released.json) lists at
-that version or an earlier one (§17). Every answer this version gives is therefore given the same by every later
+that version or an earlier one (§18). Every answer this version gives is therefore given the same by every later
 version, and every vector released here passes unchanged there — but one a later version withdraws. A version
 withdraws a released vector only to correct a defect the vector shows, never to grow: `released.json` marks it
 withdrawn at that version, and its bytes move, unchanged, from [`vectors/`](vectors/) to [`withdrawn/`](withdrawn/)
-(§17). 0.7.0 withdraws vector 113, in which a provisional node coordinated an addition, offering the newcomer a
+(§18). 0.7.0 withdraws vector 113, in which a provisional node coordinated an addition, offering the newcomer a
 membership no commit made (§16). A version re-encodes the released vectors only all at once, and only to change
-how they are written, never an answer: `released.json` marks each with the version that re-encoded it and its
-re-encoded bytes' digest, and its released bytes are kept, unchanged, under [`released/`](released/), by the last
-version that wrote them (§17). 0.8.0 re-encodes the 115 vectors in force: each step's result is its receipt's
+how they are written, never an answer: `released.json` marks each with every version that re-encoded it, in order,
+and the digest of the bytes each wrote, and the bytes each re-encoding replaced are kept, unchanged, under
+[`released/`](released/), by the last version that wrote them (§18). 0.8.0 re-encodes the 115 vectors in force: each step's result is its receipt's
 output, numbered by the step's position, the closing answer the receipt the closing `Probe` is given, and the
 configuration's peer id its instance's node, at incarnation 1; their bytes as 0.7.0 wrote them are under
-[`released/0.7.0/`](released/0.7.0/). 0.5.0 grows by the rule: the epoch (§16), a member of
+[`released/0.7.0/`](released/0.7.0/). 0.9.0 re-encodes them once more: the view's `reconfiguration` becomes
+`reconfigurations`, the changes in flight as a list — `None` the empty list, any other change a list of it alone;
+their bytes as 0.8.0 wrote them are under [`released/0.8.0/`](released/0.8.0/). 0.5.0 grows by the rule: the epoch (§16), a member of
 the configuration, the view, three signals and three commits, is omitted wherever it is 0, and a form with no epoch
 holds epoch 0; the command `MembershipReceived` is new, and so are the outcomes it and the epoch bring. 0.6.0 grows by
 it again: whether a node's membership is provisional (§16), a member of the configuration and of the view, is omitted
-wherever it is not. Before the rule was written the encoding grew in place: 0.2.0,
+wherever it is not. 0.9.0 grows by it once more: the command `ProposalDeclined` is new, and so is the outcome
+`DeclineIgnored` it brings (§17); the configuration's bound of changes in flight, `changes_in_flight`, is omitted
+wherever it is 1; and the stage `Coordinating`, which a node bound to one change never reaches, is new, and so is the
+outcome `DuplicateChangeIgnored` (§2, §11, §12). Before the rule was written the encoding grew in place: 0.2.0,
 0.3.0 and 0.4.0 each added fields to the view and the configuration, and commands to what earlier stages admit,
 rewriting the vectors released before them -- never an outcome -- and 0.4.0 renamed the view's `addition` to
-`reconfiguration`.
+`reconfiguration`, which 0.9.0 made a list.
 
 ## 2. A node
 
@@ -85,7 +94,9 @@ rewriting the vectors released before them -- never an outcome -- and 0.4.0 rena
 — its node, its own peer id, and an incarnation the caller gives it (§3) — its genesis peers, a required count, a
 suspicion threshold and an epoch, 0 unless it states another: the epoch of the membership its peers and count are
 (§16); and whether that membership is provisional, which it is not unless the configuration says so: a newcomer's,
-created from the membership a coordinator offered it, before its own addition commits (§16). The genesis peers include
+created from the membership a coordinator offered it, before its own addition commits (§16). It states, too, the
+node's **bound**: how many changes it may hold in flight at once as a coordinator, 1 unless it states another (§11,
+§12); it is at least one, and a configuration with none is outside this specification. The genesis peers include
 the node itself and list no peer twice; a configuration that breaks either is outside this specification. The required
 count is how many confirmations conclude bootstrapping, and any count is one: it is never derived from the number of
 peers ([`P0-ADR-ProtocolAgnostic`](../docs/ADRs/P0-ADR-ProtocolAgnostic.md)). The suspicion threshold is how many
@@ -94,19 +105,24 @@ none is outside this specification. The configuration never changes
 ([`P1-ADR-ConfigIsImmutableGenesis`](../docs/ADRs/P1-ADR-ConfigIsImmutableGenesis.md)); the count in effect starts as
 the configuration's, and changes by its own command alone (§13).
 
-**A node is in one of six stages:** `Initial`, created and given nothing yet; `Pinging`, gathering its peers'
-participation; `Collecting`, its own participation completed, gathering readiness; `Bootstrapped`, concluded; and
-`Reconfiguring`, concluded with a change in flight, an addition (§11) or a removal (§12); and `Removed`, removed from
-its own cluster (§12).
+**A node is in one of seven stages:** `Initial`, created and given nothing yet; `Pinging`, gathering its peers'
+participation; `Collecting`, its own participation completed, gathering readiness; `Bootstrapped`, concluded;
+`Coordinating`, concluded with changes in flight, fewer than its bound; `Reconfiguring`, concluded with as many
+changes in flight as its bound — each an addition (§11) or a removal (§12); and `Removed`, removed from its own
+cluster (§12).
 A node is created `Initial`, leaves it on the first accepted command that is not a membership decision — a join
 decision, a committed addition or removal, a new required count, or a membership handed to it — or on its own removal,
 and returns to it from `Removed` alone, adopting a membership that names it (§16).
-`Bootstrapped` is the only conclusion: a node that has concluded is `Bootstrapped`, or `Reconfiguring` while a change
-is in flight, until it is removed, and no command takes it back to an earlier stage. A removed node stays `Removed`
-until it adopts a membership that names it.
+`Bootstrapped` is the only conclusion: a node that has concluded is `Bootstrapped`, or `Coordinating` or
+`Reconfiguring` while changes are in flight, until it is removed, and no command takes it back to an earlier stage. A
+removed node stays `Removed` until it adopts a membership that names it.
+
+**The stage the changes in flight make** a concluded node's is `Bootstrapped` with none, `Coordinating` with fewer
+than its bound, and `Reconfiguring` with as many: a node bound to one change is never `Coordinating`. A change that
+starts or ends leaves the node in the stage its changes in flight then make.
 
 **Besides its stage a node holds** its members, its pinging peers, its collecting peers, whether it has missed its
-deadline, the required count in effect, the change in flight, its suspected peers, the periods each member has missed,
+deadline, the required count in effect, its changes in flight, in the order requested, its suspected peers, the periods each member has missed,
 the member it probed last, its epoch, and whether its membership is provisional. A fresh node's members are its genesis
 peers; it has no pinging or collecting peer, has not missed its deadline, its required count is the configuration's, it
 has no change in flight, suspects no one, counts no missed period, has probed no one, its epoch is the configuration's,
@@ -156,24 +172,26 @@ not replay was cut, reordered or altered, or written by a node that does not con
 ## 4. The view
 
 **The view is what a node shows of its state**: its peer state, whether its pinging is completed, its pinging
-peers, its collecting peers, its required count, whether it has missed its deadline, its members, its reconfiguration, its
+peers, its collecting peers, its required count, whether it has missed its deadline, its members, its reconfigurations, its
 suspected peers, its missed periods, the member it probed last, its quorum, its epoch (§16), omitted at 0, and whether
 its membership is provisional (§16), omitted when it is not.
 
-**The peer state** is `Fresh` while the node is `Initial`, `Bootstrapped` once it has concluded — `Bootstrapped` or
-`Reconfiguring` — `Removed` once it is removed, and otherwise its stage, `Pinging` or `Collecting`, or `TimedOut` if it has missed its deadline. A missed deadline is a fact the view
+**The peer state** is `Fresh` while the node is `Initial`, `Bootstrapped` once it has concluded — `Bootstrapped`,
+`Coordinating` or `Reconfiguring` — `Removed` once it is removed, and otherwise its stage, `Pinging` or `Collecting`, or `TimedOut` if it has missed its deadline. A missed deadline is a fact the view
 reports, not a stage: a `TimedOut` node goes on as its stage does, and may still conclude, after which its peer
 state is `Bootstrapped` and its view still says the deadline was missed
 ([`P1-ADR-TerminalStatesAreNotSinks`](../docs/ADRs/P1-ADR-TerminalStatesAreNotSinks.md)).
 
-**Pinging is completed** once the node's own participation is: in `Collecting`, `Bootstrapped` and `Reconfiguring`,
+**Pinging is completed** once the node's own participation is: in `Collecting`, `Bootstrapped`, `Coordinating` and
+`Reconfiguring`,
 not before; in `Removed`, as it was when the node was removed.
 
 **The required count** is the count in effect (§13). A node is concluded when its peer state is `Bootstrapped`.
 
-**The reconfiguration** is `None` with no change in flight; `AdditionRequested`, naming the peer, once its addition is
-requested, and `AdditionAcknowledged`, naming it, once the peer has acknowledged the membership (§11); and
-`RemovalRequested`, naming the peer, once its removal is requested (§12).
+**The reconfigurations** are the changes in flight, in the order they were requested, and none with no change in
+flight. An addition is `AdditionRequested`, naming the peer, once it is requested, and `AdditionAcknowledged`, naming
+it, once the peer has acknowledged the membership (§11); a removal is `RemovalRequested`, naming the peer, once it is
+requested (§12).
 
 **The suspected peers** are the members the node suspects (§14). **The missed periods** list each member that has
 missed one or more periods running and is not suspected, with how many. **The member probed last** is `None` until the
@@ -188,17 +206,18 @@ Each stage admits these commands, and rejects the rest:
 
 | Stage | Admits |
 |---|---|
-| `Initial` | every command but `DeadlineExpired`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted` and the four of liveness |
-| `Pinging` | every command but `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted` and the four of liveness |
-| `Collecting` | every command but `LocalParticipationCompleted`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted` and the four of liveness |
+| `Initial` | every command but `DeadlineExpired`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted`, `ProposalDeclined` and the four of liveness |
+| `Pinging` | every command but `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted`, `ProposalDeclined` and the four of liveness |
+| `Collecting` | every command but `LocalParticipationCompleted`, `AdditionRequested`, `MembershipAcknowledged`, `AdditionAborted`, `RemovalRequested`, `RemovalAborted`, `ProposalDeclined` and the four of liveness |
 | `Bootstrapped` | `ParticipationObserved`, `JoinRequested`, `JoinApproved`, `JoinRejected`, `AdditionRequested`, `AdditionCommitted`, `RemovalRequested`, `RemovalCommitted`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`, `IndirectProbesMissed` and `Probe` |
-| `Reconfiguring` | `ParticipationObserved`, `JoinRequested`, `JoinRejected`, `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RemovalCommitted`, `RemovalAborted`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`, `IndirectProbesMissed` and `Probe` |
+| `Coordinating` | what `Reconfiguring` admits, and `AdditionRequested` and `RemovalRequested` |
+| `Reconfiguring` | `ParticipationObserved`, `JoinRequested`, `JoinRejected`, `MembershipAcknowledged`, `AdditionCommitted`, `AdditionAborted`, `RemovalCommitted`, `RemovalAborted`, `ProposalDeclined`, `RequiredCountChanged`, `MembershipReceived`, `ProbeDue`, `PeerHeard`, `ProbeMissed`, `IndirectProbesMissed` and `Probe` |
 | `Removed` | `MembershipReceived` and `Probe` |
 
 The four of liveness are `ProbeDue`, `PeerHeard`, `ProbeMissed` and `IndirectProbesMissed`. A node completes its own
 participation once; a concluded node answers only a peer still trying to bootstrap, a newcomer, an addition, a removal, a
-new count, a membership and liveness; an addition or a removal is requested of a concluded node alone, one change at a
-time; a commit and a new count reach every node, whatever its stage, until it is removed, and a membership reaches every
+new count, a membership and liveness; an addition or a removal is requested of a concluded node alone, below its bound, and
+a proposal's decline reaches a node with a change in flight alone; a commit and a new count reach every node, whatever its stage, until it is removed, and a membership reaches every
 node, whatever its stage; a node tracks its members' liveness once it has concluded, never before; and a removed node
 answers a membership and a probe alone.
 
@@ -218,7 +237,7 @@ keep a command from a stage
 `ParticipationAccepted`, and the peer becomes the last pinging peer; a repeat is ignored,
 `DuplicateParticipationIgnored`. Either way the node is `Pinging`.
 
-**After it** — `Collecting`, `Bootstrapped` or `Reconfiguring` — a member's participation means that peer is still
+**After it** — `Collecting`, `Bootstrapped`, `Coordinating` or `Reconfiguring` — a member's participation means that peer is still
 trying to bootstrap, and is answered `AcknowledgeRejoin`: the caller re-advertises the node's readiness to it. Nothing
 changes. None of them is a sink ([`P1-ADR-CollectingIsNotASink`](../docs/ADRs/P1-ADR-CollectingIsNotASink.md),
 [`P1-ADR-TerminalStatesAreNotSinks`](../docs/ADRs/P1-ADR-TerminalStatesAreNotSinks.md)).
@@ -256,8 +275,8 @@ answered alike: a missed deadline is not terminal.
 ## 10. Joining
 
 **Join decisions never change the stage.** `JoinRequested` and `JoinRejected` are admitted in every stage but
-`Removed`, and `JoinApproved` in every stage but `Reconfiguring` and `Removed`: no admission goes around a change in
-flight.
+`Removed`, and `JoinApproved` in every stage but `Coordinating`, `Reconfiguring` and `Removed`: no admission goes
+around a change in flight.
 
 **`JoinRequested`** is answered `EmitJoinRequest`: the caller forwards the newcomer's request to whoever decides.
 Nothing changes; a repeated request is forwarded again.
@@ -272,31 +291,37 @@ may restore its quorum (§15).
 
 ## 11. Addition
 
-**A concluded node grows by one through the layer that commits changes above it**, one change in flight at a time.
+**A concluded node grows by one through the layer that commits changes above it**, up to its bound of changes in
+flight at a time (§2).
 The node that coordinates an addition is asked for it, hands the newcomer the membership, and tells the caller when to
-propose it; every node applies it once it has committed. Who may be added, and how a change commits, are the caller's.
+propose it; every node applies it once it has committed. Who may be added, and how a change commits, are the caller's;
+what the layer above owes a proposal is §17.
 
 **`AdditionRequested`** starts an addition: `SendMembership` — the caller sends the newcomer the members, the
-required count and the epoch the view shows — and the node is `Reconfiguring`, its reconfiguration `AdditionRequested`. A peer that is already a
-member, the node itself among them, is answered `DuplicateMemberIgnored`, and nothing changes. A node whose membership
-is provisional coordinates no addition: it is answered `CoordinationRefused`, carrying the peer, before anything else,
-and nothing changes (§16). `Reconfiguring` does not
-admit a second request, of either kind.
+required count and the epoch the view shows — and the addition, `AdditionRequested`, is the last of its changes in
+flight: the node is in the stage they make (§2). A peer that is already a member, the node itself among them, is
+answered `DuplicateMemberIgnored`, and nothing changes. A node whose membership is provisional coordinates no addition:
+it is answered `CoordinationRefused`, carrying the peer, before anything else, and nothing changes (§16).
+
+**No two changes in flight name one peer.** A request, of either kind, naming a peer with a change in flight is
+answered `DuplicateChangeIgnored`, after the provisional refusal and before any other answer, and nothing changes.
+`Reconfiguring` admits no request: a node at its bound takes no change more.
 
 **`MembershipAcknowledged`** from the peer whose addition is requested is answered `ProposeAddition` — the caller
-proposes the addition to the layer above — and its reconfiguration is `AdditionAcknowledged`. From any other peer, once
-acknowledged, or with a removal in flight, it is answered `AcknowledgementIgnored`, and nothing changes. From the peer
+proposes the addition to the layer above, decided at the epoch the view shows (§17) — and the addition is
+`AdditionAcknowledged`. From a peer whose addition is not requested — none in flight, or acknowledged already — it is
+answered `AcknowledgementIgnored`, and nothing changes. From the peer
 whose addition is requested, behind — its `epoch` below the node's — it is refused (§16).
 
-**`AdditionAborted`** naming the peer of the addition in flight withdraws it: `AdditionWithdrawn`, and the node is
-`Bootstrapped`, with no change in flight and the peer no member. Naming any other peer, or with a removal in flight,
-it is answered `AbortIgnored`, and nothing changes.
+**`AdditionAborted`** naming a peer whose addition is in flight withdraws it: `AdditionWithdrawn`, the change is in
+flight no more, the node is in the stage the others make (§2), and the peer is no member. Naming a peer whose addition
+is not in flight, it is answered `AbortIgnored`, and nothing changes.
 
 **`AdditionCommitted`** makes its peer the last member: `MemberAdmitted`. The layer above reports a commit to every
-node, whatever its stage, and every node applies it alike. On the coordinator, a commit naming the peer of the
-addition in flight ends it, and the node is `Bootstrapped`; a commit naming another peer leaves the change in
-flight. A peer that is already a member is answered `DuplicateMemberIgnored`, and nothing changes but the epoch. A
-commit the node holds already is ignored, and every other moves its epoch (§16). The peer of the
+node, whatever its stage, and every node applies it alike. On the coordinator, a commit naming the peer of an addition
+in flight ends that change, and the node is in the stage the others make (§2); every other change in flight stays. A
+peer that is already a member is answered `DuplicateMemberIgnored`, and nothing changes but the epoch. A
+commit the node holds already is ignored, and every other moves its epoch (§16). The peer of an
 addition in flight is never a member: its request is refused if it is one, and no admission is admitted meanwhile.
 
 **An addition changes who may be counted, never how many are required** (§13). On a concluded node, a member added
@@ -304,33 +329,36 @@ may restore its quorum (§15).
 
 ## 12. Removal
 
-**A concluded cluster shrinks by one through the layer that commits changes above it**, one change in flight at a time,
-an addition or a removal
+**A concluded cluster shrinks by one through the layer that commits changes above it**, up to the coordinator's bound
+of changes in flight at a time, additions and removals (§2)
 ([`P1-ADR-RemovalThroughTheLayerThatCommits`](../docs/ADRs/P1-ADR-RemovalThroughTheLayerThatCommits.md)). The node that coordinates a removal is asked for it and tells the caller to propose it at
 once — a member being removed has nothing to acknowledge, and may not answer at all; every node applies it once it has
 committed. Who may be removed, and how a change commits, are the caller's: a suspected member stays a member until its
 removal commits (§14).
 
-**`RemovalRequested`** starts a removal: `ProposeRemoval` — the caller proposes the removal to the layer above — and the
-node is `Reconfiguring`, its reconfiguration `RemovalRequested`. Any member may be named, the node itself among them. A
-peer that is not a member is answered `NonMemberIgnored`, and nothing changes. A node whose membership is provisional
-coordinates no removal: it is answered `CoordinationRefused`, carrying the peer, before anything else, and nothing
-changes (§16). `Reconfiguring` does not admit a second request, of either kind.
+**`RemovalRequested`** starts a removal: `ProposeRemoval` — the caller proposes the removal to the layer above, decided
+at the epoch the view shows (§17) — and the removal, `RemovalRequested`, is the last of its changes in flight: the node
+is in the stage they make (§2). Any member may be named, the node itself among them. A peer that is not a member is
+answered `NonMemberIgnored`, and nothing changes. A node whose membership is provisional coordinates no removal: it is
+answered `CoordinationRefused`, carrying the peer, before anything else, and nothing changes (§16). A peer with a
+change in flight is answered `DuplicateChangeIgnored` (§11), and `Reconfiguring` admits no request.
 
-**A removal that would lose the quorum is refused.** The removal of a member not suspected, when without it the members
-not suspected would number fewer than the required count, is answered `RemovalRefused`, and nothing changes; the node
-counts itself and is never suspected (§15). A suspect's removal is never refused for the quorum: it leaves the members
+**A removal that would lose the quorum is refused.** The removal of a member not suspected, when without it and every
+member whose removal is in flight the members not suspected would number fewer than the required count, is answered
+`RemovalRefused`, and nothing changes: the removals in flight are counted together. The node counts itself and is
+never suspected (§15). A suspect's removal is never refused for the quorum: it leaves the members
 not suspected as they are. The node decides on its own view.
 
-**`RemovalAborted`** naming the peer of the removal in flight withdraws it: `RemovalWithdrawn`, and the node is
-`Bootstrapped`, with no change in flight and the peer still a member. Naming any other peer, or with an addition in
-flight, it is answered `AbortIgnored`, and nothing changes.
+**`RemovalAborted`** naming a peer whose removal is in flight withdraws it: `RemovalWithdrawn`, the change is in
+flight no more, the node is in the stage the others make (§2), and the peer is still a member. Naming a peer whose
+removal is not in flight, it is answered `AbortIgnored`, and nothing changes.
 
 **`RemovalCommitted`** makes its peer no member: `MemberRemoved`. The layer above reports a commit to every node,
 whatever its stage, and every node applies it alike; a commit is never refused. The peer leaves every list the node
 holds — its members, its pinging and collecting peers, its suspected peers and its missed periods — and if it was the
-member probed last, the node has probed no one. On the coordinator, a commit naming the peer of the removal in flight
-ends it, and the node is `Bootstrapped`; a commit naming another peer leaves the change in flight. A peer that is not a
+member probed last, the node has probed no one. On the coordinator, a commit naming the peer of a removal in flight
+ends that change, and the node is in the stage the others make (§2); every other change in flight stays. A peer that is
+not a
 member is answered `NonMemberIgnored`, and nothing changes but the epoch. A commit naming another peer never moves a
 node out of `Initial`. A commit the node holds already is ignored, its own removal's included, and every other moves
 its epoch (§16).
@@ -468,11 +496,55 @@ the node has probed no one; a member new to it is alive. Then:
 - **Naming the node in any other stage**, the stage is kept, and so is what the node gathered among the new members:
   - `Collecting`, with the collecting peers numbering the new required count or more, concludes: then `Concluded`,
     mode `Bootstrapped`, and the node is `Bootstrapped`;
-  - `Reconfiguring` gives up its change in flight, which the membership has moved past: then `ChangeAbandoned`,
-    carrying the change as the view showed it, and the node is `Bootstrapped`, with no change in flight;
+  - `Coordinating` and `Reconfiguring` give up every change in flight, which the membership has moved past: then
+    `ChangeAbandoned` for each, in the order requested, carrying the change as the view showed it, and the node is
+    `Bootstrapped`, with no change in flight;
   - a concluded node's quorum is checked against the new members and count, and a crossing said last (§15).
 
-## 17. Conformance
+## 17. Proposals
+
+**A proposal is decided at the epoch its answer's view shows**
+([`P1-ADR-AProposalIsCommittedOnlyWhileValid`](../docs/ADRs/P1-ADR-AProposalIsCommittedOnlyWhileValid.md)).
+`ProposeAddition` and `ProposeRemoval` tell the caller to propose a change to the layer above, and the view the answer
+carries shows the membership the node decided it on, at its epoch: the addition of a peer that is not a member (§11),
+the removal of a member its quorum can spare (§12).
+
+**What the layer above owes a proposal: to commit it only while it is still valid.** A proposal decided at epoch `e`
+is valid at the layer above's epoch `c` when no change it committed at an epoch above `e`, up to `c`, conflicts with
+it:
+
+- a change naming the same peer conflicts with it;
+- for a removal, another removal or a new required count conflicts with it too: either moves what the removal's quorum
+  check counted;
+- nothing else conflicts: an addition of another peer only adds to the members a removal spares, and an addition
+  checks no quorum.
+
+A valid proposal holds at `c` what the node decided it on at `e`. The rule reads the committed changes alone, never a
+node's suspicions, so any layer above can keep it. A layer above may decline more than the rule asks — every proposal
+decided before its latest commit, say — but commits no proposal that is not valid. A proposal it commits it reports as
+it reports any commit (§16); one it declines it reports to the coordinator alone, `ProposalDeclined`, carrying the
+epoch it declined it at, once it has reported every commit up to that epoch to the coordinator: as it reports its
+commits in epoch order (§16), the node then decides again on a view that holds them.
+
+**`ProposalDeclined`** reports a proposal declined at the layer above's `epoch`, and the node decides the change again
+on its present view. It is admitted in `Coordinating` and `Reconfiguring` alone (§5): a decline is the
+coordinator's, of a change it has in flight.
+
+- **Naming no proposal in flight** — no change of `peer_id` is in flight, or its addition is not yet acknowledged, and
+  so not yet proposed — it is answered `DeclineIgnored`, and nothing changes.
+- **An addition** is proposed again: `ProposeAddition`, at the node's epoch, and the change stays in flight. Its peer
+  is never a member while its addition is in flight (§11), so on the node's own view it is always still valid.
+- **A removal** the quorum can still spare is proposed again: `ProposeRemoval`, at the node's epoch, and the change
+  stays in flight. One it can no longer spare — of a member not suspected, without which and every other member whose
+  removal is in flight the members not suspected would number fewer than the required count — is given up:
+  `RemovalRefused`, the change is in flight no more, the node is in the stage the others make (§2), and the peer is
+  still a member. A suspect's removal is never given up for the quorum (§12).
+
+The decline's epoch is the layer above's, and the node decides on the view it holds, whatever the epoch: a decline
+reported before the commits it was declined for has the node decide without them, and a change it proposes again the
+layer above declines again, until they reach it.
+
+## 18. Conformance
 
 **A vector is a configuration, steps, and a final answer.** Each step is a command and the receipt it must be
 answered with. The final answer is the receipt a `Probe` issued after the last step must be given: numbered one more
@@ -487,7 +559,8 @@ row of the matrix is exercised by at least one vector.
 version that released its bytes and the SHA-256 digest of them, and every command a released version names, by its
 name and the first released version to name it. A listed vector is never edited but by a re-encoding (§1), and a
 listed command never removed. A re-encoded vector is marked with the version that re-encoded it and its re-encoded
-bytes' digest, and its released bytes are kept under [`released/`](released/): it answers every step as they do. A listed vector a later version withdraws to correct a defect (§1) is marked withdrawn at that version, and its
+bytes' digest — every re-encoding, in order — and the bytes each replaced are kept under [`released/`](released/):
+it answers every step as they do. A listed vector a later version withdraws to correct a defect (§1) is marked withdrawn at that version, and its
 bytes move, unchanged, to [`withdrawn/`](withdrawn/): no implementation is held to it. [`vectors/`](vectors/) holds
 every vector in force.
 

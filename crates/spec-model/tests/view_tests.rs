@@ -30,7 +30,7 @@ fn of_a_bootstrapped_node_past_its_deadline_is_bootstrapped_and_says_so() {
             "required_count": "2",
             "deadline_missed": true,
             "members": ["1", "2", "3"],
-            "reconfiguration": {"None": {}},
+            "reconfigurations": [],
             "suspected": [],
             "misses": [],
             "last_probed": {"None": {}},
@@ -80,6 +80,20 @@ fn of_a_concluded_node_short_of_its_count_says_its_quorum_lost() {
 }
 
 #[test]
+fn of_a_coordinating_node_is_bootstrapped_its_pinging_completed_and_its_quorum_held() {
+    // Arrange
+    let state = NodeStates::of(Stage::Coordinating, &[], &["1"]);
+
+    // Act
+    let view = View::of(&state);
+
+    // Assert
+    assert_eq!(view["peer_state"], json!({"Bootstrapped": {}}));
+    assert_eq!(view["is_pinging_completed"], json!(true));
+    assert_eq!(view["quorum"], json!({"Held": {}}));
+}
+
+#[test]
 fn of_a_fresh_node_is_fresh() {
     // Arrange
     let state = NodeStates::of(Stage::Initial, &[], &[]);
@@ -98,7 +112,7 @@ fn of_a_fresh_node_is_fresh() {
             "required_count": "2",
             "deadline_missed": false,
             "members": ["1", "2", "3"],
-            "reconfiguration": {"None": {}},
+            "reconfigurations": [],
             "suspected": [],
             "misses": [],
             "last_probed": {"None": {}},
@@ -225,8 +239,8 @@ fn of_a_node_whose_addition_is_acknowledged_names_its_peer() {
 
     // Assert
     assert_eq!(
-        view["reconfiguration"],
-        json!({"AdditionAcknowledged": {"peer_id": "4"}})
+        view["reconfigurations"],
+        json!([{"AdditionAcknowledged": {"peer_id": "4"}}])
     );
 }
 
@@ -240,8 +254,8 @@ fn of_a_node_whose_removal_of_a_peer_is_requested_names_its_peer() {
 
     // Assert
     assert_eq!(
-        view["reconfiguration"],
-        json!({"RemovalRequested": {"peer_id": "2"}})
+        view["reconfigurations"],
+        json!([{"RemovalRequested": {"peer_id": "2"}}])
     );
 }
 
@@ -281,7 +295,7 @@ fn of_a_reconfiguring_node_is_bootstrapped_with_its_addition_requested() {
             "required_count": "2",
             "deadline_missed": false,
             "members": ["1", "2", "3"],
-            "reconfiguration": {"AdditionRequested": {"peer_id": "4"}},
+            "reconfigurations": [{"AdditionRequested": {"peer_id": "4"}}],
             "suspected": [],
             "misses": [],
             "last_probed": {"None": {}},
@@ -329,7 +343,7 @@ fn of_a_removed_node_is_removed_and_tracks_no_quorum() {
             "required_count": "2",
             "deadline_missed": false,
             "members": ["2", "3"],
-            "reconfiguration": {"None": {}},
+            "reconfigurations": [],
             "suspected": [],
             "misses": [],
             "last_probed": {"None": {}},
@@ -358,7 +372,6 @@ fn of_a_removed_node_past_its_deadline_is_removed_and_says_so() {
 fn reconfiguration_of_each_change_is_its_name_and_its_peer() {
     // Arrange
     let changes = [
-        Reconfiguration::None,
         Reconfiguration::AdditionRequested(String::from("4")),
         Reconfiguration::AdditionAcknowledged(String::from("4")),
         Reconfiguration::RemovalRequested(String::from("2")),
@@ -371,7 +384,6 @@ fn reconfiguration_of_each_change_is_its_name_and_its_peer() {
     assert_eq!(
         encoded,
         [
-            json!({"None": {}}),
             json!({"AdditionRequested": {"peer_id": "4"}}),
             json!({"AdditionAcknowledged": {"peer_id": "4"}}),
             json!({"RemovalRequested": {"peer_id": "2"}}),

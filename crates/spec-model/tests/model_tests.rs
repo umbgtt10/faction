@@ -68,8 +68,8 @@ fn process_of_a_change_requested_of_a_provisional_concluded_node_is_refused() {
             json!([{"CoordinationRefused": {"peer_id": peer_id}}])
         );
         assert_eq!(
-            answer.receipt["output"]["Accepted"]["cluster_view"]["reconfiguration"],
-            json!({"None": {}})
+            answer.receipt["output"]["Accepted"]["cluster_view"]["reconfigurations"],
+            json!([])
         );
     }
 }
@@ -154,6 +154,34 @@ fn process_of_a_deadline_on_a_fresh_node_is_rejected_by_not_admitted() {
 }
 
 #[test]
+fn process_of_a_declined_removal_the_quorum_can_no_longer_spare_gives_it_up() {
+    // Arrange
+    let mut model = model();
+    let _ = model.process(&json!({"ReadyObserved": {"peer_id": "2"}}));
+    let _ = model.process(&json!({"LocalParticipationCompleted": {}}));
+    let _ = model.process(&json!({"RemovalRequested": {"peer_id": "3"}}));
+    let _ = model.process(&json!({"RemovalCommitted": {"peer_id": "2", "epoch": "1"}}));
+
+    // Act
+    let answer = model.process(&json!({"ProposalDeclined": {"peer_id": "3", "epoch": "1"}}));
+
+    // Assert
+    assert_eq!(answer.row, "decline-removal-refused");
+    assert_eq!(
+        answer.receipt["output"]["Accepted"]["outcomes"],
+        json!([{"RemovalRefused": {"peer_id": "3"}}])
+    );
+    assert_eq!(
+        answer.receipt["output"]["Accepted"]["cluster_view"]["reconfigurations"],
+        json!([])
+    );
+    assert_eq!(
+        answer.receipt["output"]["Accepted"]["cluster_view"]["members"],
+        json!(["1", "3"])
+    );
+}
+
+#[test]
 fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
     // Arrange
     let mut model = model();
@@ -174,7 +202,7 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "required_count": "2",
                 "deadline_missed": false,
                 "members": ["1", "2", "3"],
-                "reconfiguration": {"None": {}},
+                "reconfigurations": [],
                 "suspected": [],
                 "misses": [],
                 "last_probed": {"None": {}},
@@ -194,6 +222,47 @@ fn process_of_a_probe_on_a_fresh_node_is_probed_with_its_view() {
                 "Probe",
             ],
         }})
+    );
+}
+
+#[test]
+fn process_of_a_second_addition_requested_of_a_node_bound_to_two_reaches_its_bound() {
+    // Arrange
+    let mut model = Model::new(
+        SpecReader::table(&SpecFiles::matrix()),
+        SpecReader::configuration(&json!({
+            "instance": {"node": "1", "incarnation": "1"},
+            "peers": ["1", "2", "3"],
+            "required_count": "1",
+            "suspicion_threshold": "1",
+            "changes_in_flight": "2",
+        })),
+    );
+    let _ = model.process(&json!({"LocalParticipationCompleted": {}}));
+
+    // Act
+    let first = model.process(&json!({"AdditionRequested": {"peer_id": "4"}}));
+    let second = model.process(&json!({"AdditionRequested": {"peer_id": "5"}}));
+
+    // Assert
+    assert!(
+        first.receipt["output"]["Accepted"]["admissible"]
+            .as_array()
+            .expect("the admissible commands")
+            .contains(&json!("AdditionRequested"))
+    );
+    assert!(
+        !second.receipt["output"]["Accepted"]["admissible"]
+            .as_array()
+            .expect("the admissible commands")
+            .contains(&json!("AdditionRequested"))
+    );
+    assert_eq!(
+        second.receipt["output"]["Accepted"]["cluster_view"]["reconfigurations"],
+        json!([
+            {"AdditionRequested": {"peer_id": "4"}},
+            {"AdditionRequested": {"peer_id": "5"}}
+        ])
     );
 }
 
@@ -235,8 +304,8 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
         json!({"Bootstrapped": {}})
     );
     assert_eq!(
-        answer.receipt["output"]["Accepted"]["cluster_view"]["reconfiguration"],
-        json!({"AdditionRequested": {"peer_id": "4"}})
+        answer.receipt["output"]["Accepted"]["cluster_view"]["reconfigurations"],
+        json!([{"AdditionRequested": {"peer_id": "4"}}])
     );
     assert_eq!(
         answer.receipt["output"]["Accepted"]["admissible"],
@@ -249,6 +318,7 @@ fn process_of_an_addition_requested_of_a_concluded_node_reconfigures_it_still_bo
             "AdditionAborted",
             "RemovalCommitted",
             "RemovalAborted",
+            "ProposalDeclined",
             "RequiredCountChanged",
             "MembershipReceived",
             "ProbeDue",

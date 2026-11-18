@@ -6,8 +6,8 @@ use super::builder::{Init, build};
 use super::helpers::{
     addition_aborted, addition_committed, addition_requested, indirect_probes_missed,
     join_approved, join_rejected, join_requested, membership_acknowledged, participation,
-    peer_heard, probe_missed, ready, removal_aborted, removal_committed, removal_requested,
-    removed_admissible, required_count_changed,
+    peer_heard, probe_missed, proposal_declined, ready, removal_aborted, removal_committed,
+    removal_requested, removed_admissible, required_count_changed,
 };
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
@@ -105,6 +105,12 @@ use rstest::rstest;
 #[case::rejects_removal_aborted(
     Init::Removed,
     removal_aborted(1),
+    &[Assert::Removed, Assert::MemberCount(4), Assert::Quorum(Quorum::NotTracked)],
+    removed_admissible(),
+)]
+#[case::rejects_proposal_declined(
+    Init::Removed,
+    proposal_declined(1),
     &[Assert::Removed, Assert::MemberCount(4), Assert::Quorum(Quorum::NotTracked)],
     removed_admissible(),
 )]

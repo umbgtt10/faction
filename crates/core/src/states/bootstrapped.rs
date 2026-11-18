@@ -17,10 +17,10 @@ use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::states::epoch_rule::EpochRule;
+use crate::states::in_flight::InFlight;
 use crate::states::liveness::Liveness;
 use crate::states::membership_decision::MembershipDecision;
 use crate::states::membership_step::MembershipStep;
-use crate::states::reconfiguring::Reconfiguring;
 use crate::states::removed::Removed;
 use crate::types::Epoch;
 use crate::types::PeerId;
@@ -104,6 +104,21 @@ impl Bootstrapped {
 }
 
 impl Bootstrapped {
+    // Whether the quorum can spare the member: a suspect it always can; any
+    // other, if the members not suspected still number the count without it
+    // and every other member whose removal, `removing`, is in flight (§12).
+    #[must_use]
+    pub fn can_spare(&self, peer_id: PeerId, removing: &[PeerId]) -> bool {
+        self.liveness.suspected().contains(&peer_id)
+            || removing
+                .iter()
+                .filter(|removed| **removed != peer_id)
+                .fold(self.members.without(peer_id), |rest, removed| {
+                    rest.and_then(|rest| rest.without(*removed))
+                })
+                .is_some_and(|rest| self.liveness.holds_quorum(&rest, self.quorum_policy))
+    }
+
     // A change of membership applied: `outcomes`, then the quorum it crosses;
     // the peers gathered and the liveness kept to the new members.
     #[must_use]
@@ -137,14 +152,48 @@ impl Bootstrapped {
         Removed::departure(command, peer_id, &self.members, self.quorum_policy)
     }
 
-    // Whether the quorum can spare the member: a suspect it always can; any
-    // other, if the members not suspected still number the count without it.
-    fn can_spare(&self, peer_id: PeerId) -> bool {
-        self.liveness.suspected().contains(&peer_id)
-            || self
-                .members
-                .without(peer_id)
-                .is_some_and(|rest| self.liveness.holds_quorum(&rest, self.quorum_policy))
+    // A change requested of the node with `in_flight` already (§11, §12): a
+    // peer with a change in flight ignored as a duplicate; one already a
+    // member, or no member to remove, ignored; a removal the quorum cannot
+    // spare, the removals in flight counted, refused; otherwise the change
+    // requested last, the node in the stage the changes then make. Any other
+    // command is no request.
+    #[must_use]
+    pub fn requested(
+        &self,
+        command: &Command,
+        in_flight: &InFlight,
+        config: &Config,
+    ) -> Option<(Vec<Outcome>, Stage)> {
+        let (outcome, change) = match *command {
+            Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id }
+                if in_flight.named(peer_id).is_some() =>
+            {
+                (Outcome::DuplicateChangeIgnored { peer_id }, None)
+            }
+            Command::AdditionRequested { peer_id } if self.members.is_member(peer_id) => {
+                (Outcome::DuplicateMemberIgnored { peer_id }, None)
+            }
+            Command::AdditionRequested { peer_id } => (
+                Outcome::SendMembership { peer_id },
+                Some(Reconfiguration::AdditionRequested { peer_id }),
+            ),
+            Command::RemovalRequested { peer_id } if !self.members.is_member(peer_id) => {
+                (Outcome::NonMemberIgnored { peer_id }, None)
+            }
+            Command::RemovalRequested { peer_id }
+                if !self.can_spare(peer_id, &in_flight.removals()) =>
+            {
+                (Outcome::RemovalRefused { peer_id }, None)
+            }
+            Command::RemovalRequested { peer_id } => (
+                Outcome::ProposeRemoval { peer_id },
+                Some(Reconfiguration::RemovalRequested { peer_id }),
+            ),
+            _ => return None,
+        };
+        let changes = change.map_or_else(|| in_flight.clone(), |change| in_flight.with(change));
+        Some((vec![outcome], changes.stage(self.clone(), config)))
     }
 }
 
@@ -158,37 +207,11 @@ impl State for Bootstrapped {
         if let Some(departure) = self.departure(&command, config.peer_id()) {
             return Some(departure);
         }
-        match command {
-            Command::AdditionRequested { peer_id } if self.members.is_member(peer_id) => Some((
-                vec![Outcome::DuplicateMemberIgnored { peer_id }],
-                Stage::Bootstrapped(self.clone()),
-            )),
-            Command::AdditionRequested { peer_id } => Some((
-                vec![Outcome::SendMembership { peer_id }],
-                Stage::Reconfiguring(Reconfiguring::new(
-                    self.clone(),
-                    Reconfiguration::AdditionRequested { peer_id },
-                )),
-            )),
-            Command::RemovalRequested { peer_id } if !self.members.is_member(peer_id) => Some((
-                vec![Outcome::NonMemberIgnored { peer_id }],
-                Stage::Bootstrapped(self.clone()),
-            )),
-            Command::RemovalRequested { peer_id } if !self.can_spare(peer_id) => Some((
-                vec![Outcome::RemovalRefused { peer_id }],
-                Stage::Bootstrapped(self.clone()),
-            )),
-            Command::RemovalRequested { peer_id } => Some((
-                vec![Outcome::ProposeRemoval { peer_id }],
-                Stage::Reconfiguring(Reconfiguring::new(
-                    self.clone(),
-                    Reconfiguration::RemovalRequested { peer_id },
-                )),
-            )),
-            _ => self
-                .answer(command, config, epoch)
-                .map(|(outcomes, concluded)| (outcomes, Stage::Bootstrapped(concluded))),
-        }
+        self.requested(&command, &InFlight::default(), config)
+            .or_else(|| {
+                self.answer(command, config, epoch)
+                    .map(|(outcomes, concluded)| (outcomes, Stage::Bootstrapped(concluded)))
+            })
     }
 
     fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
@@ -199,7 +222,7 @@ impl State for Bootstrapped {
             .with_collecting_peers(self.collected_peers.clone())
             .with_required_count(self.quorum_policy.threshold())
             .with_members(self.members.clone())
-            .with_reconfiguration(Reconfiguration::None)
+            .with_reconfigurations(Vec::new())
             .with_suspected(self.liveness.suspected().to_vec())
             .with_misses(self.liveness.misses().to_vec())
             .with_last_probed(self.liveness.last_probed())

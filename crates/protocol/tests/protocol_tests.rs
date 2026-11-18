@@ -59,6 +59,7 @@ fn of_four() -> Protocol {
         1,
         0,
         false,
+        1,
     );
     let mut protocol = Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
@@ -88,6 +89,7 @@ fn protocol_at(epoch: u64) -> Protocol {
         1,
         epoch,
         false,
+        1,
     );
     Protocol::new(
         Faction::new(config, Box::new(NoOpObserver)),
@@ -121,10 +123,7 @@ fn abort_addition_of_the_newcomer_withdraws_it_and_cancels_the_retry() {
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Cancel(retry_membership(5))]);
-    assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::None
-    );
+    assert!(protocol.cluster_view().reconfigurations().is_empty());
 }
 
 #[test]
@@ -138,10 +137,7 @@ fn abort_removal_of_the_peer_in_flight_withdraws_it() {
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
-    assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::None
-    );
+    assert!(protocol.cluster_view().reconfigurations().is_empty());
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 2, 3]);
 }
 
@@ -189,10 +185,7 @@ fn commit_addition_of_the_newcomer_admits_it() {
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 5]);
-    assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::None
-    );
+    assert!(protocol.cluster_view().reconfigurations().is_empty());
 }
 
 #[test]
@@ -226,10 +219,7 @@ fn commit_removal_of_the_peer_in_flight_takes_it_out_and_cancels_its_timeouts() 
     // Assert
     assert_eq!(decisions, timeouts_cancelled(2));
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1, 3]);
-    assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::None
-    );
+    assert!(protocol.cluster_view().reconfigurations().is_empty());
 }
 
 #[test]
@@ -506,7 +496,10 @@ fn decide_membership_acknowledged_by_the_newcomer_proposes_the_addition() {
     assert_eq!(
         decisions,
         vec![
-            OutputMessage::ProposeAddition { peer_id: 5 },
+            OutputMessage::ProposeAddition {
+                peer_id: 5,
+                epoch: 0
+            },
             OutputMessage::Cancel(retry_membership(5)),
         ]
     );
@@ -1056,6 +1049,51 @@ fn decide_timer_participation_observed_produces_noop() {
 }
 
 #[test]
+fn decline_of_a_removal_the_quorum_can_no_longer_spare_gives_it_up_asking_nothing() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+    protocol.commit(Commit::RequiredCount {
+        required_count: 4,
+        epoch: 3,
+    });
+
+    // Act
+    let decisions = protocol.decline(2, 3);
+
+    // Assert
+    assert_eq!(decisions, vec![OutputMessage::Noop]);
+    assert!(protocol.cluster_view().reconfigurations().is_empty());
+}
+
+#[test]
+fn decline_of_a_removal_the_quorum_can_spare_proposes_it_again_at_the_node_s_epoch() {
+    // Arrange
+    let mut protocol = of_four();
+    protocol.request_removal(2);
+    protocol.commit(Commit::RequiredCount {
+        required_count: 2,
+        epoch: 3,
+    });
+
+    // Act
+    let decisions = protocol.decline(2, 3);
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![OutputMessage::ProposeRemoval {
+            peer_id: 2,
+            epoch: 3
+        }]
+    );
+    assert_eq!(
+        protocol.cluster_view().reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 2 }]
+    );
+}
+
+#[test]
 fn deny_peer_leaves_members_unchanged() {
     // Arrange
     let mut protocol = protocol();
@@ -1232,8 +1270,8 @@ fn request_addition_of_a_newcomer_sends_it_the_membership_and_schedules_the_retr
         ]
     );
     assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::AdditionRequested { peer_id: 5 }
+        protocol.cluster_view().reconfigurations(),
+        [Reconfiguration::AdditionRequested { peer_id: 5 }]
     );
 }
 
@@ -1261,11 +1299,14 @@ fn request_removal_of_a_member_the_quorum_can_spare_proposes_it() {
     // Assert
     assert_eq!(
         decisions,
-        vec![OutputMessage::ProposeRemoval { peer_id: 2 }]
+        vec![OutputMessage::ProposeRemoval {
+            peer_id: 2,
+            epoch: 0
+        }]
     );
     assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::RemovalRequested { peer_id: 2 }
+        protocol.cluster_view().reconfigurations(),
+        [Reconfiguration::RemovalRequested { peer_id: 2 }]
     );
 }
 
@@ -1279,8 +1320,5 @@ fn request_removal_the_quorum_cannot_spare_is_refused_asking_nothing() {
 
     // Assert
     assert_eq!(decisions, vec![OutputMessage::Noop]);
-    assert_eq!(
-        protocol.cluster_view().reconfiguration(),
-        Reconfiguration::None
-    );
+    assert!(protocol.cluster_view().reconfigurations().is_empty());
 }

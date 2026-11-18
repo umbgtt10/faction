@@ -10,15 +10,19 @@ use faction::types::PeerId;
 use faction_system_tests::infra::invariants::breach::Breach;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 
-// How a scenario failed: a node broke an invariant while it ran; the end
-// state was not reached by the deadline -- the first node short of it, what
-// it was expected to show and what it showed; or a planned change never
-// committed.
+// How a scenario failed: a node broke an invariant while it ran; the commit
+// rule admitted a proposal the log cannot hold; the end state was not
+// reached by the deadline -- the first node short of it, what it was
+// expected to show and what it showed; or a planned change never committed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Failure {
     Breach {
         round: u64,
         breach: Breach,
+    },
+    Unsound {
+        round: u64,
+        commit: String,
     },
     Diverged {
         round: u64,
@@ -38,6 +42,10 @@ impl Display for Failure {
                 formatter,
                 "round {round}: node {} broke \"{}\" on {:?}",
                 breach.peer_id, breach.invariant, breach.command
+            ),
+            Self::Unsound { round, commit } => write!(
+                formatter,
+                "round {round}: the commit rule admitted {commit}, which the log cannot hold"
             ),
             Self::Diverged {
                 round,

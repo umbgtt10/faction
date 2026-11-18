@@ -1,8 +1,8 @@
 # Open Points
 
-Status: **Phases 1 to 5 landed** — joining, addition, failure detection, removal, and
-epochs and rejoin — across the full spawn/transport matrix, and the chaos validation
-built on them; see `CHANGELOG.md` for what shipped and `docs/ADRs/` for the decisions.
+Status: **Phases 1 to 6 built** — joining, addition, failure detection, removal, epochs
+and rejoin, and concurrent changes — across the full spawn/transport matrix, and the
+chaos validation built on them; see `CHANGELOG.md` for what shipped and `docs/ADRs/` for the decisions.
 Everything implemented, decided, or captured in an ADR has moved out of this file; only
 the genuinely-open items remain below.
 
@@ -55,6 +55,20 @@ transport. Replayed against the independent model (`crates/spec-model/`), it jud
 the behaviour too — on interleavings the vectors and the simulation never
 produce. The model takes the specification's encoding as it is, so a log in the
 specification's form needs nothing more of it.
+
+---
+
+## chrono, unmaintained
+
+RUSTSEC-2026-0543 reports chrono unmaintained, with no safe upgrade. `deny.toml` accepts it with its reason: only
+the validation packages use it, faction-system-tests and faction-chaos, for the wall clock their logs are stamped
+with and the chaos soak draws its fresh seed from, and no published crate depends on it. Accepting it keeps the
+gate green; it does not settle the dependency.
+
+**The likely way out.** The wall clock is a seam already (`WallClock`, with a system and a simulated
+implementation), so chrono stays behind it. Both could stand on `std::time::SystemTime` and a small formatter of
+their own — RFC 3339, UTC — or on a maintained crate, and chrono leave the workspace with the advisory's entry in
+`deny.toml`. Which, and when, is the owner's to decide.
 
 ---
 

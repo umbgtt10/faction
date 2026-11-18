@@ -49,13 +49,16 @@ all run by one gate:
    (`validation/memory/`), as beggar's and cartel's tiers are.
 9. **Chaos** — scenarios drawn from a seed: a cluster, membership changes from
    several coordinators in partly random order, and the network's and the timers'
-   faults; the layer above commits one change at a time in epoch order, late or
-   twice, never reordered. Every invariant is watched while the faults play, and
-   once they heal every node is checked against the end state the committed log
-   implies — computed, never observed (`validation/chaos/`). A deterministic
-   engine plays them on task nodes and a simulated clock, a seed replaying
-   exactly and a failure shrunk into a recorded regression; a real one on thread
-   and process nodes over the four transports, on the machine's clock.
+   faults; the layer above takes every proposal as it is made and commits one
+   change at a time by the specification's rule alone (§17), declining every
+   proposal a change committed since conflicts with, and reports its commits in
+   epoch order, late or twice, never reordered. Every invariant is watched
+   while the faults play, the rule never admitting a change the log cannot
+   hold, and once they heal every node is checked against the end state the
+   committed log implies — computed, never observed (`validation/chaos/`). A
+   deterministic engine plays them on task nodes and a simulated clock, a seed
+   replaying exactly and a failure shrunk into a recorded regression; a real one
+   on thread and process nodes over the four transports, on the machine's clock.
 
 "Tested" means every tier passes under the gate; "done" means the gate is green.
 

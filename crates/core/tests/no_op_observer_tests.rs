@@ -30,6 +30,7 @@ fn faction(observer: Box<dyn Observer>) -> Faction {
             1,
             0,
             false,
+            1,
         ),
         observer,
     )

@@ -27,6 +27,7 @@ pub enum ProcessCommand {
     RequestRemoval(PeerId),
     CommitRemoval(PeerId, Epoch),
     AbortRemoval(PeerId),
+    Decline(PeerId, Epoch),
     RequiredCount(usize, Epoch),
     Cut(PeerId),
     Mend(PeerId),
@@ -57,6 +58,10 @@ impl ProcessCommand {
                 parts.next()?.parse().ok()?,
             )),
             "abort-removal" => Some(Self::AbortRemoval(parts.next()?.parse().ok()?)),
+            "decline" => Some(Self::Decline(
+                parts.next()?.parse().ok()?,
+                parts.next()?.parse().ok()?,
+            )),
             "required-count" => Some(Self::RequiredCount(
                 parts.next()?.parse().ok()?,
                 parts.next()?.parse().ok()?,

@@ -3,8 +3,9 @@
 
 // The crate against the specification's model: random command sequences, every
 // command's peer among a five-member cluster's ids and two that are not
-// members, and every required count from none to more than the cluster holds,
-// each answered by both -- the crate and the model meeting only in the
+// members, every required count from none to more than the cluster holds,
+// and every bound of changes in flight from one to three, each answered by
+// both -- the crate and the model meeting only in the
 // specification's encoding -- and every answer the same.
 
 use crate::support::random_commands::RandomCommands;
@@ -24,10 +25,11 @@ proptest! {
     fn process_of_random_commands_answers_as_the_specification_s_model(
         required_count in 0usize..=6,
         threshold in 1usize..=3,
+        bound in 1usize..=3,
         commands in RandomCommands::sequence(40),
     ) {
         // Arrange
-        let config = Config::new(InstanceId { node: 0, incarnation: 1 }, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0, false);
+        let config = Config::new(InstanceId { node: 0, incarnation: 1 }, vec![0, 1, 2, 3, 4], QuorumPolicy::new(required_count), threshold, 0, false, bound);
         let mut model = Model::new(
             SpecReader::table(&SpecFiles::matrix()),
             SpecReader::configuration(&SpecWriter::configuration(&config)),

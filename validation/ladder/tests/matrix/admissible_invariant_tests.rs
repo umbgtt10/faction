@@ -13,6 +13,7 @@ use rstest::rstest;
 #[case(Init::Fresh, "Pinging")]
 #[case(Init::CollectingNoReadiness, "Collecting")]
 #[case(Init::Bootstrapped, "Bootstrapped")]
+#[case(Init::Coordinating, "Coordinating")]
 #[case(Init::Reconfiguring, "Reconfiguring")]
 #[case(Init::Removing, "Reconfiguring")]
 #[case(Init::Removed, "Removed")]
@@ -47,6 +48,10 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
             epoch: 0,
         },
         Command::RemovalAborted { peer_id: 0 },
+        Command::ProposalDeclined {
+            peer_id: 0,
+            epoch: 0,
+        },
         Command::RequiredCountChanged {
             required_count: 0,
             epoch: 0,

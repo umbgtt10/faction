@@ -3,7 +3,6 @@
 
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::reconfiguration::Reconfiguration;
 use faction_chaos::harness::committed_log::CommittedLog;
 use faction_chaos::model::change::Change;
 use faction_chaos::oracle::expected_end::ExpectedEnd;
@@ -28,7 +27,7 @@ fn member() -> NodeSnapshot {
         member_count: 3,
         members: vec![0, 2, 3],
         required_count: 2,
-        reconfiguration: Reconfiguration::None,
+        reconfigurations: Vec::new(),
         suspected: Vec::new(),
         quorum: Quorum::Held,
         epoch: 2,
@@ -49,7 +48,7 @@ fn waiting() -> NodeSnapshot {
         member_count: 0,
         members: Vec::new(),
         required_count: 0,
-        reconfiguration: Reconfiguration::None,
+        reconfigurations: Vec::new(),
         suspected: Vec::new(),
         quorum: Quorum::NotTracked,
         epoch: 0,
