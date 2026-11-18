@@ -1,4 +1,4 @@
-# [PROPOSAL] Phase 6 — concurrent membership changes
+# [IMPLEMENTED] Phase 6 — concurrent membership changes
 
 **Status:** accepted 2026-11-17, at the owner's word: Phase 6 is **A** — a proposal carries the epoch it was decided
 at, and the layer above commits it only while it is still valid — and **C** — a coordinator holds several changes in
@@ -10,8 +10,27 @@ rule, `ProposalDeclined`, the stage `Coordinating` and the view's reconfiguratio
 *Amended 2026-11-18, at the owner's word:* the release no longer waits for the 12-hour soak. Eight one-hour soaks
 played 4,229,796 scenarios with no failure; the 12-hour soak runs after the release.
 
-**Releases:** the specification's 0.9.0; the crate's 0.13.0, once the 12-hour soak has passed. 1.0 is later, at the
-owner's word.
+Implemented on the branch `phase-6`, 2026-11-17, as accepted, but for these departures, each found while building:
+
+- **A decline's epoch is the layer above's alone.** The coordinator decides again on the view it holds, whatever the
+  epoch (§17). A declined addition is always proposed again: its peer is never a member while its addition is in
+  flight, so on the node's own view it is always still valid, and `AdditionWithdrawn` never answers a decline, where
+  D3 gave one up once its peer was added.
+- **Two outcomes of their own:** `DeclineIgnored`, a decline naming no proposal in flight, and
+  `DuplicateChangeIgnored`, a request naming a peer with a change in flight, where D7 answered it as a duplicate is.
+- **One quorum check for both removals:** `Bootstrapped::can_spare(peer_id, removing)`, public, decides a removal
+  requested and a removal declined alike, every other removal in flight counted gone.
+- **The view's list and the bound landed together:** the re-encoding alone could not be committed, as the
+  conformance tier covers the crate alone only with vectors that hold several changes in flight.
+- **The chaos tier piles changes onto one coordinator.** Bounds drawn alone rarely let a coordinator hold more than
+  one change — two in 202 rounds and three in 6, over 3,000 scenarios — so in half the scenarios every planned change
+  comes due in one round, and the layer above asks a coordinator holding changes before one holding none: 3,321
+  rounds and 491.
+- **The release gate:** the eight one-hour soaks, and ten more on the code as released, 6,100,005 scenarios,
+  with no failure; the 12-hour soak runs after the release, as amended.
+
+**Releases:** the specification's 0.9.0; the crate's 0.13.0, breaking, beside the soak fixes, peer ids of the caller's
+own type and the validation without chrono, which this proposal does not cover. 1.0 is later, at the owner's word.
 **Order:** after 0.12.0 and the soak fixes.
 
 Phase 6 answers: *"Can several membership changes be in flight at once — and is every one committed safe by

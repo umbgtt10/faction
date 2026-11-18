@@ -40,8 +40,10 @@ which the crate conforms to from 0.10.0; its 0.7.0 has a provisional node coordi
 change, withdrawing the released vector that showed one coordinating -- the first withdrawn,
 to correct a defect -- which the crate conforms to from 0.11.0; its 0.8.0 numbers every
 answer and names every instance, re-encoding every released vector once, changing no
-answer, which the crate conforms to from 0.12.0. Each later phase opens with its
-specification's next version.
+answer, which the crate conforms to from 0.12.0. Phase 6 opened with its 0.9.0: a
+proposal committed only while still valid and several changes in flight, the view's
+reconfiguration re-encoded once more as a list, changing no answer, which the crate
+conforms to from 0.13.0. Each later phase opens with its specification's next version.
 
 ## Enforcement
 A phase's plan begins with its change to `spec/`; the conformance tests run

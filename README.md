@@ -23,8 +23,7 @@ that answers the question deterministically, observably, and provably.
 
 **All six phases are built** (2026-11-17): bootstrapping, dynamic joining, single-node addition, failure
 detection, single-node removal, epochs and rejoin, and concurrent changes, conformant to version 0.9.0 of the
-specification in [`spec/`](spec/SPEC.md). Version 0.12.0 is on [crates.io](https://crates.io/crates/faction); Phase 6
-is released as 0.13.0.
+specification in [`spec/`](spec/SPEC.md). Version 0.13.0 is on [crates.io](https://crates.io/crates/faction).
 
 ---
 
@@ -221,7 +220,7 @@ helpers asked, and the threshold it is created with.
 
 ```toml
 [dependencies]
-faction = "0.12"
+faction = "0.13"
 ```
 
 ```rust
@@ -352,7 +351,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 | Unsafe code | 0 — enforced by `#![forbid(unsafe_code)]` |
 | `no_std` | Verified on `thumbv7em-none-eabihf` |
 | System test combinations | 10 (Task/Thread/Process × Memory/Channels/TCP/gRPC) |
-| Published | [crates.io](https://crates.io/crates/faction) 0.12.0 |
+| Published | [crates.io](https://crates.io/crates/faction) 0.13.0 |
 
 ---
 

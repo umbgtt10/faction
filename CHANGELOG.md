@@ -5,10 +5,17 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
-### Phase 6, first half: a proposal committed only while it is still valid
+## [0.13.0] — 2026-11-18
 
-Conforms to the specification's version 0.9.0: every vector 0.8.0 released is answered alike, and five new ones,
-117 to 121, show a proposal declined and decided again.
+### Published on crates.io
+
+Conforms to the specification's version 0.9.0: the 115 vectors 0.8.0 released are kept, each re-encoded once more,
+the view's reconfiguration a list, with no answer changed, their 0.8.0 bytes kept under `spec/released/0.8.0/`; ten
+new ones, 117 to 126, are released with it.
+
+### Phase 6: several changes in flight, each committed only while still valid
+
+Vectors 117 to 121 show a proposal declined and decided again, and 122 to 126 a coordinator bound to two or three.
 
 #### Added
 - The specification states what the layer above owes a proposal (§17): it is decided at the epoch its answer's view

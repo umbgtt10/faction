@@ -2,11 +2,12 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-11-17  
-**Current status:** Phase 5 — epochs and rejoin landed (specification 0.5.0, for the crate's 0.9.0); the chaos
-validation built (specification 0.6.0, for the crate's 0.10.0); a provisional node coordinating
-no change (specification 0.7.0, for the crate's 0.11.0); every answer a numbered receipt and every node an
-instance (specification 0.8.0, for the crate's 0.12.0)
+**Last updated:** 2026-11-18  
+**Current status:** Phase 6 — concurrent membership changes landed (specification 0.9.0, for the crate's 0.13.0),
+with peer ids of the caller's own type; before it, epochs and rejoin (specification 0.5.0, for the crate's 0.9.0), the
+chaos validation (specification 0.6.0, for the crate's 0.10.0), a provisional node coordinating no change
+(specification 0.7.0, for the crate's 0.11.0), and every answer a numbered receipt and every node an instance
+(specification 0.8.0, for the crate's 0.12.0)
 
 > **Note:** All inputs, outputs, and state names listed for Phases 1–6 below
 > are drafts. They reflect the intended design direction but may change during
@@ -402,8 +403,8 @@ breadth, not a failure mode the fault layer does not inject already.
 
 ## Phase 6 — Concurrent membership changes
 
-**Status:** ✅ Built — specification 0.9.0, for the crate's 0.13.0 (`docs/[PROPOSAL] PHASE-6-CONCURRENT-CHANGES.md`,
-accepted)
+**Status:** ✅ Complete — specification 0.9.0, for the crate's 0.13.0
+(`docs/history/[IMPLEMENTED] PHASE-6-CONCURRENT-CHANGES.md`)
 **Depends on:** Phase 5 complete
 **Removes limitation:** L6 — single-change-at-a-time constraint
 
@@ -438,7 +439,7 @@ drawn a bound of one to three, and the rule never admitting a change the log can
 |---|---|
 | Specification | 0.9.0 — 78 rows, 125 vectors in force, every row exercised, every released vector re-encoded once more and answered alike |
 | Property invariants | A node never holds more changes than its bound nor two naming one peer; a removal it proposes leaves the count with the removals in flight; it takes a request exactly while concluded below its bound; a declined removal is proposed again exactly when the quorum can spare it |
-| Chaos | Bounds of one to three, and changes piled onto one coordinator; eight one-hour soaks, 4,229,796 scenarios, with no failure |
+| Chaos | Bounds of one to three, and changes piled onto one coordinator; eight one-hour soaks, 4,229,796 scenarios, and ten more on the code as released, 6,100,005, with no failure |
 
 **Gate:** 100% `(state, input)` coverage; eight one-hour soaks with no failure; then 0.13.0. 1.0 is later, at the
 owner's word.
@@ -458,7 +459,7 @@ owner's word.
 | 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
 | cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Complete (specification 0.6.0, for the crate's 0.10.0) |
 | cross-cutting | Numbered receipts | Before Phase 6 | ✅ Complete (specification 0.8.0, for the crate's 0.12.0) |
-| 6 | Concurrent membership changes | After Phase 5 | ✅ Built (specification 0.9.0, for the crate's 0.13.0) |
+| 6 | Concurrent membership changes | After Phase 5 | ✅ Complete (specification 0.9.0, for the crate's 0.13.0) |
 
 ---
 

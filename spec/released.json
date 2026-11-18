@@ -83,6 +83,10 @@
   {
    "name": "MembershipReceived",
    "version": "0.5.0"
+  },
+  {
+   "name": "ProposalDeclined",
+   "version": "0.9.0"
   }
  ],
  "vectors": [
@@ -1816,6 +1820,56 @@
      "sha256": "4379efb1ea86bad1d02ff124d2b5efb4e138888122c9fe84577bdf6c78ae98b2"
     }
    ]
+  },
+  {
+   "id": "117-removal-declined-and-proposed-again",
+   "version": "0.9.0",
+   "sha256": "2033fcd25afc310e295c1a7d99994c11d176a6d5ac1cc53f1298f50b5cd25052"
+  },
+  {
+   "id": "118-removal-declined-and-given-up",
+   "version": "0.9.0",
+   "sha256": "d3deb2a0c63fb0a8573b4b4f9eba1642a457e4f2742321539b5c6c181e9863ee"
+  },
+  {
+   "id": "119-addition-declined-and-proposed-again",
+   "version": "0.9.0",
+   "sha256": "5be5a330c089cbfae893db9c7a1279622f1785f17daa4818e6aab75e0f646cbb"
+  },
+  {
+   "id": "120-decline-without-a-proposal",
+   "version": "0.9.0",
+   "sha256": "8e72120845529bbe9fe72f3e60dc33033595655fef62e138a7b091a6013c911f"
+  },
+  {
+   "id": "121-removal-of-a-suspect-declined-and-proposed-again",
+   "version": "0.9.0",
+   "sha256": "1d22d120e36938372dfad9d6312ba8eea4fca32b3387db1ab0ebc8655eb393b4"
+  },
+  {
+   "id": "122-two-additions-in-flight-commit-in-either-order",
+   "version": "0.9.0",
+   "sha256": "1c4d8d5792969840f0c45de05ad0b1e4f58e1cbfb364ae15e9941afde7f8ce23"
+  },
+  {
+   "id": "123-a-duplicate-change-and-removals-counted-together",
+   "version": "0.9.0",
+   "sha256": "53cb856b076824cb132c9e82269f0c4202a475efd6543863674cda5093db0c0f"
+  },
+  {
+   "id": "124-a-decline-among-several-and-an-abort",
+   "version": "0.9.0",
+   "sha256": "c4a7198912b06d3a0ab2764dc6a369865986119688afc46e38f33bac347a1ca9"
+  },
+  {
+   "id": "125-an-adoption-abandons-every-change",
+   "version": "0.9.0",
+   "sha256": "b29c72b50cbed293e5d9d8aebc31bea3d795477aa6fd765a4a95bdc3d217c104"
+  },
+  {
+   "id": "126-a-duplicate-of-an-acknowledged-addition",
+   "version": "0.9.0",
+   "sha256": "d905ab1e9f7145de839e137de2db77e732a138f404055da2de0479105fc7e765"
   }
  ]
 }
