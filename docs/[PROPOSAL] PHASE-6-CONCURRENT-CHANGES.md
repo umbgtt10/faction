@@ -7,6 +7,9 @@ after a 12-hour soak with no failure, and not yet as 1.0. Every decision of §10
 rule, `ProposalDeclined`, the stage `Coordinating` and the view's reconfigurations as a list, and the bound
 `changes_in_flight`, 1 unless stated.
 
+*Amended 2026-11-18, at the owner's word:* the release no longer waits for the 12-hour soak. Eight one-hour soaks
+played 4,229,796 scenarios with no failure; the 12-hour soak runs after the release.
+
 **Releases:** the specification's 0.9.0; the crate's 0.13.0, once the 12-hour soak has passed. 1.0 is later, at the
 owner's word.
 **Order:** after 0.12.0 and the soak fixes.

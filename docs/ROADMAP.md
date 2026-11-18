@@ -402,8 +402,8 @@ breadth, not a failure mode the fault layer does not inject already.
 
 ## Phase 6 — Concurrent membership changes
 
-**Status:** ✅ Built — specification 0.9.0, for the crate's 0.13.0, released once a 12-hour soak has passed with no
-failure (`docs/[PROPOSAL] PHASE-6-CONCURRENT-CHANGES.md`, accepted)
+**Status:** ✅ Built — specification 0.9.0, for the crate's 0.13.0 (`docs/[PROPOSAL] PHASE-6-CONCURRENT-CHANGES.md`,
+accepted)
 **Depends on:** Phase 5 complete
 **Removes limitation:** L6 — single-change-at-a-time constraint
 
@@ -438,10 +438,10 @@ drawn a bound of one to three, and the rule never admitting a change the log can
 |---|---|
 | Specification | 0.9.0 — 78 rows, 125 vectors in force, every row exercised, every released vector re-encoded once more and answered alike |
 | Property invariants | A node never holds more changes than its bound nor two naming one peer; a removal it proposes leaves the count with the removals in flight; it takes a request exactly while concluded below its bound; a declined removal is proposed again exactly when the quorum can spare it |
-| Chaos | Bounds of one to three; a soak of 50,000 scenarios with no failure before the release soak |
+| Chaos | Bounds of one to three, and changes piled onto one coordinator; eight one-hour soaks, 4,229,796 scenarios, with no failure |
 
-**Gate:** 100% `(state, input)` coverage; a 12-hour soak with no failure; then 0.13.0. 1.0 is later, at the owner's
-word.
+**Gate:** 100% `(state, input)` coverage; eight one-hour soaks with no failure; then 0.13.0. 1.0 is later, at the
+owner's word.
 
 ---
 
@@ -458,7 +458,7 @@ word.
 | 5 | Membership epochs and rejoin | After Phase 4 | ✅ Complete (specification 0.5.0, for the crate's 0.9.0) |
 | cross-cutting | Chaos validation | After Phase 5, before Phase 6 | ✅ Complete (specification 0.6.0, for the crate's 0.10.0) |
 | cross-cutting | Numbered receipts | Before Phase 6 | ✅ Complete (specification 0.8.0, for the crate's 0.12.0) |
-| 6 | Concurrent membership changes | After Phase 5 | ✅ Built (specification 0.9.0, for the crate's 0.13.0 after the 12-hour soak) |
+| 6 | Concurrent membership changes | After Phase 5 | ✅ Built (specification 0.9.0, for the crate's 0.13.0) |
 
 ---
 
