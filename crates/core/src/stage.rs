@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
 use crate::command::Command;
+use crate::command_kind::CommandKind;
 use crate::config::Config;
 use crate::outcome::Outcome;
 use crate::state::State;
@@ -82,12 +83,14 @@ pub enum Stage {
 
 impl Stage {
     #[must_use]
-    pub fn admissible_commands(&self, config: &Config, epoch: Epoch) -> Vec<Command> {
+    pub fn admissible_commands(&self, config: &Config, epoch: Epoch) -> Vec<CommandKind> {
         COMMANDS
             .into_iter()
             .filter(|command| {
-                *command == Command::Probe || self.step(command.clone(), config, epoch).is_some()
+                command.kind() == CommandKind::Probe
+                    || self.step(command.clone(), config, epoch).is_some()
             })
+            .map(|command| command.kind())
             .collect()
     }
 

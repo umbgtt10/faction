@@ -5,6 +5,7 @@ use super::builder::{Init, build};
 use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
 
@@ -73,13 +74,13 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
 
     // Act & Assert — Probe is always admissible
     assert!(
-        admissible.contains(&Command::Probe),
+        admissible.contains(&CommandKind::Probe),
         "{init:?}: Probe not admissible"
     );
 
     // Act & Assert — every other command is admissible if it is accepted
     for candidate in &candidates {
-        let in_admissible = admissible.contains(candidate);
+        let in_admissible = admissible.contains(&candidate.kind());
         let accepted = !matches!(
             build(init).process(candidate.clone()).output,
             ProcessResult::Rejected { .. }

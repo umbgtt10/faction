@@ -3,6 +3,7 @@
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::instance::receipt::Receipt;
@@ -127,11 +128,11 @@ impl SpecWriter {
         json!({ "command": Self::command(command), "receipt": Self::receipt(receipt) })
     }
 
-    fn admissible(commands: &[Command]) -> Value {
+    fn admissible(kinds: &[CommandKind]) -> Value {
         Value::Array(
-            commands
+            kinds
                 .iter()
-                .map(|command| Value::from(Self::name(command)))
+                .map(|kind| Value::from(format!("{kind:?}")))
                 .collect(),
         )
     }

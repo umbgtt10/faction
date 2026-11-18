@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::spec_reader::SpecReader;
-use faction::command::Command;
+use faction::command_kind::CommandKind;
 use serde_json::Value;
 use serde_json::json;
 
@@ -22,7 +22,7 @@ impl MatrixTable {
     // The commands a stage admits, as the crate lists them: in the commands'
     // order, with the placeholder the crate gives a command that carries a peer
     // id, a required count or members -- zero, or none -- at epoch 0.
-    pub fn admits(&self, stage: &str) -> Vec<Command> {
+    pub fn admits(&self, stage: &str) -> Vec<CommandKind> {
         self.table["admits"][stage]
             .as_array()
             .unwrap_or_else(|| panic!("the table has no stage {stage}"))
@@ -34,6 +34,7 @@ impl MatrixTable {
                     "required_count": "0",
                     "members": [],
                 } }))
+                .kind()
             })
             .collect()
     }

@@ -8,6 +8,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
+use crate::command_kind::CommandKind;
 use crate::config::Config;
 use crate::instance::receipt::Receipt;
 use crate::members::Members;
@@ -64,7 +65,7 @@ impl Faction {
         receipt
     }
 
-    fn admissible(&self) -> Vec<Command> {
+    fn admissible(&self) -> Vec<CommandKind> {
         self.stage
             .admissible_commands(&self.config, self.cluster_view.epoch())
     }
@@ -97,7 +98,7 @@ impl Faction {
                     outcomes,
                 }
             }
-            None if *command == Command::Probe => ProcessResult::Probed {
+            None if command.kind() == CommandKind::Probe => ProcessResult::Probed {
                 cluster_view: self.cluster_view.clone(),
                 admissible: self.admissible(),
             },

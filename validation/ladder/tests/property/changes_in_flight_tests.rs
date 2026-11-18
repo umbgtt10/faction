@@ -14,6 +14,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
@@ -27,7 +28,10 @@ use faction::types::PeerId;
 use proptest::prelude::*;
 
 // What a call answered: its outcomes, its view and what it admits after.
-fn answered(faction: &mut Faction, command: Command) -> (Vec<Outcome>, ClusterView, Vec<Command>) {
+fn answered(
+    faction: &mut Faction,
+    command: Command,
+) -> (Vec<Outcome>, ClusterView, Vec<CommandKind>) {
     match faction.process(command).output {
         ProcessResult::Accepted {
             outcomes,
@@ -140,7 +144,7 @@ proptest! {
 
             // Assert
             prop_assert_eq!(
-                admissible.contains(&Command::AdditionRequested { peer_id: 0 }),
+                admissible.contains(&CommandKind::AdditionRequested),
                 cluster_view.peer_state() == PeerState::Bootstrapped
                     && cluster_view.reconfigurations().len() < bound
             );

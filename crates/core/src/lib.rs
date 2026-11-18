@@ -84,6 +84,7 @@
 //!
 //! ```rust
 //! use faction::command::Command;
+//! use faction::command_kind::CommandKind;
 //! use faction::config::Config;
 //! use faction::faction::Faction;
 //! use faction::instance::instance_id::InstanceId;
@@ -115,11 +116,11 @@
 //! machine.process(Command::ParticipationObserved { peer_id: 2, epoch: 0 });
 //!
 //! // A duplicate is accepted but marked ignored — and, like every result,
-//! // it reports the set of commands admissible next.
+//! // it reports the kinds of command admissible next.
 //! if let ProcessResult::Accepted { admissible, .. } =
 //!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 }).output
 //! {
-//!     assert!(admissible.contains(&Command::LocalParticipationCompleted));
+//!     assert!(admissible.contains(&CommandKind::LocalParticipationCompleted));
 //! }
 //!
 //! // Probe at any time — read-only, zero side effects.
@@ -179,6 +180,7 @@ pub mod no_op_observer;
 pub mod cluster_view;
 pub mod cluster_view_builder;
 pub mod command;
+pub mod command_kind;
 pub mod conclusion;
 pub mod config;
 pub mod faction;
@@ -198,4 +200,4 @@ pub mod states;
 pub mod types;
 
 #[cfg(doctest)]
-pub mod readme_doctests;
+pub mod doctests;

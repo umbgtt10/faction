@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use faction::cluster_view::ClusterView;
-use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 
@@ -10,7 +10,7 @@ use faction::process_result::ProcessResult;
 pub struct Answers;
 
 impl Answers {
-    pub fn accepted(result: ProcessResult) -> (Vec<Outcome>, ClusterView, Vec<Command>) {
+    pub fn accepted(result: ProcessResult) -> (Vec<Outcome>, ClusterView, Vec<CommandKind>) {
         match result {
             ProcessResult::Accepted {
                 outcomes,

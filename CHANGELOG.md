@@ -60,6 +60,15 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
   over 3,000 scenarios a coordinator held two changes in flight in 3,321 rounds and three in 491, where it had in 202
   and 6.
 
+### Peer ids of the caller's own type
+
+#### Changed
+- **Breaking:** a result lists its admissible commands by kind: `ProcessResult`'s `admissible` is a `Vec<CommandKind>`,
+  a new enum naming each command without the peer or the epoch it would carry, as the specification writes them, and
+  `Command::kind()` gives a command's; `Stage::admissible_commands` returns kinds. The commands it listed carried a
+  placeholder, peer 0 and epoch 0, which read as if peer 0 were meant. A caller asks
+  `admissible.contains(&command.kind())`.
+
 ### What eight hours of chaos soak found
 
 #### Fixed

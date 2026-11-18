@@ -6,6 +6,7 @@ use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
@@ -225,7 +226,7 @@ fn process_addition_aborted_of_one_of_two_withdraws_it_alone() {
         cluster_view.reconfigurations(),
         [Reconfiguration::AdditionRequested { peer_id: 8 }]
     );
-    assert!(admissible.contains(&Command::AdditionRequested { peer_id: 0 }));
+    assert!(admissible.contains(&CommandKind::AdditionRequested));
 }
 
 #[test]
@@ -250,7 +251,7 @@ fn process_addition_aborted_of_the_newcomer_withdraws_it() {
     assert_eq!(outcomes, vec![Outcome::AdditionWithdrawn { peer_id: 9 }]);
     assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4]);
-    assert!(admissible.contains(&Command::AdditionRequested { peer_id: 0 }));
+    assert!(admissible.contains(&CommandKind::AdditionRequested));
 }
 
 #[test]
@@ -344,7 +345,7 @@ fn process_addition_committed_of_one_of_two_ends_it_and_leaves_the_node_coordina
         cluster_view.reconfigurations(),
         [Reconfiguration::AdditionRequested { peer_id: 9 }]
     );
-    assert!(admissible.contains(&Command::AdditionRequested { peer_id: 0 }));
+    assert!(admissible.contains(&CommandKind::AdditionRequested));
 }
 
 #[test]
@@ -845,7 +846,7 @@ fn process_removal_aborted_of_the_peer_in_flight_withdraws_it() {
     assert_eq!(outcomes, vec![Outcome::RemovalWithdrawn { peer_id: 4 }]);
     assert!(cluster_view.reconfigurations().is_empty());
     assert_eq!(cluster_view.members().as_slice(), &[0, 1, 2, 3, 4]);
-    assert!(admissible.contains(&Command::RemovalRequested { peer_id: 0 }));
+    assert!(admissible.contains(&CommandKind::RemovalRequested));
 }
 
 #[test]

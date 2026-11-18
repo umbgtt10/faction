@@ -5,6 +5,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::config::Config;
 use faction::instance::instance_id::InstanceId;
 use faction::members::Members;
@@ -119,22 +120,23 @@ fn every_command() -> Vec<Command> {
 
 // Every command but those only a concluded node admits: a change's
 // coordination, and its members' liveness.
-fn every_command_but_a_concluded_node_s_own() -> Vec<Command> {
+fn every_command_but_a_concluded_node_s_own() -> Vec<CommandKind> {
     every_command()
-        .into_iter()
-        .filter(|command| {
+        .iter()
+        .map(Command::kind)
+        .filter(|kind| {
             !matches!(
-                command,
-                Command::AdditionRequested { .. }
-                    | Command::MembershipAcknowledged { .. }
-                    | Command::AdditionAborted { .. }
-                    | Command::RemovalRequested { .. }
-                    | Command::RemovalAborted { .. }
-                    | Command::ProposalDeclined { .. }
-                    | Command::ProbeDue
-                    | Command::PeerHeard { .. }
-                    | Command::ProbeMissed { .. }
-                    | Command::IndirectProbesMissed { .. }
+                kind,
+                CommandKind::AdditionRequested
+                    | CommandKind::MembershipAcknowledged
+                    | CommandKind::AdditionAborted
+                    | CommandKind::RemovalRequested
+                    | CommandKind::RemovalAborted
+                    | CommandKind::ProposalDeclined
+                    | CommandKind::ProbeDue
+                    | CommandKind::PeerHeard
+                    | CommandKind::ProbeMissed
+                    | CommandKind::IndirectProbesMissed
             )
         })
         .collect()
@@ -174,37 +176,21 @@ fn admissible_commands_bootstrapped_returns_participation_joins_an_addition_a_co
     assert_eq!(
         admissible,
         vec![
-            Command::ParticipationObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::AdditionRequested { peer_id: 0 },
-            Command::AdditionCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RemovalRequested { peer_id: 0 },
-            Command::RemovalCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RequiredCountChanged {
-                required_count: 0,
-                epoch: 0
-            },
-            Command::MembershipReceived {
-                members: vec![],
-                required_count: 0,
-                epoch: 0,
-            },
-            Command::ProbeDue,
-            Command::PeerHeard { peer_id: 0 },
-            Command::ProbeMissed { peer_id: 0 },
-            Command::IndirectProbesMissed { peer_id: 0 },
-            Command::Probe,
+            CommandKind::ParticipationObserved,
+            CommandKind::JoinRequested,
+            CommandKind::JoinApproved,
+            CommandKind::JoinRejected,
+            CommandKind::AdditionRequested,
+            CommandKind::AdditionCommitted,
+            CommandKind::RemovalRequested,
+            CommandKind::RemovalCommitted,
+            CommandKind::RequiredCountChanged,
+            CommandKind::MembershipReceived,
+            CommandKind::ProbeDue,
+            CommandKind::PeerHeard,
+            CommandKind::ProbeMissed,
+            CommandKind::IndirectProbesMissed,
+            CommandKind::Probe,
         ]
     );
 }
@@ -221,36 +207,17 @@ fn admissible_commands_collecting_returns_all_but_its_completion_and_a_concluded
     assert_eq!(
         admissible,
         vec![
-            Command::ParticipationObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::ReadyObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::DeadlineExpired,
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::AdditionCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RemovalCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RequiredCountChanged {
-                required_count: 0,
-                epoch: 0
-            },
-            Command::MembershipReceived {
-                members: vec![],
-                required_count: 0,
-                epoch: 0,
-            },
-            Command::Probe,
+            CommandKind::ParticipationObserved,
+            CommandKind::ReadyObserved,
+            CommandKind::DeadlineExpired,
+            CommandKind::JoinRequested,
+            CommandKind::JoinApproved,
+            CommandKind::JoinRejected,
+            CommandKind::AdditionCommitted,
+            CommandKind::RemovalCommitted,
+            CommandKind::RequiredCountChanged,
+            CommandKind::MembershipReceived,
+            CommandKind::Probe,
         ]
     );
 }
@@ -266,15 +233,15 @@ fn admissible_commands_coordinating_returns_what_reconfiguring_admits_and_both_r
     // Assert
     let reconfiguring = reconfiguring().admissible_commands(&config(), 0);
     let requests = [
-        Command::AdditionRequested { peer_id: 0 },
-        Command::RemovalRequested { peer_id: 0 },
+        CommandKind::AdditionRequested,
+        CommandKind::RemovalRequested,
     ];
     assert_eq!(
         admissible
             .iter()
-            .filter(|command| !requests.contains(command))
-            .cloned()
-            .collect::<Vec<Command>>(),
+            .filter(|kind| !requests.contains(kind))
+            .copied()
+            .collect::<Vec<CommandKind>>(),
         reconfiguring
     );
     assert!(requests.iter().all(|request| admissible.contains(request)));
@@ -293,36 +260,17 @@ fn admissible_commands_initial_returns_all_but_the_deadline_and_a_concluded_node
     assert_eq!(
         admissible,
         vec![
-            Command::ParticipationObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::ReadyObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::LocalParticipationCompleted,
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::AdditionCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RemovalCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RequiredCountChanged {
-                required_count: 0,
-                epoch: 0
-            },
-            Command::MembershipReceived {
-                members: vec![],
-                required_count: 0,
-                epoch: 0,
-            },
-            Command::Probe,
+            CommandKind::ParticipationObserved,
+            CommandKind::ReadyObserved,
+            CommandKind::LocalParticipationCompleted,
+            CommandKind::JoinRequested,
+            CommandKind::JoinApproved,
+            CommandKind::JoinRejected,
+            CommandKind::AdditionCommitted,
+            CommandKind::RemovalCommitted,
+            CommandKind::RequiredCountChanged,
+            CommandKind::MembershipReceived,
+            CommandKind::Probe,
         ]
     );
 }
@@ -352,44 +300,22 @@ fn admissible_commands_reconfiguring_returns_what_a_concluded_node_admits_but_an
     assert_eq!(
         admissible,
         vec![
-            Command::ParticipationObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::MembershipAcknowledged {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::AdditionCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::AdditionAborted { peer_id: 0 },
-            Command::RemovalCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RemovalAborted { peer_id: 0 },
-            Command::ProposalDeclined {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RequiredCountChanged {
-                required_count: 0,
-                epoch: 0
-            },
-            Command::MembershipReceived {
-                members: vec![],
-                required_count: 0,
-                epoch: 0,
-            },
-            Command::ProbeDue,
-            Command::PeerHeard { peer_id: 0 },
-            Command::ProbeMissed { peer_id: 0 },
-            Command::IndirectProbesMissed { peer_id: 0 },
-            Command::Probe,
+            CommandKind::ParticipationObserved,
+            CommandKind::JoinRequested,
+            CommandKind::JoinRejected,
+            CommandKind::MembershipAcknowledged,
+            CommandKind::AdditionCommitted,
+            CommandKind::AdditionAborted,
+            CommandKind::RemovalCommitted,
+            CommandKind::RemovalAborted,
+            CommandKind::ProposalDeclined,
+            CommandKind::RequiredCountChanged,
+            CommandKind::MembershipReceived,
+            CommandKind::ProbeDue,
+            CommandKind::PeerHeard,
+            CommandKind::ProbeMissed,
+            CommandKind::IndirectProbesMissed,
+            CommandKind::Probe,
         ]
     );
 }
@@ -405,14 +331,7 @@ fn admissible_commands_removed_returns_a_membership_and_a_probe() {
     // Assert
     assert_eq!(
         admissible,
-        vec![
-            Command::MembershipReceived {
-                members: vec![],
-                required_count: 0,
-                epoch: 0,
-            },
-            Command::Probe,
-        ]
+        vec![CommandKind::MembershipReceived, CommandKind::Probe,]
     );
 }
 

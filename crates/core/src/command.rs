@@ -3,6 +3,7 @@
 
 use alloc::vec::Vec;
 
+use crate::command_kind::CommandKind;
 use crate::types::Epoch;
 use crate::types::PeerId;
 
@@ -75,4 +76,34 @@ pub enum Command {
         peer_id: PeerId,
     },
     Probe,
+}
+
+impl Command {
+    #[must_use]
+    pub fn kind(&self) -> CommandKind {
+        match self {
+            Self::ParticipationObserved { .. } => CommandKind::ParticipationObserved,
+            Self::ReadyObserved { .. } => CommandKind::ReadyObserved,
+            Self::LocalParticipationCompleted => CommandKind::LocalParticipationCompleted,
+            Self::DeadlineExpired => CommandKind::DeadlineExpired,
+            Self::JoinRequested { .. } => CommandKind::JoinRequested,
+            Self::JoinApproved { .. } => CommandKind::JoinApproved,
+            Self::JoinRejected { .. } => CommandKind::JoinRejected,
+            Self::AdditionRequested { .. } => CommandKind::AdditionRequested,
+            Self::MembershipAcknowledged { .. } => CommandKind::MembershipAcknowledged,
+            Self::AdditionCommitted { .. } => CommandKind::AdditionCommitted,
+            Self::AdditionAborted { .. } => CommandKind::AdditionAborted,
+            Self::RemovalRequested { .. } => CommandKind::RemovalRequested,
+            Self::RemovalCommitted { .. } => CommandKind::RemovalCommitted,
+            Self::RemovalAborted { .. } => CommandKind::RemovalAborted,
+            Self::ProposalDeclined { .. } => CommandKind::ProposalDeclined,
+            Self::RequiredCountChanged { .. } => CommandKind::RequiredCountChanged,
+            Self::MembershipReceived { .. } => CommandKind::MembershipReceived,
+            Self::ProbeDue => CommandKind::ProbeDue,
+            Self::PeerHeard { .. } => CommandKind::PeerHeard,
+            Self::ProbeMissed { .. } => CommandKind::ProbeMissed,
+            Self::IndirectProbesMissed { .. } => CommandKind::IndirectProbesMissed,
+            Self::Probe => CommandKind::Probe,
+        }
+    }
 }

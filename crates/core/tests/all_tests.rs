@@ -3,6 +3,7 @@
 
 pub mod cluster_view_builder_tests;
 pub mod cluster_view_tests;
+pub mod command_tests;
 pub mod config_tests;
 pub mod faction_tests;
 pub mod members_tests;

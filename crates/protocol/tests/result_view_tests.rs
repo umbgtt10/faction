@@ -4,7 +4,7 @@
 use alloc::vec;
 use faction::cluster_view::ClusterView;
 use faction::cluster_view_builder::ClusterViewBuilder;
-use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
@@ -25,7 +25,7 @@ fn of_accepted_returns_its_view() {
     // Arrange
     let result = ProcessResult::Accepted {
         cluster_view: view(),
-        admissible: vec![Command::Probe],
+        admissible: vec![CommandKind::Probe],
         outcomes: vec![Outcome::ReadyAccepted { peer_id: 2 }],
     };
 
@@ -41,7 +41,7 @@ fn of_probed_returns_its_view() {
     // Arrange
     let result = ProcessResult::Probed {
         cluster_view: view(),
-        admissible: vec![Command::Probe],
+        admissible: vec![CommandKind::Probe],
     };
 
     // Act
@@ -56,7 +56,7 @@ fn of_rejected_returns_its_view() {
     // Arrange
     let result = ProcessResult::Rejected {
         cluster_view: view(),
-        admissible: vec![Command::Probe],
+        admissible: vec![CommandKind::Probe],
     };
 
     // Act

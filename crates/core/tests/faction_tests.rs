@@ -8,6 +8,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
@@ -41,39 +42,20 @@ fn fresh() -> Faction {
     )
 }
 
-fn pinging_admissible() -> Vec<Command> {
+fn pinging_admissible() -> Vec<CommandKind> {
     vec![
-        Command::ParticipationObserved {
-            peer_id: 0,
-            epoch: 0,
-        },
-        Command::ReadyObserved {
-            peer_id: 0,
-            epoch: 0,
-        },
-        Command::LocalParticipationCompleted,
-        Command::DeadlineExpired,
-        Command::JoinRequested { peer_id: 0 },
-        Command::JoinApproved { peer_id: 0 },
-        Command::JoinRejected { peer_id: 0 },
-        Command::AdditionCommitted {
-            peer_id: 0,
-            epoch: 0,
-        },
-        Command::RemovalCommitted {
-            peer_id: 0,
-            epoch: 0,
-        },
-        Command::RequiredCountChanged {
-            required_count: 0,
-            epoch: 0,
-        },
-        Command::MembershipReceived {
-            members: vec![],
-            required_count: 0,
-            epoch: 0,
-        },
-        Command::Probe,
+        CommandKind::ParticipationObserved,
+        CommandKind::ReadyObserved,
+        CommandKind::LocalParticipationCompleted,
+        CommandKind::DeadlineExpired,
+        CommandKind::JoinRequested,
+        CommandKind::JoinApproved,
+        CommandKind::JoinRejected,
+        CommandKind::AdditionCommitted,
+        CommandKind::RemovalCommitted,
+        CommandKind::RequiredCountChanged,
+        CommandKind::MembershipReceived,
+        CommandKind::Probe,
     ]
 }
 
@@ -408,37 +390,21 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
     assert_eq!(
         admissible,
         vec![
-            Command::ParticipationObserved {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::AdditionRequested { peer_id: 0 },
-            Command::AdditionCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RemovalRequested { peer_id: 0 },
-            Command::RemovalCommitted {
-                peer_id: 0,
-                epoch: 0
-            },
-            Command::RequiredCountChanged {
-                required_count: 0,
-                epoch: 0
-            },
-            Command::MembershipReceived {
-                members: vec![],
-                required_count: 0,
-                epoch: 0,
-            },
-            Command::ProbeDue,
-            Command::PeerHeard { peer_id: 0 },
-            Command::ProbeMissed { peer_id: 0 },
-            Command::IndirectProbesMissed { peer_id: 0 },
-            Command::Probe
+            CommandKind::ParticipationObserved,
+            CommandKind::JoinRequested,
+            CommandKind::JoinApproved,
+            CommandKind::JoinRejected,
+            CommandKind::AdditionRequested,
+            CommandKind::AdditionCommitted,
+            CommandKind::RemovalRequested,
+            CommandKind::RemovalCommitted,
+            CommandKind::RequiredCountChanged,
+            CommandKind::MembershipReceived,
+            CommandKind::ProbeDue,
+            CommandKind::PeerHeard,
+            CommandKind::ProbeMissed,
+            CommandKind::IndirectProbesMissed,
+            CommandKind::Probe
         ]
     );
 }

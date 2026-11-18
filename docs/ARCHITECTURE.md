@@ -294,8 +294,9 @@ Every input produces a defined, handled result.
 | `Rejected { cluster_view, admissible }` | Command not valid in current state | No |
 | `Probed { cluster_view, admissible }` | Probe executed | No |
 
-All three results carry the list of admissible commands — the caller always knows what
-is valid next, on every path. This eliminates defensive programming on the caller side.
+All three results carry the list of admissible commands, each by its kind (`CommandKind`,
+the command's name without its peer or epoch; `Command::kind()` gives a command's) — the
+caller always knows what is valid next, on every path. This eliminates defensive programming on the caller side.
 
 ---
 

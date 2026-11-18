@@ -6,6 +6,7 @@ use alloc::boxed::Box;
 use alloc::vec;
 use faction::cluster_view_builder::ClusterViewBuilder;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
@@ -98,7 +99,7 @@ fn process_addition_requested_below_the_bound_takes_it() {
             Reconfiguration::AdditionRequested { peer_id: 9 }
         ]
     );
-    assert!(admissible.contains(&Command::RemovalRequested { peer_id: 0 }));
+    assert!(admissible.contains(&CommandKind::RemovalRequested));
 }
 
 #[test]
