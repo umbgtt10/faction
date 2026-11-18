@@ -1,21 +1,17 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use chrono::TimeZone;
-use chrono::Utc;
 use faction_chaos::engine::fresh_seed::FreshSeed;
 use faction_system_tests::infra::timer::simulated::simulated_clock::SimulatedClock;
 use faction_system_tests::infra::timer::simulated::simulated_wall_clock::SimulatedWallClock;
+use faction_system_tests::infra::timer::wall_time::WallTime;
 use std::sync::Arc;
 use std::time::Duration;
 
 // A fresh seed read from a wall clock at 2026-01-01, `after` past it.
 fn seed_after(after: Duration) -> u64 {
     let clock = Arc::new(SimulatedClock::at(after));
-    let origin = Utc
-        .with_ymd_and_hms(2026, 1, 1, 0, 0, 0)
-        .single()
-        .expect("a date");
+    let origin = WallTime::new(Duration::from_secs(1_767_225_600));
     FreshSeed::new(Arc::new(SimulatedWallClock::new(clock, origin))).seed()
 }
 

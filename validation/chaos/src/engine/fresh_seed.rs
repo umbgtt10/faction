@@ -21,9 +21,6 @@ impl FreshSeed {
 
     #[must_use]
     pub fn seed(&self) -> u64 {
-        self.clock
-            .now()
-            .timestamp_nanos_opt()
-            .map_or(0, i64::unsigned_abs)
+        self.clock.now().nanoseconds()
     }
 }

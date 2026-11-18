@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::traits::pause_tests::FakePause;
+use crate::traits::wall_clock_tests::FAKE_MOMENT;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::peer_state::PeerState;
 use faction::types::PeerId;
@@ -49,7 +50,7 @@ pub fn fake_time() -> (TimePorts, Arc<SimulatedClock>) {
     let time = TimePorts {
         clock: clock.clone(),
         pause: Arc::new(FakePause::advancing(clock.clone())),
-        wall_clock: Arc::new(FakeWallClock::at(2026, 11, 12)),
+        wall_clock: Arc::new(FakeWallClock::at(FAKE_MOMENT)),
     };
     (time, clock)
 }
@@ -99,12 +100,7 @@ fn run_id() -> String {
     static PROCESS_RUN: OnceLock<String> = OnceLock::new();
     var(LOG_RUN).unwrap_or_else(|_| {
         PROCESS_RUN
-            .get_or_init(|| {
-                SystemWallClock
-                    .now()
-                    .format("%Y-%m-%d_%H-%M-%S")
-                    .to_string()
-            })
+            .get_or_init(|| SystemWallClock.now().to_folder_name())
             .clone()
     })
 }

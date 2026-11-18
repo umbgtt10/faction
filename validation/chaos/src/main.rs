@@ -36,12 +36,7 @@ const REAL_SEEDS: u64 = 3;
 fn main() -> ExitCode {
     let words: Vec<String> = args().skip(1).collect();
     let package = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let run = var("FACTION_LOG_RUN").unwrap_or_else(|_| {
-        SystemWallClock
-            .now()
-            .format("%Y-%m-%d_%H-%M-%S")
-            .to_string()
-    });
+    let run = var("FACTION_LOG_RUN").unwrap_or_else(|_| SystemWallClock.now().to_folder_name());
     let folder = package
         .ancestors()
         .nth(2)

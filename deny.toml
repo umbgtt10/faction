@@ -3,15 +3,13 @@
 # The same file as the *4rust tools' and slotgate's: the licences below are
 # the union of what their dependency trees carry, nothing allowed in advance.
 # faction's own tree is the published crates' and the system tests' -- tonic,
-# prost, tokio and chrono among them -- and xtask's, which are serde's.
+# prost and tokio among them -- and xtask's, which are serde's.
 
 [advisories]
 # cargo-deny's defaults: vulnerabilities, unsound and unmaintained crates and
 # yanked versions fail. An advisory accepted here needs its id and its reason:
 #   ignore = [{ id = "RUSTSEC-...", reason = "..." }]
-ignore = [
-    { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained, with no safe upgrade; only the validation packages faction-system-tests and faction-chaos use it, for the wall clock their logs are stamped with, and no published crate depends on it" },
-]
+ignore = []
 
 [licenses]
 # BSD-3-Clause for axum, under tonic, in the system tests' gRPC transport only:

@@ -34,10 +34,7 @@ impl SharedFileObserver {
     }
 
     fn now_utc(&self) -> String {
-        self.clock
-            .now()
-            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
-            .to_string()
+        self.clock.now().to_stamp()
     }
 }
 

@@ -1,9 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use chrono::DateTime;
-use chrono::Utc;
+use crate::infra::timer::wall_time::WallTime;
 
 pub trait WallClock: Send + Sync {
-    fn now(&self) -> DateTime<Utc>;
+    fn now(&self) -> WallTime;
 }

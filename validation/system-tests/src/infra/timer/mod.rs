@@ -5,3 +5,4 @@ pub mod faulty;
 pub mod real;
 pub mod simulated;
 pub mod timer_delays;
+pub mod wall_time;

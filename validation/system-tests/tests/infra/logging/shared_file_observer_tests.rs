@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::traits::wall_clock_tests::FAKE_MOMENT;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::cluster_view::ClusterView;
 use faction::cluster_view_builder::ClusterViewBuilder;
@@ -98,7 +99,7 @@ impl Drop for TempFile {
 }
 
 fn wall_clock() -> Arc<FakeWallClock> {
-    Arc::new(FakeWallClock::at(2026, 11, 12))
+    Arc::new(FakeWallClock::at(FAKE_MOMENT))
 }
 
 #[test]
