@@ -13,7 +13,7 @@ fn new_of_a_peer_already_ready_ignores_the_repeat() {
     let collecting = vec![1, 2];
 
     // Act
-    let step = ReadyBeforeCompletionStep::new(collecting.clone(), 2);
+    let step: ReadyBeforeCompletionStep = ReadyBeforeCompletionStep::new(collecting.clone(), 2);
 
     // Assert
     assert_eq!(step.collecting_peers(), collecting);
@@ -29,7 +29,7 @@ fn new_of_a_peer_not_yet_ready_accepts_it_as_the_last_collecting_peer() {
     let collecting = vec![1, 2];
 
     // Act
-    let step = ReadyBeforeCompletionStep::new(collecting, 3);
+    let step = ReadyBeforeCompletionStep::<u64>::new(collecting, 3);
 
     // Assert
     assert_eq!(step.collecting_peers(), vec![1, 2, 3]);

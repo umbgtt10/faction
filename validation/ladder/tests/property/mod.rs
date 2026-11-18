@@ -5,5 +5,6 @@ pub mod changes_in_flight_tests;
 pub mod epoch_tests;
 pub mod invariant_tests;
 pub mod liveness_tests;
+pub mod peer_id_tests;
 pub mod safety_tests;
 pub mod spec_model_tests;

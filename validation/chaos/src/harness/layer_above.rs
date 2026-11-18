@@ -4,7 +4,6 @@
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::infra::dice::Dice;
 use faction_system_tests::infra::proposal::Proposal;
@@ -26,7 +25,7 @@ const SEED_MIX: u64 = 0x9E37_79B9_7F4A_7C15;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Progress {
     Waiting { retry_at: u64 },
-    Requested { coordinator: PeerId },
+    Requested { coordinator: u64 },
     Committed,
 }
 
@@ -47,22 +46,22 @@ pub struct LayerAbove {
     plan: Vec<PlannedChange>,
     progress: Vec<Progress>,
     log: CommittedLog,
-    coordinators: Vec<PeerId>,
+    coordinators: Vec<u64>,
     bounds: Vec<usize>,
     due: Vec<u64>,
     dice: Dice,
     delivery_lag: u64,
     duplicates: u8,
     next_commit: u64,
-    proposals: Vec<(PeerId, Proposal)>,
-    declines: Vec<(PeerId, PeerId, Epoch)>,
+    proposals: Vec<(u64, Proposal)>,
+    declines: Vec<(u64, u64, Epoch)>,
     flaw: Option<String>,
 }
 
 impl LayerAbove {
     #[must_use]
     pub fn new(scenario: &Scenario) -> Self {
-        let genesis: Vec<PeerId> = (0..scenario.nodes as PeerId).collect();
+        let genesis: Vec<u64> = (0..scenario.nodes as u64).collect();
         Self {
             plan: scenario.changes.clone(),
             progress: vec![Progress::Waiting { retry_at: 0 }; scenario.changes.len()],
@@ -129,7 +128,7 @@ impl LayerAbove {
     }
 
     // The bound of the coordinator `peer_id`: 1 past the scenario's list.
-    fn bound(&self, peer_id: PeerId) -> usize {
+    fn bound(&self, peer_id: u64) -> usize {
         usize::try_from(peer_id)
             .ok()
             .and_then(|index| self.bounds.get(index))
@@ -141,7 +140,7 @@ impl LayerAbove {
     fn collect(&mut self, cluster: &Cluster) {
         for index in 0..cluster.node_count() {
             for proposal in cluster.take_proposals(index) {
-                self.proposals.push((index as PeerId, proposal));
+                self.proposals.push((index as u64, proposal));
             }
         }
     }
@@ -196,12 +195,12 @@ impl LayerAbove {
     // flight and those `busy` asked of it this round fewer than its bound --
     // one holding changes already before one holding none, so that changes
     // pile up on a coordinator as far as its bound lets them.
-    fn coordinator(&mut self, snapshots: &[NodeSnapshot], busy: &[PeerId]) -> Option<PeerId> {
-        let held = |peer_id: PeerId| {
+    fn coordinator(&mut self, snapshots: &[NodeSnapshot], busy: &[u64]) -> Option<u64> {
+        let held = |peer_id: u64| {
             snapshots[peer_id as usize].reconfigurations.len()
                 + busy.iter().filter(|busy| **busy == peer_id).count()
         };
-        let room: Vec<PeerId> = self
+        let room: Vec<u64> = self
             .coordinators
             .iter()
             .copied()
@@ -210,7 +209,7 @@ impl LayerAbove {
                     && held(*peer_id) < self.bound(*peer_id)
             })
             .collect();
-        let holding: Vec<PeerId> = room
+        let holding: Vec<u64> = room
             .iter()
             .copied()
             .filter(|peer_id| held(*peer_id) > 0)
@@ -244,9 +243,9 @@ impl LayerAbove {
             let mut next = self.log.after(snapshot.epoch);
             while next < self.log.commits().len() && self.due[index] <= round {
                 let commit = self.log.commits()[next];
-                cluster.report_commit(index as PeerId, commit);
+                cluster.report_commit(index as u64, commit);
                 if self.dice.rolls(self.duplicates) {
-                    cluster.report_commit(index as PeerId, commit);
+                    cluster.report_commit(index as u64, commit);
                 }
                 next += 1;
                 self.due[index] = round + self.dice.below(self.delivery_lag + 1);
@@ -292,7 +291,7 @@ impl LayerAbove {
     }
 
     // The peer a proposal names.
-    fn named(proposal: Proposal) -> PeerId {
+    fn named(proposal: Proposal) -> u64 {
         match proposal {
             Proposal::Addition { peer_id, .. } | Proposal::Removal { peer_id, .. } => peer_id,
         }
@@ -309,7 +308,7 @@ impl LayerAbove {
         })
     }
 
-    fn request(cluster: &Cluster, coordinator: PeerId, change: Change) {
+    fn request(cluster: &Cluster, coordinator: u64, change: Change) {
         match change {
             Change::Addition { peer_id } => cluster.request_addition(coordinator as usize, peer_id),
             Change::Removal { peer_id } => cluster.request_removal(coordinator as usize, peer_id),
@@ -320,7 +319,7 @@ impl LayerAbove {
     // Every change due asked of an idle coordinator: in flight if it took it,
     // waiting to be asked again if it refused.
     fn request_due(&mut self, round: u64, cluster: &Cluster, snapshots: &[NodeSnapshot]) {
-        let mut busy: Vec<PeerId> = Vec::new();
+        let mut busy: Vec<u64> = Vec::new();
         for index in 0..self.plan.len() {
             if !self.requestable(index, round) {
                 continue;

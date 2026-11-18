@@ -4,13 +4,13 @@
 use alloc::vec::Vec;
 
 use crate::instance::instance_id::InstanceId;
+use crate::instance::peer_id::PeerId;
 use crate::quorum_policy::QuorumPolicy;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
-pub struct Config {
-    instance: InstanceId,
-    peers: Vec<PeerId>,
+pub struct Config<P: PeerId = u64> {
+    instance: InstanceId<P>,
+    peers: Vec<P>,
     quorum_policy: QuorumPolicy,
     suspicion_threshold: usize,
     epoch: Epoch,
@@ -18,11 +18,11 @@ pub struct Config {
     changes_in_flight: usize,
 }
 
-impl Config {
+impl<P: PeerId> Config<P> {
     #[must_use]
     pub fn new(
-        instance: InstanceId,
-        peers: Vec<PeerId>,
+        instance: InstanceId<P>,
+        peers: Vec<P>,
         quorum_policy: QuorumPolicy,
         suspicion_threshold: usize,
         epoch: Epoch,
@@ -56,7 +56,7 @@ impl Config {
     // newcomer's, offered by its coordinator, before its own addition commits.
     // The node and the incarnation the caller created it as.
     #[must_use]
-    pub const fn instance(&self) -> InstanceId {
+    pub const fn instance(&self) -> InstanceId<P> {
         self.instance
     }
 
@@ -66,12 +66,12 @@ impl Config {
     }
 
     #[must_use]
-    pub const fn peer_id(&self) -> PeerId {
+    pub const fn peer_id(&self) -> P {
         self.instance.node
     }
 
     #[must_use]
-    pub fn peers(&self) -> &[PeerId] {
+    pub fn peers(&self) -> &[P] {
         &self.peers
     }
 

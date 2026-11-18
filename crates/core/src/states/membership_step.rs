@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::instance::peer_id::PeerId;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -13,18 +14,18 @@ use crate::states::membership_decision::MembershipDecision;
 // committed addition admits its peer as an approval does, a committed removal
 // takes its peer out, a new count becomes the count in effect, and a membership
 // adopted replaces both.
-pub struct MembershipStep {
-    outcomes: Vec<Outcome>,
-    members: Members,
+pub struct MembershipStep<P: PeerId = u64> {
+    outcomes: Vec<Outcome<P>>,
+    members: Members<P>,
     quorum_policy: QuorumPolicy,
 }
 
-impl MembershipStep {
+impl<P: PeerId> MembershipStep<P> {
     #[must_use]
     pub fn new(
-        members: Members,
+        members: Members<P>,
         quorum_policy: QuorumPolicy,
-        decision: MembershipDecision,
+        decision: MembershipDecision<P>,
     ) -> Self {
         match decision {
             MembershipDecision::Requested(peer_id) => Self {
@@ -79,12 +80,12 @@ impl MembershipStep {
     }
 
     #[must_use]
-    pub fn members(&self) -> &Members {
+    pub fn members(&self) -> &Members<P> {
         &self.members
     }
 
     #[must_use]
-    pub fn outcomes(&self) -> &[Outcome] {
+    pub fn outcomes(&self) -> &[Outcome<P>] {
         &self.outcomes
     }
 

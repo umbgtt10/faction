@@ -8,10 +8,10 @@ use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::config::Config;
 use faction::instance::instance_id::InstanceId;
+use faction::instance::peer_id::PeerId;
 use faction::peer_state::PeerState;
 use faction::quorum_policy::QuorumPolicy;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use crate::output_message::OutputMessage;
 use crate::transport_message::TransportMessage;
@@ -22,18 +22,18 @@ use crate::transport_message::TransportMessage;
 // node removes it (§16). A newcomer takes it with itself among the members.
 // Only a membership addressed to the node is one: another node's, delivered to
 // it, is no offer, so a misdelivered invitation brings no one back.
-pub struct Offer {
-    from: PeerId,
-    members: Vec<PeerId>,
+pub struct Offer<P: PeerId = u64> {
+    from: P,
+    members: Vec<P>,
     required_count: usize,
     epoch: Epoch,
 }
 
-impl Offer {
+impl<P: PeerId> Offer<P> {
     // The membership `message` carries, as the node `peer_id` takes it; none
     // for a membership addressed to another peer, nor for any other message.
     #[must_use]
-    pub fn of(message: &TransportMessage, peer_id: PeerId) -> Option<Self> {
+    pub fn of(message: &TransportMessage<P>, peer_id: P) -> Option<Self> {
         match message {
             TransportMessage::Membership {
                 from,
@@ -56,10 +56,10 @@ impl Offer {
     #[must_use]
     pub fn acknowledged(
         &self,
-        taken: Vec<OutputMessage>,
-        peer_id: PeerId,
+        taken: Vec<OutputMessage<P>>,
+        peer_id: P,
         epoch: Epoch,
-    ) -> Vec<OutputMessage> {
+    ) -> Vec<OutputMessage<P>> {
         once(OutputMessage::Send {
             to: self.from,
             message: TransportMessage::MembershipAcknowledged {
@@ -82,10 +82,10 @@ impl Offer {
     #[must_use]
     pub fn answered(
         &self,
-        taken: Vec<OutputMessage>,
-        peer_id: PeerId,
-        view: &ClusterView,
-    ) -> Vec<OutputMessage> {
+        taken: Vec<OutputMessage<P>>,
+        peer_id: P,
+        view: &ClusterView<P>,
+    ) -> Vec<OutputMessage<P>> {
         if view.peer_state() == PeerState::Removed {
             taken
         } else {
@@ -96,7 +96,7 @@ impl Offer {
     // The command a running node is given for the offer: the membership as
     // sent.
     #[must_use]
-    pub fn command(&self) -> Command {
+    pub fn command(&self) -> Command<P> {
         Command::MembershipReceived {
             members: self.members.clone(),
             required_count: self.required_count,
@@ -110,10 +110,10 @@ impl Offer {
     #[must_use]
     pub fn config(
         &self,
-        instance: InstanceId,
+        instance: InstanceId<P>,
         suspicion_threshold: usize,
         changes_in_flight: usize,
-    ) -> Config {
+    ) -> Config<P> {
         Config::new(
             instance,
             self.members

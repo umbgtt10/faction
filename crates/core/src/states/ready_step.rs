@@ -5,19 +5,19 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::conclusion::Conclusion;
+use crate::instance::peer_id::PeerId;
 use crate::outcome::Outcome;
 use crate::quorum_policy::QuorumPolicy;
-use crate::types::PeerId;
 
-pub struct ReadyStep {
-    outcomes: Vec<Outcome>,
-    confirmed_peers: Vec<PeerId>,
+pub struct ReadyStep<P: PeerId = u64> {
+    outcomes: Vec<Outcome<P>>,
+    confirmed_peers: Vec<P>,
     is_quorum: bool,
 }
 
-impl ReadyStep {
+impl<P: PeerId> ReadyStep<P> {
     #[must_use]
-    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId, quorum_policy: QuorumPolicy) -> Self {
+    pub fn new(confirmed_peers: Vec<P>, peer_id: P, quorum_policy: QuorumPolicy) -> Self {
         let is_dup = confirmed_peers.contains(&peer_id);
         let confirmed_new = !is_dup;
 
@@ -49,7 +49,7 @@ impl ReadyStep {
     }
 
     #[must_use]
-    pub fn confirmed_peers(&self) -> &[PeerId] {
+    pub fn confirmed_peers(&self) -> &[P] {
         &self.confirmed_peers
     }
 
@@ -59,7 +59,7 @@ impl ReadyStep {
     }
 
     #[must_use]
-    pub fn outcomes(&self) -> &[Outcome] {
+    pub fn outcomes(&self) -> &[Outcome<P>] {
         &self.outcomes
     }
 }

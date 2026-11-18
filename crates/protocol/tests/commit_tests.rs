@@ -7,7 +7,7 @@ use faction_protocol::commit::Commit;
 #[test]
 fn command_of_each_commit_is_its_command_at_its_epoch() {
     // Arrange
-    let commits = [
+    let commits: [Commit; 3] = [
         Commit::Addition {
             peer_id: 4,
             epoch: 1,

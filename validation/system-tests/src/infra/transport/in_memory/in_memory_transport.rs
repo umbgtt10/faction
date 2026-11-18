@@ -5,22 +5,21 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 
 use faction_protocol::transport::Transport;
 
 pub type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
-pub type Registry = Arc<Mutex<Vec<(PeerId, Inbox)>>>;
+pub type Registry = Arc<Mutex<Vec<(u64, Inbox)>>>;
 
 pub struct InMemoryTransport {
-    peer_id: PeerId,
+    peer_id: u64,
     inbox: Inbox,
     registry: Registry,
 }
 
 impl InMemoryTransport {
-    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<InMemoryTransport> {
+    pub fn new_mesh(peer_ids: &[u64]) -> Vec<InMemoryTransport> {
         let registry: Registry = Arc::new(Mutex::new(Vec::new()));
 
         peer_ids
@@ -38,7 +37,7 @@ impl InMemoryTransport {
     }
 
     #[must_use]
-    pub fn join_mesh(peer_id: PeerId, registry: Registry) -> InMemoryTransport {
+    pub fn join_mesh(peer_id: u64, registry: Registry) -> InMemoryTransport {
         let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
         registry.lock().unwrap().push((peer_id, inbox.clone()));
         InMemoryTransport {
@@ -59,7 +58,7 @@ impl InMemoryTransport {
 }
 
 impl Transport for InMemoryTransport {
-    fn send(&mut self, to: PeerId, message: TransportMessage) {
+    fn send(&mut self, to: u64, message: TransportMessage) {
         if to == self.peer_id {
             return;
         }

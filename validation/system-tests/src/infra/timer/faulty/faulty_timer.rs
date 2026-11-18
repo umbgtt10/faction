@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_protocol::timer::Timer;
 use faction_protocol::timer_event::TimerEvent;
 
@@ -31,11 +30,7 @@ pub struct FaultyTimer {
 
 impl FaultyTimer {
     #[must_use]
-    pub fn new(
-        peer_id: PeerId,
-        policy: LivePolicy<TimerFaultPolicy>,
-        inner: Box<dyn Timer>,
-    ) -> Self {
+    pub fn new(peer_id: u64, policy: LivePolicy<TimerFaultPolicy>, inner: Box<dyn Timer>) -> Self {
         let dice = Dice::new(policy.current().seed ^ peer_id.wrapping_mul(SEED_MIX));
         Self {
             inner,

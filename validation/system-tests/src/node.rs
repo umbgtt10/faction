@@ -18,7 +18,6 @@ use std::time::Duration;
 
 use faction::peer_state::PeerState;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use serde_json::to_string;
 
 use crate::faction_node::FactionNode;
@@ -118,7 +117,7 @@ impl Node {
         }
     }
 
-    pub fn abort_addition(&self, peer_id: PeerId) {
+    pub fn abort_addition(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().abort_addition(peer_id),
             Self::Thread { commands, .. } => {
@@ -128,7 +127,7 @@ impl Node {
         }
     }
 
-    pub fn abort_removal(&self, peer_id: PeerId) {
+    pub fn abort_removal(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().abort_removal(peer_id),
             Self::Thread { commands, .. } => {
@@ -138,13 +137,13 @@ impl Node {
         }
     }
 
-    pub fn add_peer_address(&self, peer_id: PeerId, addr: SocketAddr) {
+    pub fn add_peer_address(&self, peer_id: u64, addr: SocketAddr) {
         if let Self::Process { channel, .. } = self {
             channel.send(&format!("peer {peer_id} {addr}"));
         }
     }
 
-    pub fn admit(&self, peer_id: PeerId) {
+    pub fn admit(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().admit(peer_id),
             Self::Thread { commands, .. } => {
@@ -170,7 +169,7 @@ impl Node {
         }
     }
 
-    pub fn commit_addition(&self, peer_id: PeerId, epoch: Epoch) {
+    pub fn commit_addition(&self, peer_id: u64, epoch: Epoch) {
         match self {
             Self::Task { node } => node.borrow_mut().commit_addition(peer_id, epoch),
             Self::Thread { commands, .. } => {
@@ -184,7 +183,7 @@ impl Node {
         }
     }
 
-    pub fn commit_removal(&self, peer_id: PeerId, epoch: Epoch) {
+    pub fn commit_removal(&self, peer_id: u64, epoch: Epoch) {
         match self {
             Self::Task { node } => node.borrow_mut().commit_removal(peer_id, epoch),
             Self::Thread { commands, .. } => {
@@ -198,7 +197,7 @@ impl Node {
         }
     }
 
-    pub fn cut(&self, peer_id: PeerId) {
+    pub fn cut(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().cut(peer_id),
             Self::Thread { commands, .. } => {
@@ -208,7 +207,7 @@ impl Node {
         }
     }
 
-    pub fn decline(&self, peer_id: PeerId, epoch: Epoch) {
+    pub fn decline(&self, peer_id: u64, epoch: Epoch) {
         match self {
             Self::Task { node } => node.borrow_mut().decline(peer_id, epoch),
             Self::Thread { commands, .. } => {
@@ -218,7 +217,7 @@ impl Node {
         }
     }
 
-    pub fn deny(&self, peer_id: PeerId) {
+    pub fn deny(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().deny(peer_id),
             Self::Thread { commands, .. } => {
@@ -248,7 +247,7 @@ impl Node {
         }
     }
 
-    pub fn mend(&self, peer_id: PeerId) {
+    pub fn mend(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().mend(peer_id),
             Self::Thread { commands, .. } => {
@@ -268,7 +267,7 @@ impl Node {
         }
     }
 
-    pub fn request_addition(&self, peer_id: PeerId) {
+    pub fn request_addition(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().request_addition(peer_id),
             Self::Thread { commands, .. } => {
@@ -278,7 +277,7 @@ impl Node {
         }
     }
 
-    pub fn request_join(&self, peer_id: PeerId) {
+    pub fn request_join(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().request_join(peer_id),
             Self::Thread { commands, .. } => {
@@ -288,7 +287,7 @@ impl Node {
         }
     }
 
-    pub fn request_removal(&self, peer_id: PeerId) {
+    pub fn request_removal(&self, peer_id: u64) {
         match self {
             Self::Task { node } => node.borrow_mut().request_removal(peer_id),
             Self::Thread { commands, .. } => {
@@ -308,7 +307,7 @@ impl Node {
                 Self::send_command(commands, |ack| NodeCommand::Restart(membership, ack));
             }
             Self::Process { channel, .. } => {
-                let peers: Vec<String> = membership.peers.iter().map(PeerId::to_string).collect();
+                let peers: Vec<String> = membership.peers.iter().map(u64::to_string).collect();
                 channel.send(&format!(
                     "restart {} {} {}",
                     membership.epoch,

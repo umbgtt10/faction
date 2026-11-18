@@ -3,7 +3,6 @@
 
 use std::time::Duration;
 
-use faction::types::PeerId;
 use faction_system_tests::infra::dice::Dice;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
 use faction_system_tests::infra::timer::faulty::timer_fault_policy::TimerFaultPolicy;
@@ -53,8 +52,8 @@ impl FaultDraw {
     // Windows over `peers` opening within `chaos_rounds`.
     pub fn windows(
         &mut self,
-        peers: &[PeerId],
-        restartable: &[PeerId],
+        peers: &[u64],
+        restartable: &[u64],
         chaos_rounds: u64,
     ) -> Vec<FaultWindow> {
         let count = self.dice.below(MAX_WINDOWS + 1);

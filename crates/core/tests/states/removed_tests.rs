@@ -37,14 +37,14 @@ extern crate alloc;
 #[test]
 fn cluster_view_shows_what_the_node_held_but_itself_and_its_liveness() {
     // Arrange
-    let previous = ClusterViewBuilder::default()
+    let previous = ClusterViewBuilder::<u64>::default()
         .with_peer_state(PeerState::Bootstrapped)
         .with_is_pinging_completed(true)
         .with_pinging_peers(vec![0, 1])
         .with_collecting_peers(vec![1, 0])
         .with_required_count(2)
         .with_deadline_missed(true)
-        .with_members(Members::new(vec![0, 1, 2]))
+        .with_members(Members::<u64>::new(vec![0, 1, 2]))
         .with_reconfigurations(vec![Reconfiguration::RemovalRequested { peer_id: 0 }])
         .with_suspected(vec![2])
         .with_misses(vec![MissCount {
@@ -56,20 +56,20 @@ fn cluster_view_shows_what_the_node_held_but_itself_and_its_liveness() {
         .build();
 
     // Act
-    let cluster_view =
-        Removed::new(0, Members::new(vec![0, 1, 2]), QuorumPolicy::new(2)).cluster_view(&previous);
+    let cluster_view = Removed::<u64>::new(0, Members::new(vec![0, 1, 2]), QuorumPolicy::new(2))
+        .cluster_view(&previous);
 
     // Assert
     assert_eq!(
         cluster_view,
-        ClusterViewBuilder::default()
+        ClusterViewBuilder::<u64>::default()
             .with_peer_state(PeerState::Removed)
             .with_is_pinging_completed(true)
             .with_pinging_peers(vec![1])
             .with_collecting_peers(vec![1])
             .with_required_count(2)
             .with_deadline_missed(true)
-            .with_members(Members::new(vec![1, 2]))
+            .with_members(Members::<u64>::new(vec![1, 2]))
             .build()
     );
     assert_eq!(cluster_view.peer_state(), PeerState::Removed);
@@ -88,7 +88,7 @@ fn departure_of_a_membership_not_naming_the_node_removes_it() {
     let departure = Removed::departure(
         &membership,
         0,
-        &Members::new(vec![0, 1, 2]),
+        &Members::<u64>::new(vec![0, 1, 2]),
         QuorumPolicy::new(2),
     );
 
@@ -125,7 +125,7 @@ fn departure_of_anything_else_is_none() {
         Removed::departure(
             &command,
             0,
-            &Members::new(vec![0, 1, 2]),
+            &Members::<u64>::new(vec![0, 1, 2]),
             QuorumPolicy::new(2),
         )
         .is_none()
@@ -139,7 +139,7 @@ fn departure_of_anything_else_is_none() {
 fn own_removal_answers_the_node_removed_and_leaves_it_removed() {
     // Arrange & Act
     let (outcomes, stage) =
-        Removed::own_removal(0, &Members::new(vec![0, 1, 2]), QuorumPolicy::new(2));
+        Removed::own_removal(0, &Members::<u64>::new(vec![0, 1, 2]), QuorumPolicy::new(2));
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::MemberRemoved { peer_id: 0 }]);

@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
-
 use crate::model::change::Change;
 use crate::model::scenario::Scenario;
 
@@ -15,8 +13,8 @@ pub struct Coordinators;
 
 impl Coordinators {
     #[must_use]
-    pub fn of(scenario: &Scenario) -> Vec<PeerId> {
-        let removed: Vec<PeerId> = scenario
+    pub fn of(scenario: &Scenario) -> Vec<u64> {
+        let removed: Vec<u64> = scenario
             .changes
             .iter()
             .filter_map(|planned| match planned.change {
@@ -31,7 +29,7 @@ impl Coordinators {
                 Change::Addition { peer_id } => Some(peer_id),
                 _ => None,
             });
-        let mut coordinators: Vec<PeerId> = (0..scenario.nodes as PeerId)
+        let mut coordinators: Vec<u64> = (0..scenario.nodes as u64)
             .chain(added)
             .filter(|peer_id| !removed.contains(peer_id))
             .collect();

@@ -4,13 +4,11 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use faction::types::PeerId;
-
 use crate::transport_kind::TransportKind;
 
 pub struct ProcessNodeConfig {
-    pub peer_id: PeerId,
-    pub peers: Vec<PeerId>,
+    pub peer_id: u64,
+    pub peers: Vec<u64>,
     pub required: usize,
     pub suspicion_threshold: usize,
     pub bounds: Vec<usize>,
@@ -19,7 +17,7 @@ pub struct ProcessNodeConfig {
     pub transport: TransportKind,
 
     pub listen_addr: SocketAddr,
-    pub peer_addrs: Vec<(PeerId, SocketAddr)>,
+    pub peer_addrs: Vec<(u64, SocketAddr)>,
     pub log_path: Option<PathBuf>,
     pub timer_delay_ms: u64,
     pub lifetime_ms: u64,

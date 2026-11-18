@@ -3,7 +3,6 @@
 
 use std::path::PathBuf;
 
-use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::infra::invariants::breaches::Breaches;
 
@@ -93,10 +92,10 @@ impl ChaosRun {
     }
 
     // The first node short of the end state, and what it was expected to show.
-    fn departure(&self) -> Option<(PeerId, String)> {
+    fn departure(&self) -> Option<(u64, String)> {
         let expected = ExpectedEnd::new(self.layer.log());
         (0..self.cluster.node_count()).find_map(|index| {
-            let peer_id = index as PeerId;
+            let peer_id = index as u64;
             expected
                 .departure(peer_id, &self.cluster.snapshot(index))
                 .map(|shown| (peer_id, shown))
@@ -139,7 +138,7 @@ impl ChaosRun {
 
     // Every peer the scenario runs: the genesis peers and the newcomers its
     // changes add, numbered on from them.
-    fn peers(scenario: &Scenario) -> Vec<PeerId> {
+    fn peers(scenario: &Scenario) -> Vec<u64> {
         let last = scenario
             .changes
             .iter()
@@ -149,7 +148,7 @@ impl ChaosRun {
             })
             .max()
             .unwrap_or(0)
-            .max(scenario.nodes as PeerId);
+            .max(scenario.nodes as u64);
         (0..last).collect()
     }
 

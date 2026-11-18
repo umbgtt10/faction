@@ -2,4 +2,3 @@
 // SPDX-License-Identifier: MIT
 
 pub type Epoch = u64;
-pub type PeerId = u64;

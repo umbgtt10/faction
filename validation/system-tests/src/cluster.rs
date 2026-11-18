@@ -15,7 +15,6 @@ use std::time::Duration;
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use faction_protocol::commit::Commit;
 
 use crate::infra::fault_settings::FaultSettings;
@@ -32,23 +31,23 @@ use crate::timer_delay::TimerDelay;
 
 pub struct Cluster {
     nodes: Vec<Node>,
-    peer_ids: Vec<PeerId>,
+    peer_ids: Vec<u64>,
     spawn: Spawn,
     poll_delay: Duration,
     started: bool,
     joining: Option<Joining>,
     log_dir: Option<PathBuf>,
     time: TimePorts,
-    added_addrs: Vec<(PeerId, SocketAddr)>,
+    added_addrs: Vec<(u64, SocketAddr)>,
     epoch: Cell<Epoch>,
-    missed: RefCell<Vec<(PeerId, Commit)>>,
+    missed: RefCell<Vec<(u64, Commit)>>,
 }
 
 impl Cluster {
     #[must_use]
     pub fn new(
         nodes: Vec<Node>,
-        peer_ids: Vec<PeerId>,
+        peer_ids: Vec<u64>,
         spawn: Spawn,
         timer_delay: TimerDelay,
         joining: Option<Joining>,
@@ -70,18 +69,18 @@ impl Cluster {
         }
     }
 
-    pub fn abort_addition(&self, coordinator: usize, newcomer_id: PeerId) {
+    pub fn abort_addition(&self, coordinator: usize, newcomer_id: u64) {
         self.nodes[coordinator].abort_addition(newcomer_id);
     }
 
-    pub fn abort_removal(&self, coordinator: usize, peer_id: PeerId) {
+    pub fn abort_removal(&self, coordinator: usize, peer_id: u64) {
         self.nodes[coordinator].abort_removal(peer_id);
     }
 
     // An addition carried through: the newcomer added, its addition requested
     // of the coordinator and acknowledged, then committed or aborted as the
     // committing layer -- the harness -- decides.
-    pub fn add(&mut self, coordinator: usize, newcomer_id: PeerId, committer: Committer) {
+    pub fn add(&mut self, coordinator: usize, newcomer_id: u64, committer: Committer) {
         self.add_newcomer(newcomer_id);
         self.request_addition(coordinator, newcomer_id);
         self.poll_until_proposed(coordinator, newcomer_id);
@@ -95,11 +94,11 @@ impl Cluster {
 
     // A newcomer started and waiting for its membership, reachable by every
     // node and reaching every node it can know the address of.
-    pub fn add_newcomer(&mut self, newcomer_id: PeerId) {
+    pub fn add_newcomer(&mut self, newcomer_id: u64) {
         let (newcomer, newcomer_addr) = match &self.joining {
             Some(Joining::Process(context)) => {
                 let addr = context.ports.addr(self.nodes.len());
-                let known: Vec<(PeerId, SocketAddr)> = context
+                let known: Vec<(u64, SocketAddr)> = context
                     .genesis_addrs
                     .iter()
                     .chain(&self.added_addrs)
@@ -129,7 +128,7 @@ impl Cluster {
         self.peer_ids.push(newcomer_id);
     }
 
-    pub fn admit(&self, peer_id: PeerId) {
+    pub fn admit(&self, peer_id: u64) {
         for node in &self.nodes {
             node.admit(peer_id);
         }
@@ -137,7 +136,7 @@ impl Cluster {
 
     // Every commit `peer_id` missed reported to it now, in the order they were
     // committed: the layer above catching a node up once it reaches it again.
-    pub fn catch_up(&self, peer_id: PeerId) {
+    pub fn catch_up(&self, peer_id: u64) {
         let (caught, still): (Vec<_>, Vec<_>) = self
             .missed
             .take()
@@ -153,7 +152,7 @@ impl Cluster {
     // ignore it until they hold the commit, so it never concludes on the old
     // count -- with the new required count, if one is given: each a change of
     // its own, at the next epoch the harness, as the layer above, numbers.
-    pub fn commit_addition(&self, newcomer_id: PeerId, required_count: Option<usize>) {
+    pub fn commit_addition(&self, newcomer_id: u64, required_count: Option<usize>) {
         let addition = self.next_epoch();
         let count = required_count.map(|required_count| (required_count, self.next_epoch()));
         for node in self.nodes.iter().rev() {
@@ -167,7 +166,7 @@ impl Cluster {
     // The removal committed, reported to every node -- the one removed among
     // them -- with the new required count first, if one is given, so that no
     // node shows its quorum lost between the two: each at its own epoch.
-    pub fn commit_removal(&self, peer_id: PeerId, required_count: Option<usize>) {
+    pub fn commit_removal(&self, peer_id: u64, required_count: Option<usize>) {
         self.commit_removal_missed_by(peer_id, required_count, &[]);
     }
 
@@ -175,9 +174,9 @@ impl Cluster {
     // node of `missed`: the layer above has not reached them.
     pub fn commit_removal_missed_by(
         &self,
-        peer_id: PeerId,
+        peer_id: u64,
         required_count: Option<usize>,
-        missed: &[PeerId],
+        missed: &[u64],
     ) {
         let count = required_count.map(|required_count| (required_count, self.next_epoch()));
         let removal = self.next_epoch();
@@ -206,7 +205,7 @@ impl Cluster {
     }
 
     // The link between `first` and `second` cut, at both ends.
-    pub fn cut(&self, first: PeerId, second: PeerId) {
+    pub fn cut(&self, first: u64, second: u64) {
         self.node_of(first).cut(second);
         self.node_of(second).cut(first);
     }
@@ -224,7 +223,7 @@ impl Cluster {
             .all(|node| node.peer_state() == PeerState::Bootstrapped)
     }
 
-    pub fn join(&mut self, newcomer_id: PeerId, approver: Approver) {
+    pub fn join(&mut self, newcomer_id: u64, approver: Approver) {
         let (newcomer, newcomer_addr) = match &self.joining {
             Some(Joining::Process(_)) => self.build_process_newcomer(newcomer_id),
             _ => (self.build_newcomer(newcomer_id), None),
@@ -280,7 +279,7 @@ impl Cluster {
 
     // Until the coordinator holds the newcomer's acknowledgement: its addition
     // is proposed to the layer that commits.
-    pub fn poll_until_proposed(&mut self, coordinator: usize, newcomer_id: PeerId) {
+    pub fn poll_until_proposed(&mut self, coordinator: usize, newcomer_id: u64) {
         self.start_all();
         let proposed = Reconfiguration::AdditionAcknowledged {
             peer_id: newcomer_id,
@@ -297,7 +296,7 @@ impl Cluster {
 
     // Until the coordinator's removal of `peer_id` is in flight: proposed to the
     // layer that commits.
-    pub fn poll_until_removal_proposed(&mut self, coordinator: usize, peer_id: PeerId) {
+    pub fn poll_until_removal_proposed(&mut self, coordinator: usize, peer_id: u64) {
         let proposed = Reconfiguration::RemovalRequested { peer_id };
         self.poll_until(|cluster| {
             cluster
@@ -332,32 +331,32 @@ impl Cluster {
 
     // A commit reported to the node `peer_id` alone: the layer above reaching
     // one node in its own time.
-    pub fn report_commit(&self, peer_id: PeerId, commit: Commit) {
+    pub fn report_commit(&self, peer_id: u64, commit: Commit) {
         Self::report(self.node_of(peer_id), commit);
     }
 
     // A proposal the layer above declined at `epoch`, reported to its
     // coordinator `peer_id` alone.
-    pub fn report_decline(&self, peer_id: PeerId, declined: PeerId, epoch: Epoch) {
+    pub fn report_decline(&self, peer_id: u64, declined: u64, epoch: Epoch) {
         self.node_of(peer_id).decline(declined, epoch);
     }
 
-    pub fn request_addition(&self, coordinator: usize, newcomer_id: PeerId) {
+    pub fn request_addition(&self, coordinator: usize, newcomer_id: u64) {
         self.nodes[coordinator].request_addition(newcomer_id);
     }
 
-    pub fn request_removal(&self, coordinator: usize, peer_id: PeerId) {
+    pub fn request_removal(&self, coordinator: usize, peer_id: u64) {
         self.nodes[coordinator].request_removal(peer_id);
     }
 
     // The node `peer_id` created again at `membership`, in place: from
     // genesis, or from a snapshot of a membership it held.
-    pub fn restart(&self, peer_id: PeerId, membership: Membership) {
+    pub fn restart(&self, peer_id: u64, membership: Membership) {
         self.node_of(peer_id).restart(membership);
     }
 
     // The faults of the node `peer_id` set to `settings`, whatever runs it.
-    pub fn set_faults(&self, peer_id: PeerId, settings: &FaultSettings) {
+    pub fn set_faults(&self, peer_id: u64, settings: &FaultSettings) {
         self.node_of(peer_id).set_faults(settings);
     }
 
@@ -370,7 +369,7 @@ impl Cluster {
     }
 
     // Every link of `peer_id`'s cut: it hears no one, and no one hears it.
-    pub fn silence(&self, peer_id: PeerId) {
+    pub fn silence(&self, peer_id: u64) {
         for other in self.others(peer_id) {
             self.cut(peer_id, other);
         }
@@ -409,14 +408,14 @@ impl Cluster {
         self.nodes[index].take_proposals()
     }
 
-    pub fn unsilence(&self, peer_id: PeerId) {
+    pub fn unsilence(&self, peer_id: u64) {
         for other in self.others(peer_id) {
             self.node_of(peer_id).mend(other);
             self.node_of(other).mend(peer_id);
         }
     }
 
-    fn build_newcomer(&self, newcomer_id: PeerId) -> Node {
+    fn build_newcomer(&self, newcomer_id: u64) -> Node {
         let context = match &self.joining {
             Some(Joining::InProcess(context)) => context,
             _ => panic!("join is only supported on Task or Thread clusters"),
@@ -433,7 +432,7 @@ impl Cluster {
             .node(self.spawn, newcomer_id, peers, transport)
     }
 
-    fn build_process_newcomer(&self, newcomer_id: PeerId) -> (Node, Option<SocketAddr>) {
+    fn build_process_newcomer(&self, newcomer_id: u64) -> (Node, Option<SocketAddr>) {
         let context = match &self.joining {
             Some(Joining::Process(context)) => context,
             _ => panic!("process join requires a process join context"),
@@ -441,7 +440,7 @@ impl Cluster {
 
         let newcomer_addr = context.ports.addr(self.nodes.len());
 
-        let mut peers: Vec<PeerId> = context.genesis_addrs.iter().map(|(id, _)| *id).collect();
+        let mut peers: Vec<u64> = context.genesis_addrs.iter().map(|(id, _)| *id).collect();
         if !peers.contains(&newcomer_id) {
             peers.push(newcomer_id);
         }
@@ -485,7 +484,7 @@ impl Cluster {
         epoch
     }
 
-    fn node_of(&self, peer_id: PeerId) -> &Node {
+    fn node_of(&self, peer_id: u64) -> &Node {
         let index = self
             .peer_ids
             .iter()
@@ -494,7 +493,7 @@ impl Cluster {
         &self.nodes[index]
     }
 
-    fn others(&self, peer_id: PeerId) -> Vec<PeerId> {
+    fn others(&self, peer_id: u64) -> Vec<u64> {
         self.peer_ids
             .iter()
             .copied()

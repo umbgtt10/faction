@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::instance::peer_id::PeerId;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -20,71 +21,21 @@ use crate::states::reconfiguring::Reconfiguring;
 use crate::states::removed::Removed;
 use crate::types::Epoch;
 
-const COMMANDS: [Command; 22] = [
-    Command::ParticipationObserved {
-        peer_id: 0,
-        epoch: 0,
-    },
-    Command::ReadyObserved {
-        peer_id: 0,
-        epoch: 0,
-    },
-    Command::LocalParticipationCompleted,
-    Command::DeadlineExpired,
-    Command::JoinRequested { peer_id: 0 },
-    Command::JoinApproved { peer_id: 0 },
-    Command::JoinRejected { peer_id: 0 },
-    Command::AdditionRequested { peer_id: 0 },
-    Command::MembershipAcknowledged {
-        peer_id: 0,
-        epoch: 0,
-    },
-    Command::AdditionCommitted {
-        peer_id: 0,
-        epoch: 0,
-    },
-    Command::AdditionAborted { peer_id: 0 },
-    Command::RemovalRequested { peer_id: 0 },
-    Command::RemovalCommitted {
-        peer_id: 0,
-        epoch: 0,
-    },
-    Command::RemovalAborted { peer_id: 0 },
-    Command::ProposalDeclined {
-        peer_id: 0,
-        epoch: 0,
-    },
-    Command::RequiredCountChanged {
-        required_count: 0,
-        epoch: 0,
-    },
-    Command::MembershipReceived {
-        members: Vec::new(),
-        required_count: 0,
-        epoch: 0,
-    },
-    Command::ProbeDue,
-    Command::PeerHeard { peer_id: 0 },
-    Command::ProbeMissed { peer_id: 0 },
-    Command::IndirectProbesMissed { peer_id: 0 },
-    Command::Probe,
-];
-
 #[derive(Clone)]
-pub enum Stage {
-    Initial(Initial),
-    Pinging(Pinging),
-    Collecting(Collecting),
-    Bootstrapped(Bootstrapped),
-    Coordinating(Coordinating),
-    Reconfiguring(Reconfiguring),
-    Removed(Removed),
+pub enum Stage<P: PeerId = u64> {
+    Initial(Initial<P>),
+    Pinging(Pinging<P>),
+    Collecting(Collecting<P>),
+    Bootstrapped(Bootstrapped<P>),
+    Coordinating(Coordinating<P>),
+    Reconfiguring(Reconfiguring<P>),
+    Removed(Removed<P>),
 }
 
-impl Stage {
+impl<P: PeerId> Stage<P> {
     #[must_use]
-    pub fn admissible_commands(&self, config: &Config, epoch: Epoch) -> Vec<CommandKind> {
-        COMMANDS
+    pub fn admissible_commands(&self, config: &Config<P>, epoch: Epoch) -> Vec<CommandKind> {
+        Self::templates(config.peer_id())
             .into_iter()
             .filter(|command| {
                 command.kind() == CommandKind::Probe
@@ -94,7 +45,7 @@ impl Stage {
             .collect()
     }
 
-    fn current(&self) -> &dyn State {
+    fn current(&self) -> &dyn State<P> {
         match self {
             Self::Initial(initial) => initial,
             Self::Pinging(pinging) => pinging,
@@ -105,23 +56,59 @@ impl Stage {
             Self::Removed(removed) => removed,
         }
     }
+
+    // One command of every kind, the node's own peer id in every one that
+    // names a peer: what `admissible_commands` asks each stage to step on.
+    fn templates(peer_id: P) -> [Command<P>; 22] {
+        [
+            Command::ParticipationObserved { peer_id, epoch: 0 },
+            Command::ReadyObserved { peer_id, epoch: 0 },
+            Command::LocalParticipationCompleted,
+            Command::DeadlineExpired,
+            Command::JoinRequested { peer_id },
+            Command::JoinApproved { peer_id },
+            Command::JoinRejected { peer_id },
+            Command::AdditionRequested { peer_id },
+            Command::MembershipAcknowledged { peer_id, epoch: 0 },
+            Command::AdditionCommitted { peer_id, epoch: 0 },
+            Command::AdditionAborted { peer_id },
+            Command::RemovalRequested { peer_id },
+            Command::RemovalCommitted { peer_id, epoch: 0 },
+            Command::RemovalAborted { peer_id },
+            Command::ProposalDeclined { peer_id, epoch: 0 },
+            Command::RequiredCountChanged {
+                required_count: 0,
+                epoch: 0,
+            },
+            Command::MembershipReceived {
+                members: Vec::new(),
+                required_count: 0,
+                epoch: 0,
+            },
+            Command::ProbeDue,
+            Command::PeerHeard { peer_id },
+            Command::ProbeMissed { peer_id },
+            Command::IndirectProbesMissed { peer_id },
+            Command::Probe,
+        ]
+    }
 }
 
 // A command the stage admits is answered by the stage, but a commit or a
 // membership the node holds already, which its epoch answers (§16).
-impl State for Stage {
+impl<P: PeerId> State<P> for Stage<P> {
     fn step(
         &self,
-        command: Command,
-        config: &Config,
+        command: Command<P>,
+        config: &Config<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         let held = EpochRule::new(epoch).held(&command);
         let answer = self.current().step(command, config, epoch)?;
         Some(held.map_or(answer, |ignored| (vec![ignored], self.clone())))
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView<P>) -> ClusterView<P> {
         self.current().cluster_view(previous)
     }
 }

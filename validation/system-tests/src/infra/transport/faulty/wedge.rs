@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
-
 use crate::infra::transport::faulty::fault_policy::FaultPolicy;
 
 // Head-of-line blocking, as a transmit ring holding a datagram no neighbour
@@ -10,12 +8,12 @@ use crate::infra::transport::faulty::fault_policy::FaultPolicy;
 // send after it, to anyone, until that peer is reachable again.
 #[derive(Debug, Default)]
 pub struct Wedge {
-    on: Option<PeerId>,
+    on: Option<u64>,
 }
 
 impl Wedge {
     // Whether a send to `to` is wedged behind an undeliverable one.
-    pub fn blocks(&mut self, to: PeerId, policy: &FaultPolicy) -> bool {
+    pub fn blocks(&mut self, to: u64, policy: &FaultPolicy) -> bool {
         if !policy.head_of_line {
             self.on = None;
             return false;

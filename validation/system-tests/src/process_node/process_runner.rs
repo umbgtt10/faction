@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use faction::quorum::Quorum;
-use faction::types::PeerId;
 use std::io::Write;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::TryRecvError;
@@ -139,13 +138,13 @@ impl ProcessRunner {
     // The suspected members as the state line writes them: by id, comma
     // separated, or a dash for none.
     // Peers as the state line writes them: `-` for none.
-    fn peers(peers: &[PeerId]) -> String {
+    fn peers(peers: &[u64]) -> String {
         if peers.is_empty() {
             String::from("-")
         } else {
             peers
                 .iter()
-                .map(PeerId::to_string)
+                .map(u64::to_string)
                 .collect::<Vec<String>>()
                 .join(",")
         }

@@ -11,7 +11,6 @@ use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use crate::infra::invariants::breach::Breach;
 use crate::infra::invariants::breaches::Breaches;
@@ -24,8 +23,8 @@ use crate::infra::invariants::breaches::Breaches;
 // to `inner`. A node made at a membership is told of its members; a newcomer
 // of those its first view shows, which the membership that made it told it.
 pub struct InvariantObserver {
-    peer_id: PeerId,
-    told: Option<BTreeSet<PeerId>>,
+    peer_id: u64,
+    told: Option<BTreeSet<u64>>,
     epoch: Epoch,
     removed: bool,
     breaches: Breaches,
@@ -37,8 +36,8 @@ impl InvariantObserver {
     // the epoch it is made at.
     #[must_use]
     pub fn new(
-        peer_id: PeerId,
-        told: Option<Vec<PeerId>>,
+        peer_id: u64,
+        told: Option<Vec<u64>>,
         epoch: Epoch,
         breaches: Breaches,
         inner: Box<dyn Observer>,
@@ -106,7 +105,7 @@ impl InvariantObserver {
     }
 
     // The peers a command tells the node of as members, or may make members.
-    fn named(command: &Command) -> Vec<PeerId> {
+    fn named(command: &Command) -> Vec<u64> {
         match command {
             Command::AdditionCommitted { peer_id, .. }
             | Command::JoinRequested { peer_id }

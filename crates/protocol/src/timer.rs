@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 use crate::timer_event::TimerEvent;
+use faction::instance::peer_id::PeerId;
 
-pub trait Timer: Send {
-    fn poll(&mut self) -> Option<TimerEvent>;
+pub trait Timer<P: PeerId = u64>: Send {
+    fn poll(&mut self) -> Option<TimerEvent<P>>;
 
-    fn schedule(&mut self, event: TimerEvent);
+    fn schedule(&mut self, event: TimerEvent<P>);
 
-    fn cancel(&mut self, event: TimerEvent);
+    fn cancel(&mut self, event: TimerEvent<P>);
 }

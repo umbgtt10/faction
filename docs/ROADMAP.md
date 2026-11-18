@@ -74,8 +74,8 @@ Queryable. Tested across every spawn/transport combination.
 
 Full specification in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-`PeerId` is currently `u64`. After Phase 6, it becomes a generic trait so
-callers can use their own identifier type.
+A peer id is any type implementing `PeerId`, `u64` every type's default, so callers
+use their own identifier type (`P1-ADR-APeerIdOfTheCallersOwnType`).
 
 ---
 
@@ -494,7 +494,7 @@ distinct from, and later than, the interim checklist above.
 - [ ] `#![forbid(unsafe_code)]` enforced throughout
 - [ ] CRAP score 0 across all crates
 - [ ] Observer coverage — every new transition pair verified
-- [ ] `NodeId` generic trait replacing `u64`
+- [x] `PeerId` generic trait replacing `u64`
 - [ ] README updated to reflect full dynamic membership capability
 - [ ] ARCHITECTURE updated with Phase 1–6 specification
 - [ ] At least one published sample integration (Raft or IBFT)

@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::instance::peer_id::PeerId;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -24,14 +25,14 @@ use super::in_flight::InFlight;
 // it carries each change to its commit or its abort, the node then in the
 // stage the changes left make (§2).
 #[derive(Debug, Clone)]
-pub struct Reconfiguring {
-    concluded: Bootstrapped,
-    in_flight: InFlight,
+pub struct Reconfiguring<P: PeerId = u64> {
+    concluded: Bootstrapped<P>,
+    in_flight: InFlight<P>,
 }
 
-impl Reconfiguring {
+impl<P: PeerId> Reconfiguring<P> {
     #[must_use]
-    pub fn new(concluded: Bootstrapped, in_flight: InFlight) -> Self {
+    pub fn new(concluded: Bootstrapped<P>, in_flight: InFlight<P>) -> Self {
         Self {
             concluded,
             in_flight,
@@ -40,18 +41,22 @@ impl Reconfiguring {
 
     // A change requested of the node, with its changes in flight (§11, §12).
     #[must_use]
-    pub fn requested(&self, command: &Command, config: &Config) -> Option<(Vec<Outcome>, Stage)> {
+    pub fn requested(
+        &self,
+        command: &Command<P>,
+        config: &Config<P>,
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         self.concluded.requested(command, &self.in_flight, config)
     }
 }
 
-impl State for Reconfiguring {
+impl<P: PeerId> State<P> for Reconfiguring<P> {
     fn step(
         &self,
-        command: Command,
-        config: &Config,
+        command: Command<P>,
+        config: &Config<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         if let Some(departure) = self.concluded.departure(&command, config.peer_id()) {
             return Some(departure);
         }
@@ -88,7 +93,7 @@ impl State for Reconfiguring {
         }
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView<P>) -> ClusterView<P> {
         self.in_flight
             .shown(ClusterViewBuilder::from_view(
                 &self.concluded.cluster_view(previous),

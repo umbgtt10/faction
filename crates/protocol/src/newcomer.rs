@@ -3,6 +3,7 @@
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use faction::instance::peer_id::PeerId;
 
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
@@ -18,26 +19,26 @@ use crate::transport_message::TransportMessage;
 // the members, itself among them, the required count and their epoch --
 // acknowledging the membership as it starts. A removed node invited again
 // becomes one.
-pub struct Newcomer {
-    instance: InstanceId,
+pub struct Newcomer<P: PeerId = u64> {
+    instance: InstanceId<P>,
     suspicion_threshold: usize,
     changes_in_flight: usize,
     helpers: usize,
-    observer: Box<dyn Observer>,
+    observer: Box<dyn Observer<P>>,
 }
 
-impl Newcomer {
+impl<P: PeerId> Newcomer<P> {
     // The instance it becomes -- its node's id and an incarnation the caller
     // gives it, new to its node -- and the tolerance its deployment gives it:
     // the suspicion threshold its node is created with, its bound of changes
     // in flight, and how many helpers it asks.
     #[must_use]
     pub fn new(
-        instance: InstanceId,
+        instance: InstanceId<P>,
         suspicion_threshold: usize,
         changes_in_flight: usize,
         helpers: usize,
-        observer: Box<dyn Observer>,
+        observer: Box<dyn Observer<P>>,
     ) -> Self {
         Self {
             instance,
@@ -50,7 +51,10 @@ impl Newcomer {
 
     // The node the membership makes of the newcomer, and what it does first;
     // the newcomer itself, still waiting, given anything else.
-    pub fn join(self, message: TransportMessage) -> Result<(Protocol, Vec<OutputMessage>), Self> {
+    pub fn join(
+        self,
+        message: TransportMessage<P>,
+    ) -> Result<(Protocol<P>, Vec<OutputMessage<P>>), Self> {
         let peer_id = self.instance.node;
         let Some(offer) = Offer::of(&message, peer_id) else {
             return Err(self);

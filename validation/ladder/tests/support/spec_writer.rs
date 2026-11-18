@@ -13,7 +13,6 @@ use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use serde_json::Value;
 use serde_json::json;
 
@@ -265,7 +264,7 @@ impl SpecWriter {
         }
     }
 
-    fn peer(name: &str, peer_id: PeerId) -> Value {
+    fn peer(name: &str, peer_id: u64) -> Value {
         json!({ name: { "peer_id": Self::number(peer_id) } })
     }
 
@@ -281,7 +280,7 @@ impl SpecWriter {
         json!({ name: {} })
     }
 
-    fn peers(peers: &[PeerId]) -> Value {
+    fn peers(peers: &[u64]) -> Value {
         Value::Array(peers.iter().map(|peer| Self::number(*peer)).collect())
     }
 

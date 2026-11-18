@@ -145,16 +145,16 @@ fn reach_two_in_flight() -> Faction {
 #[test]
 fn cluster_view_reports_bootstrapped_with_the_addition_requested() {
     // Arrange
-    let reconfiguring = Reconfiguring::new(
-        Bootstrapped::new(
-            Members::new(vec![0, 1, 2]),
+    let reconfiguring: Reconfiguring = Reconfiguring::new(
+        Bootstrapped::<u64>::new(
+            Members::<u64>::new(vec![0, 1, 2]),
             QuorumPolicy::new(2),
             vec![1],
             vec![0, 2],
         ),
-        InFlight::default().with(Reconfiguration::AdditionRequested { peer_id: 7 }),
+        InFlight::<u64>::default().with(Reconfiguration::AdditionRequested { peer_id: 7 }),
     );
-    let previous = ClusterViewBuilder::default()
+    let previous = ClusterViewBuilder::<u64>::default()
         .with_peer_state(PeerState::Collecting)
         .build();
 
@@ -959,16 +959,16 @@ fn process_required_count_changed_sets_the_count_in_effect() {
 #[test]
 fn requested_of_a_peer_with_a_change_in_flight_ignores_it_as_a_duplicate() {
     // Arrange
-    let reconfiguring = Reconfiguring::new(
-        Bootstrapped::new(
-            Members::new(vec![0, 1, 2]),
+    let reconfiguring = Reconfiguring::<u64>::new(
+        Bootstrapped::<u64>::new(
+            Members::<u64>::new(vec![0, 1, 2]),
             QuorumPolicy::new(2),
             vec![1],
             vec![0, 2],
         ),
-        InFlight::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
+        InFlight::<u64>::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
     );
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,

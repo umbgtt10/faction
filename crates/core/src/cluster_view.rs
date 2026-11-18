@@ -3,47 +3,47 @@
 
 use alloc::vec::Vec;
 
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::miss_count::MissCount;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
 use crate::reconfiguration::Reconfiguration;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClusterView {
+pub struct ClusterView<P: PeerId = u64> {
     peer_state: PeerState,
     is_pinging_completed: bool,
-    pinging_peers: Vec<PeerId>,
-    collecting_peers: Vec<PeerId>,
+    pinging_peers: Vec<P>,
+    collecting_peers: Vec<P>,
     required_count: usize,
     deadline_missed: bool,
-    members: Members,
-    reconfigurations: Vec<Reconfiguration>,
-    suspected: Vec<PeerId>,
-    misses: Vec<MissCount>,
-    last_probed: Option<PeerId>,
+    members: Members<P>,
+    reconfigurations: Vec<Reconfiguration<P>>,
+    suspected: Vec<P>,
+    misses: Vec<MissCount<P>>,
+    last_probed: Option<P>,
     quorum: Quorum,
     epoch: Epoch,
     provisional: bool,
 }
 
-impl ClusterView {
+impl<P: PeerId> ClusterView<P> {
     #[must_use]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         peer_state: PeerState,
         is_pinging_completed: bool,
-        pinging_peers: Vec<PeerId>,
-        collecting_peers: Vec<PeerId>,
+        pinging_peers: Vec<P>,
+        collecting_peers: Vec<P>,
         required_count: usize,
         deadline_missed: bool,
-        members: Members,
-        reconfigurations: Vec<Reconfiguration>,
-        suspected: Vec<PeerId>,
-        misses: Vec<MissCount>,
-        last_probed: Option<PeerId>,
+        members: Members<P>,
+        reconfigurations: Vec<Reconfiguration<P>>,
+        suspected: Vec<P>,
+        misses: Vec<MissCount<P>>,
+        last_probed: Option<P>,
         quorum: Quorum,
         epoch: Epoch,
         provisional: bool,
@@ -75,7 +75,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn collecting_peers(&self) -> &[PeerId] {
+    pub fn collecting_peers(&self) -> &[P] {
         &self.collecting_peers
     }
 
@@ -101,17 +101,17 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn last_probed(&self) -> Option<PeerId> {
+    pub fn last_probed(&self) -> Option<P> {
         self.last_probed
     }
 
     #[must_use]
-    pub fn members(&self) -> &Members {
+    pub fn members(&self) -> &Members<P> {
         &self.members
     }
 
     #[must_use]
-    pub fn misses(&self) -> &[MissCount] {
+    pub fn misses(&self) -> &[MissCount<P>] {
         &self.misses
     }
 
@@ -121,7 +121,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn pinging_peers(&self) -> &[PeerId] {
+    pub fn pinging_peers(&self) -> &[P] {
         &self.pinging_peers
     }
 
@@ -131,7 +131,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn reconfigurations(&self) -> &[Reconfiguration] {
+    pub fn reconfigurations(&self) -> &[Reconfiguration<P>] {
         &self.reconfigurations
     }
 
@@ -141,7 +141,7 @@ impl ClusterView {
     }
 
     #[must_use]
-    pub fn suspected(&self) -> &[PeerId] {
+    pub fn suspected(&self) -> &[P] {
         &self.suspected
     }
 }

@@ -6,7 +6,6 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use spin::Mutex;
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
@@ -15,11 +14,11 @@ type Inbox = Arc<Mutex<VecDeque<Message>>>;
 
 pub struct InMemoryTransport {
     inbox: Inbox,
-    outboxes: Vec<(PeerId, Inbox)>,
+    outboxes: Vec<(u64, Inbox)>,
 }
 
 impl InMemoryTransport {
-    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<InMemoryTransport> {
+    pub fn new_mesh(peer_ids: &[u64]) -> Vec<InMemoryTransport> {
         let inboxes: Vec<_> = peer_ids
             .iter()
             .map(|_| Arc::new(Mutex::new(VecDeque::new())))
@@ -46,7 +45,7 @@ impl InMemoryTransport {
 
     // A peer this transport can send to from now on, by the inbox of that
     // peer's transport.
-    pub fn connect(&mut self, peer_id: PeerId, other: &InMemoryTransport) {
+    pub fn connect(&mut self, peer_id: u64, other: &InMemoryTransport) {
         self.outboxes.push((peer_id, other.inbox.clone()));
     }
 
@@ -56,7 +55,7 @@ impl InMemoryTransport {
 }
 
 impl Transport for InMemoryTransport {
-    fn send(&mut self, to: PeerId, message: TransportMessage) {
+    fn send(&mut self, to: u64, message: TransportMessage) {
         for (peer_id, inbox) in &self.outboxes {
             if *peer_id == to {
                 inbox.lock().push_back(message.clone());

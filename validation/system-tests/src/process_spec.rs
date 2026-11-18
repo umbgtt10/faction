@@ -8,8 +8,6 @@ use std::process::Command;
 use std::process::Stdio;
 use std::time::Duration;
 
-use faction::types::PeerId;
-
 use crate::infra::network::tcp_readiness::TcpReadiness;
 use crate::node::Node;
 use crate::transport_kind::TransportKind;
@@ -59,9 +57,9 @@ impl ProcessSpec {
     #[must_use]
     pub fn launch(
         &self,
-        peer_id: PeerId,
-        peers: &[PeerId],
-        peer_addrs: &[(PeerId, SocketAddr)],
+        peer_id: u64,
+        peers: &[u64],
+        peer_addrs: &[(u64, SocketAddr)],
         listen_addr: SocketAddr,
     ) -> Node {
         self.spawn(
@@ -75,8 +73,8 @@ impl ProcessSpec {
     #[must_use]
     pub fn launch_newcomer(
         &self,
-        peer_id: PeerId,
-        peer_addrs: &[(PeerId, SocketAddr)],
+        peer_id: u64,
+        peer_addrs: &[(u64, SocketAddr)],
         listen_addr: SocketAddr,
     ) -> Node {
         let mut command = self.command(peer_id, &[peer_id], peer_addrs, listen_addr);
@@ -86,9 +84,9 @@ impl ProcessSpec {
 
     fn command(
         &self,
-        peer_id: PeerId,
-        peers: &[PeerId],
-        peer_addrs: &[(PeerId, SocketAddr)],
+        peer_id: u64,
+        peers: &[u64],
+        peer_addrs: &[(u64, SocketAddr)],
         listen_addr: SocketAddr,
     ) -> Command {
         let peers_arg = peers

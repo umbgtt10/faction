@@ -3,7 +3,6 @@
 
 use std::collections::BTreeMap;
 
-use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::infra::fault_settings::FaultSettings;
 use faction_system_tests::infra::timer::faulty::clock_fault::ClockFault;
@@ -27,13 +26,13 @@ use crate::model::restart_plan::RestartPlan;
 pub struct FaultSchedule {
     windows: Vec<FaultWindow>,
     restarts: Vec<RestartPlan>,
-    peers: Vec<PeerId>,
-    applied: BTreeMap<PeerId, FaultSettings>,
+    peers: Vec<u64>,
+    applied: BTreeMap<u64, FaultSettings>,
 }
 
 impl FaultSchedule {
     #[must_use]
-    pub fn new(windows: Vec<FaultWindow>, restarts: Vec<RestartPlan>, peers: Vec<PeerId>) -> Self {
+    pub fn new(windows: Vec<FaultWindow>, restarts: Vec<RestartPlan>, peers: Vec<u64>) -> Self {
         Self {
             windows,
             restarts,
@@ -66,7 +65,7 @@ impl FaultSchedule {
     // The nodes a heal at `round` restarts: those down, and those whose
     // timer side is dead, at it or until it.
     #[must_use]
-    pub fn healed_by_restart(&self, round: u64) -> Vec<PeerId> {
+    pub fn healed_by_restart(&self, round: u64) -> Vec<u64> {
         let ending = self.restarts_at(round);
         self.peers
             .iter()
@@ -103,7 +102,7 @@ impl FaultSchedule {
         ended.chain(revived).collect()
     }
 
-    fn clock(&self, peer_id: PeerId, round: u64) -> ClockFault {
+    fn clock(&self, peer_id: u64, round: u64) -> ClockFault {
         self.latest(peer_id, round, |fault| match fault {
             Fault::Clock(fault) => Some(*fault),
             _ => None,
@@ -111,7 +110,7 @@ impl FaultSchedule {
         .unwrap_or_default()
     }
 
-    fn down(&self, round: u64) -> Vec<PeerId> {
+    fn down(&self, round: u64) -> Vec<u64> {
         self.restarts
             .iter()
             .filter(|plan| (plan.at..plan.at + plan.down_for).contains(&round))
@@ -121,12 +120,7 @@ impl FaultSchedule {
 
     // The fault `pick` finds in the window last opened over `peer_id` of
     // those in force at `round`.
-    fn latest<T>(
-        &self,
-        peer_id: PeerId,
-        round: u64,
-        pick: impl Fn(&Fault) -> Option<T>,
-    ) -> Option<T> {
+    fn latest<T>(&self, peer_id: u64, round: u64, pick: impl Fn(&Fault) -> Option<T>) -> Option<T> {
         self.windows
             .iter()
             .filter(|window| {
@@ -138,7 +132,7 @@ impl FaultSchedule {
     }
 
     // The transport fault of the last window opened over `peer_id`.
-    fn opened(&self, peer_id: PeerId, round: u64) -> FaultPolicy {
+    fn opened(&self, peer_id: u64, round: u64) -> FaultPolicy {
         self.latest(peer_id, round, |fault| match fault {
             Fault::Transport(policy) => Some(policy.clone()),
             _ => None,
@@ -147,14 +141,14 @@ impl FaultSchedule {
     }
 
     // `settings` sent to the node `peer_id`, unless they are what it holds.
-    fn set(&mut self, peer_id: PeerId, settings: FaultSettings, cluster: &Cluster) {
+    fn set(&mut self, peer_id: u64, settings: FaultSettings, cluster: &Cluster) {
         if self.applied.get(&peer_id) != Some(&settings) {
             cluster.set_faults(peer_id, &settings);
             self.applied.insert(peer_id, settings);
         }
     }
 
-    fn timer(&self, peer_id: PeerId, round: u64, down: &[PeerId]) -> TimerFaultPolicy {
+    fn timer(&self, peer_id: u64, round: u64, down: &[u64]) -> TimerFaultPolicy {
         let policy = self
             .latest(peer_id, round, |fault| match fault {
                 Fault::Timer(policy) => Some(*policy),
@@ -174,10 +168,10 @@ impl FaultSchedule {
 
     fn transport(
         &self,
-        peer_id: PeerId,
+        peer_id: u64,
         round: u64,
-        down: &[PeerId],
-        unreachable: &[PeerId],
+        down: &[u64],
+        unreachable: &[u64],
     ) -> FaultPolicy {
         let policy = self.opened(peer_id, round);
         let is_down = down.contains(&peer_id);
@@ -195,7 +189,7 @@ impl FaultSchedule {
 
     // The peers no neighbour resolution reaches at `round`: down, mute or
     // deaf.
-    fn unreachable(&self, round: u64, down: &[PeerId]) -> Vec<PeerId> {
+    fn unreachable(&self, round: u64, down: &[u64]) -> Vec<u64> {
         self.peers
             .iter()
             .copied()

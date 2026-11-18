@@ -57,18 +57,18 @@ fn reach_coordinating() -> Faction {
 #[test]
 fn cluster_view_reports_bootstrapped_with_its_changes_in_flight() {
     // Arrange
-    let coordinating = Coordinating::new(Reconfiguring::new(
-        Bootstrapped::new(
-            Members::new(vec![0, 1, 2]),
+    let coordinating: Coordinating = Coordinating::new(Reconfiguring::new(
+        Bootstrapped::<u64>::new(
+            Members::<u64>::new(vec![0, 1, 2]),
             QuorumPolicy::new(2),
             vec![1],
             vec![0, 2],
         ),
-        InFlight::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
+        InFlight::<u64>::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
     ));
 
     // Act
-    let cluster_view = coordinating.cluster_view(&ClusterViewBuilder::default().build());
+    let cluster_view = coordinating.cluster_view(&ClusterViewBuilder::<u64>::default().build());
 
     // Assert
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);

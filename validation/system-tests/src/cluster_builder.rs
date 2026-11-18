@@ -13,8 +13,6 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use faction::types::PeerId;
-
 use faction_protocol::transport::Transport;
 
 use crate::cluster::Cluster;
@@ -100,7 +98,7 @@ impl ClusterBuilder {
 
     #[must_use]
     pub fn build(self) -> Cluster {
-        let peer_ids: Vec<PeerId> = (0..self.node_count as PeerId).collect();
+        let peer_ids: Vec<u64> = (0..self.node_count as u64).collect();
 
         if matches!(self.spawn, Spawn::Process) {
             return self.build_process(&peer_ids);
@@ -236,7 +234,7 @@ impl ClusterBuilder {
         self
     }
 
-    fn build_process(self, peer_ids: &[PeerId]) -> Cluster {
+    fn build_process(self, peer_ids: &[u64]) -> Cluster {
         // Under slotgate each parallel slot gets a disjoint PORT_RANGE, so a port
         // derived per node from its base avoids the cross-test port-reuse race of
         // bind(":0")-drop-rebind; outside slotgate the ports are ephemeral.
@@ -246,7 +244,7 @@ impl ClusterBuilder {
                 .and_then(|value| value.parse::<u16>().ok()),
         );
         let addrs: Vec<SocketAddr> = (0..peer_ids.len()).map(|index| ports.addr(index)).collect();
-        let peer_addrs: Vec<(PeerId, SocketAddr)> = peer_ids
+        let peer_addrs: Vec<(u64, SocketAddr)> = peer_ids
             .iter()
             .copied()
             .zip(addrs.iter().copied())
@@ -326,7 +324,7 @@ impl ClusterBuilder {
             })
     }
 
-    fn transports(&self, peer_ids: &[PeerId]) -> TransportsAndJoinMesh {
+    fn transports(&self, peer_ids: &[u64]) -> TransportsAndJoinMesh {
         match self.transport {
             TransportKind::InMemory => {
                 let mesh = InMemoryTransport::new_mesh(peer_ids);

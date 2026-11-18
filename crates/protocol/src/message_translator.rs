@@ -6,9 +6,9 @@ use alloc::vec::Vec;
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::instance::peer_id::PeerId;
 use faction::outcome::Outcome;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use crate::input_message::InputMessage;
 use crate::output_message::OutputMessage;
@@ -41,7 +41,7 @@ impl MessageTranslator {
     // The command a message is, a peer's signal at the epoch it carries; a
     // signal of the node's own timers at `epoch`, the node's.
     #[must_use]
-    pub fn to_command(&self, message: InputMessage, epoch: Epoch) -> Command {
+    pub fn to_command<P: PeerId>(&self, message: InputMessage<P>, epoch: Epoch) -> Command<P> {
         match message {
             InputMessage::Transport(msg) => match msg {
                 TransportMessage::Ping { from, epoch } => Command::ParticipationObserved {
@@ -94,13 +94,13 @@ impl MessageTranslator {
     // carries, read from the result's view, as the node `local_peer_id` sends
     // them; a result asking nothing is a no-op.
     #[must_use]
-    pub fn to_output_messages(
+    pub fn to_output_messages<P: PeerId>(
         &self,
-        outcomes: Vec<Outcome>,
-        view: &ClusterView,
-        local_peer_id: PeerId,
-    ) -> Vec<OutputMessage> {
-        let messages: Vec<OutputMessage> = outcomes
+        outcomes: Vec<Outcome<P>>,
+        view: &ClusterView<P>,
+        local_peer_id: P,
+    ) -> Vec<OutputMessage<P>> {
+        let messages: Vec<OutputMessage<P>> = outcomes
             .into_iter()
             .flat_map(|outcome| self.messages(outcome, view, local_peer_id))
             .collect();
@@ -111,12 +111,12 @@ impl MessageTranslator {
         }
     }
 
-    fn messages(
+    fn messages<P: PeerId>(
         &self,
-        outcome: Outcome,
-        view: &ClusterView,
-        local_peer_id: PeerId,
-    ) -> Vec<OutputMessage> {
+        outcome: Outcome<P>,
+        view: &ClusterView<P>,
+        local_peer_id: P,
+    ) -> Vec<OutputMessage<P>> {
         match outcome {
             Outcome::BroadcastLocalReady => vec![
                 OutputMessage::BroadcastReady {

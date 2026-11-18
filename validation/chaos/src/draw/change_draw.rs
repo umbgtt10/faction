@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_system_tests::infra::dice::Dice;
 
 use crate::model::change::Change;
@@ -50,7 +49,7 @@ impl ChangeDraw {
         let newcomers = self.dice.below(MAX_NEWCOMERS + 1);
         let mut changes: Vec<PlannedChange> = (0..newcomers)
             .map(|offset| {
-                let peer_id = nodes as PeerId + offset;
+                let peer_id = nodes as u64 + offset;
                 self.planned(Change::Addition { peer_id }, None, chaos_rounds)
             })
             .collect();
@@ -88,10 +87,10 @@ impl ChangeDraw {
 
     // Genesis members to remove, never so many that the members would fall
     // below the required count.
-    fn removed(&mut self, nodes: usize, required_count: usize) -> Vec<PeerId> {
+    fn removed(&mut self, nodes: usize, required_count: usize) -> Vec<u64> {
         let room = (nodes - required_count).min(MAX_REMOVALS) as u64;
         let count = self.dice.below(room + 1);
-        let mut candidates: Vec<PeerId> = (0..nodes as PeerId).collect();
+        let mut candidates: Vec<u64> = (0..nodes as u64).collect();
         (0..count)
             .map(|_| {
                 let index = self.dice.below(candidates.len() as u64) as usize;

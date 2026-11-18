@@ -13,6 +13,7 @@ use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
+use faction::instance::peer_id::PeerId;
 use faction::instance::receipt::Receipt;
 use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
@@ -21,6 +22,42 @@ use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use std::sync::Arc;
 use std::sync::Mutex;
+
+// Whether a node of `local`, with `other` its one other peer and both
+// required, concludes once `other` participates and is ready.
+fn concludes<P: PeerId>(local: P, other: P) -> bool {
+    let config = Config::new(
+        InstanceId {
+            node: local,
+            incarnation: 1,
+        },
+        vec![local, other],
+        QuorumPolicy::new(2),
+        1,
+        0,
+        false,
+        1,
+    );
+    let mut faction = Faction::new(config, Box::new(NoOpObserver));
+    let _ = faction.process(Command::ParticipationObserved {
+        peer_id: other,
+        epoch: 0,
+    });
+    let _ = faction.process(Command::LocalParticipationCompleted);
+    match faction
+        .process(Command::ReadyObserved {
+            peer_id: other,
+            epoch: 0,
+        })
+        .output
+    {
+        ProcessResult::Accepted { cluster_view, .. } => {
+            cluster_view.peer_state() == PeerState::Bootstrapped
+                && cluster_view.members().as_slice() == [local, other]
+        }
+        _ => false,
+    }
+}
 
 extern crate alloc;
 
@@ -41,6 +78,13 @@ fn fresh() -> Faction {
         Box::new(NoOpObserver),
     )
 }
+
+// A peer id of a caller's own: four bytes, which the machine can only copy
+// and compare.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Name([u8; 4]);
+
+impl PeerId for Name {}
 
 fn pinging_admissible() -> Vec<CommandKind> {
     vec![
@@ -298,7 +342,7 @@ fn participation_from_an_admitted_peer_is_accepted() {
 #[test]
 fn process_accepted_admissible_equals_subsequent_probe() {
     // Arrange
-    let config = Config::new(
+    let config: Config = Config::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -310,7 +354,7 @@ fn process_accepted_admissible_equals_subsequent_probe() {
         false,
         1,
     );
-    let mut faction = Faction::new(config, Box::new(NoOpObserver));
+    let mut faction = Faction::<u64>::new(config, Box::new(NoOpObserver));
 
     // Act
     let accepted_admissible = match faction
@@ -335,7 +379,7 @@ fn process_accepted_admissible_equals_subsequent_probe() {
 #[test]
 fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -347,7 +391,7 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
         false,
         1,
     );
-    let mut faction = Faction::new(config, Box::new(NoOpObserver));
+    let mut faction = Faction::<u64>::new(config, Box::new(NoOpObserver));
     let _ = faction
         .process(Command::ParticipationObserved {
             peer_id: 99,
@@ -412,7 +456,7 @@ fn process_accepted_into_bootstrapped_reports_what_a_concluded_node_admits() {
 #[test]
 fn process_accepted_into_pinging_reports_pinging_s_admissible_set() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -424,7 +468,7 @@ fn process_accepted_into_pinging_reports_pinging_s_admissible_set() {
         false,
         1,
     );
-    let mut faction = Faction::new(config, Box::new(NoOpObserver));
+    let mut faction = Faction::<u64>::new(config, Box::new(NoOpObserver));
 
     // Act
     let admissible = match faction
@@ -1059,8 +1103,8 @@ fn process_of_a_change_requested_of_a_provisional_node_is_refused_until_its_addi
 #[test]
 fn process_of_a_commit_above_the_epoch_moves_it_and_one_held_already_does_not() {
     // Arrange
-    let mut faction = Faction::new(
-        Config::new(
+    let mut faction = Faction::<u64>::new(
+        Config::<u64>::new(
             InstanceId {
                 node: 0,
                 incarnation: 1,
@@ -1096,8 +1140,8 @@ fn process_of_a_commit_above_the_epoch_moves_it_and_one_held_already_does_not() 
 #[test]
 fn process_of_a_probe_shows_the_epoch_the_node_was_created_at() {
     // Arrange
-    let mut faction = Faction::new(
-        Config::new(
+    let mut faction = Faction::<u64>::new(
+        Config::<u64>::new(
             InstanceId {
                 node: 0,
                 incarnation: 1,
@@ -1123,9 +1167,34 @@ fn process_of_a_probe_shows_the_epoch_the_node_was_created_at() {
 }
 
 #[test]
+fn process_on_a_peer_id_of_the_caller_s_own_concludes() {
+    // Arrange & Act
+    let concluded = concludes(Name(*b"ada\0"), Name(*b"bob\0"));
+
+    // Assert
+    assert!(concluded);
+}
+
+#[test]
+fn process_on_every_unsigned_integer_concludes() {
+    // Arrange & Act
+    let concluded = [
+        concludes(1u8, 2),
+        concludes(1u16, 2),
+        concludes(1u32, 2),
+        concludes(1u64, 2),
+        concludes(1u128, 2),
+        concludes(1usize, 2),
+    ];
+
+    // Assert
+    assert_eq!(concluded, [true; 6]);
+}
+
+#[test]
 fn process_probe_does_not_mutate_state() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -1138,7 +1207,7 @@ fn process_probe_does_not_mutate_state() {
         1,
     );
     let observer = Box::new(NoOpObserver);
-    let mut faction = Faction::new(config, observer);
+    let mut faction = Faction::<u64>::new(config, observer);
 
     // Act
     let first = match faction.process(Command::Probe).output {
@@ -1158,7 +1227,7 @@ fn process_probe_does_not_mutate_state() {
 #[test]
 fn process_probe_returns_cluster_view_with_initial_state() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -1171,7 +1240,7 @@ fn process_probe_returns_cluster_view_with_initial_state() {
         1,
     );
     let observer = Box::new(NoOpObserver);
-    let mut faction = Faction::new(config, observer);
+    let mut faction = Faction::<u64>::new(config, observer);
 
     // Act
     let cluster_view = match faction.process(Command::Probe).output {
@@ -1191,7 +1260,7 @@ fn process_probe_returns_cluster_view_with_initial_state() {
 #[test]
 fn process_probe_works_after_valid_inputs() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -1204,7 +1273,7 @@ fn process_probe_works_after_valid_inputs() {
         1,
     );
     let observer = Box::new(NoOpObserver);
-    let mut faction = Faction::new(config, observer);
+    let mut faction = Faction::<u64>::new(config, observer);
     let _ = faction
         .process(Command::ParticipationObserved {
             peer_id: 0,

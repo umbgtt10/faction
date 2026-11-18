@@ -5,6 +5,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::command::Command;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::quorum_policy::QuorumPolicy;
@@ -12,21 +13,20 @@ use crate::stage::Stage;
 use crate::states::initial::Initial;
 use crate::states::removed::Removed;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 // A membership handed to the node above its epoch, which it takes whatever its
 // stage (§16): its members, its required count and its epoch. Naming the node,
 // a stage adopts it as a membership decision; not naming it, it removes the
 // node; and it is a removed node's way back.
-pub struct Adoption {
-    members: Members,
+pub struct Adoption<P: PeerId = u64> {
+    members: Members<P>,
     quorum_policy: QuorumPolicy,
     epoch: Epoch,
 }
 
-impl Adoption {
+impl<P: PeerId> Adoption<P> {
     #[must_use]
-    pub fn of(command: &Command) -> Option<Self> {
+    pub fn of(command: &Command<P>) -> Option<Self> {
         match command {
             Command::MembershipReceived {
                 members,
@@ -44,7 +44,7 @@ impl Adoption {
     // The node `peer_id` removed, adopting the membership, if it does not
     // name the node; none if it does.
     #[must_use]
-    pub fn removal(self, peer_id: PeerId) -> Option<(Vec<Outcome>, Stage)> {
+    pub fn removal(self, peer_id: P) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         (!self.members.is_member(peer_id)).then(|| {
             (
                 vec![
@@ -60,7 +60,7 @@ impl Adoption {
     // membership, if it names `peer_id`; still `Removed`, holding it,
     // otherwise.
     #[must_use]
-    pub fn taken_back(self, peer_id: PeerId) -> (Vec<Outcome>, Stage) {
+    pub fn taken_back(self, peer_id: P) -> (Vec<Outcome<P>>, Stage<P>) {
         let adopted = vec![Outcome::MembershipAdopted { epoch: self.epoch }];
         if self.members.is_member(peer_id) {
             (

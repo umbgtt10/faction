@@ -8,6 +8,7 @@ use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
@@ -15,7 +16,6 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 use super::collecting::Collecting;
 use super::epoch_rule::EpochRule;
@@ -27,17 +27,17 @@ use super::ready_before_completion_step::ReadyBeforeCompletionStep;
 use super::removed::Removed;
 
 #[derive(Debug, Clone)]
-pub struct Pinging {
-    members: Members,
+pub struct Pinging<P: PeerId = u64> {
+    members: Members<P>,
     quorum_policy: QuorumPolicy,
-    pinging_peers: Vec<PeerId>,
-    collecting_peers: Vec<PeerId>,
+    pinging_peers: Vec<P>,
+    collecting_peers: Vec<P>,
     deadline_missed: bool,
 }
 
-impl Pinging {
+impl<P: PeerId> Pinging<P> {
     #[must_use]
-    pub fn new(members: Members, quorum_policy: QuorumPolicy) -> Self {
+    pub fn new(members: Members<P>, quorum_policy: QuorumPolicy) -> Self {
         Self {
             members,
             quorum_policy,
@@ -48,8 +48,8 @@ impl Pinging {
     }
 }
 
-impl State for Pinging {
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+impl<P: PeerId> State<P> for Pinging<P> {
+    fn cluster_view(&self, previous: &ClusterView<P>) -> ClusterView<P> {
         ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Pinging)
             .with_pinging_peers(self.pinging_peers.clone())
@@ -63,10 +63,10 @@ impl State for Pinging {
 
     fn step(
         &self,
-        command: Command,
-        config: &Config,
+        command: Command<P>,
+        config: &Config<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         if let Some(departure) = Removed::departure(
             &command,
             config.peer_id(),

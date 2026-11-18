@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use faction::quorum::Quorum;
-use faction::types::PeerId;
 use std::io::BufRead;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -58,7 +57,7 @@ impl StateReader {
         }
     }
 
-    fn parse_peers(text: &str) -> Option<Vec<PeerId>> {
+    fn parse_peers(text: &str) -> Option<Vec<u64>> {
         if text == "-" {
             Some(Vec::new())
         } else {

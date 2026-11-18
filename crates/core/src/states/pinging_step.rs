@@ -4,17 +4,17 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
+use crate::instance::peer_id::PeerId;
 use crate::outcome::Outcome;
-use crate::types::PeerId;
 
-pub struct PingingStep {
-    outcomes: Vec<Outcome>,
-    confirmed_peers: Vec<PeerId>,
+pub struct PingingStep<P: PeerId = u64> {
+    outcomes: Vec<Outcome<P>>,
+    confirmed_peers: Vec<P>,
 }
 
-impl PingingStep {
+impl<P: PeerId> PingingStep<P> {
     #[must_use]
-    pub fn new(confirmed_peers: Vec<PeerId>, peer_id: PeerId) -> Self {
+    pub fn new(confirmed_peers: Vec<P>, peer_id: P) -> Self {
         let is_dup = confirmed_peers.contains(&peer_id);
         let mut new_confirmed_peers = confirmed_peers;
         if !is_dup {
@@ -34,12 +34,12 @@ impl PingingStep {
     }
 
     #[must_use]
-    pub fn confirmed_peers(&self) -> &[PeerId] {
+    pub fn confirmed_peers(&self) -> &[P] {
         &self.confirmed_peers
     }
 
     #[must_use]
-    pub fn outcomes(&self) -> &[Outcome] {
+    pub fn outcomes(&self) -> &[Outcome<P>] {
         &self.outcomes
     }
 }

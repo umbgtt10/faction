@@ -49,6 +49,6 @@ there, and a dedicated invariant test
 ## Amendment 2026-11-18: the admissible commands by kind
 Through 0.12.0 the admissible commands were `Command`s, each carrying a placeholder
 -- peer 0, epoch 0, no members -- that read as if peer 0 were meant. A generic peer id
-has no 0 to put there, and the specification
+has no 0 to put there (`P1-ADR-APeerIdOfTheCallersOwnType`), and the specification
 never wrote one: it lists admissible commands by name. A result lists `CommandKind`s
 instead, and a caller asks `admissible.contains(&command.kind())`.

@@ -7,7 +7,6 @@ use alloc::vec::Vec;
 
 use faction::cluster_view::ClusterView;
 use faction::peer_state::PeerState;
-use faction::types::PeerId;
 
 pub struct ClusterInvariants {
     views: Vec<ClusterView>,
@@ -74,7 +73,7 @@ impl ClusterInvariants {
         violations
     }
 
-    fn counted(&self) -> impl Iterator<Item = (usize, &[PeerId])> {
+    fn counted(&self) -> impl Iterator<Item = (usize, &[u64])> {
         self.views.iter().enumerate().flat_map(|(node, view)| {
             [
                 (node, view.pinging_peers()),

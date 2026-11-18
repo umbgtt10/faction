@@ -15,14 +15,13 @@ use faction::no_op_observer::NoOpObserver;
 use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
-use faction::types::PeerId;
 
 pub struct ScenarioHarness {
     factions: Vec<Faction>,
 }
 
 impl ScenarioHarness {
-    pub fn new(peer_set: Vec<PeerId>, required_count: usize) -> Self {
+    pub fn new(peer_set: Vec<u64>, required_count: usize) -> Self {
         let mut factions = Vec::new();
 
         for peer_id in peer_set.iter().copied() {
@@ -47,7 +46,7 @@ impl ScenarioHarness {
         Self { factions }
     }
 
-    pub fn apply_participation(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
+    pub fn apply_participation(&mut self, faction_index: usize, peer_id: u64) -> Vec<Outcome> {
         match self.factions[faction_index]
             .process(Command::ParticipationObserved { peer_id, epoch: 0 })
             .output
@@ -58,7 +57,7 @@ impl ScenarioHarness {
         }
     }
 
-    pub fn apply_ready(&mut self, faction_index: usize, peer_id: PeerId) -> Vec<Outcome> {
+    pub fn apply_ready(&mut self, faction_index: usize, peer_id: u64) -> Vec<Outcome> {
         match self.factions[faction_index]
             .process(Command::ReadyObserved { peer_id, epoch: 0 })
             .output

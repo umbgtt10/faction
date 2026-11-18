@@ -6,7 +6,6 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
-use faction::types::PeerId;
 use faction_system_tests::infra::invariants::breach::Breach;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 
@@ -26,7 +25,7 @@ pub enum Failure {
     },
     Diverged {
         round: u64,
-        peer_id: PeerId,
+        peer_id: u64,
         expected: String,
         found: Box<NodeSnapshot>,
     },

@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 
 use super::late_join_mesh::LateJoinMesh;
@@ -20,7 +19,7 @@ impl InMemoryJoinMesh {
 }
 
 impl LateJoinMesh for InMemoryJoinMesh {
-    fn connect(&self, peer_id: PeerId) -> Box<dyn Transport> {
+    fn connect(&self, peer_id: u64) -> Box<dyn Transport> {
         Box::new(InMemoryTransport::join_mesh(peer_id, self.registry.clone()))
     }
 }

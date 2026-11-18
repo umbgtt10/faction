@@ -13,10 +13,15 @@
 //! The terminal answer is `Bootstrapped`. A blown deadline is recorded as
 //! `TimedOut` but is never terminal — the node keeps trying.
 //!
-//! **Phases 1 to 5 of six are built** -- bootstrapping, dynamic joining,
-//! single-node addition, failure detection, single-node removal, and epochs
-//! and rejoin -- conformant to version 0.8.0 of the specification in the
-//! repository's `spec/`.
+//! **All six phases are built** -- bootstrapping, dynamic joining, single-node
+//! addition, failure detection, single-node removal, epochs and rejoin, and
+//! concurrent changes -- conformant to version 0.9.0 of the specification in
+//! the repository's `spec/`.
+//!
+//! A peer id is any type implementing [`PeerId`](instance::peer_id::PeerId):
+//! the unsigned integers, `u64` every type's default, or a type of the
+//! caller's own once it says so. The machine copies peer ids and compares
+//! them, and does nothing else with one.
 //!
 //! # What it does
 //!
@@ -95,8 +100,9 @@
 //!
 //! extern crate alloc;
 //!
-//! // A 5-node cluster. We need 4 to agree before proceeding.
-//! let config = Config::new(
+//! // A 5-node cluster. We need 4 to agree before proceeding. Its peer ids are
+//! // u64, every type's default; any type implementing `PeerId` will do.
+//! let config: Config = Config::new(
 //!     InstanceId { node: 0, incarnation: 1 }, // our peer id, its first incarnation
 //!     alloc::vec![0, 1, 2, 3, 4],        // all peers
 //!     QuorumPolicy::new(4),              // quorum threshold

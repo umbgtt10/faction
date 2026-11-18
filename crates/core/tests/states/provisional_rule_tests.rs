@@ -26,7 +26,7 @@ fn refusal() -> Vec<Outcome> {
 #[test]
 fn after_an_adopted_membership_is_not_provisional() {
     // Arrange
-    let rule = ProvisionalRule::new(5, true);
+    let rule: ProvisionalRule = ProvisionalRule::new(5, true);
 
     // Act
     let after = rule.after(
@@ -45,7 +45,7 @@ fn after_an_adopted_membership_is_not_provisional() {
 #[test]
 fn after_another_peer_s_commit_is_still_provisional() {
     // Arrange
-    let rule = ProvisionalRule::new(5, true);
+    let rule = ProvisionalRule::<u64>::new(5, true);
 
     // Act
     let after = rule.after(
@@ -90,7 +90,7 @@ fn after_its_own_addition_held_already_is_still_provisional() {
 #[test]
 fn after_its_own_removal_is_not_provisional() {
     // Arrange
-    let rule = ProvisionalRule::new(5, true);
+    let rule = ProvisionalRule::<u64>::new(5, true);
 
     // Act
     let after = rule.after(
@@ -135,7 +135,7 @@ fn answered_by_a_node_never_provisional_keeps_every_outcome() {
 #[test]
 fn answered_by_a_provisional_node_keeps_a_membership_it_offers_a_newcomer() {
     // Arrange
-    let rule = ProvisionalRule::new(5, true);
+    let rule = ProvisionalRule::<u64>::new(5, true);
 
     // Act
     let answered = rule.answered(vec![Outcome::SendMembership { peer_id: 7 }]);
@@ -165,7 +165,7 @@ fn answered_by_a_provisional_node_withholds_the_membership_from_a_peer_behind() 
 #[test]
 fn refusal_at_a_node_never_provisional_is_none() {
     // Arrange
-    let rule = ProvisionalRule::new(5, false);
+    let rule = ProvisionalRule::<u64>::new(5, false);
 
     // Act
     let refusal = rule.refusal(&Command::AdditionRequested { peer_id: 7 });
@@ -177,7 +177,7 @@ fn refusal_at_a_node_never_provisional_is_none() {
 #[test]
 fn refusal_of_a_change_requested_at_a_provisional_node_names_its_peer() {
     // Arrange
-    let rule = ProvisionalRule::new(5, true);
+    let rule = ProvisionalRule::<u64>::new(5, true);
 
     // Act
     let refusals = [

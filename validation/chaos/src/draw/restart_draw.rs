@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_system_tests::infra::dice::Dice;
 
 use crate::model::restart_from::RestartFrom;
@@ -26,7 +25,7 @@ impl RestartDraw {
     }
 
     // Crashes of nodes of `restartable`, within `chaos_rounds`.
-    pub fn restarts(&mut self, restartable: &[PeerId], chaos_rounds: u64) -> Vec<RestartPlan> {
+    pub fn restarts(&mut self, restartable: &[u64], chaos_rounds: u64) -> Vec<RestartPlan> {
         let count = self.dice.below(MAX_RESTARTS + 1);
         (0..count)
             .map(|_| RestartPlan {

@@ -23,7 +23,7 @@ fn after_of_a_claim_leaves_the_epoch() {
     let rule = EpochRule::new(1);
 
     // Act
-    let after = rule.after(&Command::ParticipationObserved {
+    let after = rule.after::<u64>(&Command::ParticipationObserved {
         peer_id: 2,
         epoch: 7,
     });
@@ -39,19 +39,19 @@ fn after_of_a_commit_or_a_membership_is_the_greater_epoch() {
 
     // Act
     let after = [
-        rule.after(&Command::AdditionCommitted {
+        rule.after::<u64>(&Command::AdditionCommitted {
             peer_id: 4,
             epoch: 5,
         }),
-        rule.after(&Command::RemovalCommitted {
+        rule.after::<u64>(&Command::RemovalCommitted {
             peer_id: 4,
             epoch: 1,
         }),
-        rule.after(&Command::RequiredCountChanged {
+        rule.after::<u64>(&Command::RequiredCountChanged {
             required_count: 2,
             epoch: 0,
         }),
-        rule.after(&membership(4)),
+        rule.after::<u64>(&membership(4)),
     ];
 
     // Assert
@@ -64,7 +64,7 @@ fn held_of_a_claim_is_none() {
     let rule = EpochRule::new(2);
 
     // Act
-    let held = rule.held(&Command::ReadyObserved {
+    let held = rule.held::<u64>(&Command::ReadyObserved {
         peer_id: 1,
         epoch: 0,
     });
@@ -80,7 +80,7 @@ fn held_of_a_commit_from_1_to_the_epoch_is_ignored() {
     let commits = [0, 1, 2, 3].map(|epoch| Command::AdditionCommitted { peer_id: 4, epoch });
 
     // Act
-    let held = commits.map(|commit| rule.held(&commit));
+    let held = commits.map(|commit| rule.held::<u64>(&commit));
 
     // Assert
     assert_eq!(
@@ -100,7 +100,7 @@ fn held_of_a_membership_at_or_below_the_epoch_is_ignored() {
     let rule = EpochRule::new(2);
 
     // Act
-    let held = [0, 2, 3].map(|epoch| rule.held(&membership(epoch)));
+    let held = [0, 2, 3].map(|epoch| rule.held::<u64>(&membership(epoch)));
 
     // Assert
     assert_eq!(
@@ -119,7 +119,7 @@ fn refused_of_a_claim_below_the_epoch_sends_the_membership() {
     let rule = EpochRule::new(2);
 
     // Act
-    let refused = [rule.refused(3, 1), rule.refused(3, 2)];
+    let refused = [rule.refused::<u64>(3, 1), rule.refused::<u64>(3, 2)];
 
     // Assert
     assert_eq!(
@@ -144,17 +144,17 @@ fn signal_refused_of_a_signal_from_behind_is_refused_and_of_anything_else_none()
 
     // Act
     let refused = [
-        rule.signal_refused(&Command::ReadyObserved {
+        rule.signal_refused::<u64>(&Command::ReadyObserved {
             peer_id: 2,
             epoch: 0,
         })
         .is_some(),
-        rule.signal_refused(&Command::ParticipationObserved {
+        rule.signal_refused::<u64>(&Command::ParticipationObserved {
             peer_id: 2,
             epoch: 0,
         })
         .is_some(),
-        rule.signal_refused(&Command::MembershipAcknowledged {
+        rule.signal_refused::<u64>(&Command::MembershipAcknowledged {
             peer_id: 2,
             epoch: 0,
         })
@@ -173,21 +173,21 @@ fn uncounted_of_a_non_member_s_signal_ignores_it_and_of_a_member_s_from_behind_r
 
     // Act
     let uncounted = [
-        rule.uncounted(
+        rule.uncounted::<u64>(
             &Command::ParticipationObserved {
                 peer_id: 9,
                 epoch: 1,
             },
             &members,
         ),
-        rule.uncounted(
+        rule.uncounted::<u64>(
             &Command::ReadyObserved {
                 peer_id: 2,
                 epoch: 0,
             },
             &members,
         ),
-        rule.uncounted(
+        rule.uncounted::<u64>(
             &Command::ReadyObserved {
                 peer_id: 2,
                 epoch: 1,

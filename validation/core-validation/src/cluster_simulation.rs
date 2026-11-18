@@ -20,13 +20,12 @@ use faction::faction::Faction;
 use faction::observer::Observer;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
-use faction::types::PeerId;
 
 use crate::cluster_invariants::ClusterInvariants;
 
 pub struct ClusterSimulation {
     peers: Vec<Faction>,
-    peer_ids: Vec<PeerId>,
+    peer_ids: Vec<u64>,
     pending: VecDeque<(usize, Command)>,
 }
 
@@ -35,7 +34,7 @@ impl ClusterSimulation {
     // its calls to its own observer.
     #[must_use]
     pub fn new(observers: Vec<Box<dyn Observer>>, required_count: usize) -> Self {
-        let peer_ids: Vec<PeerId> = (0..observers.len() as PeerId).collect();
+        let peer_ids: Vec<u64> = (0..observers.len() as u64).collect();
         let peers = observers
             .into_iter()
             .zip(&peer_ids)
@@ -91,7 +90,7 @@ impl ClusterSimulation {
     }
 
     #[must_use]
-    pub fn cluster_view(&mut self, peer_id: PeerId) -> ClusterView {
+    pub fn cluster_view(&mut self, peer_id: u64) -> ClusterView {
         let index = self
             .peer_ids
             .iter()
@@ -103,7 +102,7 @@ impl ClusterSimulation {
         }
     }
 
-    pub fn complete_local(&mut self, peer_id: PeerId) {
+    pub fn complete_local(&mut self, peer_id: u64) {
         let index = self
             .peer_ids
             .iter()
@@ -112,7 +111,7 @@ impl ClusterSimulation {
         self.apply_and_drain(index, Command::LocalParticipationCompleted);
     }
 
-    pub fn expire_deadline(&mut self, peer_id: PeerId) {
+    pub fn expire_deadline(&mut self, peer_id: u64) {
         let index = self
             .peer_ids
             .iter()
@@ -121,7 +120,7 @@ impl ClusterSimulation {
         self.apply_and_drain(index, Command::DeadlineExpired);
     }
 
-    pub fn inject_participation(&mut self, peer_id: PeerId) {
+    pub fn inject_participation(&mut self, peer_id: u64) {
         for index in 0..self.peers.len() {
             let outputs =
                 self.apply_to(index, Command::ParticipationObserved { peer_id, epoch: 0 });
@@ -130,7 +129,7 @@ impl ClusterSimulation {
         self.drain_pending();
     }
 
-    pub fn inject_ready(&mut self, peer_id: PeerId) {
+    pub fn inject_ready(&mut self, peer_id: u64) {
         for index in 0..self.peers.len() {
             let outputs = self.apply_to(index, Command::ReadyObserved { peer_id, epoch: 0 });
             self.enqueue_broadcasts(&outputs, index);

@@ -9,6 +9,7 @@ use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::conclusion::Conclusion;
 use crate::config::Config;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
@@ -16,7 +17,6 @@ use crate::quorum_policy::QuorumPolicy;
 use crate::stage::Stage;
 use crate::state::State;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 use super::bootstrapped::Bootstrapped;
 use super::epoch_rule::EpochRule;
@@ -26,21 +26,21 @@ use super::ready_step::ReadyStep;
 use super::removed::Removed;
 
 #[derive(Debug, Clone)]
-pub struct Collecting {
-    members: Members,
+pub struct Collecting<P: PeerId = u64> {
+    members: Members<P>,
     quorum_policy: QuorumPolicy,
-    collecting_peers: Vec<PeerId>,
-    pinged_peers: Vec<PeerId>,
+    collecting_peers: Vec<P>,
+    pinged_peers: Vec<P>,
     deadline_missed: bool,
 }
 
-impl Collecting {
+impl<P: PeerId> Collecting<P> {
     #[must_use]
     pub fn new(
-        members: Members,
+        members: Members<P>,
         quorum_policy: QuorumPolicy,
-        collecting_peers: Vec<PeerId>,
-        pinged_peers: Vec<PeerId>,
+        collecting_peers: Vec<P>,
+        pinged_peers: Vec<P>,
         deadline_missed: bool,
     ) -> Self {
         Self {
@@ -53,7 +53,7 @@ impl Collecting {
     }
 
     #[must_use]
-    pub fn resolve(self, is_quorum: bool) -> Stage {
+    pub fn resolve(self, is_quorum: bool) -> Stage<P> {
         if is_quorum {
             Stage::Bootstrapped(Bootstrapped::new(
                 self.members,
@@ -67,8 +67,8 @@ impl Collecting {
     }
 }
 
-impl State for Collecting {
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+impl<P: PeerId> State<P> for Collecting<P> {
+    fn cluster_view(&self, previous: &ClusterView<P>) -> ClusterView<P> {
         ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Collecting)
             .with_is_pinging_completed(true)
@@ -83,10 +83,10 @@ impl State for Collecting {
 
     fn step(
         &self,
-        command: Command,
-        config: &Config,
+        command: Command<P>,
+        config: &Config<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         if let Some(departure) = Removed::departure(
             &command,
             config.peer_id(),

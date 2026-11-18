@@ -7,10 +7,9 @@ use faction::cluster_view::ClusterView;
 use faction::members::Members;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
-use faction::types::PeerId;
 use faction_core_validation::cluster_invariants::ClusterInvariants;
 
-fn concluded(collecting_peers: Vec<PeerId>, required_count: usize) -> ClusterView {
+fn concluded(collecting_peers: Vec<u64>, required_count: usize) -> ClusterView {
     ClusterView::new(
         PeerState::Bootstrapped,
         true,
@@ -31,7 +30,7 @@ fn concluded(collecting_peers: Vec<PeerId>, required_count: usize) -> ClusterVie
 
 extern crate alloc;
 
-fn pinging(pinging_peers: Vec<PeerId>, collecting_peers: Vec<PeerId>) -> ClusterView {
+fn pinging(pinging_peers: Vec<u64>, collecting_peers: Vec<u64>) -> ClusterView {
     ClusterView::new(
         PeerState::Pinging,
         false,

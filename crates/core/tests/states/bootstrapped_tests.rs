@@ -381,13 +381,13 @@ fn changed_of_a_count_raised_past_the_members_loses_the_quorum() {
 #[test]
 fn cluster_view_overrides_all_fields() {
     // Arrange
-    let bootstrapped = Bootstrapped::new(
-        Members::new(vec![1, 2, 3, 4, 5]),
+    let bootstrapped: Bootstrapped = Bootstrapped::new(
+        Members::<u64>::new(vec![1, 2, 3, 4, 5]),
         QuorumPolicy::new(4),
         vec![1, 2],
         vec![1, 2, 3, 4, 5],
     );
-    let prev = ClusterViewBuilder::default()
+    let prev = ClusterViewBuilder::<u64>::default()
         .with_peer_state(PeerState::Pinging)
         .with_pinging_peers(vec![1, 2])
         .with_collecting_peers(vec![1, 2, 3, 4, 5])

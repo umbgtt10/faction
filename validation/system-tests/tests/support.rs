@@ -5,7 +5,6 @@ use crate::traits::pause_tests::FakePause;
 use crate::traits::wall_clock_tests::FAKE_MOMENT;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::peer_state::PeerState;
-use faction::types::PeerId;
 use faction_system_tests::constants::NODE_LIFETIME;
 use faction_system_tests::faction_node::FactionNode;
 use faction_system_tests::infra::coordination::Coordination;
@@ -55,7 +54,7 @@ pub fn fake_time() -> (TimePorts, Arc<SimulatedClock>) {
     (time, clock)
 }
 
-pub fn in_memory_node(peers: &[PeerId], required: usize, time: &TimePorts) -> FactionNode {
+pub fn in_memory_node(peers: &[u64], required: usize, time: &TimePorts) -> FactionNode {
     let transport = InMemoryTransport::new_mesh(peers).remove(0);
     recipe(required, time).build(peers[0], peers.to_vec(), Box::new(transport))
 }
