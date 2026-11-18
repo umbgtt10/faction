@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::infra::transport::grpc::grpc_transport::GrpcTransport;
@@ -14,11 +13,11 @@ fn free_addr() -> SocketAddr {
     listener.local_addr().unwrap()
 }
 
-fn msg_ping(from: PeerId) -> TransportMessage {
+fn msg_ping(from: u64) -> TransportMessage {
     TransportMessage::Ping { from, epoch: 0 }
 }
 
-fn msg_ready(from: PeerId) -> TransportMessage {
+fn msg_ready(from: u64) -> TransportMessage {
     TransportMessage::Ready { from, epoch: 0 }
 }
 
@@ -110,7 +109,7 @@ fn registry_lists_every_peer_of_the_mesh() {
     let registry = mesh[0].registry();
 
     // Assert
-    let peers: Vec<PeerId> = registry
+    let peers: Vec<u64> = registry
         .lock()
         .unwrap()
         .iter()

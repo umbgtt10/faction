@@ -294,8 +294,9 @@ Every input produces a defined, handled result.
 | `Rejected { cluster_view, admissible }` | Command not valid in current state | No |
 | `Probed { cluster_view, admissible }` | Probe executed | No |
 
-All three results carry the list of admissible commands — the caller always knows what
-is valid next, on every path. This eliminates defensive programming on the caller side.
+All three results carry the list of admissible commands, each by its kind (`CommandKind`,
+the command's name without its peer or epoch; `Command::kind()` gives a command's) — the
+caller always knows what is valid next, on every path. This eliminates defensive programming on the caller side.
 
 ---
 
@@ -635,9 +636,11 @@ membership.
 
 ## Design decisions
 
-**No generic `NodeId` (current limitation).** Peer IDs are currently `u64`. A generic
-`NodeId` trait is planned for a future phase. This is a known limitation (L7) and does
-not affect correctness.
+**A peer id of the caller's own type.** A peer id is any type implementing the marker
+trait `PeerId` -- `Copy + Eq + Debug + Send`, which the unsigned integers implement and a
+caller's own type does once it says so -- and every public type holding one takes it as a
+parameter, `u64` its default. The machine copies peer ids and compares them, and does
+nothing else with one ([`P1-ADR-APeerIdOfTheCallersOwnType`](ADRs/P1-ADR-APeerIdOfTheCallersOwnType.md)).
 
 **`alloc` but not `std`.** The machine requires heap allocation for peer sets. Pure
 `no_std` without `alloc` would require fixed-size arrays and a compile-time node count,
@@ -680,4 +683,4 @@ subsequent phase.
 | L4 | **No single-node removal protocol.** Leaving or being removed requires a quorum-preserving removal check not yet implemented. | Phase 4 |
 | L5 | **No epochs or rejoin handling.** Membership has no version counter. Stale nodes are not rejected. Previously-removed nodes cannot rejoin. No split-brain prevention. | Phase 5 |
 | L6 | **Single-change-at-a-time.** A coordinator holds one change in flight, and nothing in the specification says the layer above must check a proposal again at commit time. | Phase 6 (a bound of changes in flight; a proposal committed only while still valid) |
-| L7 | **No generic identity.** Peer IDs are `u64`. No `NodeId` trait, no address resolution abstraction. | Future |
+| L7 | **No generic identity.** Peer IDs are `u64`. No `NodeId` trait, no address resolution abstraction. | After Phase 6 (a `PeerId` of the caller's own type; address resolution stays the caller's) |

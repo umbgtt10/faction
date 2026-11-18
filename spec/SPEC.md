@@ -33,6 +33,10 @@ changes in flight a list (§1, §4). Every vector 0.8.0 released is answered ali
 `0..=18446744073709551615`. Many JSON parsers read numbers as 64-bit floats, exact only to 2⁵³, and a peer id is
 any u64.
 
+**A node compares peer ids for equality, and does nothing else with one**: it never orders a peer id, reads its value
+or computes with it, and keeps every list of peers in arrival order. An implementation may take
+peer ids of any type it can copy and compare; this specification writes them as numbers.
+
 **Every value of an enumeration is an object with exactly one member**, named for the value:
 `{"ParticipationObserved": {"peer_id": "2"}}`, `{"Concluded": {"mode": {"Bootstrapped": {}}}}`. A value that carries
 nothing carries the empty object: `{"Probe": {}}`, `{"Fresh": {}}`.

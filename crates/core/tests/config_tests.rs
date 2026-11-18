@@ -11,7 +11,7 @@ extern crate alloc;
 #[test]
 fn changes_in_flight_is_the_bound_given() {
     // Arrange
-    let config = Config::new(
+    let config: Config = Config::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -34,7 +34,7 @@ fn changes_in_flight_is_the_bound_given() {
 #[test]
 fn epoch_is_the_one_given() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -57,7 +57,7 @@ fn epoch_is_the_one_given() {
 #[test]
 fn instance_is_the_one_given_and_its_node_the_peer_id() {
     // Arrange & Act
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 3,
             incarnation: 7,
@@ -84,7 +84,7 @@ fn instance_is_the_one_given_and_its_node_the_peer_id() {
 #[test]
 fn is_provisional_is_the_one_given() {
     // Arrange
-    let newcomer = Config::new(
+    let newcomer = Config::<u64>::new(
         InstanceId {
             node: 5,
             incarnation: 1,
@@ -100,7 +100,7 @@ fn is_provisional_is_the_one_given() {
     // Act
     let provisional = [
         newcomer.is_provisional(),
-        Config::new(
+        Config::<u64>::new(
             InstanceId {
                 node: 0,
                 incarnation: 1,
@@ -125,7 +125,7 @@ fn new_stores_provided_values() {
     let peers = vec![0, 1, 2, 3, 4];
 
     // Act
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -149,7 +149,7 @@ fn new_stores_provided_values() {
 #[test]
 fn suspicion_threshold_is_the_one_given() {
     // Arrange
-    let config = Config::new(
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,

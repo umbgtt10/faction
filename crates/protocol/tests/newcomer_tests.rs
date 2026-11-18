@@ -27,7 +27,7 @@ fn newcomer() -> Newcomer {
 #[test]
 fn join_creates_its_node_with_the_suspicion_threshold_it_was_given() {
     // Arrange
-    let newcomer = Newcomer::new(
+    let newcomer: Newcomer = Newcomer::new(
         InstanceId {
             node: 5,
             incarnation: 1,

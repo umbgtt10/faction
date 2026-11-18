@@ -5,7 +5,6 @@ use faction::command::Command;
 use faction::config::Config;
 use faction::instance::instance_id::InstanceId;
 use faction::quorum_policy::QuorumPolicy;
-use faction::types::PeerId;
 use serde_json::Value;
 
 // The specification's JSON read into the crate's types: a configuration and a
@@ -102,7 +101,7 @@ impl SpecReader {
         )
     }
 
-    fn peers(value: &Value) -> Vec<PeerId> {
+    fn peers(value: &Value) -> Vec<u64> {
         value
             .as_array()
             .expect("a list of peers")

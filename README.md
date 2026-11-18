@@ -226,6 +226,7 @@ faction = "0.12"
 
 ```rust
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
@@ -236,7 +237,9 @@ use faction::quorum_policy::QuorumPolicy;
 
 extern crate alloc;
 
-let config = Config::new(
+// Peer ids are u64 here, every type's default; any type implementing
+// `PeerId` will do.
+let config: Config = Config::new(
     InstanceId { node: 0, incarnation: 1 },
     alloc::vec![0, 1, 2, 3, 4],
     QuorumPolicy::new(4),
@@ -265,21 +268,21 @@ if let ProcessResult::Accepted { cluster_view, admissible, .. } = result.output 
     assert_eq!(
         admissible,
         alloc::vec![
-            Command::ParticipationObserved { peer_id: 0, epoch: 0 },
-            Command::JoinRequested { peer_id: 0 },
-            Command::JoinApproved { peer_id: 0 },
-            Command::JoinRejected { peer_id: 0 },
-            Command::AdditionRequested { peer_id: 0 },
-            Command::AdditionCommitted { peer_id: 0, epoch: 0 },
-            Command::RemovalRequested { peer_id: 0 },
-            Command::RemovalCommitted { peer_id: 0, epoch: 0 },
-            Command::RequiredCountChanged { required_count: 0, epoch: 0 },
-            Command::MembershipReceived { members: alloc::vec![], required_count: 0, epoch: 0 },
-            Command::ProbeDue,
-            Command::PeerHeard { peer_id: 0 },
-            Command::ProbeMissed { peer_id: 0 },
-            Command::IndirectProbesMissed { peer_id: 0 },
-            Command::Probe
+            CommandKind::ParticipationObserved,
+            CommandKind::JoinRequested,
+            CommandKind::JoinApproved,
+            CommandKind::JoinRejected,
+            CommandKind::AdditionRequested,
+            CommandKind::AdditionCommitted,
+            CommandKind::RemovalRequested,
+            CommandKind::RemovalCommitted,
+            CommandKind::RequiredCountChanged,
+            CommandKind::MembershipReceived,
+            CommandKind::ProbeDue,
+            CommandKind::PeerHeard,
+            CommandKind::ProbeMissed,
+            CommandKind::IndirectProbesMissed,
+            CommandKind::Probe
         ]
     );
 }
@@ -297,8 +300,8 @@ The caller owns the network. `faction` owns the state.
 |---|---|---|
 | [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 78 rows and 125 conformance vectors in force, the released ones re-encoded at 0.8.0 as receipts and at 0.9.0 with the view's changes in flight a list, and one withdrawn | — |
 | `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 224 |
-| `crates/core/` unit tests | Each type and each step in isolation | 343 |
-| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them under bounds of one to three, liveness's invariants, removal's, the epoch's and the changes in flight's; logs replayed | 255 |
+| `crates/core/` unit tests | Each type and each step in isolation | 346 |
+| `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them under bounds of one to three, liveness's invariants, removal's, the epoch's and the changes in flight's, and peer ids renamed answering alike; logs replayed | 256 |
 | `validation/core-validation/` | Multi-node deterministic scenarios | 39 |
 | `validation/memory/` | A counting allocator: a conclusion holding more for more peers and nothing for duplicates and probes, a thousand probe periods and a hundred membership changes holding what one does, nothing after a drop | 10 |
 | `crates/protocol/` | Message translation and protocol runtime, the newcomer and the probe relay among it | 123 |
@@ -342,7 +345,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 |---|---|
 | Core productive LOC | ~2,550 |
 | Specification | [`spec/`](./spec/SPEC.md) 0.9.0 — its independent model and the crate answer all 125 vectors in force as written, the released ones kept as released and re-encoded twice, changing no answer, and one withdrawn to correct a defect |
-| Total tests | 2,134 |
+| Total tests | 2,138 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |
 | Crappy functions (CRAP score) | 0 |
@@ -488,7 +491,7 @@ MIT. See [LICENSE](./LICENSE).
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — the design, and how the crate implements the specification
 - [ADRs](./docs/ADRs/) — architecture decision records: the design rationale, one property per file
 - [ROADMAP.md](./docs/ROADMAP.md) — phased development plan (Phases 1–6)
-- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions (quorum change, `PeerId` genericization)
+- [OPEN_POINTS.md](./docs/OPEN_POINTS.md) — open design questions
 - [CHANGELOG.md](./CHANGELOG.md) — version history
 - [ETHEREUM.md](./docs/ETHEREUM.md) — why `faction` matters to the Ethereum ecosystem
 - [DONATE.md](./DONATE.md) — support the project

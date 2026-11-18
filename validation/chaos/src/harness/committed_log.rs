@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 use faction::types::Epoch;
-use faction::types::PeerId;
 use faction_protocol::commit::Commit;
 use faction_system_tests::infra::proposal::Proposal;
 use faction_system_tests::membership::Membership;
@@ -101,7 +100,7 @@ impl CommittedLog {
 
     // The epoch `peer_id` was last removed at, if the log leaves it removed.
     #[must_use]
-    pub fn removed_at(&self, peer_id: PeerId) -> Option<Epoch> {
+    pub fn removed_at(&self, peer_id: u64) -> Option<Epoch> {
         if self.membership().peers.contains(&peer_id) {
             return None;
         }

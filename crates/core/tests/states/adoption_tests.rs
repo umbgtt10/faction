@@ -30,7 +30,7 @@ fn view_of(stage: &Stage) -> ClusterView {
 #[test]
 fn of_anything_but_a_membership_is_none() {
     // Arrange & Act
-    let adoption = Adoption::of(&Command::Probe);
+    let adoption = Adoption::<u64>::of(&Command::Probe);
 
     // Assert
     assert!(adoption.is_none());

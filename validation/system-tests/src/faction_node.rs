@@ -13,7 +13,6 @@ use std::mem::take;
 use faction::no_op_observer::NoOpObserver;
 use faction::peer_state::PeerState;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use faction_protocol::commit::Commit;
 use faction_protocol::input_message::InputMessage;
@@ -42,7 +41,7 @@ use crate::traits::roles::Roles;
 // created again at a membership; its roles made anew by `roles`.
 pub struct FactionNode {
     instance: InstanceId,
-    peers: Vec<PeerId>,
+    peers: Vec<u64>,
     role: Role,
     transport: Box<dyn Transport>,
     timer: Box<dyn Timer>,
@@ -82,15 +81,15 @@ impl FactionNode {
         node
     }
 
-    pub fn abort_addition(&mut self, peer_id: PeerId) {
+    pub fn abort_addition(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.abort_addition(peer_id));
     }
 
-    pub fn abort_removal(&mut self, peer_id: PeerId) {
+    pub fn abort_removal(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.abort_removal(peer_id));
     }
 
-    pub fn admit(&mut self, peer_id: PeerId) {
+    pub fn admit(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.admit(peer_id));
         self.read_members();
     }
@@ -104,27 +103,27 @@ impl FactionNode {
         });
     }
 
-    pub fn commit_addition(&mut self, peer_id: PeerId, epoch: Epoch) {
+    pub fn commit_addition(&mut self, peer_id: u64, epoch: Epoch) {
         self.command(|protocol| protocol.commit(Commit::Addition { peer_id, epoch }));
         self.read_members();
     }
 
-    pub fn commit_removal(&mut self, peer_id: PeerId, epoch: Epoch) {
+    pub fn commit_removal(&mut self, peer_id: u64, epoch: Epoch) {
         self.command(|protocol| protocol.commit(Commit::Removal { peer_id, epoch }));
         self.read_members();
     }
 
     // The link to `peer_id` cut, as the transport this node's cuts are shared
     // with drops what crosses it.
-    pub fn cut(&mut self, peer_id: PeerId) {
+    pub fn cut(&mut self, peer_id: u64) {
         self.faults.cuts.cut(peer_id);
     }
 
-    pub fn decline(&mut self, peer_id: PeerId, epoch: Epoch) {
+    pub fn decline(&mut self, peer_id: u64, epoch: Epoch) {
         self.command(|protocol| protocol.decline(peer_id, epoch));
     }
 
-    pub fn deny(&mut self, peer_id: PeerId) {
+    pub fn deny(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.deny(peer_id));
     }
 
@@ -143,7 +142,7 @@ impl FactionNode {
         self.snapshot().member_count
     }
 
-    pub fn mend(&mut self, peer_id: PeerId) {
+    pub fn mend(&mut self, peer_id: u64) {
         self.faults.cuts.mend(peer_id);
     }
 
@@ -152,15 +151,15 @@ impl FactionNode {
         self.snapshot().peer_state
     }
 
-    pub fn request_addition(&mut self, peer_id: PeerId) {
+    pub fn request_addition(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.request_addition(peer_id));
     }
 
-    pub fn request_join(&mut self, peer_id: PeerId) {
+    pub fn request_join(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.request_join(peer_id));
     }
 
-    pub fn request_removal(&mut self, peer_id: PeerId) {
+    pub fn request_removal(&mut self, peer_id: u64) {
         self.command(|protocol| protocol.request_removal(peer_id));
     }
 

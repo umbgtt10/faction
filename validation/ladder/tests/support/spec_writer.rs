@@ -3,6 +3,7 @@
 
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::conclusion::Conclusion;
 use faction::config::Config;
 use faction::instance::receipt::Receipt;
@@ -12,7 +13,6 @@ use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use serde_json::Value;
 use serde_json::json;
 
@@ -127,11 +127,11 @@ impl SpecWriter {
         json!({ "command": Self::command(command), "receipt": Self::receipt(receipt) })
     }
 
-    fn admissible(commands: &[Command]) -> Value {
+    fn admissible(kinds: &[CommandKind]) -> Value {
         Value::Array(
-            commands
+            kinds
                 .iter()
-                .map(|command| Value::from(Self::name(command)))
+                .map(|kind| Value::from(format!("{kind:?}")))
                 .collect(),
         )
     }
@@ -264,7 +264,7 @@ impl SpecWriter {
         }
     }
 
-    fn peer(name: &str, peer_id: PeerId) -> Value {
+    fn peer(name: &str, peer_id: u64) -> Value {
         json!({ name: { "peer_id": Self::number(peer_id) } })
     }
 
@@ -280,7 +280,7 @@ impl SpecWriter {
         json!({ name: {} })
     }
 
-    fn peers(peers: &[PeerId]) -> Value {
+    fn peers(peers: &[u64]) -> Value {
         Value::Array(peers.iter().map(|peer| Self::number(*peer)).collect())
     }
 

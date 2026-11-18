@@ -5,20 +5,19 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
-pub type ChannelRegistry = Arc<Mutex<Vec<(PeerId, Sender<TransportMessage>)>>>;
+pub type ChannelRegistry = Arc<Mutex<Vec<(u64, Sender<TransportMessage>)>>>;
 
 pub struct ChannelsTransport {
-    peer_id: PeerId,
+    peer_id: u64,
     inbox: Receiver<TransportMessage>,
     registry: ChannelRegistry,
 }
 
 impl ChannelsTransport {
-    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<ChannelsTransport> {
+    pub fn new_mesh(peer_ids: &[u64]) -> Vec<ChannelsTransport> {
         let registry: ChannelRegistry = Arc::new(Mutex::new(Vec::new()));
 
         peer_ids
@@ -36,7 +35,7 @@ impl ChannelsTransport {
     }
 
     #[must_use]
-    pub fn join_mesh(peer_id: PeerId, registry: ChannelRegistry) -> ChannelsTransport {
+    pub fn join_mesh(peer_id: u64, registry: ChannelRegistry) -> ChannelsTransport {
         let (tx, rx) = channel();
         registry.lock().unwrap().push((peer_id, tx));
         ChannelsTransport {
@@ -53,7 +52,7 @@ impl ChannelsTransport {
 }
 
 impl Transport for ChannelsTransport {
-    fn send(&mut self, to: PeerId, message: TransportMessage) {
+    fn send(&mut self, to: u64, message: TransportMessage) {
         if to == self.peer_id {
             return;
         }

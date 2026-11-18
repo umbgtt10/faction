@@ -4,7 +4,6 @@
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use faction_protocol::commit::Commit;
 use faction_system_tests::node_snapshot::NodeSnapshot;
 
@@ -17,8 +16,8 @@ use crate::harness::committed_log::CommittedLog;
 // the epoch of its removal; and a newcomer it never added still waiting.
 pub struct ExpectedEnd {
     member: NodeSnapshot,
-    named: Vec<PeerId>,
-    removals: Vec<(PeerId, Epoch)>,
+    named: Vec<u64>,
+    removals: Vec<(u64, Epoch)>,
 }
 
 impl ExpectedEnd {
@@ -63,7 +62,7 @@ impl ExpectedEnd {
     // What the node `peer_id`, as `snapshot` shows it, was expected to show,
     // if it shows something else.
     #[must_use]
-    pub fn departure(&self, peer_id: PeerId, snapshot: &NodeSnapshot) -> Option<String> {
+    pub fn departure(&self, peer_id: u64, snapshot: &NodeSnapshot) -> Option<String> {
         if let Some(&(_, epoch)) = self
             .removals
             .iter()

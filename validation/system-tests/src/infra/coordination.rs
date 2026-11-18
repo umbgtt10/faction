@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
-
 // How the nodes a cluster runs coordinate: the suspicion threshold each is
 // created with, and each one's bound of changes in flight, by its peer id --
 // 1 for a peer the list does not reach.
@@ -23,7 +21,7 @@ impl Coordination {
 
     // The bound of the node `peer_id`.
     #[must_use]
-    pub fn bound(&self, peer_id: PeerId) -> usize {
+    pub fn bound(&self, peer_id: u64) -> usize {
         usize::try_from(peer_id)
             .ok()
             .and_then(|index| self.bounds.get(index))

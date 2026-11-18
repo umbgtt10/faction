@@ -7,7 +7,6 @@ use std::net::{SocketAddr, TcpListener};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread::available_parallelism;
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 use tokio::net::TcpListener as TokioTcpListener;
@@ -28,8 +27,8 @@ use crate::infra::transport::wire_codec::WireCodec;
 use tokio::select;
 
 type Inbox = Arc<Mutex<VecDeque<TransportMessage>>>;
-type Clients = Arc<AsyncMutex<HashMap<PeerId, TransportClient<Channel>>>>;
-type Tx = UnboundedSender<(PeerId, TransportMessage)>;
+type Clients = Arc<AsyncMutex<HashMap<u64, TransportClient<Channel>>>>;
+type Tx = UnboundedSender<(u64, TransportMessage)>;
 
 pub struct GrpcTransport {
     inbox: Inbox,
@@ -47,7 +46,7 @@ impl Drop for GrpcTransport {
 }
 
 impl GrpcTransport {
-    pub fn new_mesh(peer_ids: &[PeerId]) -> Vec<GrpcTransport> {
+    pub fn new_mesh(peer_ids: &[u64]) -> Vec<GrpcTransport> {
         let rt = Self::runtime();
         let address_book: AddressBook = Arc::new(Mutex::new(Vec::new()));
         let mut inboxes = Vec::new();
@@ -86,7 +85,7 @@ impl GrpcTransport {
     }
 
     #[must_use]
-    pub fn join_mesh(peer_id: PeerId, address_book: AddressBook) -> GrpcTransport {
+    pub fn join_mesh(peer_id: u64, address_book: AddressBook) -> GrpcTransport {
         let _guard = Self::runtime().enter();
         let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
 
@@ -109,7 +108,7 @@ impl GrpcTransport {
         }
     }
 
-    pub fn new(listen_addr: SocketAddr, peer_addrs: &[(PeerId, SocketAddr)]) -> Self {
+    pub fn new(listen_addr: SocketAddr, peer_addrs: &[(u64, SocketAddr)]) -> Self {
         let _guard = Self::runtime().enter();
         let inbox: Inbox = Arc::new(Mutex::new(VecDeque::new()));
 
@@ -152,7 +151,7 @@ impl GrpcTransport {
     }
 
     fn spawn_sender(
-        mut rx: UnboundedReceiver<(PeerId, TransportMessage)>,
+        mut rx: UnboundedReceiver<(u64, TransportMessage)>,
         clients: Clients,
         address_book: AddressBook,
     ) {
@@ -199,7 +198,7 @@ impl GrpcTransport {
 }
 
 impl Transport for GrpcTransport {
-    fn send(&mut self, to: PeerId, m: TransportMessage) {
+    fn send(&mut self, to: u64, m: TransportMessage) {
         let _ = self._tx.send((to, m));
     }
 

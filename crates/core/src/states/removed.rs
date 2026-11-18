@@ -8,6 +8,7 @@ use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
@@ -17,22 +18,21 @@ use crate::stage::Stage;
 use crate::state::State;
 use crate::states::adoption::Adoption;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 // A node removed from its own cluster: it admits a membership and a probe
 // alone, and shows the membership it holds but itself, the peers it gathered
 // among its members, and no liveness. A membership that names it takes it back
 // to `Initial`.
 #[derive(Debug, Clone)]
-pub struct Removed {
-    peer_id: PeerId,
-    members: Members,
+pub struct Removed<P: PeerId = u64> {
+    peer_id: P,
+    members: Members<P>,
     quorum_policy: QuorumPolicy,
 }
 
-impl Removed {
+impl<P: PeerId> Removed<P> {
     #[must_use]
-    pub fn new(peer_id: PeerId, members: Members, quorum_policy: QuorumPolicy) -> Self {
+    pub fn new(peer_id: P, members: Members<P>, quorum_policy: QuorumPolicy) -> Self {
         Self {
             peer_id,
             members,
@@ -45,11 +45,11 @@ impl Removed {
     // that does not name it (§12, §16).
     #[must_use]
     pub fn departure(
-        command: &Command,
-        peer_id: PeerId,
-        members: &Members,
+        command: &Command<P>,
+        peer_id: P,
+        members: &Members<P>,
         quorum_policy: QuorumPolicy,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         match *command {
             Command::RemovalCommitted {
                 peer_id: removed, ..
@@ -62,10 +62,10 @@ impl Removed {
     // `Removed`, holding the members and the count it held.
     #[must_use]
     pub fn own_removal(
-        peer_id: PeerId,
-        members: &Members,
+        peer_id: P,
+        members: &Members<P>,
         quorum_policy: QuorumPolicy,
-    ) -> (Vec<Outcome>, Stage) {
+    ) -> (Vec<Outcome<P>>, Stage<P>) {
         (
             vec![Outcome::MemberRemoved { peer_id }],
             Stage::Removed(Self::new(peer_id, members.clone(), quorum_policy)),
@@ -73,17 +73,17 @@ impl Removed {
     }
 }
 
-impl State for Removed {
+impl<P: PeerId> State<P> for Removed<P> {
     fn step(
         &self,
-        command: Command,
-        _config: &Config,
+        command: Command<P>,
+        _config: &Config<P>,
         _epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         Adoption::of(&command).map(|adoption| adoption.taken_back(self.peer_id))
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView<P>) -> ClusterView<P> {
         let members = Members::new(
             self.members
                 .as_slice()

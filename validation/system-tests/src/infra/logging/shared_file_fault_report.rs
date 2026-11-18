@@ -3,7 +3,6 @@
 
 use std::sync::Arc;
 
-use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 
 use crate::infra::logging::shared_writer::SharedWriter;
@@ -25,7 +24,7 @@ impl SharedFileFaultReport {
 }
 
 impl FaultReport for SharedFileFaultReport {
-    fn report(&mut self, fault: &str, from: PeerId, to: PeerId, message: &TransportMessage) {
+    fn report(&mut self, fault: &str, from: u64, to: u64, message: &TransportMessage) {
         let timestamp = self.clock.now().to_stamp();
         self.writer.write_line(&format!(
             "{{\"timestamp\":\"{timestamp}\",\"peer_id\":{from},\"event\":\"fault\",\"fault\":\"{fault}\",\"to\":{to},\"message\":\"{message:?}\"}}"

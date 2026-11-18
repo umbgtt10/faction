@@ -7,12 +7,12 @@ use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
 use faction::faction::Faction;
+use faction::instance::peer_id::PeerId;
 use faction::outcome::Outcome;
 use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use crate::commit::Commit;
 use crate::input_message::InputMessage;
@@ -25,22 +25,17 @@ use crate::timer_event::TimerEvent;
 use crate::timer_message::TimerMessage;
 use crate::transport_message::TransportMessage;
 
-pub struct Protocol {
-    faction: Faction,
-    peers: Vec<PeerId>,
-    local_peer_id: PeerId,
+pub struct Protocol<P: PeerId = u64> {
+    faction: Faction<P>,
+    peers: Vec<P>,
+    local_peer_id: P,
     translator: MessageTranslator,
 }
 
-impl Protocol {
+impl<P: PeerId> Protocol<P> {
     // `helpers`: how many of the members a missed probe lists the node asks to
     // probe it.
-    pub fn new(
-        faction: Faction,
-        peers: Vec<PeerId>,
-        local_peer_id: PeerId,
-        helpers: usize,
-    ) -> Self {
+    pub fn new(faction: Faction<P>, peers: Vec<P>, local_peer_id: P, helpers: usize) -> Self {
         Self {
             faction,
             peers,
@@ -49,28 +44,28 @@ impl Protocol {
         }
     }
 
-    pub fn abort_addition(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn abort_addition(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::AdditionAborted { peer_id })
     }
 
-    pub fn abort_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn abort_removal(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::RemovalAborted { peer_id })
     }
 
-    pub fn admit(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn admit(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::JoinApproved { peer_id })
     }
 
-    pub fn cluster_view(&mut self) -> ClusterView {
+    pub fn cluster_view(&mut self) -> ClusterView<P> {
         ResultView::of(self.faction.process(Command::Probe).output)
     }
 
     // A change the layer above has committed, at its epoch.
-    pub fn commit(&mut self, commit: Commit) -> Vec<OutputMessage> {
+    pub fn commit(&mut self, commit: Commit<P>) -> Vec<OutputMessage<P>> {
         self.apply(commit.command())
     }
 
-    pub fn decide(&mut self, input_message: InputMessage) -> Vec<OutputMessage> {
+    pub fn decide(&mut self, input_message: InputMessage<P>) -> Vec<OutputMessage<P>> {
         match input_message {
             InputMessage::Timer(TimerMessage::RetryPing) => self.retry(TimerMessage::RetryPing),
             InputMessage::Timer(TimerMessage::RetryReady) => self.retry(TimerMessage::RetryReady),
@@ -103,19 +98,19 @@ impl Protocol {
     }
 
     // A proposal the layer above declined at `epoch`, decided again (§17).
-    pub fn decline(&mut self, peer_id: PeerId, epoch: Epoch) -> Vec<OutputMessage> {
+    pub fn decline(&mut self, peer_id: P, epoch: Epoch) -> Vec<OutputMessage<P>> {
         self.apply(Command::ProposalDeclined { peer_id, epoch })
     }
 
-    pub fn deny(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn deny(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::JoinRejected { peer_id })
     }
 
-    pub fn expire_deadline(&mut self) -> Vec<OutputMessage> {
+    pub fn expire_deadline(&mut self) -> Vec<OutputMessage<P>> {
         self.apply(Command::DeadlineExpired)
     }
 
-    pub fn initialize(&mut self) -> Vec<OutputMessage> {
+    pub fn initialize(&mut self) -> Vec<OutputMessage<P>> {
         let epoch = self.cluster_view().epoch();
         let mut actions = Vec::new();
 
@@ -142,24 +137,24 @@ impl Protocol {
     // Whether `message` invites this node, removed from its cluster, to join
     // it again: a membership addressed to it, which a removed node takes as a
     // newcomer does, created again from it.
-    pub fn invites(&mut self, message: &TransportMessage) -> bool {
+    pub fn invites(&mut self, message: &TransportMessage<P>) -> bool {
         Offer::of(message, self.local_peer_id).is_some()
             && self.cluster_view().peer_state() == PeerState::Removed
     }
 
-    pub fn request_addition(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn request_addition(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::AdditionRequested { peer_id })
     }
 
-    pub fn request_join(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn request_join(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::JoinRequested { peer_id })
     }
 
-    pub fn request_removal(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    pub fn request_removal(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         self.apply(Command::RemovalRequested { peer_id })
     }
 
-    fn apply(&mut self, command: Command) -> Vec<OutputMessage> {
+    fn apply(&mut self, command: Command<P>) -> Vec<OutputMessage<P>> {
         match self.faction.process(command).output {
             ProcessResult::Accepted {
                 outcomes,
@@ -176,7 +171,7 @@ impl Protocol {
 
     // A probe period on a concluded node: the member to probe probed, and the
     // next period scheduled; nothing before the node concludes.
-    fn probe_period(&mut self) -> Vec<OutputMessage> {
+    fn probe_period(&mut self) -> Vec<OutputMessage<P>> {
         if self.cluster_view().peer_state() == PeerState::Bootstrapped {
             self.apply(Command::ProbeDue)
                 .into_iter()
@@ -193,7 +188,7 @@ impl Protocol {
 
     // The membership sent again while its addition waits for the newcomer's
     // acknowledgement, and its retry with it; nothing once it has come.
-    fn resend_membership(&mut self, peer_id: PeerId) -> Vec<OutputMessage> {
+    fn resend_membership(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
         let view = self.cluster_view();
         if view
             .reconfigurations()
@@ -211,7 +206,7 @@ impl Protocol {
 
     // A broadcast repeated at the node's epoch, and its retry with it, until
     // the node concludes or is removed.
-    fn retry(&mut self, retry: TimerMessage) -> Vec<OutputMessage> {
+    fn retry(&mut self, retry: TimerMessage<P>) -> Vec<OutputMessage<P>> {
         let view = self.cluster_view();
         let epoch = view.epoch();
         match (view.peer_state(), &retry) {

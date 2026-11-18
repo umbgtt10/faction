@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_system_tests::infra::dice::Dice;
 
 use crate::draw::change_draw::ChangeDraw;
@@ -81,21 +80,21 @@ impl Generator {
 
     // Every peer the scenario runs: the genesis peers and the newcomers its
     // changes add.
-    fn peers(nodes: usize, changes: &[PlannedChange]) -> Vec<PeerId> {
+    fn peers(nodes: usize, changes: &[PlannedChange]) -> Vec<u64> {
         let newcomers = changes
             .iter()
             .filter_map(|planned| match planned.change {
-                Change::Addition { peer_id } if peer_id >= nodes as PeerId => Some(peer_id),
+                Change::Addition { peer_id } if peer_id >= nodes as u64 => Some(peer_id),
                 _ => None,
             })
             .max()
-            .map_or(nodes as PeerId, |last| last + 1);
+            .map_or(nodes as u64, |last| last + 1);
         (0..newcomers).collect()
     }
 
     // The genesis peers no change removes.
-    fn stable(nodes: usize, changes: &[PlannedChange]) -> Vec<PeerId> {
-        (0..nodes as PeerId)
+    fn stable(nodes: usize, changes: &[PlannedChange]) -> Vec<u64> {
+        (0..nodes as u64)
             .filter(|peer_id| {
                 !changes
                     .iter()

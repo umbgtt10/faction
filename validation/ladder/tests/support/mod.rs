@@ -6,6 +6,7 @@ pub mod log_replay;
 pub mod matrix_table;
 pub mod random_commands;
 pub mod recording_observer;
+pub mod renamed_peer;
 pub mod replay_report;
 pub mod spec_files;
 pub mod spec_log;

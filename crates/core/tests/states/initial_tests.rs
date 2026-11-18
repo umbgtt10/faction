@@ -42,7 +42,7 @@ fn test_faction() -> Faction {
 #[test]
 fn cluster_view_inherits_correctly() {
     // Arrange
-    let prev = ClusterViewBuilder::default()
+    let prev = ClusterViewBuilder::<u64>::default()
         .with_peer_state(PeerState::Collecting)
         .with_is_pinging_completed(true)
         .with_pinging_peers(vec![99])
@@ -51,8 +51,8 @@ fn cluster_view_inherits_correctly() {
         .build();
 
     // Act
-    let result =
-        Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4)).cluster_view(&prev);
+    let result = Initial::<u64>::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4))
+        .cluster_view(&prev);
 
     // Assert
     assert_eq!(result.peer_state(), PeerState::Fresh);
@@ -66,8 +66,8 @@ fn cluster_view_inherits_correctly() {
 #[test]
 fn new_returns_initial_state() {
     // Arrange & Act
-    let initial = Initial::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
-    let config = Config::new(
+    let initial = Initial::<u64>::new(Members::new(vec![0, 1, 2, 3, 4]), QuorumPolicy::new(4));
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -98,7 +98,7 @@ fn new_returns_initial_state() {
     assert!(
         !new_state
             .cluster_view(
-                &ClusterViewBuilder::default()
+                &ClusterViewBuilder::<u64>::default()
                     .with_peer_state(PeerState::Pinging)
                     .with_pinging_peers(vec![0])
                     .with_required_count(1)
@@ -220,8 +220,8 @@ fn process_addition_committed_admits_the_peer_and_stays_fresh() {
 #[test]
 fn process_local_participation_completed_single_node_bootstraps() {
     // Arrange
-    let mut faction = Faction::new(
-        Config::new(
+    let mut faction = Faction::<u64>::new(
+        Config::<u64>::new(
             InstanceId {
                 node: 0,
                 incarnation: 1,
@@ -515,8 +515,8 @@ fn process_stays_in_initial_after_rejected() {
 #[test]
 fn step_of_a_membership_naming_the_node_keeps_it_initial_holding_the_membership() {
     // Arrange
-    let initial = Initial::new(Members::new(vec![0, 1, 2]), QuorumPolicy::new(3));
-    let config = Config::new(
+    let initial = Initial::<u64>::new(Members::new(vec![0, 1, 2]), QuorumPolicy::new(3));
+    let config = Config::<u64>::new(
         InstanceId {
             node: 0,
             incarnation: 1,
@@ -543,9 +543,9 @@ fn step_of_a_membership_naming_the_node_keeps_it_initial_holding_the_membership(
         .expect("a membership is admitted");
 
     // Assert
-    let view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    let view = stage.cluster_view(&ClusterViewBuilder::<u64>::default().build());
     assert_eq!(outcomes, vec![Outcome::MembershipAdopted { epoch: 1 }]);
     assert_eq!(view.peer_state(), PeerState::Fresh);
-    assert_eq!(view.members(), &Members::new(vec![2, 0]));
+    assert_eq!(view.members(), &Members::<u64>::new(vec![2, 0]));
     assert_eq!(view.required_count(), 2);
 }

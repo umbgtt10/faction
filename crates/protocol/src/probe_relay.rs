@@ -4,7 +4,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 
-use faction::types::PeerId;
+use faction::instance::peer_id::PeerId;
 
 use crate::output_message::OutputMessage;
 use crate::transport_message::TransportMessage;
@@ -17,7 +17,10 @@ pub struct ProbeRelay;
 
 impl ProbeRelay {
     #[must_use]
-    pub fn reply(local_peer_id: PeerId, message: &TransportMessage) -> Vec<OutputMessage> {
+    pub fn reply<P: PeerId>(
+        local_peer_id: P,
+        message: &TransportMessage<P>,
+    ) -> Vec<OutputMessage<P>> {
         match *message {
             TransportMessage::Probe { from, relay_for } => vec![OutputMessage::Send {
                 to: from,

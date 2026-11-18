@@ -33,7 +33,7 @@ fn helpers_start_after_the_missed_member_and_wrap_around() {
 #[test]
 fn last_probed_of_a_node_that_never_probed_is_no_one() {
     // Arrange
-    let probing = Probing::default();
+    let probing: Probing = Probing::default();
 
     // Act
     let last_probed = probing.last_probed();
@@ -86,10 +86,10 @@ fn probe_after_the_last_member_wraps_past_the_node_to_the_first_other() {
 #[test]
 fn probe_of_a_node_alone_has_no_one_to_probe() {
     // Arrange
-    let probing = Probing::default();
+    let probing = Probing::<u64>::default();
 
     // Act
-    let (outcomes, probed) = probing.probe(&Members::new(vec![0]), 0);
+    let (outcomes, probed) = probing.probe(&Members::<u64>::new(vec![0]), 0);
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::NothingToProbe]);
@@ -99,10 +99,10 @@ fn probe_of_a_node_alone_has_no_one_to_probe() {
 #[test]
 fn probe_with_no_one_probed_names_the_first_member_but_the_node() {
     // Arrange
-    let probing = Probing::default();
+    let probing = Probing::<u64>::default();
 
     // Act
-    let (outcomes, probed) = probing.probe(&Members::new(vec![3, 1, 2]), 3);
+    let (outcomes, probed) = probing.probe(&Members::<u64>::new(vec![3, 1, 2]), 3);
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::SendProbe { peer_id: 1 }]);

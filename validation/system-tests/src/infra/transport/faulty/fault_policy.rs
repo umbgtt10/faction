@@ -4,8 +4,6 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use faction::types::PeerId;
-
 use crate::infra::transport::faulty::message_kind::MessageKind;
 
 /// A node's transport faults, plus the seed that makes every misbehaving decision
@@ -31,7 +29,7 @@ pub struct FaultPolicy {
     pub selective_target: MessageKind,
     pub misdelivery: u8,
     pub first_contact_lost: u8,
-    pub unreachable: Vec<PeerId>,
+    pub unreachable: Vec<u64>,
     pub head_of_line: bool,
     pub inbox: usize,
     pub size_loss: u8,

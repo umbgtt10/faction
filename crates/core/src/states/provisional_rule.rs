@@ -4,8 +4,8 @@
 use alloc::vec::Vec;
 
 use crate::command::Command;
+use crate::instance::peer_id::PeerId;
 use crate::outcome::Outcome;
-use crate::types::PeerId;
 
 // What a provisional membership decides (§16): a node holding one sends a
 // peer behind no membership, holding none the layer above committed, and
@@ -13,14 +13,14 @@ use crate::types::PeerId;
 // being provisional, once and for all, when it applies the commit of its own
 // addition, adopts a membership, or is removed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ProvisionalRule {
-    peer_id: PeerId,
+pub struct ProvisionalRule<P: PeerId = u64> {
+    peer_id: P,
     provisional: bool,
 }
 
-impl ProvisionalRule {
+impl<P: PeerId> ProvisionalRule<P> {
     #[must_use]
-    pub const fn new(peer_id: PeerId, provisional: bool) -> Self {
+    pub const fn new(peer_id: P, provisional: bool) -> Self {
         Self {
             peer_id,
             provisional,
@@ -30,18 +30,18 @@ impl ProvisionalRule {
     // Whether the node's membership is still provisional once `command` is
     // answered with `outcomes`.
     #[must_use]
-    pub fn after(&self, command: &Command, outcomes: &[Outcome]) -> bool {
+    pub fn after(&self, command: &Command<P>, outcomes: &[Outcome<P>]) -> bool {
         self.provisional && !self.ends(command, outcomes)
     }
 
     // The outcomes as the node gives them: at a provisional node, without
     // the membership a claim from behind would send its peer.
     #[must_use]
-    pub fn answered(&self, outcomes: Vec<Outcome>) -> Vec<Outcome> {
+    pub fn answered(&self, outcomes: Vec<Outcome<P>>) -> Vec<Outcome<P>> {
         if !self.provisional {
             return outcomes;
         }
-        let refused: Vec<PeerId> = outcomes
+        let refused: Vec<P> = outcomes
             .iter()
             .filter_map(|outcome| match outcome {
                 Outcome::StaleEpochIgnored { peer_id, .. } => Some(*peer_id),
@@ -59,7 +59,7 @@ impl ProvisionalRule {
     // The answer a provisional node gives a change it is asked to coordinate,
     // in place of the stage's: refused, naming the change's peer.
     #[must_use]
-    pub fn refusal(&self, command: &Command) -> Option<Outcome> {
+    pub fn refusal(&self, command: &Command<P>) -> Option<Outcome<P>> {
         match *command {
             Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id }
                 if self.provisional =>
@@ -72,7 +72,7 @@ impl ProvisionalRule {
 
     // Whether the answer ends a provisional membership: a membership adopted,
     // or a commit of the node's own addition or removal applied.
-    fn ends(&self, command: &Command, outcomes: &[Outcome]) -> bool {
+    fn ends(&self, command: &Command<P>, outcomes: &[Outcome<P>]) -> bool {
         let own = matches!(
             *command,
             Command::AdditionCommitted { peer_id, .. } | Command::RemovalCommitted { peer_id, .. }

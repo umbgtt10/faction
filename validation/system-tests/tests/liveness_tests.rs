@@ -8,7 +8,6 @@
 use crate::support::log_dir;
 use crate::support::real_time;
 use faction::quorum::Quorum;
-use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::join::committer::Committer;
@@ -19,7 +18,7 @@ use rstest::rstest;
 use std::path::PathBuf;
 
 const COORDINATOR: usize = 1;
-const NEWCOMER: PeerId = 3;
+const NEWCOMER: u64 = 3;
 // Rounds a cut is left for, per unit of stretch: longer than a member cut off
 // would take to be suspected, were it not saved.
 const SETTLE_ROUNDS_PER_STRETCH: usize = 60;
@@ -210,7 +209,7 @@ fn silencing_too_many_loses_quorum_and_their_return_restores_it(
 }
 
 // Whether every node of `nodes` suspects `peer_id`.
-fn suspected_by(cluster: &Cluster, nodes: &[usize], peer_id: PeerId) -> bool {
+fn suspected_by(cluster: &Cluster, nodes: &[usize], peer_id: u64) -> bool {
     nodes
         .iter()
         .all(|index| cluster.snapshot(*index).suspected.contains(&peer_id))

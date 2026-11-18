@@ -15,7 +15,7 @@ fn new_adds_peer_when_not_dup() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = ReadyStep::new(confirmed, 3, QuorumPolicy::new(10));
+    let step: ReadyStep = ReadyStep::new(confirmed, 3, QuorumPolicy::new(10));
 
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
@@ -29,7 +29,7 @@ fn new_does_not_add_when_duplicate() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = ReadyStep::new(confirmed.clone(), 2, QuorumPolicy::new(10));
+    let step = ReadyStep::<u64>::new(confirmed.clone(), 2, QuorumPolicy::new(10));
 
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);
@@ -43,7 +43,7 @@ fn new_does_not_add_when_duplicate() {
 #[test]
 fn new_reaches_quorum_when_threshold_is_met() {
     // Arrange
-    let step = ReadyStep::new(vec![1, 2, 3], 99, QuorumPolicy::new(4));
+    let step = ReadyStep::<u64>::new(vec![1, 2, 3], 99, QuorumPolicy::new(4));
 
     // Act & Assert
     assert!(step.is_quorum());

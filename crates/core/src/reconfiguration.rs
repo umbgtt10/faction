@@ -1,13 +1,13 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::types::PeerId;
+use crate::instance::peer_id::PeerId;
 
 // A change in flight, as the view shows it: an addition requested of a peer or
 // acknowledged by it, or the removal of a peer requested.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Reconfiguration {
-    AdditionRequested { peer_id: PeerId },
-    AdditionAcknowledged { peer_id: PeerId },
-    RemovalRequested { peer_id: PeerId },
+pub enum Reconfiguration<P: PeerId = u64> {
+    AdditionRequested { peer_id: P },
+    AdditionAcknowledged { peer_id: P },
+    RemovalRequested { peer_id: P },
 }

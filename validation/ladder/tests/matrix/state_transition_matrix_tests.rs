@@ -17,6 +17,7 @@ use crate::support::spec_writer::SpecWriter;
 use alloc::vec;
 use alloc::vec::Vec;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::conclusion::Conclusion;
 use faction::outcome::Outcome;
 use faction::outcome::Outcome::*;
@@ -1010,7 +1011,7 @@ fn valid_transition(
     #[case] command: Command,
     #[case] expected_results: &[Outcome],
     #[case] asserts: &[Assert],
-    #[case] expected_admissible: Vec<Command>,
+    #[case] expected_admissible: Vec<CommandKind>,
 ) {
     // Arrange
     let table = MatrixTable::new(SpecFiles::matrix());

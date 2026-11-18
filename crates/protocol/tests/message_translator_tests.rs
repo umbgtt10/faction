@@ -36,7 +36,8 @@ fn default_translates_as_new_does() {
     let translator: MessageTranslator = defaulted();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired), 0);
+    let command =
+        translator.to_command::<u64>(InputMessage::Timer(TimerMessage::DeadlineExpired), 0);
 
     // Assert
     assert_eq!(command, Command::DeadlineExpired);
@@ -49,11 +50,11 @@ fn to_command_of_a_peer_s_signal_carries_its_epoch_and_of_a_timer_s_the_node_s()
 
     // Act
     let commands = [
-        translator.to_command(
+        translator.to_command::<u64>(
             InputMessage::Transport(TransportMessage::Ready { from: 2, epoch: 3 }),
             5,
         ),
-        translator.to_command(
+        translator.to_command::<u64>(
             InputMessage::Timer(TimerMessage::ParticipationObserved { peer_id: 2 }),
             5,
         ),
@@ -81,7 +82,8 @@ fn to_command_timer_deadline_expired_maps_to_deadline_expired() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(InputMessage::Timer(TimerMessage::DeadlineExpired), 0);
+    let command =
+        translator.to_command::<u64>(InputMessage::Timer(TimerMessage::DeadlineExpired), 0);
 
     // Assert
     assert_eq!(command, Command::DeadlineExpired);
@@ -93,7 +95,7 @@ fn to_command_timer_indirect_probes_missed_maps_to_indirect_probes_missed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Timer(TimerMessage::IndirectProbesMissed { peer_id: 2 }),
         0,
     );
@@ -108,7 +110,7 @@ fn to_command_timer_local_participation_completed_maps_to_local_participation_co
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Timer(TimerMessage::LocalParticipationCompleted),
         0,
     );
@@ -123,7 +125,7 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Timer(TimerMessage::ParticipationObserved { peer_id: 3 }),
         0,
     );
@@ -142,7 +144,7 @@ fn to_command_timer_participation_observed_maps_to_participation_observed() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_timer_probe_due_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(InputMessage::Timer(TimerMessage::ProbeDue), 0);
+    let _ = translator().to_command::<u64>(InputMessage::Timer(TimerMessage::ProbeDue), 0);
 }
 
 #[test]
@@ -151,7 +153,7 @@ fn to_command_timer_probe_missed_maps_to_probe_missed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Timer(TimerMessage::ProbeMissed { peer_id: 2 }),
         0,
     );
@@ -164,7 +166,7 @@ fn to_command_timer_probe_missed_maps_to_probe_missed() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_timer_retry_membership_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(
+    let _ = translator().to_command::<u64>(
         InputMessage::Timer(TimerMessage::RetryMembership { peer_id: 5 }),
         0,
     );
@@ -177,7 +179,7 @@ fn to_command_timer_retry_ping_panics() {
     let translator = translator();
 
     // Act & Assert
-    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryPing), 0);
+    let _ = translator.to_command::<u64>(InputMessage::Timer(TimerMessage::RetryPing), 0);
 }
 
 #[test]
@@ -187,7 +189,7 @@ fn to_command_timer_retry_ready_panics() {
     let translator = translator();
 
     // Act & Assert
-    let _ = translator.to_command(InputMessage::Timer(TimerMessage::RetryReady), 0);
+    let _ = translator.to_command::<u64>(InputMessage::Timer(TimerMessage::RetryReady), 0);
 }
 
 #[test]
@@ -196,7 +198,7 @@ fn to_command_transport_bootstrapped_maps_to_probe() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Transport(TransportMessage::Bootstrapped { from: 1 }),
         0,
     );
@@ -211,7 +213,7 @@ fn to_command_transport_indirect_probe_answer_maps_to_the_target_heard() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Transport(TransportMessage::IndirectProbeAnswer { from: 1, target: 2 }),
         0,
     );
@@ -224,7 +226,7 @@ fn to_command_transport_indirect_probe_answer_maps_to_the_target_heard() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_indirect_probe_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(
+    let _ = translator().to_command::<u64>(
         InputMessage::Transport(TransportMessage::IndirectProbe { from: 1, target: 2 }),
         0,
     );
@@ -236,7 +238,7 @@ fn to_command_transport_membership_acknowledged_maps_to_membership_acknowledged(
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Transport(TransportMessage::MembershipAcknowledged { from: 5, epoch: 0 }),
         0,
     );
@@ -255,7 +257,7 @@ fn to_command_transport_membership_acknowledged_maps_to_membership_acknowledged(
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_membership_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(
+    let _ = translator().to_command::<u64>(
         InputMessage::Transport(TransportMessage::Membership {
             from: 0,
             to: 0,
@@ -273,7 +275,7 @@ fn to_command_transport_ping_maps_to_participation_observed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Transport(TransportMessage::Ping { from: 42, epoch: 0 }),
         0,
     );
@@ -294,7 +296,7 @@ fn to_command_transport_probe_answer_maps_to_the_member_heard() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Transport(TransportMessage::ProbeAnswer {
             from: 2,
             relay_for: None,
@@ -310,7 +312,7 @@ fn to_command_transport_probe_answer_maps_to_the_member_heard() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_probe_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(
+    let _ = translator().to_command::<u64>(
         InputMessage::Transport(TransportMessage::Probe {
             from: 1,
             relay_for: None,
@@ -325,7 +327,7 @@ fn to_command_transport_ready_maps_to_ready_observed() {
     let translator = translator();
 
     // Act
-    let command = translator.to_command(
+    let command = translator.to_command::<u64>(
         InputMessage::Transport(TransportMessage::Ready { from: 7, epoch: 0 }),
         0,
     );
@@ -344,7 +346,7 @@ fn to_command_transport_ready_maps_to_ready_observed() {
 #[should_panic(expected = "handled in decide()")]
 fn to_command_transport_relayed_probe_answer_panics() {
     // Arrange & Act & Assert
-    let _ = translator().to_command(
+    let _ = translator().to_command::<u64>(
         InputMessage::Transport(TransportMessage::ProbeAnswer {
             from: 1,
             relay_for: Some(2),
@@ -359,8 +361,11 @@ fn to_output_messages_acknowledge_rejoin_sends_the_readiness_to_that_peer_alone(
     let translator = translator();
 
     // Act
-    let result =
-        translator.to_output_messages(vec![Outcome::AcknowledgeRejoin { peer_id: 1 }], &view(), 0);
+    let result = translator.to_output_messages::<u64>(
+        vec![Outcome::AcknowledgeRejoin { peer_id: 1 }],
+        &view(),
+        0,
+    );
 
     // Assert
     assert_eq!(
@@ -378,8 +383,11 @@ fn to_output_messages_addition_withdrawn_cancels_the_retry() {
     let translator = translator();
 
     // Act
-    let result =
-        translator.to_output_messages(vec![Outcome::AdditionWithdrawn { peer_id: 5 }], &view(), 0);
+    let result = translator.to_output_messages::<u64>(
+        vec![Outcome::AdditionWithdrawn { peer_id: 5 }],
+        &view(),
+        0,
+    );
 
     // Assert
     assert_eq!(
@@ -397,7 +405,7 @@ fn to_output_messages_alive_noted_cancels_the_member_s_timeouts() {
 
     // Act
     let outputs =
-        translator.to_output_messages(vec![Outcome::AliveNoted { peer_id: 2 }], &view(), 0);
+        translator.to_output_messages::<u64>(vec![Outcome::AliveNoted { peer_id: 2 }], &view(), 0);
 
     // Assert
     assert_eq!(
@@ -417,7 +425,7 @@ fn to_output_messages_all_non_matching_returns_noop() {
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![
             Outcome::ParticipationAccepted { peer_id: 0 },
             Outcome::ReadyAccepted { peer_id: 1 },
@@ -439,7 +447,8 @@ fn to_output_messages_broadcast_local_ready_returns_broadcast_and_retry() {
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(vec![Outcome::BroadcastLocalReady], &view(), 0);
+    let result =
+        translator.to_output_messages::<u64>(vec![Outcome::BroadcastLocalReady], &view(), 0);
 
     // Assert
     assert_eq!(result.len(), 2);
@@ -456,7 +465,7 @@ fn to_output_messages_broadcast_local_ready_then_concluded_returns_both_in_order
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![
             Outcome::BroadcastLocalReady,
             Outcome::Concluded {
@@ -487,7 +496,7 @@ fn to_output_messages_concluded_then_broadcast_local_ready_returns_both_in_order
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![
             Outcome::Concluded {
                 mode: Conclusion::Bootstrapped,
@@ -518,7 +527,7 @@ fn to_output_messages_coordination_refused_asks_nothing() {
     let translator = translator();
 
     // Act
-    let outputs = translator.to_output_messages(
+    let outputs = translator.to_output_messages::<u64>(
         vec![Outcome::CoordinationRefused { peer_id: 7 }],
         &view(),
         0,
@@ -534,7 +543,7 @@ fn to_output_messages_empty_outcomes_returns_noop() {
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(vec![], &view(), 0);
+    let result = translator.to_output_messages::<u64>(vec![], &view(), 0);
 
     // Assert
     assert_eq!(result, vec![OutputMessage::Noop]);
@@ -546,7 +555,7 @@ fn to_output_messages_exited_returns_cancel_lpc_retry_ping_and_retry_ready_and_t
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![Outcome::Concluded {
             mode: Conclusion::Bootstrapped,
         }],
@@ -571,8 +580,11 @@ fn to_output_messages_member_removed_cancels_the_member_s_timeouts() {
     let translator = translator();
 
     // Act
-    let outputs =
-        translator.to_output_messages(vec![Outcome::MemberRemoved { peer_id: 2 }], &view(), 0);
+    let outputs = translator.to_output_messages::<u64>(
+        vec![Outcome::MemberRemoved { peer_id: 2 }],
+        &view(),
+        0,
+    );
 
     // Assert
     assert_eq!(
@@ -592,7 +604,7 @@ fn to_output_messages_of_a_completion_that_concludes_announces_readiness_and_sto
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![
             Outcome::LocalParticipationCompleted,
             Outcome::BroadcastLocalReady,
@@ -625,7 +637,7 @@ fn to_output_messages_peer_revived_cancels_the_member_s_timeouts() {
 
     // Act
     let outputs =
-        translator.to_output_messages(vec![Outcome::PeerRevived { peer_id: 2 }], &view(), 0);
+        translator.to_output_messages::<u64>(vec![Outcome::PeerRevived { peer_id: 2 }], &view(), 0);
 
     // Assert
     assert_eq!(
@@ -645,7 +657,7 @@ fn to_output_messages_propose_addition_proposes_it_at_the_view_s_epoch_and_cance
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![Outcome::ProposeAddition { peer_id: 5 }],
         &ClusterViewBuilder::from_view_at(&view(), 4, false).build(),
         0,
@@ -672,7 +684,7 @@ fn to_output_messages_propose_removal_proposes_it_at_the_view_s_epoch() {
     let translator = translator();
 
     // Act
-    let outputs = translator.to_output_messages(
+    let outputs = translator.to_output_messages::<u64>(
         vec![Outcome::ProposeRemoval { peer_id: 2 }],
         &ClusterViewBuilder::from_view_at(&view(), 4, false).build(),
         0,
@@ -694,7 +706,7 @@ fn to_output_messages_removal_refused_or_withdrawn_asks_nothing() {
     let translator = translator();
 
     // Act
-    let outputs = translator.to_output_messages(
+    let outputs = translator.to_output_messages::<u64>(
         vec![
             Outcome::RemovalRefused { peer_id: 2 },
             Outcome::RemovalWithdrawn { peer_id: 2 },
@@ -714,7 +726,7 @@ fn to_output_messages_send_indirect_probes_asks_each_listed_member_and_schedules
     let translator = translator();
 
     // Act
-    let outputs = translator.to_output_messages(
+    let outputs = translator.to_output_messages::<u64>(
         vec![Outcome::SendIndirectProbes {
             peer_id: 1,
             via: vec![2, 3],
@@ -748,7 +760,7 @@ fn to_output_messages_send_indirect_probes_asks_no_more_of_the_listed_members_th
     let translator = MessageTranslator::new(1);
 
     // Act
-    let outputs = translator.to_output_messages(
+    let outputs = translator.to_output_messages::<u64>(
         vec![Outcome::SendIndirectProbes {
             peer_id: 1,
             via: vec![2, 3],
@@ -778,8 +790,11 @@ fn to_output_messages_send_membership_sends_the_view_s_membership_and_schedules_
     let translator = translator();
 
     // Act
-    let result =
-        translator.to_output_messages(vec![Outcome::SendMembership { peer_id: 5 }], &view(), 0);
+    let result = translator.to_output_messages::<u64>(
+        vec![Outcome::SendMembership { peer_id: 5 }],
+        &view(),
+        0,
+    );
 
     // Assert
     assert_eq!(
@@ -812,7 +827,7 @@ fn to_output_messages_send_probe_sends_a_probe_and_schedules_its_timeout() {
 
     // Act
     let outputs =
-        translator.to_output_messages(vec![Outcome::SendProbe { peer_id: 2 }], &view(), 0);
+        translator.to_output_messages::<u64>(vec![Outcome::SendProbe { peer_id: 2 }], &view(), 0);
 
     // Assert
     assert_eq!(
@@ -836,7 +851,7 @@ fn to_output_messages_skips_non_matching_and_finds_broadcast_local_ready() {
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![
             Outcome::ParticipationAccepted { peer_id: 1 },
             Outcome::LocalParticipationCompleted,
@@ -857,7 +872,7 @@ fn to_output_messages_skips_non_matching_and_finds_exited() {
     let translator = translator();
 
     // Act
-    let result = translator.to_output_messages(
+    let result = translator.to_output_messages::<u64>(
         vec![
             Outcome::ReadyAccepted { peer_id: 2 },
             Outcome::Concluded {

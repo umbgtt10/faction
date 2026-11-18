@@ -14,7 +14,6 @@ use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use faction_protocol::input_message::InputMessage;
 use faction_protocol::newcomer::Newcomer;
@@ -37,7 +36,7 @@ const HELPERS: usize = 2;
 // each node's probe period and timeouts are held as the protocol schedules
 // them, and fire only when a test says that much time has passed.
 pub struct Cluster {
-    peer_ids: Vec<PeerId>,
+    peer_ids: Vec<u64>,
     incarnations: Vec<u64>,
     protocols: Vec<Protocol>,
     timers: Vec<InMemoryTimer>,
@@ -50,22 +49,22 @@ pub struct Cluster {
 
 // A newcomer connected to the cluster's transport, waiting for its membership.
 struct WaitingNewcomer {
-    pub peer_id: PeerId,
+    pub peer_id: u64,
     pub newcomer: Newcomer,
     pub transport: InMemoryTransport,
     pub timer: InMemoryTimer,
 }
 
 struct DropRule {
-    pub from: PeerId,
-    pub to: PeerId,
+    pub from: u64,
+    pub to: u64,
     pub message: TransportMessage,
     pub remaining: usize,
 }
 
 impl Cluster {
     pub fn new(count: usize, required: usize, suspicion_threshold: usize) -> Self {
-        let peer_ids: Vec<PeerId> = (0..count as PeerId).collect();
+        let peer_ids: Vec<u64> = (0..count as u64).collect();
 
         let protocols = peer_ids
             .iter()
@@ -108,19 +107,19 @@ impl Cluster {
         }
     }
 
-    pub fn abort_addition(&mut self, index: usize, peer_id: PeerId) {
+    pub fn abort_addition(&mut self, index: usize, peer_id: u64) {
         let decisions = self.protocols[index].abort_addition(peer_id);
         self.route_all(decisions, index);
     }
 
-    pub fn abort_removal(&mut self, index: usize, peer_id: PeerId) {
+    pub fn abort_removal(&mut self, index: usize, peer_id: u64) {
         let decisions = self.protocols[index].abort_removal(peer_id);
         self.route_all(decisions, index);
     }
 
     // A newcomer connected to every member's transport, waiting for the
     // membership that makes it a node of the cluster.
-    pub fn add_newcomer(&mut self, peer_id: PeerId) {
+    pub fn add_newcomer(&mut self, peer_id: u64) {
         let mut transport = InMemoryTransport::new_mesh(&[peer_id]).remove(0);
         for (index, member) in self.peer_ids.iter().enumerate() {
             transport.connect(*member, &self.transports[index]);
@@ -150,13 +149,7 @@ impl Cluster {
         self.route_all(decisions, index);
     }
 
-    pub fn drop_message(
-        &mut self,
-        from: PeerId,
-        to: PeerId,
-        message: TransportMessage,
-        count: usize,
-    ) {
+    pub fn drop_message(&mut self, from: u64, to: u64, message: TransportMessage, count: usize) {
         self.drops.push(DropRule {
             from,
             to,
@@ -208,11 +201,11 @@ impl Cluster {
         self.protocols[index].cluster_view().peer_state() == PeerState::TimedOut
     }
 
-    pub fn last_probed(&mut self, index: usize) -> Option<PeerId> {
+    pub fn last_probed(&mut self, index: usize) -> Option<u64> {
         self.protocols[index].cluster_view().last_probed()
     }
 
-    pub fn members(&mut self, index: usize) -> Vec<PeerId> {
+    pub fn members(&mut self, index: usize) -> Vec<u64> {
         self.protocols[index]
             .cluster_view()
             .members()
@@ -244,12 +237,12 @@ impl Cluster {
             .to_vec()
     }
 
-    pub fn request_addition(&mut self, index: usize, peer_id: PeerId) {
+    pub fn request_addition(&mut self, index: usize, peer_id: u64) {
         let decisions = self.protocols[index].request_addition(peer_id);
         self.route_all(decisions, index);
     }
 
-    pub fn request_removal(&mut self, index: usize, peer_id: PeerId) {
+    pub fn request_removal(&mut self, index: usize, peer_id: u64) {
         let decisions = self.protocols[index].request_removal(peer_id);
         self.route_all(decisions, index);
     }
@@ -257,7 +250,7 @@ impl Cluster {
     // The node at `index` created again at a membership -- `peers`, the count
     // they require and their epoch -- its timers gone with its state; a test
     // starts it as it starts any node.
-    pub fn restart(&mut self, index: usize, peers: Vec<PeerId>, required: usize, epoch: Epoch) {
+    pub fn restart(&mut self, index: usize, peers: Vec<u64>, required: usize, epoch: Epoch) {
         let peer_id = self.peer_ids[index];
         let config = Config::new(
             self.next_instance(index),
@@ -331,7 +324,7 @@ impl Cluster {
         }
     }
 
-    pub fn suspected(&mut self, index: usize) -> Vec<PeerId> {
+    pub fn suspected(&mut self, index: usize) -> Vec<u64> {
         self.protocols[index].cluster_view().suspected().to_vec()
     }
 
@@ -375,7 +368,7 @@ impl Cluster {
         }
     }
 
-    fn route(&mut self, msg: OutputMessage, from: PeerId) {
+    fn route(&mut self, msg: OutputMessage, from: u64) {
         let index = self.peer_ids.iter().position(|&p| p == from).unwrap();
 
         match msg {
@@ -433,7 +426,7 @@ impl Cluster {
         }
     }
 
-    fn should_drop(&mut self, from: PeerId, to: PeerId, msg: &TransportMessage) -> bool {
+    fn should_drop(&mut self, from: u64, to: u64, msg: &TransportMessage) -> bool {
         for rule in &mut self.drops {
             if rule.from == from && rule.to == to && rule.message == *msg && rule.remaining > 0 {
                 rule.remaining -= 1;

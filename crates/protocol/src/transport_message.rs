@@ -3,47 +3,47 @@
 
 use alloc::vec::Vec;
 
+use faction::instance::peer_id::PeerId;
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TransportMessage {
+pub enum TransportMessage<P: PeerId = u64> {
     Ping {
-        from: PeerId,
+        from: P,
         epoch: Epoch,
     },
     Ready {
-        from: PeerId,
+        from: P,
         epoch: Epoch,
     },
     Bootstrapped {
-        from: PeerId,
+        from: P,
     },
     Membership {
-        from: PeerId,
-        to: PeerId,
-        members: Vec<PeerId>,
+        from: P,
+        to: P,
+        members: Vec<P>,
         required_count: usize,
         epoch: Epoch,
     },
     MembershipAcknowledged {
-        from: PeerId,
+        from: P,
         epoch: Epoch,
     },
     Probe {
-        from: PeerId,
-        relay_for: Option<PeerId>,
+        from: P,
+        relay_for: Option<P>,
     },
     ProbeAnswer {
-        from: PeerId,
-        relay_for: Option<PeerId>,
+        from: P,
+        relay_for: Option<P>,
     },
     IndirectProbe {
-        from: PeerId,
-        target: PeerId,
+        from: P,
+        target: P,
     },
     IndirectProbeAnswer {
-        from: PeerId,
-        target: PeerId,
+        from: P,
+        target: P,
     },
 }

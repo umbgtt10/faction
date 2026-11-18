@@ -3,15 +3,13 @@
 
 use std::collections::BTreeSet;
 
-use faction::types::PeerId;
-
 use crate::infra::dice::Dice;
 
 // Datagrams reaching a node they were not sent to, as when two nodes answer
 // for one address: now and then, a message goes to another peer this node
 // has sent to, drawn from a seed of its own.
 pub struct Misdelivery {
-    known: BTreeSet<PeerId>,
+    known: BTreeSet<u64>,
     dice: Dice,
 }
 
@@ -26,12 +24,12 @@ impl Misdelivery {
 
     // The peer a message to `to` reaches: `to`, or, at `percent`, another it
     // has sent to before, if there is one.
-    pub fn addressee(&mut self, to: PeerId, percent: u8) -> PeerId {
+    pub fn addressee(&mut self, to: u64, percent: u8) -> u64 {
         self.known.insert(to);
         if !self.dice.rolls(percent) {
             return to;
         }
-        let others: Vec<PeerId> = self
+        let others: Vec<u64> = self
             .known
             .iter()
             .copied()

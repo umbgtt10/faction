@@ -58,14 +58,14 @@ fn ready(peer_id: u64) -> Command {
 fn cluster_view_inherits_correctly() {
     // Arrange
     let collecting_set = vec![1, 3];
-    let collecting = Collecting::new(
-        Members::new(vec![0, 1, 2, 3, 4]),
+    let collecting: Collecting = Collecting::new(
+        Members::<u64>::new(vec![0, 1, 2, 3, 4]),
         QuorumPolicy::new(THRESHOLD),
         collecting_set,
         vec![5, 6],
         false,
     );
-    let prev = ClusterViewBuilder::default()
+    let prev = ClusterViewBuilder::<u64>::default()
         .with_peer_state(PeerState::Pinging)
         .with_required_count(4)
         .build();
@@ -565,8 +565,8 @@ fn process_required_count_changed_short_stays_collecting() {
 #[test]
 fn resolve_at_quorum_returns_bootstrapped() {
     // Arrange
-    let collecting = Collecting::new(
-        Members::new(vec![0, 1, 2, 3, 4]),
+    let collecting = Collecting::<u64>::new(
+        Members::<u64>::new(vec![0, 1, 2, 3, 4]),
         QuorumPolicy::new(THRESHOLD),
         vec![0, 1, 2, 3],
         vec![1],
@@ -577,7 +577,7 @@ fn resolve_at_quorum_returns_bootstrapped() {
     let stage = collecting.resolve(true);
 
     // Assert
-    let cluster_view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    let cluster_view = stage.cluster_view(&ClusterViewBuilder::<u64>::default().build());
     assert!(matches!(stage, Stage::Bootstrapped(_)));
     assert_eq!(cluster_view.collecting_peers(), &[0, 1, 2, 3]);
     assert_eq!(cluster_view.pinging_peers(), &[1]);
@@ -586,8 +586,8 @@ fn resolve_at_quorum_returns_bootstrapped() {
 #[test]
 fn resolve_below_quorum_returns_collecting() {
     // Arrange
-    let collecting = Collecting::new(
-        Members::new(vec![0, 1, 2, 3, 4]),
+    let collecting = Collecting::<u64>::new(
+        Members::<u64>::new(vec![0, 1, 2, 3, 4]),
         QuorumPolicy::new(THRESHOLD),
         vec![0, 1],
         vec![1],
@@ -598,7 +598,7 @@ fn resolve_below_quorum_returns_collecting() {
     let stage = collecting.resolve(false);
 
     // Assert
-    let cluster_view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    let cluster_view = stage.cluster_view(&ClusterViewBuilder::<u64>::default().build());
     assert!(matches!(stage, Stage::Collecting(_)));
     assert_eq!(cluster_view.peer_state(), PeerState::TimedOut);
     assert_eq!(cluster_view.collecting_peers(), &[0, 1]);

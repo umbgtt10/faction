@@ -174,7 +174,7 @@ fn of_a_membership_addressed_to_another_peer_is_no_offer() {
     };
 
     // Act
-    let offer = Offer::of(&addressed_to_six, 5);
+    let offer = Offer::<u64>::of(&addressed_to_six, 5);
 
     // Assert
     assert!(offer.is_none());
@@ -183,7 +183,7 @@ fn of_a_membership_addressed_to_another_peer_is_no_offer() {
 #[test]
 fn of_any_other_message_is_none() {
     // Arrange & Act
-    let offer = Offer::of(&TransportMessage::Ping { from: 1, epoch: 4 }, 5);
+    let offer = Offer::<u64>::of(&TransportMessage::Ping { from: 1, epoch: 4 }, 5);
 
     // Assert
     assert!(offer.is_none());

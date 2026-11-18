@@ -13,10 +13,15 @@
 //! The terminal answer is `Bootstrapped`. A blown deadline is recorded as
 //! `TimedOut` but is never terminal — the node keeps trying.
 //!
-//! **Phases 1 to 5 of six are built** -- bootstrapping, dynamic joining,
-//! single-node addition, failure detection, single-node removal, and epochs
-//! and rejoin -- conformant to version 0.8.0 of the specification in the
-//! repository's `spec/`.
+//! **All six phases are built** -- bootstrapping, dynamic joining, single-node
+//! addition, failure detection, single-node removal, epochs and rejoin, and
+//! concurrent changes -- conformant to version 0.9.0 of the specification in
+//! the repository's `spec/`.
+//!
+//! A peer id is any type implementing [`PeerId`](instance::peer_id::PeerId):
+//! the unsigned integers, `u64` every type's default, or a type of the
+//! caller's own once it says so. The machine copies peer ids and compares
+//! them, and does nothing else with one.
 //!
 //! # What it does
 //!
@@ -84,6 +89,7 @@
 //!
 //! ```rust
 //! use faction::command::Command;
+//! use faction::command_kind::CommandKind;
 //! use faction::config::Config;
 //! use faction::faction::Faction;
 //! use faction::instance::instance_id::InstanceId;
@@ -94,8 +100,9 @@
 //!
 //! extern crate alloc;
 //!
-//! // A 5-node cluster. We need 4 to agree before proceeding.
-//! let config = Config::new(
+//! // A 5-node cluster. We need 4 to agree before proceeding. Its peer ids are
+//! // u64, every type's default; any type implementing `PeerId` will do.
+//! let config: Config = Config::new(
 //!     InstanceId { node: 0, incarnation: 1 }, // our peer id, its first incarnation
 //!     alloc::vec![0, 1, 2, 3, 4],        // all peers
 //!     QuorumPolicy::new(4),              // quorum threshold
@@ -115,11 +122,11 @@
 //! machine.process(Command::ParticipationObserved { peer_id: 2, epoch: 0 });
 //!
 //! // A duplicate is accepted but marked ignored — and, like every result,
-//! // it reports the set of commands admissible next.
+//! // it reports the kinds of command admissible next.
 //! if let ProcessResult::Accepted { admissible, .. } =
 //!     machine.process(Command::ParticipationObserved { peer_id: 1, epoch: 0 }).output
 //! {
-//!     assert!(admissible.contains(&Command::LocalParticipationCompleted));
+//!     assert!(admissible.contains(&CommandKind::LocalParticipationCompleted));
 //! }
 //!
 //! // Probe at any time — read-only, zero side effects.
@@ -179,6 +186,7 @@ pub mod no_op_observer;
 pub mod cluster_view;
 pub mod cluster_view_builder;
 pub mod command;
+pub mod command_kind;
 pub mod conclusion;
 pub mod config;
 pub mod faction;
@@ -198,4 +206,4 @@ pub mod states;
 pub mod types;
 
 #[cfg(doctest)]
-pub mod readme_doctests;
+pub mod doctests;

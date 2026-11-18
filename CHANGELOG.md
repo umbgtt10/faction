@@ -60,6 +60,38 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
   over 3,000 scenarios a coordinator held two changes in flight in 3,321 rounds and three in 491, where it had in 202
   and 6.
 
+### Peer ids of the caller's own type
+
+#### Added
+- `PeerId` (`faction::instance::peer_id`), the marker trait a peer id implements: `Copy + Eq + Debug + Send`, no
+  items. The unsigned integers implement it; a type of the caller's own does once it says so,
+  `impl PeerId for Name {}`. The machine copies a peer id and asks whether two are equal, and nothing more, as the
+  specification now says (§1).
+
+#### Changed
+- **Breaking:** every public type that holds a peer id takes it as a parameter, `u64` its default: `Faction`,
+  `Config`, `Command`, `Outcome`, `ClusterView`, `ClusterViewBuilder`, `Members`, `InstanceId`, `MissCount`,
+  `Reconfiguration`, `Receipt`, `ProcessResult`, `Stage` and every state, and the traits `State` and `Observer`;
+  `EpochRule`'s methods take it of their own. `faction::types::PeerId`, the alias for `u64`, is gone. `Liveness`,
+  `Suspicion`, `Probing` and `InFlight` derived `Default`, which would now ask it of every peer id: the last three
+  implement it by hand, and `Liveness::new(probing, suspicion)` replaces its own. A caller
+  writing `Faction` or `Config` means what it meant; one building a configuration from integer literals alone names
+  the type once, `let config: Config = ...`, as the literals would otherwise default to `i32`.
+- **Breaking:** faction-protocol is generic alike: `Protocol`, `Newcomer`, `Offer`, `Commit`, `InputMessage`,
+  `OutputMessage`, `TransportMessage`, `TimerMessage`, `TimerEvent`, and the traits `Transport` and `Timer`, `u64`
+  their default; `MessageTranslator`, `ProbeRelay` and `ResultView` take it on their methods.
+- **Breaking:** a result lists its admissible commands by kind: `ProcessResult`'s `admissible` is a `Vec<CommandKind>`,
+  a new enum naming each command without the peer or the epoch it would carry, as the specification writes them, and
+  `Command::kind()` gives a command's; `Stage::admissible_commands` returns kinds. The commands it listed carried a
+  placeholder, peer 0 and epoch 0, which read as if peer 0 were meant. A caller asks
+  `admissible.contains(&command.kind())`.
+
+#### Validation
+- The ladder answers random command sequences on `u64` peer ids and on the same ids renamed one to one into eight
+  masked bytes that print as the number they rename, and every answer prints alike. The core concludes a node on a
+  type of a caller's own and on every unsigned integer. The system tests, the chaos tier and the other validation
+  packages keep `u64`.
+
 ### What eight hours of chaos soak found
 
 #### Fixed

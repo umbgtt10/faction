@@ -2,28 +2,28 @@
 // SPDX-License-Identifier: MIT
 
 use crate::command::Command;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::quorum_policy::QuorumPolicy;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 // A decision on who may be counted, or how many are required: a join decision,
 // a committed addition or removal, a new required count, or a membership
 // handed to the node, adopted whole.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MembershipDecision {
-    Requested(PeerId),
-    Approved(PeerId),
-    Rejected(PeerId),
-    Committed(PeerId),
-    Removed(PeerId),
+pub enum MembershipDecision<P: PeerId = u64> {
+    Requested(P),
+    Approved(P),
+    Rejected(P),
+    Committed(P),
+    Removed(P),
     Counted(QuorumPolicy),
-    Adopted(Members, QuorumPolicy, Epoch),
+    Adopted(Members<P>, QuorumPolicy, Epoch),
 }
 
-impl MembershipDecision {
+impl<P: PeerId> MembershipDecision<P> {
     #[must_use]
-    pub fn of(command: &Command) -> Option<Self> {
+    pub fn of(command: &Command<P>) -> Option<Self> {
         match command {
             Command::JoinRequested { peer_id } => Some(Self::Requested(*peer_id)),
             Command::JoinApproved { peer_id } => Some(Self::Approved(*peer_id)),

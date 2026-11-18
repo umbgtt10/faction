@@ -14,7 +14,7 @@ fn reply_of_a_probe_answers_its_sender_for_whom_it_was_sent() {
     };
 
     // Act
-    let outputs = ProbeRelay::reply(1, &probe);
+    let outputs = ProbeRelay::reply::<u64>(1, &probe);
 
     // Assert
     assert_eq!(
@@ -38,7 +38,7 @@ fn reply_of_a_relayed_answer_forwards_it_to_the_node_that_asked() {
     };
 
     // Act
-    let outputs = ProbeRelay::reply(1, &answer);
+    let outputs = ProbeRelay::reply::<u64>(1, &answer);
 
     // Assert
     assert_eq!(
@@ -56,7 +56,7 @@ fn reply_of_an_indirect_probe_probes_the_target_for_the_node_that_asked() {
     let request = TransportMessage::IndirectProbe { from: 3, target: 4 };
 
     // Act
-    let outputs = ProbeRelay::reply(1, &request);
+    let outputs = ProbeRelay::reply::<u64>(1, &request);
 
     // Assert
     assert_eq!(
@@ -77,7 +77,7 @@ fn reply_of_anything_else_is_noop() {
     let ping = TransportMessage::Ping { from: 3, epoch: 0 };
 
     // Act
-    let outputs = ProbeRelay::reply(1, &ping);
+    let outputs = ProbeRelay::reply::<u64>(1, &ping);
 
     // Assert
     assert_eq!(outputs, vec![OutputMessage::Noop]);

@@ -14,6 +14,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use faction::cluster_view::ClusterView;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::config::Config;
 use faction::faction::Faction;
 use faction::instance::instance_id::InstanceId;
@@ -23,11 +24,13 @@ use faction::peer_state::PeerState;
 use faction::process_result::ProcessResult;
 use faction::quorum_policy::QuorumPolicy;
 use faction::reconfiguration::Reconfiguration;
-use faction::types::PeerId;
 use proptest::prelude::*;
 
 // What a call answered: its outcomes, its view and what it admits after.
-fn answered(faction: &mut Faction, command: Command) -> (Vec<Outcome>, ClusterView, Vec<Command>) {
+fn answered(
+    faction: &mut Faction,
+    command: Command,
+) -> (Vec<Outcome>, ClusterView, Vec<CommandKind>) {
     match faction.process(command).output {
         ProcessResult::Accepted {
             outcomes,
@@ -74,7 +77,7 @@ fn concluded(bound: usize) -> Faction {
 
 extern crate alloc;
 
-fn named(change: &Reconfiguration) -> PeerId {
+fn named(change: &Reconfiguration) -> u64 {
     match change {
         Reconfiguration::AdditionRequested { peer_id }
         | Reconfiguration::AdditionAcknowledged { peer_id }
@@ -96,7 +99,7 @@ proptest! {
             let (_, cluster_view, _) = answered(&mut faction, command);
 
             // Assert
-            let peers: Vec<PeerId> = cluster_view.reconfigurations().iter().map(named).collect();
+            let peers: Vec<u64> = cluster_view.reconfigurations().iter().map(named).collect();
             prop_assert!(peers.len() <= bound);
             prop_assert!(peers.iter().enumerate().all(|(index, peer)| !peers[index + 1..].contains(peer)));
         }
@@ -140,7 +143,7 @@ proptest! {
 
             // Assert
             prop_assert_eq!(
-                admissible.contains(&Command::AdditionRequested { peer_id: 0 }),
+                admissible.contains(&CommandKind::AdditionRequested),
                 cluster_view.peer_state() == PeerState::Bootstrapped
                     && cluster_view.reconfigurations().len() < bound
             );
@@ -151,7 +154,7 @@ proptest! {
 // Whether the members not suspected, less every member whose removal is in
 // flight, reach the count.
 fn spared(cluster_view: &ClusterView) -> bool {
-    let removing: Vec<PeerId> = cluster_view
+    let removing: Vec<u64> = cluster_view
         .reconfigurations()
         .iter()
         .filter_map(|change| match change {

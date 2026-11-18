@@ -3,7 +3,6 @@
 
 use crate::traits::wall_clock_tests::FAKE_MOMENT;
 use crate::traits::wall_clock_tests::FakeWallClock;
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::infra::live_policy::LivePolicy;
@@ -30,7 +29,7 @@ fn delivered_count(policy: FaultPolicy) -> usize {
     forwarded.lock().unwrap().len()
 }
 
-fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) {
+fn faulty(peer_id: u64, policy: FaultPolicy) -> (FaultyTransport, Forwarded) {
     let forwarded: Forwarded = Arc::new(Mutex::new(Vec::new()));
     let inner = RecordingTransport {
         forwarded: forwarded.clone(),
@@ -47,7 +46,7 @@ fn faulty(peer_id: PeerId, policy: FaultPolicy) -> (FaultyTransport, Forwarded) 
     )
 }
 
-type Forwarded = Arc<Mutex<Vec<(PeerId, TransportMessage)>>>;
+type Forwarded = Arc<Mutex<Vec<(u64, TransportMessage)>>>;
 
 fn live_faulty(policy: FaultPolicy) -> (FaultyTransport, Forwarded, LivePolicy<FaultPolicy>) {
     let forwarded: Forwarded = Arc::new(Mutex::new(Vec::new()));
@@ -68,7 +67,7 @@ fn live_faulty(policy: FaultPolicy) -> (FaultyTransport, Forwarded, LivePolicy<F
     )
 }
 
-fn ping(from: PeerId) -> TransportMessage {
+fn ping(from: u64) -> TransportMessage {
     TransportMessage::Ping { from, epoch: 0 }
 }
 
@@ -94,7 +93,7 @@ struct RecordingTransport {
 }
 
 impl Transport for RecordingTransport {
-    fn send(&mut self, to: PeerId, message: TransportMessage) {
+    fn send(&mut self, to: u64, message: TransportMessage) {
         self.forwarded.lock().unwrap().push((to, message));
     }
 

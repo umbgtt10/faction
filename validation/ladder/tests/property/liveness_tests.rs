@@ -27,7 +27,6 @@ use faction::outcome::Outcome;
 use faction::process_result::ProcessResult;
 use faction::quorum::Quorum;
 use faction::quorum_policy::QuorumPolicy;
-use faction::types::PeerId;
 use proptest::prelude::*;
 
 // The outcomes and the view a command is answered with.
@@ -98,7 +97,7 @@ proptest! {
     ) {
         // Arrange
         let mut faction = concluded(threshold);
-        let mut rounds: Vec<(Vec<PeerId>, Vec<PeerId>)> = vec![(vec![0, 1, 2, 3, 4], Vec::new())];
+        let mut rounds: Vec<(Vec<u64>, Vec<u64>)> = vec![(vec![0, 1, 2, 3, 4], Vec::new())];
 
         // Act
         for command in commands {
@@ -118,9 +117,9 @@ proptest! {
 
         // Assert
         for (members, probes) in rounds {
-            let others: BTreeSet<PeerId> = members.iter().copied().filter(|member| *member != 0).collect();
+            let others: BTreeSet<u64> = members.iter().copied().filter(|member| *member != 0).collect();
             for window in probes.windows(others.len()) {
-                let probed: BTreeSet<PeerId> = window.iter().copied().collect();
+                let probed: BTreeSet<u64> = window.iter().copied().collect();
                 prop_assert_eq!(&probed, &others);
             }
         }
@@ -133,7 +132,7 @@ proptest! {
     ) {
         // Arrange
         let mut faction = concluded(threshold);
-        let mut missed: BTreeMap<PeerId, usize> = BTreeMap::new();
+        let mut missed: BTreeMap<u64, usize> = BTreeMap::new();
 
         // Act
         for command in commands {
@@ -233,7 +232,7 @@ fn removal_command() -> impl Strategy<Value = Command> {
 
 // Whether the quorum a view shows can spare the member: it is suspected, or
 // the members not suspected without it still reach the count.
-fn spares(cluster_view: &ClusterView, peer_id: PeerId) -> bool {
+fn spares(cluster_view: &ClusterView, peer_id: u64) -> bool {
     let suspected = cluster_view.suspected();
     suspected.contains(&peer_id)
         || cluster_view.members().without(peer_id).is_some_and(|rest| {

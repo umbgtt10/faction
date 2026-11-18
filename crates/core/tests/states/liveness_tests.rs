@@ -11,6 +11,8 @@ use faction::miss_count::MissCount;
 use faction::outcome::Outcome;
 use faction::quorum_policy::QuorumPolicy;
 use faction::states::liveness::Liveness;
+use faction::states::probing::Probing;
+use faction::states::suspicion::Suspicion;
 
 fn config(threshold: usize) -> Config {
     Config::new(
@@ -36,7 +38,10 @@ fn members() -> Members {
 // The liveness after each command in turn, the outcomes of the last.
 fn stepped(commands: &[Command], threshold: usize) -> (Vec<Outcome>, Liveness) {
     commands.iter().fold(
-        (Vec::new(), Liveness::default()),
+        (
+            Vec::new(),
+            Liveness::new(Probing::default(), Suspicion::default()),
+        ),
         |(_, liveness), command| {
             liveness
                 .step(
@@ -53,7 +58,7 @@ fn stepped(commands: &[Command], threshold: usize) -> (Vec<Outcome>, Liveness) {
 #[test]
 fn crossing_from_held_to_held_says_nothing() {
     // Arrange & Act
-    let crossing = Liveness::crossing(true, true);
+    let crossing = Liveness::<u64>::crossing(true, true);
 
     // Assert
     assert_eq!(crossing, None);
@@ -62,7 +67,7 @@ fn crossing_from_held_to_held_says_nothing() {
 #[test]
 fn crossing_from_held_to_short_is_quorum_lost() {
     // Arrange & Act
-    let crossing = Liveness::crossing(true, false);
+    let crossing = Liveness::<u64>::crossing(true, false);
 
     // Assert
     assert_eq!(crossing, Some(Outcome::QuorumLost));
@@ -71,7 +76,7 @@ fn crossing_from_held_to_short_is_quorum_lost() {
 #[test]
 fn crossing_from_short_to_held_is_quorum_restored() {
     // Arrange & Act
-    let crossing = Liveness::crossing(false, true);
+    let crossing = Liveness::<u64>::crossing(false, true);
 
     // Assert
     assert_eq!(crossing, Some(Outcome::QuorumRestored));
@@ -98,7 +103,7 @@ fn holds_quorum_once_too_many_are_suspected_is_false() {
 #[test]
 fn holds_quorum_with_every_member_alive_is_true() {
     // Arrange
-    let liveness = Liveness::default();
+    let liveness = Liveness::new(Probing::default(), Suspicion::default());
 
     // Act
     let holds = liveness.holds_quorum(&members(), QuorumPolicy::new(3));
@@ -192,7 +197,7 @@ fn of_members_keeps_whom_the_node_still_counts() {
 #[test]
 fn step_of_a_command_not_of_liveness_is_none() {
     // Arrange
-    let liveness = Liveness::default();
+    let liveness = Liveness::new(Probing::default(), Suspicion::default());
 
     // Act
     let stepped = liveness.step(
@@ -266,7 +271,7 @@ fn step_of_a_period_missed_below_the_threshold_counts_it() {
 #[test]
 fn step_of_a_probe_period_alone_has_no_one_to_probe() {
     // Arrange
-    let liveness = Liveness::default();
+    let liveness = Liveness::new(Probing::default(), Suspicion::default());
 
     // Act
     let (outcomes, _) = liveness

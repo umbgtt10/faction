@@ -13,7 +13,7 @@ fn new_adds_peer_when_not_dup() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = PingingStep::new(confirmed, 3);
+    let step: PingingStep = PingingStep::new(confirmed, 3);
 
     // Assert
     assert_eq!(step.confirmed_peers(), vec![1, 2, 3]);
@@ -29,7 +29,7 @@ fn new_does_not_add_when_duplicate() {
     let confirmed = vec![1, 2];
 
     // Act
-    let step = PingingStep::new(confirmed.clone(), 2);
+    let step = PingingStep::<u64>::new(confirmed.clone(), 2);
 
     // Assert
     assert_eq!(step.confirmed_peers(), confirmed);

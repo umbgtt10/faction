@@ -56,8 +56,3 @@ the behaviour too — on interleavings the vectors and the simulation never
 produce. The model takes the specification's encoding as it is, so a log in the
 specification's form needs nothing more of it.
 
----
-
-## Deferred
-
-- `PeerId` genericization (currently `u64`) — deferred to post-Phase-6.

@@ -3,7 +3,6 @@
 
 use std::mem::take;
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 
@@ -43,13 +42,13 @@ const SEED_MIX: u64 = 0x9E37_79B9_7F4A_7C15;
 /// node's log, a banner on stderr, or nothing.
 pub struct FaultyTransport {
     inner: Box<dyn Transport>,
-    peer_id: PeerId,
+    peer_id: u64,
     policy: LivePolicy<FaultPolicy>,
     cuts: LinkCuts,
     report: Box<dyn FaultReport>,
     dice: Dice,
-    held: Vec<(u64, PeerId, TransportMessage)>,
-    stalled: Vec<(PeerId, TransportMessage)>,
+    held: Vec<(u64, u64, TransportMessage)>,
+    stalled: Vec<(u64, TransportMessage)>,
     wedge: Wedge,
     first_contact: FirstContact,
     misdelivery: Misdelivery,
@@ -59,7 +58,7 @@ pub struct FaultyTransport {
 impl FaultyTransport {
     #[must_use]
     pub fn new(
-        peer_id: PeerId,
+        peer_id: u64,
         policy: LivePolicy<FaultPolicy>,
         cuts: LinkCuts,
         report: Box<dyn FaultReport>,
@@ -82,7 +81,7 @@ impl FaultyTransport {
         }
     }
 
-    fn announce(&mut self, kind: &str, to: PeerId, message: &TransportMessage) {
+    fn announce(&mut self, kind: &str, to: u64, message: &TransportMessage) {
         self.report.report(kind, self.peer_id, to, message);
     }
 
@@ -108,23 +107,17 @@ impl FaultyTransport {
         }
     }
 
-    fn is_asymmetric_cut(&self, to: PeerId, policy: &FaultPolicy) -> bool {
+    fn is_asymmetric_cut(&self, to: u64, policy: &FaultPolicy) -> bool {
         Self::link_is_cut(policy, ASYMMETRIC_SALT, self.peer_id, to, policy.asymmetric)
     }
 
-    fn is_partitioned(&self, to: PeerId, policy: &FaultPolicy) -> bool {
+    fn is_partitioned(&self, to: u64, policy: &FaultPolicy) -> bool {
         let low = self.peer_id.min(to);
         let high = self.peer_id.max(to);
         Self::link_is_cut(policy, PARTITION_SALT, low, high, policy.partition)
     }
 
-    fn link_is_cut(
-        policy: &FaultPolicy,
-        salt: u64,
-        first: PeerId,
-        second: PeerId,
-        percent: u8,
-    ) -> bool {
+    fn link_is_cut(policy: &FaultPolicy, salt: u64, first: u64, second: u64, percent: u8) -> bool {
         if percent == 0 {
             return false;
         }
@@ -151,7 +144,7 @@ impl FaultyTransport {
         }
     }
 
-    fn sender(message: &TransportMessage) -> PeerId {
+    fn sender(message: &TransportMessage) -> u64 {
         match message {
             TransportMessage::Ping { from, .. }
             | TransportMessage::Ready { from, .. }
@@ -167,7 +160,7 @@ impl FaultyTransport {
 }
 
 impl Transport for FaultyTransport {
-    fn send(&mut self, to: PeerId, message: TransportMessage) {
+    fn send(&mut self, to: u64, message: TransportMessage) {
         let policy = self.policy.current();
         self.release_due();
         if policy.starved {

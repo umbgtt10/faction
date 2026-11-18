@@ -2,4 +2,5 @@
 // SPDX-License-Identifier: MIT
 
 pub mod instance_id;
+pub mod peer_id;
 pub mod receipt;

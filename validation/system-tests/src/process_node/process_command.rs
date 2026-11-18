@@ -8,7 +8,6 @@ use std::sync::mpsc::channel;
 use std::thread::spawn;
 
 use faction::types::Epoch;
-use faction::types::PeerId;
 
 use serde_json::from_str;
 
@@ -17,21 +16,21 @@ use crate::membership::Membership;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessCommand {
-    RequestJoin(PeerId),
-    Admit(PeerId),
-    Deny(PeerId),
+    RequestJoin(u64),
+    Admit(u64),
+    Deny(u64),
     ExpireDeadline,
-    RequestAddition(PeerId),
-    CommitAddition(PeerId, Epoch),
-    AbortAddition(PeerId),
-    RequestRemoval(PeerId),
-    CommitRemoval(PeerId, Epoch),
-    AbortRemoval(PeerId),
-    Decline(PeerId, Epoch),
+    RequestAddition(u64),
+    CommitAddition(u64, Epoch),
+    AbortAddition(u64),
+    RequestRemoval(u64),
+    CommitRemoval(u64, Epoch),
+    AbortRemoval(u64),
+    Decline(u64, Epoch),
     RequiredCount(usize, Epoch),
-    Cut(PeerId),
-    Mend(PeerId),
-    Peer(PeerId, SocketAddr),
+    Cut(u64),
+    Mend(u64),
+    Peer(u64, SocketAddr),
     Restart(Membership),
     Faults(Box<FaultSettings>),
     Shutdown,
@@ -80,7 +79,7 @@ impl ProcessCommand {
                     .next()?
                     .split(',')
                     .map(|peer| peer.parse().ok())
-                    .collect::<Option<Vec<PeerId>>>()?,
+                    .collect::<Option<Vec<u64>>>()?,
             })),
             "faults" => from_str(line.split_once(' ')?.1)
                 .ok()

@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
+use crate::instance::peer_id::PeerId;
 use crate::outcome::Outcome;
 use crate::reconfiguration::Reconfiguration;
 use crate::stage::Stage;
@@ -15,20 +16,19 @@ use crate::states::coordinating::Coordinating;
 use crate::states::epoch_rule::EpochRule;
 use crate::states::reconfiguring::Reconfiguring;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 // A coordinator's changes in flight, in the order requested (§2, §4): no two
 // name one peer, and each ends on its own.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct InFlight {
-    changes: Vec<Reconfiguration>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InFlight<P: PeerId = u64> {
+    changes: Vec<Reconfiguration<P>>,
 }
 
-impl InFlight {
+impl<P: PeerId> InFlight<P> {
     // Every change given up for a membership past them (§16): one
     // abandonment each, in the order requested.
     #[must_use]
-    pub fn abandoned(&self) -> Vec<Outcome> {
+    pub fn abandoned(&self) -> Vec<Outcome<P>> {
         self.changes
             .iter()
             .map(|change| Outcome::ChangeAbandoned {
@@ -39,7 +39,7 @@ impl InFlight {
 
     // The changes with the addition of `peer_id`, requested, acknowledged.
     #[must_use]
-    pub fn acknowledged(&self, peer_id: PeerId) -> Self {
+    pub fn acknowledged(&self, peer_id: P) -> Self {
         Self {
             changes: self
                 .changes
@@ -60,10 +60,10 @@ impl InFlight {
     #[must_use]
     pub fn acknowledgement(
         &self,
-        peer_id: PeerId,
+        peer_id: P,
         claimed: Epoch,
         epoch: Epoch,
-    ) -> (Vec<Outcome>, Self) {
+    ) -> (Vec<Outcome<P>>, Self) {
         match EpochRule::new(epoch).refused(peer_id, claimed) {
             Some(refused) => (refused, self.clone()),
             None => (
@@ -76,7 +76,7 @@ impl InFlight {
     // Whether the addition of `peer_id` is in flight, requested or
     // acknowledged.
     #[must_use]
-    pub fn adds(&self, peer_id: PeerId) -> bool {
+    pub fn adds(&self, peer_id: P) -> bool {
         matches!(
             self.named(peer_id),
             Some(
@@ -92,10 +92,10 @@ impl InFlight {
     #[must_use]
     pub fn answered(
         &self,
-        command: &Command,
-        concluded: &Bootstrapped,
+        command: &Command<P>,
+        concluded: &Bootstrapped<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Self)> {
+    ) -> Option<(Vec<Outcome<P>>, Self)> {
         match *command {
             Command::MembershipAcknowledged {
                 peer_id,
@@ -128,7 +128,7 @@ impl InFlight {
     // spare its member, the other removals in flight counted, and given up
     // once it cannot; a decline naming no proposal in flight ignored.
     #[must_use]
-    pub fn declined(&self, peer_id: PeerId, concluded: &Bootstrapped) -> (Vec<Outcome>, Self) {
+    pub fn declined(&self, peer_id: P, concluded: &Bootstrapped<P>) -> (Vec<Outcome<P>>, Self) {
         match self.named(peer_id) {
             Some(Reconfiguration::AdditionAcknowledged { .. }) => {
                 (vec![Outcome::ProposeAddition { peer_id }], self.clone())
@@ -151,7 +151,7 @@ impl InFlight {
     // The peer of the change a commit ends: its addition or its removal in
     // flight.
     #[must_use]
-    pub fn ended_by(&self, command: &Command) -> Option<PeerId> {
+    pub fn ended_by(&self, command: &Command<P>) -> Option<P> {
         match *command {
             Command::AdditionCommitted { peer_id, .. } if self.adds(peer_id) => Some(peer_id),
             Command::RemovalCommitted { peer_id, .. } if self.removes(peer_id) => Some(peer_id),
@@ -161,7 +161,7 @@ impl InFlight {
 
     // The change in flight naming `peer_id`, if one is: no two do.
     #[must_use]
-    pub fn named(&self, peer_id: PeerId) -> Option<Reconfiguration> {
+    pub fn named(&self, peer_id: P) -> Option<Reconfiguration<P>> {
         [
             Reconfiguration::AdditionRequested { peer_id },
             Reconfiguration::AdditionAcknowledged { peer_id },
@@ -173,7 +173,7 @@ impl InFlight {
 
     // Every peer whose removal is in flight, in the order requested.
     #[must_use]
-    pub fn removals(&self) -> Vec<PeerId> {
+    pub fn removals(&self) -> Vec<P> {
         self.changes
             .iter()
             .filter_map(|change| match change {
@@ -185,20 +185,20 @@ impl InFlight {
 
     // Whether the removal of `peer_id` is in flight.
     #[must_use]
-    pub fn removes(&self, peer_id: PeerId) -> bool {
+    pub fn removes(&self, peer_id: P) -> bool {
         self.named(peer_id) == Some(Reconfiguration::RemovalRequested { peer_id })
     }
 
     // The view a builder makes, showing the changes in flight.
     #[must_use]
-    pub fn shown(&self, builder: ClusterViewBuilder) -> ClusterViewBuilder {
+    pub fn shown(&self, builder: ClusterViewBuilder<P>) -> ClusterViewBuilder<P> {
         builder.with_reconfigurations(self.changes.clone())
     }
 
     // The stage the changes make of the concluded node (§2): none Bootstrapped,
     // fewer than the bound Coordinating, as many Reconfiguring.
     #[must_use]
-    pub fn stage(self, concluded: Bootstrapped, config: &Config) -> Stage {
+    pub fn stage(self, concluded: Bootstrapped<P>, config: &Config<P>) -> Stage<P> {
         if self.changes.is_empty() {
             Stage::Bootstrapped(concluded)
         } else if self.changes.len() < config.changes_in_flight() {
@@ -210,7 +210,7 @@ impl InFlight {
 
     // The changes with `change` requested last.
     #[must_use]
-    pub fn with(&self, change: Reconfiguration) -> Self {
+    pub fn with(&self, change: Reconfiguration<P>) -> Self {
         Self {
             changes: self.changes.iter().copied().chain([change]).collect(),
         }
@@ -218,7 +218,7 @@ impl InFlight {
 
     // The changes but the one naming `peer_id`, which has ended.
     #[must_use]
-    pub fn without(&self, peer_id: PeerId) -> Self {
+    pub fn without(&self, peer_id: P) -> Self {
         let ended = self.named(peer_id);
         Self {
             changes: self
@@ -227,6 +227,14 @@ impl InFlight {
                 .copied()
                 .filter(|change| Some(*change) != ended)
                 .collect(),
+        }
+    }
+}
+
+impl<P: PeerId> Default for InFlight<P> {
+    fn default() -> Self {
+        Self {
+            changes: Vec::new(),
         }
     }
 }

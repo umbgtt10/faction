@@ -8,6 +8,7 @@ use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
 use crate::config::Config;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::outcome::Outcome;
 use crate::peer_state::PeerState;
@@ -21,33 +22,34 @@ use crate::states::in_flight::InFlight;
 use crate::states::liveness::Liveness;
 use crate::states::membership_decision::MembershipDecision;
 use crate::states::membership_step::MembershipStep;
+use crate::states::probing::Probing;
 use crate::states::removed::Removed;
+use crate::states::suspicion::Suspicion;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
 #[derive(Debug, Clone)]
-pub struct Bootstrapped {
-    members: Members,
+pub struct Bootstrapped<P: PeerId = u64> {
+    members: Members<P>,
     quorum_policy: QuorumPolicy,
-    pinged_peers: Vec<PeerId>,
-    collected_peers: Vec<PeerId>,
-    liveness: Liveness,
+    pinged_peers: Vec<P>,
+    collected_peers: Vec<P>,
+    liveness: Liveness<P>,
 }
 
-impl Bootstrapped {
+impl<P: PeerId> Bootstrapped<P> {
     #[must_use]
     pub fn new(
-        members: Members,
+        members: Members<P>,
         quorum_policy: QuorumPolicy,
-        pinged_peers: Vec<PeerId>,
-        collected_peers: Vec<PeerId>,
+        pinged_peers: Vec<P>,
+        collected_peers: Vec<P>,
     ) -> Self {
         Self {
             members,
             quorum_policy,
             pinged_peers,
             collected_peers,
-            liveness: Liveness::default(),
+            liveness: Liveness::new(Probing::default(), Suspicion::default()),
         }
     }
 
@@ -58,10 +60,10 @@ impl Bootstrapped {
     #[must_use]
     pub fn answer(
         &self,
-        command: Command,
-        config: &Config,
+        command: Command<P>,
+        config: &Config<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Self)> {
+    ) -> Option<(Vec<Outcome<P>>, Self)> {
         if let Some(decision) = MembershipDecision::of(&command) {
             let membership =
                 MembershipStep::new(self.members.clone(), self.quorum_policy, decision);
@@ -103,12 +105,12 @@ impl Bootstrapped {
     }
 }
 
-impl Bootstrapped {
+impl<P: PeerId> Bootstrapped<P> {
     // Whether the quorum can spare the member: a suspect it always can; any
     // other, if the members not suspected still number the count without it
     // and every other member whose removal, `removing`, is in flight (§12).
     #[must_use]
-    pub fn can_spare(&self, peer_id: PeerId, removing: &[PeerId]) -> bool {
+    pub fn can_spare(&self, peer_id: P, removing: &[P]) -> bool {
         self.liveness.suspected().contains(&peer_id)
             || removing
                 .iter()
@@ -124,10 +126,10 @@ impl Bootstrapped {
     #[must_use]
     pub fn changed(
         &self,
-        outcomes: Vec<Outcome>,
-        members: &Members,
+        outcomes: Vec<Outcome<P>>,
+        members: &Members<P>,
         quorum_policy: QuorumPolicy,
-    ) -> (Vec<Outcome>, Self) {
+    ) -> (Vec<Outcome<P>>, Self) {
         let crossing = Liveness::crossing(
             self.liveness
                 .holds_quorum(&self.members, self.quorum_policy),
@@ -148,7 +150,11 @@ impl Bootstrapped {
     // What removes the node `peer_id`: its own removal committed, or a
     // membership that does not name it.
     #[must_use]
-    pub fn departure(&self, command: &Command, peer_id: PeerId) -> Option<(Vec<Outcome>, Stage)> {
+    pub fn departure(
+        &self,
+        command: &Command<P>,
+        peer_id: P,
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         Removed::departure(command, peer_id, &self.members, self.quorum_policy)
     }
 
@@ -161,10 +167,10 @@ impl Bootstrapped {
     #[must_use]
     pub fn requested(
         &self,
-        command: &Command,
-        in_flight: &InFlight,
-        config: &Config,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+        command: &Command<P>,
+        in_flight: &InFlight<P>,
+        config: &Config<P>,
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         let (outcome, change) = match *command {
             Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id }
                 if in_flight.named(peer_id).is_some() =>
@@ -197,13 +203,13 @@ impl Bootstrapped {
     }
 }
 
-impl State for Bootstrapped {
+impl<P: PeerId> State<P> for Bootstrapped<P> {
     fn step(
         &self,
-        command: Command,
-        config: &Config,
+        command: Command<P>,
+        config: &Config<P>,
         epoch: Epoch,
-    ) -> Option<(Vec<Outcome>, Stage)> {
+    ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         if let Some(departure) = self.departure(&command, config.peer_id()) {
             return Some(departure);
         }
@@ -214,7 +220,7 @@ impl State for Bootstrapped {
             })
     }
 
-    fn cluster_view(&self, previous: &ClusterView) -> ClusterView {
+    fn cluster_view(&self, previous: &ClusterView<P>) -> ClusterView<P> {
         ClusterViewBuilder::from_view(previous)
             .with_peer_state(PeerState::Bootstrapped)
             .with_is_pinging_completed(true)

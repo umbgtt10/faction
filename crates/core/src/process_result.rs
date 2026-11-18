@@ -3,25 +3,26 @@
 
 extern crate alloc;
 
+use crate::instance::peer_id::PeerId;
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
-use crate::command::Command;
+use crate::command_kind::CommandKind;
 use crate::outcome::Outcome;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProcessResult {
+pub enum ProcessResult<P: PeerId = u64> {
     Accepted {
-        cluster_view: ClusterView,
-        admissible: Vec<Command>,
-        outcomes: Vec<Outcome>,
+        cluster_view: ClusterView<P>,
+        admissible: Vec<CommandKind>,
+        outcomes: Vec<Outcome<P>>,
     },
     Rejected {
-        cluster_view: ClusterView,
-        admissible: Vec<Command>,
+        cluster_view: ClusterView<P>,
+        admissible: Vec<CommandKind>,
     },
     Probed {
-        cluster_view: ClusterView,
-        admissible: Vec<Command>,
+        cluster_view: ClusterView<P>,
+        admissible: Vec<CommandKind>,
     },
 }

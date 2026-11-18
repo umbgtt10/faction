@@ -4,41 +4,41 @@
 use alloc::vec::Vec;
 
 use crate::cluster_view::ClusterView;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::miss_count::MissCount;
 use crate::peer_state::PeerState;
 use crate::quorum::Quorum;
 use crate::reconfiguration::Reconfiguration;
 use crate::types::Epoch;
-use crate::types::PeerId;
 
-pub struct ClusterViewBuilder {
+pub struct ClusterViewBuilder<P: PeerId = u64> {
     peer_state: PeerState,
     is_pinging_completed: bool,
-    pinging_peers: Vec<PeerId>,
-    collecting_peers: Vec<PeerId>,
+    pinging_peers: Vec<P>,
+    collecting_peers: Vec<P>,
     required_count: usize,
     deadline_missed: bool,
-    members: Members,
-    reconfigurations: Vec<Reconfiguration>,
-    suspected: Vec<PeerId>,
-    misses: Vec<MissCount>,
-    last_probed: Option<PeerId>,
+    members: Members<P>,
+    reconfigurations: Vec<Reconfiguration<P>>,
+    suspected: Vec<P>,
+    misses: Vec<MissCount<P>>,
+    last_probed: Option<P>,
     quorum: Quorum,
     epoch: Epoch,
     provisional: bool,
 }
 
-impl ClusterViewBuilder {
+impl<P: PeerId> ClusterViewBuilder<P> {
     #[must_use]
-    pub fn from_view(view: &ClusterView) -> Self {
+    pub fn from_view(view: &ClusterView<P>) -> Self {
         Self::from_view_at(view, view.epoch(), view.is_provisional())
     }
 
     // A view's builder, the view moved to `epoch`, its membership
     // `provisional` or not (§16).
     #[must_use]
-    pub fn from_view_at(view: &ClusterView, epoch: Epoch, provisional: bool) -> Self {
+    pub fn from_view_at(view: &ClusterView<P>, epoch: Epoch, provisional: bool) -> Self {
         Self {
             peer_state: view.peer_state(),
             is_pinging_completed: view.is_pinging_completed(),
@@ -58,7 +58,7 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn build(self) -> ClusterView {
+    pub fn build(self) -> ClusterView<P> {
         ClusterView::new(
             self.peer_state,
             self.is_pinging_completed,
@@ -78,7 +78,7 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn with_collecting_peers(mut self, peers: Vec<PeerId>) -> Self {
+    pub fn with_collecting_peers(mut self, peers: Vec<P>) -> Self {
         self.collecting_peers = peers;
         self
     }
@@ -96,19 +96,19 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn with_last_probed(mut self, last_probed: Option<PeerId>) -> Self {
+    pub fn with_last_probed(mut self, last_probed: Option<P>) -> Self {
         self.last_probed = last_probed;
         self
     }
 
     #[must_use]
-    pub fn with_members(mut self, members: Members) -> Self {
+    pub fn with_members(mut self, members: Members<P>) -> Self {
         self.members = members;
         self
     }
 
     #[must_use]
-    pub fn with_misses(mut self, misses: Vec<MissCount>) -> Self {
+    pub fn with_misses(mut self, misses: Vec<MissCount<P>>) -> Self {
         self.misses = misses;
         self
     }
@@ -120,7 +120,7 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn with_pinging_peers(mut self, peers: Vec<PeerId>) -> Self {
+    pub fn with_pinging_peers(mut self, peers: Vec<P>) -> Self {
         self.pinging_peers = peers;
         self
     }
@@ -132,7 +132,7 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn with_reconfigurations(mut self, reconfigurations: Vec<Reconfiguration>) -> Self {
+    pub fn with_reconfigurations(mut self, reconfigurations: Vec<Reconfiguration<P>>) -> Self {
         self.reconfigurations = reconfigurations;
         self
     }
@@ -144,13 +144,13 @@ impl ClusterViewBuilder {
     }
 
     #[must_use]
-    pub fn with_suspected(mut self, suspected: Vec<PeerId>) -> Self {
+    pub fn with_suspected(mut self, suspected: Vec<P>) -> Self {
         self.suspected = suspected;
         self
     }
 }
 
-impl Default for ClusterViewBuilder {
+impl<P: PeerId> Default for ClusterViewBuilder<P> {
     fn default() -> Self {
         Self {
             peer_state: PeerState::Fresh,

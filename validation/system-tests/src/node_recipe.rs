@@ -23,7 +23,6 @@ use faction::faction::Faction;
 use faction::no_op_observer::NoOpObserver;
 use faction::observer::Observer;
 use faction::quorum_policy::QuorumPolicy;
-use faction::types::PeerId;
 
 use faction_protocol::newcomer::Newcomer;
 use faction_protocol::protocol::Protocol;
@@ -86,8 +85,8 @@ impl NodeRecipe {
     #[must_use]
     pub fn build(
         &self,
-        peer_id: PeerId,
-        peers: Vec<PeerId>,
+        peer_id: u64,
+        peers: Vec<u64>,
         transport: Box<dyn Transport>,
     ) -> FactionNode {
         let genesis = Membership {
@@ -100,13 +99,13 @@ impl NodeRecipe {
     }
 
     #[must_use]
-    pub fn build_newcomer(&self, peer_id: PeerId, transport: Box<dyn Transport>) -> FactionNode {
+    pub fn build_newcomer(&self, peer_id: u64, transport: Box<dyn Transport>) -> FactionNode {
         let instance = Self::first(peer_id);
         self.node_of(instance, self.waiting(instance), transport)
     }
 
     #[must_use]
-    pub fn newcomer(&self, spawn: Spawn, peer_id: PeerId, transport: Box<dyn Transport>) -> Node {
+    pub fn newcomer(&self, spawn: Spawn, peer_id: u64, transport: Box<dyn Transport>) -> Node {
         match spawn {
             Spawn::Task => Node::task(Rc::new(RefCell::new(
                 self.build_newcomer(peer_id, transport),
@@ -128,8 +127,8 @@ impl NodeRecipe {
     pub fn node(
         &self,
         spawn: Spawn,
-        peer_id: PeerId,
-        peers: Vec<PeerId>,
+        peer_id: u64,
+        peers: Vec<u64>,
         transport: Box<dyn Transport>,
     ) -> Node {
         match spawn {
@@ -152,7 +151,7 @@ impl NodeRecipe {
     // logs say.
     fn faulty(
         &self,
-        peer_id: PeerId,
+        peer_id: u64,
         transport: Box<dyn Transport>,
         faults: &NodeFaults,
     ) -> Box<dyn Transport> {
@@ -166,7 +165,7 @@ impl NodeRecipe {
     }
 
     // A node's first instance.
-    fn first(peer_id: PeerId) -> InstanceId {
+    fn first(peer_id: u64) -> InstanceId {
         InstanceId {
             node: peer_id,
             incarnation: FIRST_INCARNATION,
@@ -217,7 +216,7 @@ impl NodeRecipe {
 
     // Where the node announces the faults it injects: its log, a banner on
     // stderr, or nowhere.
-    fn report(&self, peer_id: PeerId) -> Box<dyn FaultReport> {
+    fn report(&self, peer_id: u64) -> Box<dyn FaultReport> {
         match (&self.logs, self.writer(peer_id)) {
             (_, Some(writer)) => Box::new(SharedFileFaultReport::new(
                 writer,
@@ -230,7 +229,7 @@ impl NodeRecipe {
 
     // The node's timer behind the faults its board holds for it: its firings',
     // and its clock's.
-    fn timer(&self, peer_id: PeerId, faults: &NodeFaults) -> Box<dyn Timer> {
+    fn timer(&self, peer_id: u64, faults: &NodeFaults) -> Box<dyn Timer> {
         let clock = Arc::new(FaultyClock::new(
             faults.clock.clone(),
             self.time.clock.clone(),
@@ -247,7 +246,7 @@ impl NodeRecipe {
         ))
     }
 
-    fn writer(&self, peer_id: PeerId) -> Option<SharedWriter> {
+    fn writer(&self, peer_id: u64) -> Option<SharedWriter> {
         match &self.logs {
             Logs::Files(dir) => Some(SharedWriter::open(
                 &dir.join(format!("node-{peer_id}.jsonl")),

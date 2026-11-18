@@ -7,27 +7,32 @@ use core::iter::once;
 
 use crate::command::Command;
 use crate::config::Config;
+use crate::instance::peer_id::PeerId;
 use crate::members::Members;
 use crate::miss_count::MissCount;
 use crate::outcome::Outcome;
 use crate::quorum_policy::QuorumPolicy;
 use crate::states::probing::Probing;
 use crate::states::suspicion::Suspicion;
-use crate::types::PeerId;
 
 // What a concluded node keeps of its members' liveness -- whom it probes and
 // whom it suspects -- answering the four commands of liveness, and saying when
 // a change crosses the quorum.
-#[derive(Debug, Clone, Default)]
-pub struct Liveness {
-    probing: Probing,
-    suspicion: Suspicion,
+#[derive(Debug, Clone)]
+pub struct Liveness<P: PeerId = u64> {
+    probing: Probing<P>,
+    suspicion: Suspicion<P>,
 }
 
-impl Liveness {
+impl<P: PeerId> Liveness<P> {
+    #[must_use]
+    pub fn new(probing: Probing<P>, suspicion: Suspicion<P>) -> Self {
+        Self { probing, suspicion }
+    }
+
     // The outcome that says a change crossed the quorum, if it did.
     #[must_use]
-    pub fn crossing(held: bool, holds: bool) -> Option<Outcome> {
+    pub fn crossing(held: bool, holds: bool) -> Option<Outcome<P>> {
         match (held, holds) {
             (true, false) => Some(Outcome::QuorumLost),
             (false, true) => Some(Outcome::QuorumRestored),
@@ -36,24 +41,24 @@ impl Liveness {
     }
 
     #[must_use]
-    pub fn holds_quorum(&self, members: &Members, quorum_policy: QuorumPolicy) -> bool {
+    pub fn holds_quorum(&self, members: &Members<P>, quorum_policy: QuorumPolicy) -> bool {
         self.suspicion.holds_quorum(members, quorum_policy)
     }
 
     #[must_use]
-    pub fn last_probed(&self) -> Option<PeerId> {
+    pub fn last_probed(&self) -> Option<P> {
         self.probing.last_probed()
     }
 
     #[must_use]
-    pub fn misses(&self) -> &[MissCount] {
+    pub fn misses(&self) -> &[MissCount<P>] {
         self.suspicion.misses()
     }
 
     // The liveness of `members` alone: a peer no longer a member is neither
     // suspected nor counted, nor the member probed last.
     #[must_use]
-    pub fn of_members(&self, members: &Members) -> Self {
+    pub fn of_members(&self, members: &Members<P>) -> Self {
         Self {
             probing: self.probing.of_members(members),
             suspicion: self.suspicion.of_members(members),
@@ -63,11 +68,11 @@ impl Liveness {
     #[must_use]
     pub fn step(
         &self,
-        command: &Command,
-        members: &Members,
+        command: &Command<P>,
+        members: &Members<P>,
         quorum_policy: QuorumPolicy,
-        config: &Config,
-    ) -> Option<(Vec<Outcome>, Self)> {
+        config: &Config<P>,
+    ) -> Option<(Vec<Outcome<P>>, Self)> {
         match *command {
             Command::ProbeDue => {
                 let (outcomes, probing) = self.probing.probe(members, config.peer_id());
@@ -89,17 +94,17 @@ impl Liveness {
     }
 
     #[must_use]
-    pub fn suspected(&self) -> &[PeerId] {
+    pub fn suspected(&self) -> &[P] {
         self.suspicion.suspected()
     }
 
     // A changed suspicion, with the quorum it crosses said last.
     fn changed(
         &self,
-        (outcome, suspicion): (Outcome, Suspicion),
-        members: &Members,
+        (outcome, suspicion): (Outcome<P>, Suspicion<P>),
+        members: &Members<P>,
         quorum_policy: QuorumPolicy,
-    ) -> (Vec<Outcome>, Self) {
+    ) -> (Vec<Outcome<P>>, Self) {
         let crossing = Self::crossing(
             self.suspicion.holds_quorum(members, quorum_policy),
             suspicion.holds_quorum(members, quorum_policy),
@@ -117,12 +122,12 @@ impl Liveness {
     // and a non-member are ignored, and a suspect is not suspected twice.
     fn observed(
         &self,
-        command: &Command,
-        peer_id: PeerId,
-        members: &Members,
+        command: &Command<P>,
+        peer_id: P,
+        members: &Members<P>,
         quorum_policy: QuorumPolicy,
-        config: &Config,
-    ) -> (Vec<Outcome>, Self) {
+        config: &Config<P>,
+    ) -> (Vec<Outcome<P>>, Self) {
         match command {
             _ if peer_id == config.peer_id() => {
                 (vec![Outcome::SelfIgnored { peer_id }], self.clone())

@@ -3,7 +3,6 @@
 
 use std::io::Write;
 
-use faction::types::PeerId;
 use faction_protocol::transport_message::TransportMessage;
 
 use crate::traits::fault_report::FaultReport;
@@ -24,7 +23,7 @@ impl BannerFaultReport {
 }
 
 impl FaultReport for BannerFaultReport {
-    fn report(&mut self, fault: &str, from: PeerId, to: PeerId, message: &TransportMessage) {
+    fn report(&mut self, fault: &str, from: u64, to: u64, message: &TransportMessage) {
         let _ = write!(
             self.out,
             "\n{RULE}\n###  FAULT INJECTED >>> {fault}\n###  peer {from} -> peer {to}   {message:?}\n{RULE}\n\n"

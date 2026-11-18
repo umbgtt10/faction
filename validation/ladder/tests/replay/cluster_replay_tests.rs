@@ -10,7 +10,6 @@ use crate::support::log_replay::LogReplay;
 use crate::support::spec_log::Lines;
 use crate::support::spec_log::SpecLog;
 use faction::observer::Observer;
-use faction::types::PeerId;
 use faction_core_validation::cluster_simulation::ClusterSimulation;
 use proptest::prelude::*;
 use serde_json::Value;
@@ -86,7 +85,7 @@ fn replay_of_every_node_s_log_after_convergence_reconstructs_it() {
     for peer in 0..5 {
         cluster.inject_participation(peer);
     }
-    for peer in 0..5 as PeerId {
+    for peer in 0..5 {
         cluster.complete_local(peer);
     }
     let _ = cluster.check();

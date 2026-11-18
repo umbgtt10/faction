@@ -10,6 +10,7 @@ use crate::support::matrix_table::MatrixTable;
 use crate::support::spec_files::SpecFiles;
 use crate::support::spec_writer::SpecWriter;
 use faction::command::Command;
+use faction::command_kind::CommandKind;
 use faction::conclusion::Conclusion;
 use faction::process_result::ProcessResult;
 use rstest::rstest;
@@ -67,7 +68,7 @@ fn invalid_transition(
     #[case] init: Init,
     #[case] command: Command,
     #[case] asserts: &[Assert],
-    #[case] expected_admissible: Vec<Command>,
+    #[case] expected_admissible: Vec<CommandKind>,
 ) {
     // Arrange
     let mut faction = build(init);

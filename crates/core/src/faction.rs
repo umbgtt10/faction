@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::instance::peer_id::PeerId;
 use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -8,6 +9,7 @@ use alloc::vec::Vec;
 use crate::cluster_view::ClusterView;
 use crate::cluster_view_builder::ClusterViewBuilder;
 use crate::command::Command;
+use crate::command_kind::CommandKind;
 use crate::config::Config;
 use crate::instance::receipt::Receipt;
 use crate::members::Members;
@@ -19,17 +21,17 @@ use crate::states::epoch_rule::EpochRule;
 use crate::states::initial::Initial;
 use crate::states::provisional_rule::ProvisionalRule;
 
-pub struct Faction {
-    config: Config,
-    observer: Box<dyn Observer>,
-    stage: Stage,
-    cluster_view: ClusterView,
+pub struct Faction<P: PeerId = u64> {
+    config: Config<P>,
+    observer: Box<dyn Observer<P>>,
+    stage: Stage<P>,
+    cluster_view: ClusterView<P>,
     next_number: u64,
 }
 
-impl Faction {
+impl<P: PeerId> Faction<P> {
     #[must_use]
-    pub fn new(config: Config, observer: Box<dyn Observer>) -> Self {
+    pub fn new(config: Config<P>, observer: Box<dyn Observer<P>>) -> Self {
         let stage = Stage::Initial(Initial::new(
             Members::new(config.peers().to_vec()),
             config.quorum_policy(),
@@ -54,7 +56,7 @@ impl Faction {
     // The command answered, on a receipt numbered one more than the last,
     // and reported to the observer.
     #[must_use]
-    pub fn process(&mut self, command: Command) -> Receipt {
+    pub fn process(&mut self, command: Command<P>) -> Receipt<P> {
         let receipt = Receipt {
             number: self.next_number,
             output: self.answer(&command),
@@ -64,7 +66,7 @@ impl Faction {
         receipt
     }
 
-    fn admissible(&self) -> Vec<Command> {
+    fn admissible(&self) -> Vec<CommandKind> {
         self.stage
             .admissible_commands(&self.config, self.cluster_view.epoch())
     }
@@ -73,7 +75,7 @@ impl Faction {
     // provisional: an accepted command moves each as its rule says, before
     // the stage shows itself; a provisional node sends no membership, and a
     // change it is asked to coordinate it refuses, its stage kept.
-    fn answer(&mut self, command: &Command) -> ProcessResult {
+    fn answer(&mut self, command: &Command<P>) -> ProcessResult<P> {
         let epoch = self.cluster_view.epoch();
         let provisional =
             ProvisionalRule::new(self.config.peer_id(), self.cluster_view.is_provisional());
@@ -97,7 +99,7 @@ impl Faction {
                     outcomes,
                 }
             }
-            None if *command == Command::Probe => ProcessResult::Probed {
+            None if command.kind() == CommandKind::Probe => ProcessResult::Probed {
                 cluster_view: self.cluster_view.clone(),
                 admissible: self.admissible(),
             },

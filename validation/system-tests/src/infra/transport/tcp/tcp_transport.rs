@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use faction::types::PeerId;
 use faction_protocol::transport::Transport;
 use faction_protocol::transport_message::TransportMessage;
 use std::collections::{HashMap, VecDeque};
@@ -17,9 +16,9 @@ use crate::infra::transport::wire_codec::WireCodec;
 use crate::traits::pause::Pause;
 
 pub struct TcpTransport {
-    peer_id: PeerId,
+    peer_id: u64,
     address_book: AddressBook,
-    outbound: HashMap<PeerId, Connection>,
+    outbound: HashMap<u64, Connection>,
     inbound: Arc<Mutex<Vec<Connection>>>,
     received: VecDeque<TransportMessage>,
     pause: Arc<dyn Pause>,
@@ -42,7 +41,7 @@ impl Drop for TcpTransport {
 }
 
 impl TcpTransport {
-    pub fn new_mesh(peer_ids: &[PeerId], pause: Arc<dyn Pause>) -> Vec<TcpTransport> {
+    pub fn new_mesh(peer_ids: &[u64], pause: Arc<dyn Pause>) -> Vec<TcpTransport> {
         let address_book: AddressBook = Arc::new(Mutex::new(Vec::new()));
         peer_ids
             .iter()
@@ -50,7 +49,7 @@ impl TcpTransport {
             .collect()
     }
 
-    fn bind(peer_id: PeerId, address_book: AddressBook, pause: Arc<dyn Pause>) -> Self {
+    fn bind(peer_id: u64, address_book: AddressBook, pause: Arc<dyn Pause>) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
         address_book.lock().unwrap().push((peer_id, addr));
@@ -59,7 +58,7 @@ impl TcpTransport {
 
     #[must_use]
     pub fn join_mesh(
-        peer_id: PeerId,
+        peer_id: u64,
         address_book: AddressBook,
         pause: Arc<dyn Pause>,
     ) -> TcpTransport {
@@ -67,7 +66,7 @@ impl TcpTransport {
     }
 
     fn from_listener(
-        peer_id: PeerId,
+        peer_id: u64,
         listener: TcpListener,
         address_book: AddressBook,
         pause: Arc<dyn Pause>,
@@ -110,8 +109,8 @@ impl TcpTransport {
 
     pub fn new(
         listen_addr: SocketAddr,
-        peer_id: PeerId,
-        peer_addrs: &[(PeerId, SocketAddr)],
+        peer_id: u64,
+        peer_addrs: &[(u64, SocketAddr)],
         pause: Arc<dyn Pause>,
     ) -> Self {
         let listener = TcpListener::bind(listen_addr).unwrap();
@@ -152,7 +151,7 @@ impl TcpTransport {
         self.address_book.clone()
     }
 
-    fn connect_to(&mut self, to: PeerId) {
+    fn connect_to(&mut self, to: u64) {
         if self.outbound.contains_key(&to) {
             return;
         }
@@ -171,7 +170,7 @@ impl TcpTransport {
         }
     }
 
-    fn write_to(&mut self, to: PeerId, data: &[u8]) -> bool {
+    fn write_to(&mut self, to: u64, data: &[u8]) -> bool {
         let pause = self.pause.clone();
         self.outbound
             .get_mut(&to)
@@ -180,7 +179,7 @@ impl TcpTransport {
 }
 
 impl Transport for TcpTransport {
-    fn send(&mut self, to: PeerId, message: TransportMessage) {
+    fn send(&mut self, to: u64, message: TransportMessage) {
         if to == self.peer_id {
             return;
         }

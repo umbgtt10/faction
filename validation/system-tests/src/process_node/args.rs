@@ -6,8 +6,6 @@ use crate::probe_stretch::ProbeStretch;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use faction::types::PeerId;
-
 use crate::process_node::config::ProcessNodeConfig;
 
 use crate::transport_kind::TransportKind;
@@ -23,8 +21,8 @@ impl Args {
     }
 
     pub fn parse(&self) -> ProcessNodeConfig {
-        let mut peer_id: Option<PeerId> = None;
-        let mut peers: Option<Vec<PeerId>> = None;
+        let mut peer_id: Option<u64> = None;
+        let mut peers: Option<Vec<u64>> = None;
         let mut required: Option<usize> = None;
         let mut suspicion_threshold: Option<usize> = None;
         let mut bounds: Vec<usize> = Vec::new();
@@ -33,7 +31,7 @@ impl Args {
         let mut transport: Option<TransportKind> = None;
 
         let mut listen_addr: Option<SocketAddr> = None;
-        let mut peer_addrs: Option<Vec<(PeerId, SocketAddr)>> = None;
+        let mut peer_addrs: Option<Vec<(u64, SocketAddr)>> = None;
         let mut log_path: Option<PathBuf> = None;
         let mut timer_delay_ms: Option<u64> = None;
         let mut lifetime_ms: Option<u64> = None;
@@ -110,7 +108,7 @@ impl Args {
                             .map(|pair| {
                                 let (id_str, addr_str) =
                                     pair.split_once('=').expect("invalid --peer-addrs format");
-                                let id: PeerId =
+                                let id: u64 =
                                     id_str.parse().expect("invalid peer id in --peer-addrs");
                                 let addr: SocketAddr =
                                     addr_str.parse().expect("invalid address in --peer-addrs");

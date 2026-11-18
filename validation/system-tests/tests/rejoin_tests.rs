@@ -14,7 +14,6 @@ use crate::support::log_dir;
 use crate::support::real_time;
 use faction::peer_state::PeerState;
 use faction::types::Epoch;
-use faction::types::PeerId;
 use faction_system_tests::cluster::Cluster;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::join::committer::Committer;
@@ -211,7 +210,7 @@ fn grown(
     cluster
 }
 
-fn membership(peers: &[PeerId], required_count: usize, epoch: Epoch) -> Membership {
+fn membership(peers: &[u64], required_count: usize, epoch: Epoch) -> Membership {
     Membership {
         peers: peers.to_vec(),
         required_count,
