@@ -13,5 +13,8 @@ fn now_reads_a_date_after_this_code_was_written() {
     let reading = clock.now();
 
     // Assert
-    assert!(reading.timestamp() > 1_762_905_600, "{reading}");
+    assert!(
+        reading.nanoseconds() > 1_762_905_600_000_000_000,
+        "{reading:?}"
+    );
 }

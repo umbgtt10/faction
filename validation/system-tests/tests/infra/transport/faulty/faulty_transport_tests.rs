@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::traits::wall_clock_tests::FAKE_MOMENT;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction::types::PeerId;
 use faction_protocol::transport::Transport;
@@ -458,7 +459,7 @@ fn send_to_a_peer_cut_off_drops_it_and_logs_the_fault() {
         cuts.clone(),
         Box::new(SharedFileFaultReport::new(
             SharedWriter::open(&path),
-            Arc::new(FakeWallClock::at(2026, 11, 12)),
+            Arc::new(FakeWallClock::at(FAKE_MOMENT)),
         )),
         Box::new(RecordingTransport {
             forwarded: forwarded.clone(),

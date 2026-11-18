@@ -19,7 +19,6 @@ license = "MIT"
 
 [workspace.dependencies]
 boon = "0.6"
-chrono = "0.4"
 faction = { path = "crates/core" }
 faction-core-validation = { path = "validation/core-validation" }
 faction-protocol = { path = "crates/protocol" }

@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use crate::traits::wall_clock_tests::FAKE_MOMENT;
 use crate::traits::wall_clock_tests::FakeWallClock;
 use faction_protocol::transport_message::TransportMessage;
 use faction_system_tests::infra::logging::shared_file_fault_report::SharedFileFaultReport;
@@ -19,7 +20,7 @@ fn report_writes_one_line_of_the_node_s_log() {
     let _ = remove_file(&path);
     let mut report = SharedFileFaultReport::new(
         SharedWriter::open(&path),
-        Arc::new(FakeWallClock::at(2026, 11, 12)),
+        Arc::new(FakeWallClock::at(FAKE_MOMENT)),
     );
 
     // Act

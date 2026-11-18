@@ -26,7 +26,7 @@ impl SharedFileFaultReport {
 
 impl FaultReport for SharedFileFaultReport {
     fn report(&mut self, fault: &str, from: PeerId, to: PeerId, message: &TransportMessage) {
-        let timestamp = self.clock.now().format("%Y-%m-%dT%H:%M:%S%.3fZ");
+        let timestamp = self.clock.now().to_stamp();
         self.writer.write_line(&format!(
             "{{\"timestamp\":\"{timestamp}\",\"peer_id\":{from},\"event\":\"fault\",\"fault\":\"{fault}\",\"to\":{to},\"message\":\"{message:?}\"}}"
         ));

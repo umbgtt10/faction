@@ -15,7 +15,6 @@ autotests = false
 publish = false
 
 [dependencies]
-chrono.workspace = true
 faction.workspace = true
 faction-protocol.workspace = true
 prost.workspace = true

@@ -4,3 +4,4 @@
 pub mod faulty;
 pub mod real;
 pub mod simulated;
+pub mod wall_time_tests;

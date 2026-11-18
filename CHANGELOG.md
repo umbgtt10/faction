@@ -83,6 +83,15 @@ Conforms to the specification's version 0.9.0: every vector 0.8.0 released is an
   every seed the first had played. And the regressions file keeps a seed once: a soak finding a
   seed failing again records nothing new.
 
+### The validation packages without chrono
+
+#### Changed
+- The system tests' and the chaos tier's wall clock reads a `WallTime` of the harness's own, on `std::time` alone: the
+  time since the Unix epoch, written as a log line's stamp -- RFC 3339 to the millisecond, in UTC -- or as a run's
+  folder name, and read as the chaos soak's fresh seed. Stamps and folder names are written as they were. chrono,
+  which RUSTSEC-2026-0543 reports unmaintained, leaves the workspace, and its advisory leaves `deny.toml`; no
+  published crate depended on it.
+
 ## [0.12.0] — 2026-11-17
 
 ### Published on crates.io
