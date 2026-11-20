@@ -2,9 +2,10 @@
 
 **Crate:** `faction`  
 **License:** MIT  
-**Last updated:** 2026-11-18  
+**Last updated:** 2026-11-20  
 **Current status:** Phase 6 — concurrent membership changes landed (specification 0.9.0, for the crate's 0.13.0),
-with peer ids of the caller's own type; before it, epochs and rejoin (specification 0.5.0, for the crate's 0.9.0), the
+with peer ids of the caller's own type, and since, a removal judged by the count it leaves (specification 0.10.0,
+for the crate's 0.14.0); before it, epochs and rejoin (specification 0.5.0, for the crate's 0.9.0), the
 chaos validation (specification 0.6.0, for the crate's 0.10.0), a provisional node coordinating no change
 (specification 0.7.0, for the crate's 0.11.0), and every answer a numbered receipt and every node an instance
 (specification 0.8.0, for the crate's 0.12.0)

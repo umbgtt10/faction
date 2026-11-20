@@ -1870,6 +1870,31 @@
    "id": "126-a-duplicate-of-an-acknowledged-addition",
    "version": "0.9.0",
    "sha256": "d905ab1e9f7145de839e137de2db77e732a138f404055da2de0479105fc7e765"
+  },
+  {
+   "id": "127-two-live-members-shrink-to-one",
+   "version": "0.10.0",
+   "sha256": "1efaa2e711ab561577203959b045cbbe36a616b7fa0b412d7a6d5889541ee811"
+  },
+  {
+   "id": "128-a-stated-count-refuses-what-the-count-held-spares",
+   "version": "0.10.0",
+   "sha256": "e157b028f567069d3dbfc8c9fe2bde3b30f21452b6fdf1200330d85a45634356"
+  },
+  {
+   "id": "129-a-live-member-spared-beside-a-suspect",
+   "version": "0.10.0",
+   "sha256": "b3086a351fc4148e5579e99423843e7d1d3e1be2f996eb7f3a037ceb0301c7c4"
+  },
+  {
+   "id": "130-a-stated-count-kept-for-a-decline",
+   "version": "0.10.0",
+   "sha256": "0afe21b091c7965de055e359df3a613f242dd914c4facf81435da0817367deff"
+  },
+  {
+   "id": "131-a-stated-count-decides-a-decline-after-a-commit",
+   "version": "0.10.0",
+   "sha256": "81dc397f07747f4d6be935079e5685142cc57daedeada026958159b34aeb5bc9"
   }
  ]
 }

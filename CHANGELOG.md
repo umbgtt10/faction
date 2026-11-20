@@ -5,8 +5,13 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-11-20
+
+### Published on crates.io
+
 Conforms to the specification's version 0.10.0: every vector 0.9.0 released is answered alike, and five new ones,
-127 to 131, show a removal judged by the count it leaves.
+127 to 131, are released with it, a removal judged by the count it leaves. A one-hour chaos soak before the release:
+599,936 scenarios from seed 1795176904664728945, none failed.
 
 ### A removal judged by the count it leaves
 
