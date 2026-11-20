@@ -78,20 +78,32 @@ though the three voters left need two. The rule is conservative wherever a
 removal lowers the count. A suspect's removal, never refused for the quorum, is
 the way around it today: stop the member first.
 
-**The clean fix.** The removal request carries the count it leaves —
-`RemovalRequested { peer_id, leaves }`, the required count of the membership
-without it and every removal in flight, which the caller computes by its own
-rule — and §12 judges the members not suspected against that count rather than
-the one the node holds. Faction still computes no quorum of its own
-(`P0-ADR-ProtocolAgnostic`); it judges a change by the count the caller says the
-change leaves, as Raft judges a configuration from the moment it is appended
-(the dissertation, section 4.1).
+**The clean fix.** A removal request may carry the count it leaves —
+`RemovalRequested { peer_id, leaves }`, `leaves` optional: the required count of
+the membership without it and every removal in flight, which the caller
+computes by its own rule. §12 judges the members not suspected against that
+count when the request states one, and against the count the node holds when it
+does not, as now. The count stated is kept with the change in flight, so a
+removal checked again when it is proposed again (§16) is judged by it too.
+Faction still computes no quorum of its own (`P0-ADR-ProtocolAgnostic`); it
+judges a change by the count the caller says the change leaves, as Raft judges a
+configuration from the moment it is appended (the dissertation, section 4.1).
 
-**What it costs.** §12 and its vectors, the command's encoding (a new field: a
-spec version), `can_spare`, the model in `crates/spec-model/` and the
-conformance tier; a release. etheram-raft then hands the count with every
-removal it asks for, and its test that a live voter of two cannot be removed
-answers the other way; etheram-raft-embassy follows.
+**Optional, at the owner's word of 2026-11-20.** A request that states no count
+is judged as it is today, so the 80 vectors of 125 that hold a removal stay
+valid unchanged, and a caller that does not state one is not made to. New
+vectors, about five: two live voters shrinking to one; four voters with one
+suspected, a live one's removal spared; a stated count against the one held; a
+stated count kept for the re-check of a removal in flight.
+
+**What it costs.** §12, §16 and the schema (a spec version: 0.9.0 to 0.10.0),
+`can_spare` and the change in flight in `crates/core` (16 uses of the command),
+the model in `crates/spec-model/` (14), the validation tiers (some 21, mostly
+patterns gaining the field), the new vectors; a release, 0.14.0. etheram-raft
+then states the count with every removal it asks for -- the majority of the
+voters the removal leaves, removals in flight counted -- and its tests that a
+live voter of two cannot be removed answer the other way; etheram-raft-embassy
+follows.
 
 **When.** At the owner's word of 2026-11-20: after every issue that affects
 etheram-raft alone is fixed.
