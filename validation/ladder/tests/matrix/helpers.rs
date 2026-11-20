@@ -109,7 +109,10 @@ pub fn removal_committed(peer_id: u64) -> Command {
 }
 
 pub fn removal_requested(peer_id: u64) -> Command {
-    Command::RemovalRequested { peer_id }
+    Command::RemovalRequested {
+        peer_id,
+        leaves: None,
+    }
 }
 
 pub fn removed_admissible() -> Vec<CommandKind> {

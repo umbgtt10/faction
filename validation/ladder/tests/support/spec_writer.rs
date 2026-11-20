@@ -37,13 +37,15 @@ impl SpecWriter {
             | Command::JoinRejected { peer_id }
             | Command::AdditionRequested { peer_id }
             | Command::AdditionAborted { peer_id }
-            | Command::RemovalRequested { peer_id }
             | Command::RemovalAborted { peer_id }
             | Command::PeerHeard { peer_id }
             | Command::ProbeMissed { peer_id }
             | Command::IndirectProbesMissed { peer_id } => {
                 json!({ Self::name(command): { "peer_id": Self::number(*peer_id) } })
             }
+            Command::RemovalRequested { peer_id, leaves } => json!({
+                Self::name(command): Self::leaving(json!({ "peer_id": Self::number(*peer_id) }), *leaves)
+            }),
             Command::RequiredCountChanged {
                 required_count,
                 epoch,
@@ -258,9 +260,9 @@ impl SpecWriter {
             Reconfiguration::AdditionAcknowledged { peer_id } => {
                 Self::peer("AdditionAcknowledged", peer_id)
             }
-            Reconfiguration::RemovalRequested { peer_id } => {
-                Self::peer("RemovalRequested", peer_id)
-            }
+            Reconfiguration::RemovalRequested { peer_id, leaves } => json!({
+                "RemovalRequested": Self::leaving(json!({ "peer_id": Self::number(peer_id) }), leaves)
+            }),
         }
     }
 
@@ -298,6 +300,14 @@ impl SpecWriter {
     fn provisional(mut payload: Value, provisional: bool) -> Value {
         if provisional {
             payload["provisional"] = Value::Bool(true);
+        }
+        payload
+    }
+
+    // `payload` with the count a removal states it leaves, if it states one.
+    fn leaving(mut payload: Value, leaves: Option<usize>) -> Value {
+        if let Some(leaves) = leaves {
+            payload["leaves"] = Self::number(leaves);
         }
         payload
     }

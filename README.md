@@ -22,7 +22,7 @@ consensus begins?
 that answers the question deterministically, observably, and provably.
 
 **All six phases are built** (2026-11-17): bootstrapping, dynamic joining, single-node addition, failure
-detection, single-node removal, epochs and rejoin, and concurrent changes, conformant to version 0.9.0 of the
+detection, single-node removal, epochs and rejoin, and concurrent changes, conformant to version 0.10.0 of the
 specification in [`spec/`](spec/SPEC.md). Version 0.13.0 is on [crates.io](https://crates.io/crates/faction).
 
 ---
@@ -123,7 +123,7 @@ Twenty-one commands drive the machine:
 | `MembershipAcknowledged { peer_id, epoch }` | The newcomer holds the membership it was sent |
 | `AdditionCommitted { peer_id, epoch }` | The layer above committed the addition, at its epoch |
 | `AdditionAborted { peer_id }` | The layer above abandoned it |
-| `RemovalRequested { peer_id }` | Coordinate the removal of a member |
+| `RemovalRequested { peer_id, leaves }` | Coordinate the removal of a member, judged by the count it leaves if `leaves` states one |
 | `RemovalCommitted { peer_id, epoch }` | The layer above committed the removal, at its epoch |
 | `RemovalAborted { peer_id }` | The layer above abandoned it |
 | `RequiredCountChanged { required_count, epoch }` | The required count in effect changed, at its epoch |
@@ -297,7 +297,7 @@ The caller owns the network. `faction` owns the state.
 
 | Package | What it tests | Tests |
 |---|---|---|
-| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 78 rows and 125 conformance vectors in force, the released ones re-encoded at 0.8.0 as receipts and at 0.9.0 with the view's changes in flight a list, and one withdrawn | — |
+| [`spec/`](./spec/SPEC.md) | The normative specification: a decision table of 78 rows and 130 conformance vectors in force, the released ones re-encoded at 0.8.0 as receipts and at 0.9.0 with the view's changes in flight a list, and one withdrawn | — |
 | `crates/spec-model/` | The specification's independent model: its decision table read and interpreted, depending on nothing of the crate | 224 |
 | `crates/core/` unit tests | Each type and each step in isolation | 346 |
 | `validation/ladder/` | Conformance to the specification, of the model and then of the crate; every `(state, command)` pair, checked against the decision table; properties over random command sequences, the crate against the model among them under bounds of one to three, liveness's invariants, removal's, the epoch's and the changes in flight's, and peer ids renamed answering alike; logs replayed | 256 |
@@ -343,7 +343,7 @@ as asked, and `just chaos-replay <seed>` replays one seed with every node's log.
 | Metric | Value |
 |---|---|
 | Core productive LOC | ~2,550 |
-| Specification | [`spec/`](./spec/SPEC.md) 0.9.0 — its independent model and the crate answer all 125 vectors in force as written, the released ones kept as released and re-encoded twice, changing no answer, and one withdrawn to correct a defect |
+| Specification | [`spec/`](./spec/SPEC.md) 0.10.0 — its independent model and the crate answer all 130 vectors in force as written, the released ones kept as released and re-encoded twice, changing no answer, and one withdrawn to correct a defect |
 | Total tests | 2,138 |
 | Code coverage (productive) | 100% |
 | `(state, command)` matrix | [state_transition_matrix_tests.rs](./validation/ladder/tests/matrix/state_transition_matrix_tests.rs) |

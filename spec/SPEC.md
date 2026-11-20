@@ -1,6 +1,6 @@
 # faction — the specification
 
-**Version 0.9.0.** The four parts of this specification are versioned together: this prose, the data model in
+**Version 0.10.0.** The four parts of this specification are versioned together: this prose, the data model in
 [`schema.json`](schema.json), the decision table in [`matrix.json`](matrix.json) and the conformance vectors in
 [`vectors/`](vectors/). It is normative; the `faction` crate is one implementation of it, and where the two disagree
 the specification is right ([`P0-ADR-SpecificationIsNormativeCrateIsReference`](../docs/ADRs/P0-ADR-SpecificationIsNormativeCrateIsReference.md)).
@@ -25,7 +25,9 @@ re-encodes every vector in force so, once, changing no answer (§1, §18). 0.9.0
 proposal — to commit it only while no change committed since conflicts with it — and has the coordinator decide a
 declined proposal again (§17); lets a coordinator hold several changes in flight, up to a bound its configuration
 states, in a new stage, `Coordinating` (§2, §11, §12); and re-encodes every vector in force once more, the view's
-changes in flight a list (§1, §4). Every vector 0.8.0 released is answered alike.
+changes in flight a list (§1, §4). Every vector 0.8.0 released is answered alike. 0.10.0 grows by the rule again: a
+removal's request may state the count the removal leaves, by which its quorum check judges it, and its change in
+flight keeps it (§12, §17); every vector 0.9.0 released is answered alike.
 
 ## 1. Conventions
 
@@ -87,7 +89,9 @@ it again: whether a node's membership is provisional (§16), a member of the con
 wherever it is not. 0.9.0 grows by it once more: the command `ProposalDeclined` is new, and so is the outcome
 `DeclineIgnored` it brings (§17); the configuration's bound of changes in flight, `changes_in_flight`, is omitted
 wherever it is 1; and the stage `Coordinating`, which a node bound to one change never reaches, is new, and so is the
-outcome `DuplicateChangeIgnored` (§2, §11, §12). Before the rule was written the encoding grew in place: 0.2.0,
+outcome `DuplicateChangeIgnored` (§2, §11, §12). 0.10.0 grows by it again: the count a removal leaves, `leaves`, a
+member of the command `RemovalRequested` and of the change in flight it starts, is omitted wherever the caller
+states none (§12). Before the rule was written the encoding grew in place: 0.2.0,
 0.3.0 and 0.4.0 each added fields to the view and the configuration, and commands to what earlier stages admit,
 rewriting the vectors released before them -- never an outcome -- and 0.4.0 renamed the view's `addition` to
 `reconfiguration`, which 0.9.0 made a list.
@@ -195,7 +199,7 @@ not before; in `Removed`, as it was when the node was removed.
 **The reconfigurations** are the changes in flight, in the order they were requested, and none with no change in
 flight. An addition is `AdditionRequested`, naming the peer, once it is requested, and `AdditionAcknowledged`, naming
 it, once the peer has acknowledged the membership (§11); a removal is `RemovalRequested`, naming the peer, once it is
-requested (§12).
+requested, and the count its request stated it leaves, if it stated one (§12).
 
 **The suspected peers** are the members the node suspects (§14). **The missed periods** list each member that has
 missed one or more periods running and is not suspected, with how many. **The member probed last** is `None` until the
@@ -342,14 +346,19 @@ removal commits (§14).
 
 **`RemovalRequested`** starts a removal: `ProposeRemoval` — the caller proposes the removal to the layer above, decided
 at the epoch the view shows (§17) — and the removal, `RemovalRequested`, is the last of its changes in flight: the node
-is in the stage they make (§2). Any member may be named, the node itself among them. A peer that is not a member is
+is in the stage they make (§2). The request may state `leaves`, the count the removal leaves: the required count of the
+membership without the peer and every member whose removal is in flight, which the caller computes by its own rule,
+as it computes every required count (§13). The change in flight keeps it. Any member may be named, the node itself among them. A peer that is not a member is
 answered `NonMemberIgnored`, and nothing changes. A node whose membership is provisional coordinates no removal: it is
 answered `CoordinationRefused`, carrying the peer, before anything else, and nothing changes (§16). A peer with a
 change in flight is answered `DuplicateChangeIgnored` (§11), and `Reconfiguring` admits no request.
 
 **A removal that would lose the quorum is refused.** The removal of a member not suspected, when without it and every
-member whose removal is in flight the members not suspected would number fewer than the required count, is answered
-`RemovalRefused`, and nothing changes: the removals in flight are counted together. The node counts itself and is
+member whose removal is in flight the members not suspected would number fewer than the count the removal leaves —
+the count its request states, else the required count — is answered `RemovalRefused`, and nothing changes: the
+removals in flight are counted together. Stating no count judges a removal against the count the cluster has before
+it, which is conservative wherever the removal lowers the count: of two members, neither suspected, neither may be
+removed so, though one of one may be all the configuration it leaves needs. The node counts itself and is
 never suspected (§15). A suspect's removal is never refused for the quorum: it leaves the members
 not suspected as they are. The node decides on its own view.
 
@@ -375,7 +384,8 @@ removed node admits a membership and `Probe` alone, and only a membership that n
 no member waits on it, as every member applies the same commit
 ([`P1-ADR-TerminalStatesAreNotSinks`](../docs/ADRs/P1-ADR-TerminalStatesAreNotSinks.md)).
 
-**A removal changes who may be counted, never how many are required** (§13). On a concluded node, the removal of a
+**A removal changes who may be counted, never how many are required** (§13): the count it states judges it alone, and
+the count it leaves is in effect once the caller reports it, `RequiredCountChanged`, when the removal commits. On a concluded node, the removal of a
 member not suspected may lose its quorum, and no removal restores it (§15).
 
 ## 13. The required count
@@ -540,7 +550,8 @@ coordinator's, of a change it has in flight.
   is never a member while its addition is in flight (§11), so on the node's own view it is always still valid.
 - **A removal** the quorum can still spare is proposed again: `ProposeRemoval`, at the node's epoch, and the change
   stays in flight. One it can no longer spare — of a member not suspected, without which and every other member whose
-  removal is in flight the members not suspected would number fewer than the required count — is given up:
+  removal is in flight the members not suspected would number fewer than the count the removal leaves, the count its
+  request stated, else the required count (§12) — is given up:
   `RemovalRefused`, the change is in flight no more, the node is in the stage the others make (§2), and the peer is
   still a member. A suspect's removal is never given up for the quorum (§12).
 

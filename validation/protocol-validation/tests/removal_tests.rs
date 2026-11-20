@@ -170,7 +170,10 @@ fn a_removal_in_flight_refuses_an_addition_and_an_addition_in_flight_a_removal()
     // Assert
     assert_eq!(
         while_removing,
-        [Reconfiguration::RemovalRequested { peer_id: 1 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 1,
+            leaves: None
+        }]
     );
     assert_eq!(
         cluster.reconfigurations(0),

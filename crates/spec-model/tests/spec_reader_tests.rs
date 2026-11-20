@@ -72,6 +72,7 @@ fn command_of_a_command_carrying_nothing_names_no_peer() {
             name: CommandName::DeadlineExpired,
             peer_id: None,
             required_count: None,
+            leaves: None,
             epoch: 0,
             members: Vec::new(),
         }
@@ -94,6 +95,7 @@ fn command_of_a_membership_reads_its_members_its_count_and_its_epoch() {
             name: CommandName::MembershipReceived,
             peer_id: None,
             required_count: Some(2),
+            leaves: None,
             epoch: 4,
             members: NodeStates::peers(&["2", "3", "1"]),
         }
@@ -112,6 +114,7 @@ fn command_of_a_new_required_count_reads_the_count() {
             name: CommandName::RequiredCountChanged,
             peer_id: None,
             required_count: Some(3),
+            leaves: None,
             epoch: 0,
             members: Vec::new(),
         }
@@ -131,6 +134,29 @@ fn command_of_a_peer_s_signal_names_the_command_and_its_peer() {
             name: CommandName::ReadyObserved,
             peer_id: Some(String::from("18446744073709551615")),
             required_count: None,
+            leaves: None,
+            epoch: 0,
+            members: Vec::new(),
+        }
+    );
+}
+
+#[test]
+fn command_of_a_removal_stating_the_count_it_leaves_reads_it() {
+    // Arrange & Act
+    let command = SpecReader::command(&json!({"RemovalRequested": {
+        "peer_id": "2",
+        "leaves": "1",
+    }}));
+
+    // Assert
+    assert_eq!(
+        command,
+        Command {
+            name: CommandName::RemovalRequested,
+            peer_id: Some(String::from("2")),
+            required_count: None,
+            leaves: Some(1),
             epoch: 0,
             members: Vec::new(),
         }

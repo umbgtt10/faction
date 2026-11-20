@@ -722,7 +722,10 @@ fn request_removal_of_a_concluded_node_proposes_it() {
     // Assert
     assert_eq!(
         node.snapshot().reconfigurations,
-        [Reconfiguration::RemovalRequested { peer_id: 2 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 2,
+            leaves: None
+        }]
     );
 }
 

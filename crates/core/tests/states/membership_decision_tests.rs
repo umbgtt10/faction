@@ -101,8 +101,10 @@ fn of_removal_committed_returns_removed() {
 #[test]
 fn of_removal_requested_returns_none() {
     // Arrange & Act
-    let decision: Option<MembershipDecision> =
-        MembershipDecision::of(&Command::RemovalRequested { peer_id: 2 });
+    let decision: Option<MembershipDecision> = MembershipDecision::of(&Command::RemovalRequested {
+        peer_id: 2,
+        leaves: None,
+    });
 
     // Assert
     assert_eq!(decision, None);

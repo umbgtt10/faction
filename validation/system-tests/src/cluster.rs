@@ -297,7 +297,10 @@ impl Cluster {
     // Until the coordinator's removal of `peer_id` is in flight: proposed to the
     // layer that commits.
     pub fn poll_until_removal_proposed(&mut self, coordinator: usize, peer_id: u64) {
-        let proposed = Reconfiguration::RemovalRequested { peer_id };
+        let proposed = Reconfiguration::RemovalRequested {
+            peer_id,
+            leaves: None,
+        };
         self.poll_until(|cluster| {
             cluster
                 .snapshot(coordinator)

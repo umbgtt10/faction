@@ -100,8 +100,14 @@ fn changes_in_flight_lets_a_node_hold_as_many_changes_as_its_bound() {
     assert_eq!(
         cluster.snapshot(0).reconfigurations,
         [
-            Reconfiguration::RemovalRequested { peer_id: 2 },
-            Reconfiguration::RemovalRequested { peer_id: 1 }
+            Reconfiguration::RemovalRequested {
+                peer_id: 2,
+                leaves: None
+            },
+            Reconfiguration::RemovalRequested {
+                peer_id: 1,
+                leaves: None
+            }
         ]
     );
 }

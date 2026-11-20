@@ -50,8 +50,10 @@ impl RandomCommands {
                 .prop_map(|(peer_id, epoch)| Command::AdditionCommitted { peer_id, epoch }),
             peer.clone()
                 .prop_map(|peer_id| Command::AdditionAborted { peer_id }),
-            peer.clone()
-                .prop_map(|peer_id| Command::RemovalRequested { peer_id }),
+            peer.clone().prop_map(|peer_id| Command::RemovalRequested {
+                peer_id,
+                leaves: None
+            }),
             (peer.clone(), epoch.clone())
                 .prop_map(|(peer_id, epoch)| Command::RemovalCommitted { peer_id, epoch }),
             peer.clone()

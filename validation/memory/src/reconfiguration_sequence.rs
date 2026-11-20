@@ -53,7 +53,10 @@ impl<'a> ReconfigurationSequence<'a> {
                 Command::AdditionRequested { peer_id },
                 Command::MembershipAcknowledged { peer_id, epoch: 0 },
                 Command::AdditionCommitted { peer_id, epoch: 0 },
-                Command::RemovalRequested { peer_id },
+                Command::RemovalRequested {
+                    peer_id,
+                    leaves: None,
+                },
                 Command::RemovalCommitted { peer_id, epoch: 0 },
             ]
         }) {

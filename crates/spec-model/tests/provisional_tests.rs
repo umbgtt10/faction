@@ -15,6 +15,7 @@ fn naming(name: CommandName, peer_id: &str) -> Command {
         name,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        leaves: None,
         epoch: 3,
         members: Vec::new(),
     }

@@ -286,7 +286,14 @@ fn answer_of_a_removal_request_is_none() {
     let bootstrapped = concluded();
 
     // Act
-    let answered = bootstrapped.answer(Command::RemovalRequested { peer_id: 1 }, &config(), 0);
+    let answered = bootstrapped.answer(
+        Command::RemovalRequested {
+            peer_id: 1,
+            leaves: None,
+        },
+        &config(),
+        0,
+    );
 
     // Assert
     assert!(answered.is_none());
@@ -304,13 +311,30 @@ fn answer_of_an_addition_request_is_none() {
     assert!(answered.is_none());
 }
 
+// A removal stating the count it leaves is judged by it: the count held
+// spares what a higher one refuses, and refuses what a lower one spares.
+#[test]
+fn can_spare_a_member_by_the_count_its_removal_leaves_judges_by_that_count() {
+    // Arrange
+    let (requiring_two, requiring_three) = (concluded(), needing_all_three());
+
+    // Act
+    let spared = [
+        requiring_two.can_spare(1, &[], Some(3)),
+        requiring_three.can_spare(1, &[], Some(2)),
+    ];
+
+    // Assert
+    assert_eq!(spared, [false, true]);
+}
+
 #[test]
 fn can_spare_a_member_the_count_does_not_need_is_true() {
     // Arrange
     let bootstrapped = concluded();
 
     // Act
-    let spared = bootstrapped.can_spare(1, &[]);
+    let spared = bootstrapped.can_spare(1, &[], None);
 
     // Assert
     assert!(spared);
@@ -322,7 +346,7 @@ fn can_spare_a_member_the_count_needs_is_false() {
     let bootstrapped = needing_all_three();
 
     // Act
-    let spared = bootstrapped.can_spare(1, &[]);
+    let spared = bootstrapped.can_spare(1, &[], None);
 
     // Assert
     assert!(!spared);
@@ -335,8 +359,8 @@ fn can_spare_a_member_the_removals_in_flight_leave_needed_is_false() {
 
     // Act
     let spared = [
-        bootstrapped.can_spare(1, &[2]),
-        bootstrapped.can_spare(1, &[1]),
+        bootstrapped.can_spare(1, &[2], None),
+        bootstrapped.can_spare(1, &[1], None),
     ];
 
     // Assert
@@ -351,7 +375,7 @@ fn can_spare_a_suspect_the_count_needs_is_true() {
         .expect("a concluded node tracks its members' liveness");
 
     // Act
-    let spared = suspecting.can_spare(2, &[1]);
+    let spared = suspecting.can_spare(2, &[1], None);
 
     // Assert
     assert!(spared);
@@ -629,7 +653,10 @@ fn process_required_count_changed_sets_the_count_in_effect() {
 fn requested_of_a_peer_with_a_change_in_flight_ignores_it_as_a_duplicate() {
     // Arrange
     let bootstrapped = concluded();
-    let in_flight = InFlight::default().with(Reconfiguration::RemovalRequested { peer_id: 2 });
+    let in_flight = InFlight::default().with(Reconfiguration::RemovalRequested {
+        peer_id: 2,
+        leaves: None,
+    });
 
     // Act
     let (outcomes, stage) = bootstrapped
@@ -693,7 +720,14 @@ fn step_removal_requested_of_a_member_the_quorum_can_spare_proposes_it_still_boo
 
     // Act
     let (outcomes, stage) = bootstrapped
-        .step(Command::RemovalRequested { peer_id: 1 }, &config(), 0)
+        .step(
+            Command::RemovalRequested {
+                peer_id: 1,
+                leaves: None,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node is asked for a removal");
 
     // Assert
@@ -702,7 +736,10 @@ fn step_removal_requested_of_a_member_the_quorum_can_spare_proposes_it_still_boo
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 1 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 1,
+            leaves: None
+        }]
     );
 }
 
@@ -713,7 +750,14 @@ fn step_removal_requested_of_a_non_member_is_ignored() {
 
     // Act
     let (outcomes, stage) = bootstrapped
-        .step(Command::RemovalRequested { peer_id: 9 }, &config(), 0)
+        .step(
+            Command::RemovalRequested {
+                peer_id: 9,
+                leaves: None,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node is asked for a removal");
 
     // Assert
@@ -730,12 +774,72 @@ fn step_removal_requested_of_a_suspect_is_proposed_with_the_quorum_lost() {
 
     // Act
     let (outcomes, stage) = suspecting
-        .step(Command::RemovalRequested { peer_id: 2 }, &config(), 0)
+        .step(
+            Command::RemovalRequested {
+                peer_id: 2,
+                leaves: None,
+            },
+            &config(),
+            0,
+        )
         .expect("a concluded node is asked for a removal");
 
     // Assert
     assert_eq!(outcomes, vec![Outcome::ProposeRemoval { peer_id: 2 }]);
     assert!(matches!(stage, Stage::Reconfiguring(_)));
+}
+
+#[test]
+fn step_removal_requested_stating_a_count_the_rest_fall_short_of_is_refused() {
+    // Arrange
+    let bootstrapped = concluded();
+
+    // Act
+    let (outcomes, stage) = bootstrapped
+        .step(
+            Command::RemovalRequested {
+                peer_id: 1,
+                leaves: Some(3),
+            },
+            &config(),
+            0,
+        )
+        .expect("a concluded node is asked for a removal");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::RemovalRefused { peer_id: 1 }]);
+    assert!(matches!(stage, Stage::Bootstrapped(_)));
+}
+
+// Of three members requiring all three, the removal of a live one stating it
+// leaves a count of two is proposed: the count held would refuse it.
+#[test]
+fn step_removal_requested_stating_the_count_it_leaves_proposes_what_the_count_held_refuses() {
+    // Arrange
+    let bootstrapped = needing_all_three();
+
+    // Act
+    let (outcomes, stage) = bootstrapped
+        .step(
+            Command::RemovalRequested {
+                peer_id: 1,
+                leaves: Some(2),
+            },
+            &config(),
+            0,
+        )
+        .expect("a concluded node is asked for a removal");
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::ProposeRemoval { peer_id: 1 }]);
+    let cluster_view = stage.cluster_view(&ClusterViewBuilder::default().build());
+    assert_eq!(
+        cluster_view.reconfigurations(),
+        [Reconfiguration::RemovalRequested {
+            peer_id: 1,
+            leaves: Some(2)
+        }]
+    );
 }
 
 #[test]
@@ -747,7 +851,14 @@ fn step_removal_requested_the_quorum_cannot_spare_is_refused() {
     let refusals: Vec<Vec<Outcome>> = [1, 0]
         .map(|peer_id| {
             bootstrapped
-                .step(Command::RemovalRequested { peer_id }, &config(), 0)
+                .step(
+                    Command::RemovalRequested {
+                        peer_id,
+                        leaves: None,
+                    },
+                    &config(),
+                    0,
+                )
                 .expect("a concluded node is asked for a removal")
                 .0
         })

@@ -188,7 +188,7 @@ view shows, never what it admits.
 | `MembershipAcknowledged { peer_id, epoch }` | The newcomer holds the membership it was sent, at this epoch |
 | `AdditionCommitted { peer_id, epoch }` | The layer above committed the addition at its epoch — reported to every node |
 | `AdditionAborted { peer_id }` | The layer above abandoned the addition |
-| `RemovalRequested { peer_id }` | The caller asks a concluded node to coordinate a member's removal |
+| `RemovalRequested { peer_id, leaves }` | The caller asks a concluded node to coordinate a member's removal, stating, if it will, the count the removal leaves |
 | `RemovalCommitted { peer_id, epoch }` | The layer above committed the removal at its epoch — reported to every node |
 | `RemovalAborted { peer_id }` | The layer above abandoned the removal |
 | `ProposalDeclined { peer_id, epoch }` | The layer above declined the coordinator's proposal at its epoch — a change committed since conflicts with it — and the node decides it again |
@@ -363,7 +363,8 @@ A concluded cluster shrinks by one through the layer that commits changes above 
 handshake:
 
 1. `RemovalRequested` of a member not suspected the quorum cannot spare — the members
-   not suspected would number fewer than the required count without it — is refused,
+   not suspected would number fewer than the count the removal leaves without it: the
+   `leaves` the request states, else the required count — is refused,
    `RemovalRefused`; of any other member, the node itself among them, it is proposed at
    once, `ProposeRemoval`, and the removal is the last of its changes in flight. The
    removals in flight are counted together: the quorum must spare the member with every

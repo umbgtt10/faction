@@ -5,6 +5,27 @@ release since names the version it conforms to.
 
 ## [Unreleased]
 
+Conforms to the specification's version 0.10.0: every vector 0.9.0 released is answered alike, and five new ones,
+127 to 131, show a removal judged by the count it leaves.
+
+### A removal judged by the count it leaves
+
+Found from etheram-raft, where a cluster of two live voters could not shrink to one: a removal was judged by the
+count the cluster held before it, not the one it leaves, conservative wherever a removal lowers the count.
+
+#### Changed
+- `Command::RemovalRequested { peer_id, leaves }`: a removal may state `leaves`, the required count of the membership
+  without its member and every member whose removal is in flight, which the caller computes by its own rule. The
+  members not suspected are judged against it, and against the count held when it is `None`, as before (§12).
+  Breaking: the variant gains the field.
+- `Reconfiguration::RemovalRequested { peer_id, leaves }`: the removal in flight keeps the count its request stated,
+  and a declined removal is decided again by it (§17). Breaking: the variant gains the field.
+- `Bootstrapped::can_spare(peer_id, removing, leaves)`: judged by `leaves` when given, by the count held otherwise.
+  Breaking: the third argument is new.
+
+#### Added
+- `Protocol::request_removal_leaving(peer_id, leaves)` in `faction-protocol`, beside `request_removal`.
+
 ## [0.13.0] — 2026-11-18
 
 ### Published on crates.io

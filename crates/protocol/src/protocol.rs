@@ -151,7 +151,18 @@ impl<P: PeerId> Protocol<P> {
     }
 
     pub fn request_removal(&mut self, peer_id: P) -> Vec<OutputMessage<P>> {
-        self.apply(Command::RemovalRequested { peer_id })
+        self.apply(Command::RemovalRequested {
+            peer_id,
+            leaves: None,
+        })
+    }
+
+    // A removal stating the count it leaves, by which it is judged (§12).
+    pub fn request_removal_leaving(&mut self, peer_id: P, leaves: usize) -> Vec<OutputMessage<P>> {
+        self.apply(Command::RemovalRequested {
+            peer_id,
+            leaves: Some(leaves),
+        })
     }
 
     fn apply(&mut self, command: Command<P>) -> Vec<OutputMessage<P>> {

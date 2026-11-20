@@ -964,7 +964,7 @@ extern crate alloc;
     membership(&[0, 1, 2, 3], 4, 1),
     &[
         MembershipAdopted { epoch: 1 },
-        ChangeAbandoned { reconfiguration: Reconfiguration::RemovalRequested { peer_id: SUSPECT } },
+        ChangeAbandoned { reconfiguration: Reconfiguration::RemovalRequested { peer_id: SUSPECT, leaves: None } },
         QuorumRestored,
     ],
     &[Assert::Exited, Assert::SuspectedCount(0), Assert::Quorum(Quorum::Held)],

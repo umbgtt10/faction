@@ -14,6 +14,7 @@ fn command(name: CommandName, peer_id: Option<&str>) -> Command {
         name,
         peer_id: peer_id.map(String::from),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -24,6 +25,7 @@ fn membership(members: &[&str], required_count: u64, epoch: u64) -> Command {
         name: CommandName::MembershipReceived,
         peer_id: None,
         required_count: Some(required_count),
+        leaves: None,
         epoch,
         members: NodeStates::peers(members),
     }
@@ -110,6 +112,7 @@ fn applied_count_set_makes_the_command_s_count_the_count_in_effect() {
         name: CommandName::RequiredCountChanged,
         peer_id: None,
         required_count: Some(5),
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     };
@@ -331,7 +334,7 @@ fn applied_node_removed_leaves_the_node_out_with_no_liveness_and_no_change_in_fl
         suspected: NodeStates::peers(&["3"]),
         misses: NodeStates::misses(&[("2", 1)]),
         last_probed: Some(String::from("2")),
-        ..NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("1")))
+        ..NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("1"), None))
     };
 
     // Act
@@ -537,7 +540,8 @@ fn applied_probe_moves_makes_the_member_after_the_last_probed_the_one_probed_las
 fn applied_removal_completes_takes_the_peer_out_and_ends_the_removal() {
     // Arrange
     let commit = command(CommandName::RemovalCommitted, Some("2"));
-    let requested = NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("2")));
+    let requested =
+        NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("2"), None));
 
     // Act
     let changed = Change::RemovalCompletes.applied(&commit, &requested);
@@ -565,7 +569,7 @@ fn applied_removal_pends_requests_the_removal_of_the_peer() {
     assert_eq!(
         changed,
         NodeState {
-            reconfigurations: vec![Reconfiguration::RemovalRequested(String::from("2"))],
+            reconfigurations: vec![Reconfiguration::RemovalRequested(String::from("2"), None)],
             ..concluded
         }
     );
@@ -575,7 +579,8 @@ fn applied_removal_pends_requests_the_removal_of_the_peer() {
 fn applied_removal_withdrawn_leaves_no_change_in_flight() {
     // Arrange
     let abort = command(CommandName::RemovalAborted, Some("2"));
-    let requested = NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("2")));
+    let requested =
+        NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("2"), None));
 
     // Act
     let changed = Change::RemovalWithdrawn.applied(&abort, &requested);

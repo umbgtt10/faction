@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "0.10.0",
   "admits": {
     "Initial": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
     "Pinging": ["ParticipationObserved", "ReadyObserved", "LocalParticipationCompleted", "DeadlineExpired", "JoinRequested", "JoinApproved", "JoinRejected", "AdditionCommitted", "RemovalCommitted", "RequiredCountChanged", "MembershipReceived", "Probe"],
@@ -329,7 +329,7 @@
       "id": "decline-removal-refused",
       "stages": ["Coordinating", "Reconfiguring"],
       "commands": ["ProposalDeclined"],
-      "situation": "the removal of `peer_id` is in flight, `peer_id` is not suspected, and without it and every other member whose removal is in flight the members not suspected would number fewer than the required count: it is given up",
+      "situation": "the removal of `peer_id` is in flight, `peer_id` is not suspected, and without it and every other member whose removal is in flight the members not suspected would number fewer than the count the removal leaves, the `leaves` its request stated, else the required count: it is given up",
       "result": "Accepted",
       "outcomes": ["RemovalRefused"],
       "next": "changes-in-flight"
@@ -410,7 +410,7 @@
       "id": "removal-refused",
       "stages": ["Bootstrapped", "Coordinating"],
       "commands": ["RemovalRequested"],
-      "situation": "`peer_id` is not suspected, and without it and every member whose removal is in flight the members not suspected would number fewer than the required count",
+      "situation": "`peer_id` is not suspected, and without it and every member whose removal is in flight the members not suspected would number fewer than the count the removal leaves: `leaves` if the request states it, else the required count",
       "result": "Accepted",
       "outcomes": ["RemovalRefused"],
       "next": "unchanged"

@@ -72,7 +72,10 @@ impl<P: PeerId> Stage<P> {
             Command::MembershipAcknowledged { peer_id, epoch: 0 },
             Command::AdditionCommitted { peer_id, epoch: 0 },
             Command::AdditionAborted { peer_id },
-            Command::RemovalRequested { peer_id },
+            Command::RemovalRequested {
+                peer_id,
+                leaves: None,
+            },
             Command::RemovalCommitted { peer_id, epoch: 0 },
             Command::RemovalAborted { peer_id },
             Command::ProposalDeclined { peer_id, epoch: 0 },

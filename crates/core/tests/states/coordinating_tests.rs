@@ -49,7 +49,10 @@ fn reach_coordinating() -> Faction {
             .output;
     }
     let _ = faction
-        .process(Command::RemovalRequested { peer_id: 4 })
+        .process(Command::RemovalRequested {
+            peer_id: 4,
+            leaves: None,
+        })
         .output;
     faction
 }
@@ -64,7 +67,10 @@ fn cluster_view_reports_bootstrapped_with_its_changes_in_flight() {
             vec![1],
             vec![0, 2],
         ),
-        InFlight::<u64>::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
+        InFlight::<u64>::default().with(Reconfiguration::RemovalRequested {
+            peer_id: 2,
+            leaves: None,
+        }),
     ));
 
     // Act
@@ -74,7 +80,10 @@ fn cluster_view_reports_bootstrapped_with_its_changes_in_flight() {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 2 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 2,
+            leaves: None
+        }]
     );
 }
 
@@ -95,7 +104,10 @@ fn process_addition_requested_below_the_bound_takes_it() {
     assert_eq!(
         cluster_view.reconfigurations(),
         [
-            Reconfiguration::RemovalRequested { peer_id: 4 },
+            Reconfiguration::RemovalRequested {
+                peer_id: 4,
+                leaves: None
+            },
             Reconfiguration::AdditionRequested { peer_id: 9 }
         ]
     );
@@ -121,7 +133,10 @@ fn process_of_a_request_naming_a_peer_in_flight_ignores_it_as_a_duplicate() {
     );
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -130,13 +145,19 @@ fn process_removal_requested_the_removals_in_flight_leave_needed_is_refused() {
     // Arrange
     let mut faction = reach_coordinating();
     let _ = faction
-        .process(Command::RemovalRequested { peer_id: 3 })
+        .process(Command::RemovalRequested {
+            peer_id: 3,
+            leaves: None,
+        })
         .output;
 
     // Act
     let (outcomes, _, _) = Answers::accepted(
         faction
-            .process(Command::RemovalRequested { peer_id: 2 })
+            .process(Command::RemovalRequested {
+                peer_id: 2,
+                leaves: None,
+            })
             .output,
     );
 

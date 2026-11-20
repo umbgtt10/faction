@@ -201,7 +201,7 @@ proptest! {
             let (outcomes, cluster_view) = answered(&mut faction, command.clone());
 
             // Assert
-            if let Command::RemovalRequested { peer_id } | Command::ProposalDeclined { peer_id, .. } =
+            if let Command::RemovalRequested { peer_id, leaves: None } | Command::ProposalDeclined { peer_id, .. } =
                 command
             {
                 if outcomes.contains(&Outcome::ProposeRemoval { peer_id }) {
@@ -223,7 +223,7 @@ fn removal_command() -> impl Strategy<Value = Command> {
     let peer = 0u64..=6;
     prop_oneof![
         8 => liveness_command(),
-        3 => peer.clone().prop_map(|peer_id| Command::RemovalRequested { peer_id }),
+        3 => peer.clone().prop_map(|peer_id| Command::RemovalRequested { peer_id, leaves: None }),
         2 => peer.clone().prop_map(|peer_id| Command::ProposalDeclined { peer_id, epoch: 0 }),
         2 => peer.clone().prop_map(|peer_id| Command::RemovalAborted { peer_id }),
         1 => peer.prop_map(|peer_id| Command::RemovalCommitted { peer_id, epoch: 0 }),

@@ -107,10 +107,13 @@ impl<P: PeerId> Bootstrapped<P> {
 
 impl<P: PeerId> Bootstrapped<P> {
     // Whether the quorum can spare the member: a suspect it always can; any
-    // other, if the members not suspected still number the count without it
-    // and every other member whose removal, `removing`, is in flight (§12).
+    // other, if the members not suspected still number the count the removal
+    // leaves -- `leaves`, if its request stated one, else the count held --
+    // without it and every other member whose removal, `removing`, is in
+    // flight (§12).
     #[must_use]
-    pub fn can_spare(&self, peer_id: P, removing: &[P]) -> bool {
+    pub fn can_spare(&self, peer_id: P, removing: &[P], leaves: Option<usize>) -> bool {
+        let quorum_policy = leaves.map_or(self.quorum_policy, QuorumPolicy::new);
         self.liveness.suspected().contains(&peer_id)
             || removing
                 .iter()
@@ -118,7 +121,7 @@ impl<P: PeerId> Bootstrapped<P> {
                 .fold(self.members.without(peer_id), |rest, removed| {
                     rest.and_then(|rest| rest.without(*removed))
                 })
-                .is_some_and(|rest| self.liveness.holds_quorum(&rest, self.quorum_policy))
+                .is_some_and(|rest| self.liveness.holds_quorum(&rest, quorum_policy))
     }
 
     // A change of membership applied: `outcomes`, then the quorum it crosses;
@@ -172,7 +175,7 @@ impl<P: PeerId> Bootstrapped<P> {
         config: &Config<P>,
     ) -> Option<(Vec<Outcome<P>>, Stage<P>)> {
         let (outcome, change) = match *command {
-            Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id }
+            Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id, .. }
                 if in_flight.named(peer_id).is_some() =>
             {
                 (Outcome::DuplicateChangeIgnored { peer_id }, None)
@@ -184,17 +187,17 @@ impl<P: PeerId> Bootstrapped<P> {
                 Outcome::SendMembership { peer_id },
                 Some(Reconfiguration::AdditionRequested { peer_id }),
             ),
-            Command::RemovalRequested { peer_id } if !self.members.is_member(peer_id) => {
+            Command::RemovalRequested { peer_id, .. } if !self.members.is_member(peer_id) => {
                 (Outcome::NonMemberIgnored { peer_id }, None)
             }
-            Command::RemovalRequested { peer_id }
-                if !self.can_spare(peer_id, &in_flight.removals()) =>
+            Command::RemovalRequested { peer_id, leaves }
+                if !self.can_spare(peer_id, &in_flight.removals(), leaves) =>
             {
                 (Outcome::RemovalRefused { peer_id }, None)
             }
-            Command::RemovalRequested { peer_id } => (
+            Command::RemovalRequested { peer_id, leaves } => (
                 Outcome::ProposeRemoval { peer_id },
-                Some(Reconfiguration::RemovalRequested { peer_id }),
+                Some(Reconfiguration::RemovalRequested { peer_id, leaves }),
             ),
             _ => return None,
         };

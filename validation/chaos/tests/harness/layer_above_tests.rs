@@ -112,8 +112,14 @@ fn act_asks_a_coordinator_for_as_many_changes_as_its_bound_at_once() {
     assert_eq!(
         cluster.snapshot(0).reconfigurations,
         [
-            Reconfiguration::RemovalRequested { peer_id: 2 },
-            Reconfiguration::RemovalRequested { peer_id: 1 }
+            Reconfiguration::RemovalRequested {
+                peer_id: 2,
+                leaves: None
+            },
+            Reconfiguration::RemovalRequested {
+                peer_id: 1,
+                leaves: None
+            }
         ]
     );
 }

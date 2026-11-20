@@ -1076,7 +1076,13 @@ fn process_of_a_change_requested_of_a_provisional_node_is_refused_until_its_addi
     // Act
     let refused = [
         process(&mut newcomer, Command::AdditionRequested { peer_id: 7 }),
-        process(&mut newcomer, Command::RemovalRequested { peer_id: 0 }),
+        process(
+            &mut newcomer,
+            Command::RemovalRequested {
+                peer_id: 0,
+                leaves: None,
+            },
+        ),
     ];
     let still = probe(&mut newcomer).reconfigurations().to_vec();
     process(

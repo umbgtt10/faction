@@ -16,6 +16,7 @@ fn at_epoch(name: CommandName, peer_id: Option<&str>, epoch: u64) -> Command {
         name,
         peer_id: peer_id.map(String::from),
         required_count: None,
+        leaves: None,
         epoch,
         members: Vec::new(),
     }
@@ -26,6 +27,7 @@ fn naming(name: CommandName, peer_id: &str) -> Command {
         name,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -36,6 +38,7 @@ fn probe_due() -> Command {
         name: CommandName::ProbeDue,
         peer_id: None,
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -46,6 +49,7 @@ fn signal_from(peer_id: &str) -> Command {
         name: CommandName::ReadyObserved,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -146,7 +150,8 @@ fn encoded_of_a_liveness_outcome_names_the_command_s_peer() {
 fn encoded_of_a_membership_s_outcomes_carries_the_change_and_names_the_node() {
     // Arrange
     let membership = at_epoch(CommandName::MembershipReceived, None, 1);
-    let removing = NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("3")));
+    let removing =
+        NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("3"), None));
 
     // Act
     let encoded = [
@@ -201,6 +206,7 @@ fn encoded_of_an_addition_s_outcome_names_the_command_s_peer() {
         name: CommandName::AdditionCommitted,
         peer_id: Some(String::from("4")),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     };
@@ -240,6 +246,7 @@ fn encoded_of_an_outcome_carrying_nothing_is_a_unit() {
         name: CommandName::LocalParticipationCompleted,
         peer_id: None,
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     };
@@ -269,7 +276,7 @@ fn encoded_of_change_abandoned_is_one_for_each_change_in_flight_in_the_order_req
     let two = NodeState {
         reconfigurations: vec![
             Reconfiguration::AdditionAcknowledged(String::from("4")),
-            Reconfiguration::RemovalRequested(String::from("3")),
+            Reconfiguration::RemovalRequested(String::from("3"), None),
         ],
         ..NodeStates::of(Stage::Reconfiguring, &[], &["1"])
     };
@@ -309,6 +316,7 @@ fn encoded_of_deadline_missed_counts_the_collecting_peers() {
         name: CommandName::DeadlineExpired,
         peer_id: None,
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     };
@@ -378,6 +386,7 @@ fn encoded_of_required_count_set_carries_the_command_s_count() {
         name: CommandName::RequiredCountChanged,
         peer_id: None,
         required_count: Some(3),
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     };

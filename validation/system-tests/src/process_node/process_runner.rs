@@ -173,7 +173,14 @@ impl ProcessRunner {
         match reconfiguration {
             Reconfiguration::AdditionRequested { peer_id } => format!("requested:{peer_id}"),
             Reconfiguration::AdditionAcknowledged { peer_id } => format!("acknowledged:{peer_id}"),
-            Reconfiguration::RemovalRequested { peer_id } => format!("removing:{peer_id}"),
+            Reconfiguration::RemovalRequested {
+                peer_id,
+                leaves: None,
+            } => format!("removing:{peer_id}"),
+            Reconfiguration::RemovalRequested {
+                peer_id,
+                leaves: Some(leaves),
+            } => format!("removing:{peer_id}:{leaves}"),
         }
     }
 

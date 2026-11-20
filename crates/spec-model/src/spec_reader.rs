@@ -32,6 +32,7 @@ impl SpecReader {
             name: CommandName::of(name),
             peer_id: payload.get("peer_id").map(Self::string),
             required_count: payload.get("required_count").map(Self::count),
+            leaves: payload.get("leaves").map(Self::count),
             epoch: payload.get("epoch").map_or(0, Self::count),
             members: payload
                 .get("members")

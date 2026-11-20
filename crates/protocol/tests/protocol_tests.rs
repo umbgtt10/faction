@@ -1089,7 +1089,10 @@ fn decline_of_a_removal_the_quorum_can_spare_proposes_it_again_at_the_node_s_epo
     );
     assert_eq!(
         protocol.cluster_view().reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 2 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 2,
+            leaves: None
+        }]
     );
 }
 
@@ -1288,6 +1291,33 @@ fn request_join_leaves_members_unchanged() {
     assert_eq!(protocol.cluster_view().members().as_slice(), &[0, 1]);
 }
 
+// Of two members requiring both, the removal of the other stating the count
+// it leaves, one, is proposed: the count held would refuse it.
+#[test]
+fn request_removal_leaving_a_count_the_rest_reach_proposes_what_the_count_held_refuses() {
+    // Arrange
+    let mut protocol = bootstrapped();
+
+    // Act
+    let decisions = protocol.request_removal_leaving(1, 1);
+
+    // Assert
+    assert_eq!(
+        decisions,
+        vec![OutputMessage::ProposeRemoval {
+            peer_id: 1,
+            epoch: 0
+        }]
+    );
+    assert_eq!(
+        protocol.cluster_view().reconfigurations(),
+        [Reconfiguration::RemovalRequested {
+            peer_id: 1,
+            leaves: Some(1)
+        }]
+    );
+}
+
 #[test]
 fn request_removal_of_a_member_the_quorum_can_spare_proposes_it() {
     // Arrange
@@ -1306,7 +1336,10 @@ fn request_removal_of_a_member_the_quorum_can_spare_proposes_it() {
     );
     assert_eq!(
         protocol.cluster_view().reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 2 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 2,
+            leaves: None
+        }]
     );
 }
 

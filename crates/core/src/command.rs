@@ -44,6 +44,7 @@ pub enum Command<P: PeerId = u64> {
     },
     RemovalRequested {
         peer_id: P,
+        leaves: Option<usize>,
     },
     RemovalCommitted {
         peer_id: P,

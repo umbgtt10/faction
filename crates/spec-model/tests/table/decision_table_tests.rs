@@ -13,6 +13,7 @@ fn command(name: CommandName, peer_id: Option<&str>) -> Command {
         name,
         peer_id: peer_id.map(String::from),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }

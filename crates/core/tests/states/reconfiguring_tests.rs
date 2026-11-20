@@ -104,7 +104,10 @@ fn reach_removing() -> Faction {
         })
         .output;
     let _ = faction
-        .process(Command::RemovalRequested { peer_id: 4 })
+        .process(Command::RemovalRequested {
+            peer_id: 4,
+            leaves: None,
+        })
         .output;
     faction
 }
@@ -184,7 +187,10 @@ fn cluster_view_reports_bootstrapped_with_the_removal_requested() {
     assert_eq!(cluster_view.peer_state(), PeerState::Bootstrapped);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -270,7 +276,10 @@ fn process_addition_aborted_with_a_removal_in_flight_is_ignored() {
     assert_eq!(outcomes, vec![Outcome::AbortIgnored { peer_id: 4 }]);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -542,7 +551,10 @@ fn process_membership_acknowledged_with_a_removal_in_flight_is_ignored() {
     );
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -731,7 +743,10 @@ fn process_proposal_declined_of_a_removal_the_quorum_can_spare_proposes_it_again
     assert_eq!(outcomes, vec![Outcome::ProposeRemoval { peer_id: 4 }]);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -754,7 +769,10 @@ fn process_proposal_declined_of_another_peer_is_ignored() {
     assert_eq!(outcomes, vec![Outcome::DeclineIgnored { peer_id: 1 }]);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -826,7 +844,10 @@ fn process_removal_aborted_of_another_peer_is_ignored() {
     assert_eq!(outcomes, vec![Outcome::AbortIgnored { peer_id: 3 }]);
     assert_eq!(
         cluster_view.reconfigurations(),
-        [Reconfiguration::RemovalRequested { peer_id: 4 }]
+        [Reconfiguration::RemovalRequested {
+            peer_id: 4,
+            leaves: None
+        }]
     );
 }
 
@@ -922,7 +943,10 @@ fn process_removal_requested_while_a_change_is_in_flight_is_rejected() {
 
     // Act
     let result = faction
-        .process(Command::RemovalRequested { peer_id: 1 })
+        .process(Command::RemovalRequested {
+            peer_id: 1,
+            leaves: None,
+        })
         .output;
 
     // Assert
@@ -966,7 +990,10 @@ fn requested_of_a_peer_with_a_change_in_flight_ignores_it_as_a_duplicate() {
             vec![1],
             vec![0, 2],
         ),
-        InFlight::<u64>::default().with(Reconfiguration::RemovalRequested { peer_id: 2 }),
+        InFlight::<u64>::default().with(Reconfiguration::RemovalRequested {
+            peer_id: 2,
+            leaves: None,
+        }),
     );
     let config = Config::<u64>::new(
         InstanceId {
@@ -983,7 +1010,13 @@ fn requested_of_a_peer_with_a_change_in_flight_ignores_it_as_a_duplicate() {
 
     // Act
     let (outcomes, _) = reconfiguring
-        .requested(&Command::RemovalRequested { peer_id: 2 }, &config)
+        .requested(
+            &Command::RemovalRequested {
+                peer_id: 2,
+                leaves: None,
+            },
+            &config,
+        )
         .expect("a request");
 
     // Assert

@@ -81,7 +81,7 @@ fn named(change: &Reconfiguration) -> u64 {
     match change {
         Reconfiguration::AdditionRequested { peer_id }
         | Reconfiguration::AdditionAcknowledged { peer_id }
-        | Reconfiguration::RemovalRequested { peer_id } => *peer_id,
+        | Reconfiguration::RemovalRequested { peer_id, .. } => *peer_id,
     }
 }
 
@@ -119,7 +119,7 @@ proptest! {
             let (outcomes, cluster_view, _) = answered(&mut faction, command.clone());
 
             // Assert
-            if let Command::RemovalRequested { peer_id } = command
+            if let Command::RemovalRequested { peer_id, leaves: None } = command
                 && outcomes.contains(&Outcome::ProposeRemoval { peer_id })
                 && !previous.suspected().contains(&peer_id)
             {
@@ -158,7 +158,7 @@ fn spared(cluster_view: &ClusterView) -> bool {
         .reconfigurations()
         .iter()
         .filter_map(|change| match change {
-            Reconfiguration::RemovalRequested { peer_id } => Some(*peer_id),
+            Reconfiguration::RemovalRequested { peer_id, .. } => Some(*peer_id),
             _ => None,
         })
         .collect();

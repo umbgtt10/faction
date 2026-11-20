@@ -12,7 +12,7 @@ fn adding(peer_id: &str) -> Reconfiguration {
 }
 
 fn removing(peer_id: &str) -> Reconfiguration {
-    Reconfiguration::RemovalRequested(String::from(peer_id))
+    Reconfiguration::RemovalRequested(String::from(peer_id), None)
 }
 
 // Concluded with an addition of 4 and a removal of 2 in flight.
@@ -51,6 +51,28 @@ fn ended_of_a_peer_drops_its_change_alone() {
 
     // Assert
     assert_eq!(changes, vec![removing("2")]);
+}
+
+#[test]
+fn leaves_of_a_peer_whose_removal_stated_a_count_is_that_count() {
+    // Arrange
+    let state = NodeState {
+        reconfigurations: vec![
+            adding("4"),
+            Reconfiguration::RemovalRequested(String::from("2"), Some(1)),
+        ],
+        ..NodeStates::of(Stage::Reconfiguring, &[], &["1"])
+    };
+
+    // Act
+    let leaves = [
+        InFlight::leaves(&state, Some(&String::from("2"))),
+        InFlight::leaves(&two(), Some(&String::from("2"))),
+        InFlight::leaves(&state, Some(&String::from("4"))),
+    ];
+
+    // Assert
+    assert_eq!(leaves, [Some(1), None, None]);
 }
 
 #[test]
