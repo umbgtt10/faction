@@ -56,3 +56,43 @@ the behaviour too — on interleavings the vectors and the simulation never
 produce. The model takes the specification's encoding as it is, so a log in the
 specification's form needs nothing more of it.
 
+---
+
+## A removal judged by the count it leaves (2026-11-20)
+
+Found from etheram-raft, where it shows as a stated limit there: a cluster of two
+live voters cannot shrink to one. §12 refuses the removal of a member not
+suspected when, without it and every member whose removal is in flight, the
+members not suspected would number fewer than the **required count** — the count
+the node holds now (`Bootstrapped::can_spare`, the threshold of its
+`QuorumPolicy`). A removal changes that count: the caller's rule for it is its
+own (Raft's is a majority of the voters), and the caller reports the new count
+only once the change commits (`RequiredCountChanged`). So the rule judges a
+removal by the count the cluster has before it, not the one it leaves.
+
+Of two voters, removing one leaves one against a count of two, and the removal is
+refused, though Raft's single-server change allows it: the configuration it
+leaves needs the leader alone. It is not two voters' alone: of four voters, one
+suspected, removing a live one leaves two not suspected against a count of three,
+though the three voters left need two. The rule is conservative wherever a
+removal lowers the count. A suspect's removal, never refused for the quorum, is
+the way around it today: stop the member first.
+
+**The clean fix.** The removal request carries the count it leaves —
+`RemovalRequested { peer_id, leaves }`, the required count of the membership
+without it and every removal in flight, which the caller computes by its own
+rule — and §12 judges the members not suspected against that count rather than
+the one the node holds. Faction still computes no quorum of its own
+(`P0-ADR-ProtocolAgnostic`); it judges a change by the count the caller says the
+change leaves, as Raft judges a configuration from the moment it is appended
+(the dissertation, section 4.1).
+
+**What it costs.** §12 and its vectors, the command's encoding (a new field: a
+spec version), `can_spare`, the model in `crates/spec-model/` and the
+conformance tier; a release. etheram-raft then hands the count with every
+removal it asks for, and its test that a live voter of two cannot be removed
+answers the other way; etheram-raft-embassy follows.
+
+**When.** At the owner's word of 2026-11-20: after every issue that affects
+etheram-raft alone is fixed.
+
