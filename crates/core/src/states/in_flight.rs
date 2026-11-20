@@ -133,8 +133,8 @@ impl<P: PeerId> InFlight<P> {
             Some(Reconfiguration::AdditionAcknowledged { .. }) => {
                 (vec![Outcome::ProposeAddition { peer_id }], self.clone())
             }
-            Some(Reconfiguration::RemovalRequested { .. })
-                if !concluded.can_spare(peer_id, &self.removals()) =>
+            Some(Reconfiguration::RemovalRequested { leaves, .. })
+                if !concluded.can_spare(peer_id, &self.removals(), leaves) =>
             {
                 (
                     vec![Outcome::RemovalRefused { peer_id }],
@@ -162,13 +162,11 @@ impl<P: PeerId> InFlight<P> {
     // The change in flight naming `peer_id`, if one is: no two do.
     #[must_use]
     pub fn named(&self, peer_id: P) -> Option<Reconfiguration<P>> {
-        [
-            Reconfiguration::AdditionRequested { peer_id },
-            Reconfiguration::AdditionAcknowledged { peer_id },
-            Reconfiguration::RemovalRequested { peer_id },
-        ]
-        .into_iter()
-        .find(|change| self.changes.contains(change))
+        self.changes.iter().copied().find(|change| match *change {
+            Reconfiguration::AdditionRequested { peer_id: named }
+            | Reconfiguration::AdditionAcknowledged { peer_id: named }
+            | Reconfiguration::RemovalRequested { peer_id: named, .. } => named == peer_id,
+        })
     }
 
     // Every peer whose removal is in flight, in the order requested.
@@ -177,7 +175,7 @@ impl<P: PeerId> InFlight<P> {
         self.changes
             .iter()
             .filter_map(|change| match change {
-                Reconfiguration::RemovalRequested { peer_id } => Some(*peer_id),
+                Reconfiguration::RemovalRequested { peer_id, .. } => Some(*peer_id),
                 _ => None,
             })
             .collect()
@@ -186,7 +184,10 @@ impl<P: PeerId> InFlight<P> {
     // Whether the removal of `peer_id` is in flight.
     #[must_use]
     pub fn removes(&self, peer_id: P) -> bool {
-        self.named(peer_id) == Some(Reconfiguration::RemovalRequested { peer_id })
+        matches!(
+            self.named(peer_id),
+            Some(Reconfiguration::RemovalRequested { .. })
+        )
     }
 
     // The view a builder makes, showing the changes in flight.

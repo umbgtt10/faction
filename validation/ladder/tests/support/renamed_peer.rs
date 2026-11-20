@@ -62,8 +62,9 @@ impl RenamedPeer {
             Command::AdditionAborted { peer_id } => Command::AdditionAborted {
                 peer_id: Self::new(peer_id),
             },
-            Command::RemovalRequested { peer_id } => Command::RemovalRequested {
+            Command::RemovalRequested { peer_id, leaves } => Command::RemovalRequested {
                 peer_id: Self::new(peer_id),
+                leaves,
             },
             Command::RemovalCommitted { peer_id, epoch } => Command::RemovalCommitted {
                 peer_id: Self::new(peer_id),

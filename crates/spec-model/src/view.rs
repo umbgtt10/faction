@@ -73,9 +73,13 @@ impl View {
             Reconfiguration::AdditionAcknowledged(peer_id) => {
                 Variant::of(ADDITION_ACKNOWLEDGED, json!({"peer_id": peer_id}))
             }
-            Reconfiguration::RemovalRequested(peer_id) => {
+            Reconfiguration::RemovalRequested(peer_id, None) => {
                 Variant::of(REMOVAL_REQUESTED, json!({"peer_id": peer_id}))
             }
+            Reconfiguration::RemovalRequested(peer_id, Some(leaves)) => Variant::of(
+                REMOVAL_REQUESTED,
+                json!({"peer_id": peer_id, "leaves": leaves.to_string()}),
+            ),
         }
     }
 

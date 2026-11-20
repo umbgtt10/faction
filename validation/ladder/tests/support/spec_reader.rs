@@ -47,7 +47,12 @@ impl SpecReader {
                 epoch: epoch(),
             },
             "AdditionAborted" => Command::AdditionAborted { peer_id: peer_id() },
-            "RemovalRequested" => Command::RemovalRequested { peer_id: peer_id() },
+            "RemovalRequested" => Command::RemovalRequested {
+                peer_id: peer_id(),
+                leaves: body.get("leaves").map(|leaves| {
+                    usize::try_from(Self::number(leaves)).expect("a count this platform can hold")
+                }),
+            },
             "RemovalCommitted" => Command::RemovalCommitted {
                 peer_id: peer_id(),
                 epoch: epoch(),

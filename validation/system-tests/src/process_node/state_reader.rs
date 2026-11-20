@@ -97,9 +97,7 @@ impl StateReader {
             Some(("acknowledged", peer_id)) => Some(Reconfiguration::AdditionAcknowledged {
                 peer_id: peer_id.parse().ok()?,
             }),
-            Some(("removing", peer_id)) => Some(Reconfiguration::RemovalRequested {
-                peer_id: peer_id.parse().ok()?,
-            }),
+            Some(("removing", removal)) => Some(Self::parse_removal(removal)?),
             _ => None,
         }
     }
@@ -110,6 +108,19 @@ impl StateReader {
         } else {
             text.split(',').map(Self::parse_reconfiguration).collect()
         }
+    }
+
+    // A removal in flight as `peer`, or `peer:leaves` with the count its
+    // request stated it leaves.
+    fn parse_removal(text: &str) -> Option<Reconfiguration> {
+        let (peer_id, leaves) = match text.split_once(':') {
+            Some((peer_id, leaves)) => (peer_id, Some(leaves.parse().ok()?)),
+            None => (text, None),
+        };
+        Some(Reconfiguration::RemovalRequested {
+            peer_id: peer_id.parse().ok()?,
+            leaves,
+        })
     }
 
     fn parse_state(line: &str) -> Option<NodeSnapshot> {

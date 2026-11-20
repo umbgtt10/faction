@@ -104,8 +104,8 @@ fn spawn_reads_each_proposal_line_into_the_proposals(
 #[case("state Bootstrapped 3 2 none - held 0 0,1", vec![])]
 #[case("state Bootstrapped 3 2 requested:7 - held 0 0,1", vec![Reconfiguration::AdditionRequested { peer_id: 7 }])]
 #[case("state Bootstrapped 3 2 acknowledged:7 - held 0 0,1", vec![Reconfiguration::AdditionAcknowledged { peer_id: 7 }])]
-#[case("state Bootstrapped 3 2 removing:7 - held 0 0,1", vec![Reconfiguration::RemovalRequested { peer_id: 7 }])]
-#[case("state Bootstrapped 3 2 requested:7,removing:2 - held 0 0,1", vec![Reconfiguration::AdditionRequested { peer_id: 7 }, Reconfiguration::RemovalRequested { peer_id: 2 }])]
+#[case("state Bootstrapped 3 2 removing:7 - held 0 0,1", vec![Reconfiguration::RemovalRequested { peer_id: 7, leaves: None }])]
+#[case("state Bootstrapped 3 2 requested:7,removing:2 - held 0 0,1", vec![Reconfiguration::AdditionRequested { peer_id: 7 }, Reconfiguration::RemovalRequested { peer_id: 2, leaves: None }])]
 fn spawn_reads_the_addition_of_a_state_line(
     #[case] line: &'static str,
     #[case] reconfigurations: Vec<Reconfiguration>,

@@ -4,15 +4,14 @@
     {
       "kind": "exact",
       "fingerprint": "00c8e51c72bf7bf1",
-      "members": 7,
+      "members": 6,
       "names": [
         "Protocol::abort_addition",
         "Protocol::abort_removal",
         "Protocol::admit",
         "Protocol::deny",
         "Protocol::request_addition",
-        "Protocol::request_join",
-        "Protocol::request_removal"
+        "Protocol::request_join"
       ]
     },
     {
@@ -111,6 +110,15 @@
       "names": [
         "Liveness::misses",
         "Liveness::suspected"
+      ]
+    },
+    {
+      "kind": "near",
+      "fingerprint": "e2b1940a9bb7b543",
+      "members": 2,
+      "names": [
+        "Protocol::decline",
+        "Protocol::request_removal"
       ]
     }
   ]

@@ -33,6 +33,15 @@ name one peer, the removals in flight are counted together, and each change ends
 (`P1-ADR-SeveralChangesInFlight`). With the bound at 1 the decision above stands as written. The layer above commits a
 proposal only while it is still valid (`P1-ADR-AProposalIsCommittedOnlyWhileValid`).
 
+**Amended 2026-11-20, specification 0.10.0.** A removal's request may state the count it leaves, `leaves`: the
+required count of the membership without its member and every member whose removal is in flight, which the caller
+computes by its own rule. The members not suspected are judged against that count when it is stated, and against
+the required count otherwise, as decided above; the removal in flight keeps it, and a declined removal is decided
+again by it. Judged by the count held before it, a removal was refused wherever it lowered the count past what the
+members left could reach -- of two live members, neither could go, though one of one was all the configuration
+left needed. Faction still computes no quorum of its own (`P0-ADR-ProtocolAgnostic`): it judges a removal by the
+count the caller says it leaves.
+
 ## Forcing constraints / Evidence
 The member most worth removing is the one that cannot answer, so a removal waits
 for no acknowledgement. A suspect's removal leaves the members not suspected as

@@ -61,7 +61,7 @@ impl<P: PeerId> ProvisionalRule<P> {
     #[must_use]
     pub fn refusal(&self, command: &Command<P>) -> Option<Outcome<P>> {
         match *command {
-            Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id }
+            Command::AdditionRequested { peer_id } | Command::RemovalRequested { peer_id, .. }
                 if self.provisional =>
             {
                 Some(Outcome::CoordinationRefused { peer_id })

@@ -247,7 +247,8 @@ fn of_a_node_whose_addition_is_acknowledged_names_its_peer() {
 #[test]
 fn of_a_node_whose_removal_of_a_peer_is_requested_names_its_peer() {
     // Arrange
-    let state = NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("2")));
+    let state =
+        NodeStates::reconfiguring(Reconfiguration::RemovalRequested(String::from("2"), None));
 
     // Act
     let view = View::of(&state);
@@ -369,12 +370,27 @@ fn of_a_removed_node_past_its_deadline_is_removed_and_says_so() {
 }
 
 #[test]
+fn reconfiguration_of_a_removal_stating_the_count_it_leaves_writes_it() {
+    // Arrange
+    let change = Reconfiguration::RemovalRequested(String::from("2"), Some(1));
+
+    // Act
+    let encoded = View::reconfiguration(&change);
+
+    // Assert
+    assert_eq!(
+        encoded,
+        json!({"RemovalRequested": {"peer_id": "2", "leaves": "1"}})
+    );
+}
+
+#[test]
 fn reconfiguration_of_each_change_is_its_name_and_its_peer() {
     // Arrange
     let changes = [
         Reconfiguration::AdditionRequested(String::from("4")),
         Reconfiguration::AdditionAcknowledged(String::from("4")),
-        Reconfiguration::RemovalRequested(String::from("2")),
+        Reconfiguration::RemovalRequested(String::from("2"), None),
     ];
 
     // Act

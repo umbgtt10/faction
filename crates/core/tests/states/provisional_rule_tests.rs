@@ -182,7 +182,10 @@ fn refusal_of_a_change_requested_at_a_provisional_node_names_its_peer() {
     // Act
     let refusals = [
         rule.refusal(&Command::AdditionRequested { peer_id: 7 }),
-        rule.refusal(&Command::RemovalRequested { peer_id: 0 }),
+        rule.refusal(&Command::RemovalRequested {
+            peer_id: 0,
+            leaves: None,
+        }),
     ];
 
     // Assert

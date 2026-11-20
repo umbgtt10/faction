@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::node_state::NodeState;
@@ -37,11 +38,26 @@ impl InFlight {
                     change,
                     Reconfiguration::AdditionRequested(named)
                         | Reconfiguration::AdditionAcknowledged(named)
-                        | Reconfiguration::RemovalRequested(named) if named == peer_id
+                        | Reconfiguration::RemovalRequested(named, _) if named == peer_id
                 )
             })
             .cloned()
             .collect()
+    }
+
+    // The count the removal of `peer_id` in flight stated it leaves, if its
+    // request stated one (§12).
+    #[must_use]
+    pub fn leaves(state: &NodeState, peer_id: Option<&String>) -> Option<u64> {
+        state
+            .reconfigurations
+            .iter()
+            .find_map(|change| match change {
+                Reconfiguration::RemovalRequested(named, leaves) if Some(named) == peer_id => {
+                    *leaves
+                }
+                _ => None,
+            })
     }
 
     // The changes with `change` requested last.

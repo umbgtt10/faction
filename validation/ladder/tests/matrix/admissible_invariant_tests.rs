@@ -43,7 +43,10 @@ fn admissible_set_equals_accepted_commands_plus_probe(#[case] init: Init, #[case
             epoch: 0,
         },
         Command::AdditionAborted { peer_id: 0 },
-        Command::RemovalRequested { peer_id: 0 },
+        Command::RemovalRequested {
+            peer_id: 0,
+            leaves: None,
+        },
         Command::RemovalCommitted {
             peer_id: 0,
             epoch: 0,

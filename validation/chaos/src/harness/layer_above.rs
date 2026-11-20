@@ -273,9 +273,12 @@ impl LayerAbove {
                         if *requested == peer_id
                 )
             }),
-            Change::Removal { peer_id } => snapshot
-                .reconfigurations
-                .contains(&Reconfiguration::RemovalRequested { peer_id }),
+            Change::Removal { peer_id } => snapshot.reconfigurations.iter().any(|change| {
+                matches!(
+                    change,
+                    Reconfiguration::RemovalRequested { peer_id: removed, .. } if *removed == peer_id
+                )
+            }),
             Change::RequiredCount { .. } => false,
         }
     }

@@ -45,7 +45,10 @@ fn cluster_view_shows_what_the_node_held_but_itself_and_its_liveness() {
         .with_required_count(2)
         .with_deadline_missed(true)
         .with_members(Members::<u64>::new(vec![0, 1, 2]))
-        .with_reconfigurations(vec![Reconfiguration::RemovalRequested { peer_id: 0 }])
+        .with_reconfigurations(vec![Reconfiguration::RemovalRequested {
+            peer_id: 0,
+            leaves: None,
+        }])
         .with_suspected(vec![2])
         .with_misses(vec![MissCount {
             peer_id: 1,

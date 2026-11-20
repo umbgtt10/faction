@@ -55,4 +55,3 @@ transport. Replayed against the independent model (`crates/spec-model/`), it jud
 the behaviour too — on interleavings the vectors and the simulation never
 produce. The model takes the specification's encoding as it is, so a log in the
 specification's form needs nothing more of it.
-

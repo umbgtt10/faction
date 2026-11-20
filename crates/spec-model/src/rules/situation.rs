@@ -4,6 +4,7 @@
 use alloc::string::String;
 
 use crate::command::Command;
+use crate::in_flight::InFlight;
 use crate::liveness::Liveness;
 use crate::node_state::NodeState;
 use crate::reconfiguration::Reconfiguration;
@@ -74,7 +75,7 @@ impl Situation {
                 matches!(
                     change,
                     Reconfiguration::AdditionAcknowledged(proposed)
-                        | Reconfiguration::RemovalRequested(proposed) if Some(proposed) == peer_id
+                        | Reconfiguration::RemovalRequested(proposed, _) if Some(proposed) == peer_id
                 )
             }),
             Situation::PeerIsPending => Self::is_pending(command, &state.reconfigurations),
@@ -104,10 +105,12 @@ impl Situation {
                     && Situation::LosesQuorum(Change::PeerSuspected).holds(command, state, admitted)
             }
             Situation::QuorumCannotSpare => {
+                let leaves = command.leaves.or_else(|| InFlight::leaves(state, peer_id));
                 !Self::lists(&state.suspected, peer_id)
-                    && !Liveness::holds_quorum(&Self::without_removals(
-                        &Change::PeerRemoved.applied(command, state),
-                    ))
+                    && !Liveness::holds_quorum(&NodeState {
+                        required_count: leaves.unwrap_or(state.required_count),
+                        ..Self::without_removals(&Change::PeerRemoved.applied(command, state))
+                    })
             }
             Situation::CompletionLosesQuorum => {
                 Self::is_pending(command, &state.reconfigurations)
@@ -136,7 +139,7 @@ impl Situation {
             CommandName::RemovalCommitted | CommandName::RemovalAborted
         );
         reconfigurations.iter().any(|change| match change {
-            Reconfiguration::RemovalRequested(pending) => removal && Some(pending) == peer_id,
+            Reconfiguration::RemovalRequested(pending, _) => removal && Some(pending) == peer_id,
             Reconfiguration::AdditionRequested(pending)
             | Reconfiguration::AdditionAcknowledged(pending) => {
                 !removal && Some(pending) == peer_id
@@ -153,7 +156,7 @@ impl Situation {
         match change {
             Reconfiguration::AdditionRequested(named)
             | Reconfiguration::AdditionAcknowledged(named)
-            | Reconfiguration::RemovalRequested(named) => Some(named) == peer_id,
+            | Reconfiguration::RemovalRequested(named, _) => Some(named) == peer_id,
         }
     }
 
@@ -175,9 +178,9 @@ impl Situation {
                 .members
                 .iter()
                 .filter(|member| {
-                    !state
-                        .reconfigurations
-                        .contains(&Reconfiguration::RemovalRequested((*member).clone()))
+                    !state.reconfigurations.iter().any(|change| {
+                        matches!(change, Reconfiguration::RemovalRequested(named, _) if named == *member)
+                    })
                 })
                 .cloned()
                 .collect(),

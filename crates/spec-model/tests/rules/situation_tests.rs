@@ -28,6 +28,7 @@ fn at_epoch(name: CommandName, epoch: u64, members: &[&str]) -> Command {
         name,
         peer_id: Some(String::from("2")),
         required_count: Some(2),
+        leaves: None,
         epoch,
         members: NodeStates::peers(members),
     }
@@ -38,6 +39,7 @@ fn completion() -> Command {
         name: CommandName::LocalParticipationCompleted,
         peer_id: None,
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -48,6 +50,7 @@ fn naming(name: CommandName, peer_id: &str) -> Command {
         name,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -58,6 +61,7 @@ fn new_count(required_count: u64) -> Command {
         name: CommandName::RequiredCountChanged,
         peer_id: None,
         required_count: Some(required_count),
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
@@ -68,13 +72,14 @@ fn readiness_from(peer_id: &str) -> Command {
         name: CommandName::ReadyObserved,
         peer_id: Some(String::from(peer_id)),
         required_count: None,
+        leaves: None,
         epoch: 0,
         members: Vec::new(),
     }
 }
 
 fn removal(peer_id: &str) -> Reconfiguration {
-    Reconfiguration::RemovalRequested(String::from(peer_id))
+    Reconfiguration::RemovalRequested(String::from(peer_id), None)
 }
 
 fn requested(peer_id: &str) -> Reconfiguration {
@@ -393,6 +398,7 @@ fn holds_membership_concludes_once_the_collecting_peers_reach_its_count() {
     let reached = at_epoch(CommandName::MembershipReceived, 2, &["1", "2", "3"]);
     let missed = Command {
         required_count: Some(3),
+        leaves: None,
         ..reached.clone()
     };
 

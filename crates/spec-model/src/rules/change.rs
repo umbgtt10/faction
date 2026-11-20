@@ -128,7 +128,7 @@ impl Change {
             Change::RemovalPends => NodeState {
                 reconfigurations: InFlight::pending(
                     state,
-                    Reconfiguration::RemovalRequested(Self::named(peer_id)),
+                    Reconfiguration::RemovalRequested(Self::named(peer_id), command.leaves),
                 ),
                 ..state.clone()
             },

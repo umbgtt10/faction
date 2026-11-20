@@ -12,6 +12,7 @@ fn at(name: CommandName, epoch: u64) -> Command {
         name,
         peer_id: Some(String::from("2")),
         required_count: None,
+        leaves: None,
         epoch,
         members: Vec::new(),
     }

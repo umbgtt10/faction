@@ -15,7 +15,7 @@
 //!
 //! **All six phases are built** -- bootstrapping, dynamic joining, single-node
 //! addition, failure detection, single-node removal, epochs and rejoin, and
-//! concurrent changes -- conformant to version 0.9.0 of the specification in
+//! concurrent changes -- conformant to version 0.10.0 of the specification in
 //! the repository's `spec/`.
 //!
 //! A peer id is any type implementing [`PeerId`](instance::peer_id::PeerId):

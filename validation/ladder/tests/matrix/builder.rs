@@ -165,7 +165,10 @@ pub fn build(init: Init) -> Faction {
     }
     if matches!(init, Init::Removing | Init::RemovingRevived) {
         let _ = faction
-            .process(Command::RemovalRequested { peer_id: SUSPECT })
+            .process(Command::RemovalRequested {
+                peer_id: SUSPECT,
+                leaves: None,
+            })
             .output;
     }
     if matches!(init, Init::RemovingRevived) {

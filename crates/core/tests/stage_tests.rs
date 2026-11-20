@@ -91,7 +91,10 @@ fn every_command() -> Vec<Command> {
             epoch: 0,
         },
         Command::AdditionAborted { peer_id: 0 },
-        Command::RemovalRequested { peer_id: 0 },
+        Command::RemovalRequested {
+            peer_id: 0,
+            leaves: None,
+        },
         Command::RemovalCommitted {
             peer_id: 0,
             epoch: 0,

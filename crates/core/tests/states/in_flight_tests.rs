@@ -47,7 +47,18 @@ fn concluded() -> Bootstrapped {
 extern crate alloc;
 
 fn removing(peer_id: u64) -> Reconfiguration {
-    Reconfiguration::RemovalRequested { peer_id }
+    Reconfiguration::RemovalRequested {
+        peer_id,
+        leaves: None,
+    }
+}
+
+// The removal of `peer_id`, its request stating it leaves a count of `leaves`.
+fn removing_leaving(peer_id: u64, leaves: usize) -> Reconfiguration {
+    Reconfiguration::RemovalRequested {
+        peer_id,
+        leaves: Some(leaves),
+    }
 }
 
 #[test]
@@ -153,6 +164,22 @@ fn answered_of_an_abort_withdraws_its_change_and_of_anything_else_is_none() {
     assert!(probed.is_none());
 }
 
+// The count a removal stated is kept with it: declined, it is decided again
+// by that count, three, which the members it leaves fall short of, where the
+// count held, one, would propose it again.
+#[test]
+fn declined_of_a_removal_stating_the_count_it_leaves_decides_by_that_count() {
+    // Arrange
+    let in_flight = InFlight::default().with(removing_leaving(2, 3));
+
+    // Act
+    let (outcomes, left) = in_flight.declined(2, &concluded());
+
+    // Assert
+    assert_eq!(outcomes, vec![Outcome::RemovalRefused { peer_id: 2 }]);
+    assert_eq!(left, InFlight::default());
+}
+
 #[test]
 fn declined_of_a_removal_the_quorum_can_spare_proposes_it_again() {
     // Arrange
@@ -201,6 +228,18 @@ fn named_of_a_peer_is_its_change_in_flight_if_any() {
 
     // Assert
     assert_eq!(named, [Some(removing(2)), Some(adding(4)), None]);
+}
+
+#[test]
+fn named_of_a_peer_whose_removal_states_its_count_is_that_removal() {
+    // Arrange
+    let in_flight = InFlight::default().with(removing_leaving(2, 1));
+
+    // Act
+    let named = in_flight.named(2);
+
+    // Assert
+    assert_eq!(named, Some(removing_leaving(2, 1)));
 }
 
 #[test]
