@@ -219,6 +219,21 @@ fn ended_by_a_commit_naming_a_change_in_flight_is_its_peer() {
 }
 
 #[test]
+fn ended_by_an_addition_committed_for_a_peer_whose_removal_is_in_flight_is_none() {
+    // Arrange
+    let in_flight = InFlight::default().with(adding(4)).with(removing(2));
+
+    // Act
+    let ended = in_flight.ended_by(&Command::AdditionCommitted {
+        peer_id: 2,
+        epoch: 1,
+    });
+
+    // Assert
+    assert_eq!(ended, None);
+}
+
+#[test]
 fn named_of_a_peer_is_its_change_in_flight_if_any() {
     // Arrange
     let in_flight = InFlight::default().with(adding(4)).with(removing(2));
