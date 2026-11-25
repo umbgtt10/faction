@@ -12,6 +12,33 @@ use faction::reconfiguration::Reconfiguration;
 extern crate alloc;
 
 #[test]
+fn deadline_missed_of_a_view_whose_deadline_was_not_missed_is_false() {
+    // Arrange
+    let view = ClusterView::<u64>::new(
+        PeerState::Collecting,
+        true,
+        vec![1, 2],
+        vec![0, 1],
+        3,
+        false,
+        Members::<u64>::new(vec![0, 1, 2]),
+        vec![],
+        vec![],
+        vec![],
+        None,
+        Quorum::NotTracked,
+        0,
+        false,
+    );
+
+    // Act
+    let deadline_missed = view.deadline_missed();
+
+    // Assert
+    assert!(!deadline_missed);
+}
+
+#[test]
 fn new_missed_deadline_after_bootstrap_stays_bootstrapped() {
     // Arrange & Act
     let view: ClusterView = ClusterView::new(
