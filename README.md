@@ -401,8 +401,12 @@ just stage1   # format, clippy, no_std check, the tests, then the system tests
 just stage2   # house rules, duplication, CRAP, coverage, mirrored tests, file risk, dependencies
 ```
 
-Both gates must pass before any commit lands. They drive these tools, each installed
-once from crates.io:
+Both gates must pass before any commit lands. Stage 2's gates are
+[`serge4rust`](https://github.com/umbgtt10/serge4rust)'s, the house's quality gates as a library;
+`xtask/src/main.rs` holds only which of them run, in what order, and with what settings, and
+`xtask/` keeps the gates faction alone has, the system tests' and the chaos runs', on serge4rust's
+machinery. Until serge4rust 0.2.1 is on crates.io the xtask takes it by path, from a `serge4rust`
+checkout beside this one. They drive these tools, each installed once from crates.io:
 
 | Tool | Used by | Install |
 |---|---|---|
@@ -456,7 +460,7 @@ The workspace is laid out by role: [`spec/`](./spec/SPEC.md) holds the normative
 | `validation/protocol-validation/` | Convergence sweeps and the in-process protocol cluster |
 | `validation/system-tests/` | Convergence, joining, addition, liveness, removal and rejoin across spawn and transport, and the infrastructure beneath them |
 | `validation/chaos/` | The chaos tier: seeded scenarios on a deterministic and a real engine, their regressions and their shrinking |
-| `xtask/` | The gates: `cargo xtask stage2`, the system tests, the commit scores |
+| `xtask/` | The gates: `cargo xtask stage2` and the commit scores, taken from [`serge4rust`](https://github.com/umbgtt10/serge4rust), and faction's own, the system tests and the chaos runs |
 
 ---
 

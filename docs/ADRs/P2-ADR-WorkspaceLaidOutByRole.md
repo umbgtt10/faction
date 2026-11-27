@@ -54,6 +54,8 @@ A package that checks the library goes under `validation/`. Packages reach the
 specification and the README two directories up.
 
 ## Enforcement
-The workspace manifest's members. `xtask`'s `LibraryScorer` scores the crates
-under `crates/`, its tests pinning the paths it lists, exports and scores.
+The workspace manifest's members. `xtask` scores the crates under `crates/`
+with serge4rust's `LibraryScorer`, told the directory and the crates by
+`xtask/src/main.rs`; serge4rust's tests pin the paths it lists, exports and
+scores.
 `dry4rust.toml` scans everything but `validation/` and `xtask/`.

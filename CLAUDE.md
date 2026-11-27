@@ -57,6 +57,27 @@ code. It runs, in this order:
 | `cargo iceberg4rust` | is any file's private implementation risk too high (threshold 5) |
 | `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source, and does anything but the crates written for it take `faction` (`deny.toml`) |
 
+The gates come from `serge4rust`, the house's quality gates as a library: the
+gate trait, the stage that runs gates in order and stops at the first failure,
+the command runner's trait, a gate per tool, crap4rust's report and the commit
+scoring are its, with their tests. A gate of serge4rust's that needs changing
+is changed there, released, and taken here, never patched in place.
+`xtask/src/main.rs` keeps which gates each command runs, in what order, and
+faction's constants, passed to serge4rust's constructors: the packages, the
+thresholds, the baseline and its floor, the words the coverage failure names,
+cargo-deny's three fetch attempts, the library the scoring reads. The rest of
+`xtask/` is what faction alone has, built on serge4rust's machinery: the system
+tests' gate under slotgate and the chaos runs' gate, each a `Gate` constructed
+against the `CommandRunner` trait and run in serge4rust's `Stage`; the run log
+directory and the stamp that names it; the failures those two gates give,
+`RunFailure`, handed to the stage in their own words as `GateFailure::Own`; and
+the command runner, which hands every process it starts the run's name,
+`FACTION_LOG_RUN` -- serge4rust's runner sets no variable. Until serge4rust
+0.2.1, the release that lets a repository's own gate fail through its stage, is
+on crates.io, the workspace takes it by path, `../serge4rust/crates/core`: a
+clone builds the xtask only beside a serge4rust checkout, the one place this
+repository reaches outside itself, and only until then.
+
 `cargo install just`
 `cargo install slotgate`
 `cargo install cargo-llvm-cov`
@@ -72,9 +93,10 @@ code. It runs, in this order:
 Every commit message carries the grip and braintax of the library's crates,
 `core`, `protocol` and `spec-model` under `crates/`, and their ratio, scored as the
 commit stages them. `.githooks/commit-msg` runs `cargo xtask grip-braintax` on the
-message's file, which writes the scores in as a paragraph of their own above the
-trailers: each crate's `grip_absolute_total` over its `total_braintax` and their
-ratio, then the sums and theirs, under a title naming the releases of
+message's file, which writes the scores in -- serge4rust's scoring, told the
+library is `core`, `protocol` and `spec-model` under `crates/` -- as a paragraph
+of their own above the trailers: each crate's `grip_absolute_total` over its
+`total_braintax` and their ratio, then the sums and theirs, under a title naming the releases of
 `cargo-grip4rust` and `cargo-braintax4rust` -- scores of different releases do
 not compare. The files under them that the index holds are exported into a
 scratch directory and scored there, so nothing unstaged counts. An amend scores
@@ -96,7 +118,7 @@ The workspace is laid out by role (`docs/ADRs/P2-ADR-WorkspaceLaidOutByRole.md`)
 | `spec/` | the normative specification: data and prose, read by the ladder and the model, never built |
 | `crates/` | the library -- `core/` (`faction`, published), `protocol/` (`faction-protocol`) and `spec-model/` (`faction-spec-model`) -- every gate at full strength, scored on every commit |
 | `validation/` | everything that checks the library -- `ladder/`, `core-validation/`, `memory/`, `protocol-validation/` and `system-tests/` |
-| `xtask/` | the gates |
+| `xtask/` | the gates: serge4rust's, and faction's own -- the system tests' and the chaos runs' |
 
 A crate the library gains goes under `crates/`, and joins the gates' and the
 scorer's lists of the library; a package that checks the library goes under
