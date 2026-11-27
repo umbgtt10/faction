@@ -55,3 +55,33 @@ transport. Replayed against the independent model (`crates/spec-model/`), it jud
 the behaviour too — on interleavings the vectors and the simulation never
 produce. The model takes the specification's encoding as it is, so a log in the
 specification's form needs nothing more of it.
+
+---
+
+## Two runs begun in the same second (2026-11-27)
+
+A run's logs go in a folder named for the second it began, `YYYY-MM-DD_HH-MM-SS`
+in UTC — `RunStamp`, from the clock `xtask/src/main.rs` reads — under
+`logs/system/` for the system tests and `logs/chaos/` for a chaos run.
+`RunLogDirectory::prepare` creates that folder rather than reuse one, so that no
+run reads another's logs as its own. So of two runs begun under the same root in
+the same second, the second fails before it starts:
+`failed to create logs/chaos/<stamp>: File exists (os error 17)`. Seen on
+2026-11-27, a `chaos replay` and a `chaos soak` started together. It predates
+the move onto serge4rust: the stamp and the folder are faction's own, unchanged
+since the workspace was laid out to the house rules.
+
+Nothing is mixed or lost — the failure is loud, and the same command a second
+later passes — but two runs side by side, a replay while a soak goes on, are a
+fair thing to want, and a script or an agent starting them together meets it.
+The name has company: a test run outside the xtask and the chaos binary run on
+its own name their folder the same way (`WallTime::to_folder_name`), and the
+pruning recognises a run's folder by that shape (`STAMP_LENGTH`).
+
+**The likely form.** A name made unique, not finer alone: milliseconds narrow
+the window without closing it. A suffix chosen when the folder is made — `_2`
+and on, where `create_dir` answers that the second's folder is there — keeps the
+names in chronological order with the stamp as their prefix. The pruning then
+takes a stamp with or without its suffix, and the name `FACTION_LOG_RUN` hands
+the run's processes is the folder's, so the folder is made before the runner is
+told it.
