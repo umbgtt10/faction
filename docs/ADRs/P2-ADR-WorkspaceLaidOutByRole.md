@@ -55,7 +55,7 @@ specification and the README two directories up.
 
 ## Enforcement
 The workspace manifest's members. `xtask` scores the crates under `crates/`
-with serge4rust's `LibraryScorer`, told the directory and the crates by
-`xtask/src/main.rs`; serge4rust's tests pin the paths it lists, exports and
-scores.
+with serge4rust's `ScoringHook`, on its `LibraryScorer`, told the directory and
+the crates by `xtask/src/main.rs`; serge4rust's tests pin the paths it lists,
+exports and scores.
 `dry4rust.toml` scans everything but `validation/` and `xtask/`.

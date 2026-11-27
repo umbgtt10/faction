@@ -405,8 +405,7 @@ Both gates must pass before any commit lands. Stage 2's gates are
 [`serge4rust`](https://github.com/umbgtt10/serge4rust)'s, the house's quality gates as a library;
 `xtask/src/main.rs` holds only which of them run, in what order, and with what settings, and
 `xtask/` keeps the gates faction alone has, the system tests' and the chaos runs', on serge4rust's
-machinery. Until serge4rust 0.2.1 is on crates.io the xtask takes it by path, from a `serge4rust`
-checkout beside this one. They drive these tools, each installed once from crates.io:
+machinery. They drive these tools, each installed once from crates.io:
 
 | Tool | Used by | Install |
 |---|---|---|
