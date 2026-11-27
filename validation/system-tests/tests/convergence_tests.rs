@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::log_dir;
+use crate::support::node_binary;
 use crate::support::real_time;
 use faction_system_tests::cluster_builder::ClusterBuilder;
 use faction_system_tests::spawn::Spawn;
@@ -59,6 +60,7 @@ fn cluster_reaches_bootstrapped(
     // Arrange
     let mut cluster = ClusterBuilder::new(5, required, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .timer_delay(delay)
         .log_dir(log_dir(&format!(

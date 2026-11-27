@@ -60,6 +60,7 @@ pub struct ClusterBuilder {
     changes_in_flight: Vec<usize>,
     probe_stretch: ProbeStretch,
     log_dir: Option<PathBuf>,
+    node_binary: Option<String>,
     lifetime: Duration,
     silent: bool,
     faults: FaultBoard,
@@ -81,6 +82,7 @@ impl ClusterBuilder {
             changes_in_flight: Vec::new(),
             probe_stretch: ProbeStretch::Minimal,
             log_dir: None,
+            node_binary: None,
             lifetime: NODE_LIFETIME,
             silent: false,
             faults: FaultBoard::default(),
@@ -186,6 +188,15 @@ impl ClusterBuilder {
         self
     }
 
+    // The binary its process nodes run: given by the tests of the package that
+    // builds it, as Cargo names it to them; else the one beside the running
+    // binary.
+    #[must_use]
+    pub fn node_binary(mut self, path: String) -> Self {
+        self.node_binary = Some(path);
+        self
+    }
+
     // How many times over its nodes wait the probe period and its timeouts:
     // for nodes that cannot keep up with them at their own -- a task's, which
     // reads one input a step.
@@ -234,6 +245,17 @@ impl ClusterBuilder {
         self
     }
 
+    // The process node's binary beside the running one: where Cargo puts every
+    // binary a build makes, the chaos binary's and the node's built before it.
+    fn binary_beside_this_one() -> String {
+        current_exe()
+            .expect("cannot determine current executable path")
+            .with_file_name("faction-node")
+            .with_extension(EXE_EXTENSION)
+            .to_string_lossy()
+            .into_owned()
+    }
+
     fn build_process(self, peer_ids: &[u64]) -> Cluster {
         // Under slotgate each parallel slot gets a disjoint PORT_RANGE, so a port
         // derived per node from its base avoids the cross-test port-reuse race of
@@ -250,8 +272,12 @@ impl ClusterBuilder {
             .zip(addrs.iter().copied())
             .collect();
 
+        let node_binary = self
+            .node_binary
+            .clone()
+            .unwrap_or_else(Self::binary_beside_this_one);
         let spec = ProcessSpec::new(
-            Self::node_binary(),
+            node_binary,
             self.transport,
             self.node_required,
             self.coordination(),
@@ -297,31 +323,6 @@ impl ClusterBuilder {
             (None, true) => Logs::Silent,
             (None, false) => Logs::Stderr,
         }
-    }
-
-    // The process node's binary: beside the running one -- a binary's, as
-    // the chaos binary is -- or a folder above it -- a test binary's, which
-    // runs from deps/.
-    fn node_binary() -> String {
-        env_var("CARGO_BIN_EXE_faction_node")
-            .ok()
-            .unwrap_or_else(|| {
-                let exe = current_exe().expect("cannot determine current executable path");
-                let beside = exe
-                    .with_file_name("faction-node")
-                    .with_extension(EXE_EXTENSION);
-                let path = if beside.exists() {
-                    beside
-                } else {
-                    let mut above = exe;
-                    above.pop();
-                    above.pop();
-                    above.push("faction-node");
-                    above.set_extension(EXE_EXTENSION);
-                    above
-                };
-                path.to_string_lossy().to_string()
-            })
     }
 
     fn transports(&self, peer_ids: &[u64]) -> TransportsAndJoinMesh {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::log_dir;
+use crate::support::node_binary;
 use crate::support::real_time;
 use faction::peer_state::PeerState;
 use faction_system_tests::cluster_builder::ClusterBuilder;
@@ -31,6 +32,7 @@ fn a_duplicate_join_is_ignored_and_membership_is_stable(
     // Arrange
     let mut cluster = ClusterBuilder::new(3, 2, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log("duplicate", spawn, transport))
         .build();
@@ -67,6 +69,7 @@ fn a_newcomer_admitted_before_bootstrap_still_converges(
     // Arrange
     let mut cluster = ClusterBuilder::new(3, 2, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log("before_bootstrap", spawn, transport))
         .build();
@@ -100,6 +103,7 @@ fn a_rejected_newcomer_is_denied_and_never_counts(
     // Arrange
     let mut cluster = ClusterBuilder::new(3, 2, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log("rejected", spawn, transport))
         .build();
@@ -135,6 +139,7 @@ fn a_timed_out_sub_quorum_cluster_recovers_when_a_newcomer_joins(
     // Arrange: three members but quorum needs four — the cluster cannot converge alone
     let mut cluster = ClusterBuilder::new(3, 4, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log("after_deadline", spawn, transport))
         .build();
@@ -171,6 +176,7 @@ fn cold_newcomer_joins_a_bootstrapped_cluster_and_converges(
     // Arrange
     let mut cluster = ClusterBuilder::new(3, 2, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log("converge", spawn, transport))
         .build();
@@ -203,6 +209,7 @@ fn concurrent_newcomers_each_join_and_converge(
     // Arrange
     let mut cluster = ClusterBuilder::new(3, 2, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log("concurrent", spawn, transport))
         .build();

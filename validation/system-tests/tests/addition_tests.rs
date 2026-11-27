@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::support::log_dir;
+use crate::support::node_binary;
 use crate::support::real_time;
 use faction::peer_state::PeerState;
 use faction::reconfiguration::Reconfiguration;
@@ -197,6 +198,7 @@ fn an_added_newcomer_is_committed_and_bootstraps(
 fn concluded(scenario: &str, spawn: Spawn, transport: TransportKind) -> Cluster {
     let mut cluster = ClusterBuilder::new(3, 2, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .log_dir(scenario_log(scenario, spawn, transport))
         .build();

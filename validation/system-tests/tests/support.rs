@@ -67,6 +67,12 @@ fn logs_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../logs/system")
 }
 
+// The process node's binary, as Cargo names it to the tests of its package --
+// wherever a release of Cargo puts the test binary itself.
+pub fn node_binary() -> String {
+    String::from(env!("CARGO_BIN_EXE_faction-node"))
+}
+
 pub fn real_time() -> TimePorts {
     TimePorts {
         clock: Arc::new(StdMonotonicClock::new()),
