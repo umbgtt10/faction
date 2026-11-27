@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 use crate::artifacts::run_log_directory::RunLogDirectory;
-use crate::gates::gate::Gate;
-use crate::gates::gate_failure::GateFailure;
-use crate::process::command_runner::CommandRunner;
+use crate::gates::run_failure::RunFailure;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::command_runner::CommandRunner;
 
 // The binary a process node runs, which the chaos binary's process cases
 // launch: built in release, beside it, as `cargo run` builds no other
@@ -49,7 +50,9 @@ impl Gate for ChaosGate<'_> {
     }
 
     fn run(&self) -> Result<(), GateFailure> {
-        self.log_directory.prepare(&self.run_name)?;
+        self.log_directory
+            .prepare(&self.run_name)
+            .map_err(RunFailure::from)?;
         let build = [
             "build",
             "-q",
@@ -73,7 +76,7 @@ impl Gate for ChaosGate<'_> {
             .collect();
         match self.runner.run_streaming("cargo", &args)? {
             Some(0) => Ok(()),
-            exit_code => Err(GateFailure::ChaosFailed { exit_code }),
+            exit_code => Err(GateFailure::from(RunFailure::ChaosFailed { exit_code })),
         }
     }
 }

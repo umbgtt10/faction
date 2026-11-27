@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 use crate::gates::support::fake_command_runner::FakeCommandRunner;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::launch_failure::LaunchFailure;
 use std::env::temp_dir;
 use std::fs::remove_dir_all;
 use std::path::PathBuf;
@@ -10,9 +13,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use xtask::artifacts::run_log_directory::RunLogDirectory;
 use xtask::gates::chaos_gate::ChaosGate;
-use xtask::gates::gate::Gate;
-use xtask::gates::gate_failure::GateFailure;
-use xtask::process::launch_failure::LaunchFailure;
+use xtask::gates::run_failure::RunFailure;
 
 const RUN: &str = "2026-11-16_19-49-16";
 
@@ -61,7 +62,12 @@ fn run_of_a_chaos_run_that_fails_names_its_exit_code() {
 
     // Assert
     remove_dir_all(&root).ok();
-    assert_eq!(ran, Err(GateFailure::ChaosFailed { exit_code: Some(1) }));
+    assert_eq!(
+        ran,
+        Err(GateFailure::from(RunFailure::ChaosFailed {
+            exit_code: Some(1)
+        }))
+    );
 }
 
 #[test]

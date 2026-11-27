@@ -3,7 +3,8 @@
 # The same file as the *4rust tools' and slotgate's: the licences below are
 # the union of what their dependency trees carry, nothing allowed in advance.
 # faction's own tree is the published crates' and the system tests' -- tonic,
-# prost and tokio among them -- and xtask's, which are serde's.
+# prost and tokio among them -- and xtask's, which are serge4rust's, which are
+# serde's.
 
 [advisories]
 # cargo-deny's defaults: vulnerabilities, unsound and unmaintained crates and

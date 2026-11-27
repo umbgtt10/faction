@@ -4,4 +4,3 @@
 mod artifacts;
 mod gates;
 mod process;
-mod reports;

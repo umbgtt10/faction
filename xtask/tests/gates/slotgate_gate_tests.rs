@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 use crate::gates::support::fake_command_runner::FakeCommandRunner;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::command_outcome::CommandOutcome;
+use serge4rust::process::command_runner::CommandRunner;
+use serge4rust::process::launch_failure::LaunchFailure;
 use std::env::temp_dir;
 use std::fs::create_dir_all;
 use std::fs::read_dir;
@@ -14,12 +19,8 @@ use std::process::id;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use xtask::artifacts::run_log_directory::RunLogDirectory;
-use xtask::gates::gate::Gate;
-use xtask::gates::gate_failure::GateFailure;
+use xtask::gates::run_failure::RunFailure;
 use xtask::gates::slotgate_gate::SlotgateGate;
-use xtask::process::command_outcome::CommandOutcome;
-use xtask::process::command_runner::CommandRunner;
-use xtask::process::launch_failure::LaunchFailure;
 
 const RUN: &str = "2026-11-05_10-20-24";
 
@@ -389,8 +390,12 @@ fn run_when_the_jobs_file_cannot_be_written_fails_without_running_the_suite() {
     let result = gate_with(&runner, &logs).run();
 
     // Assert
+    let unwritten = format!(
+        "could not write the job list to {}: ",
+        jobs_file.to_string_lossy()
+    );
     assert!(
-        matches!(&result, Err(GateFailure::JobsFile { path, .. }) if *path == jobs_file.to_string_lossy()),
+        matches!(&result, Err(GateFailure::Own { reason }) if reason.starts_with(&unwritten)),
         "{result:?}"
     );
 }
@@ -409,8 +414,9 @@ fn run_when_the_run_directory_cannot_be_prepared_fails_without_running_the_suite
     let result = gate(&runner, &logs).run();
 
     // Assert
+    let uncreated = format!("failed to create {}: ", root.display());
     assert!(
-        matches!(result, Err(GateFailure::LogDirectory(_))),
+        matches!(&result, Err(GateFailure::Own { reason }) if reason.starts_with(&uncreated)),
         "{result:?}"
     );
     assert!(runner.calls().is_empty());
@@ -450,7 +456,9 @@ fn run_with_a_non_zero_exit_code_reports_a_failing_system_test() {
     // Assert
     assert_eq!(
         result,
-        Err(GateFailure::SystemTestFailed { exit_code: Some(1) })
+        Err(GateFailure::from(RunFailure::SystemTestFailed {
+            exit_code: Some(1)
+        }))
     );
 }
 
@@ -483,7 +491,9 @@ fn run_with_no_exit_code_reports_a_failing_system_test() {
     // Assert
     assert_eq!(
         result,
-        Err(GateFailure::SystemTestFailed { exit_code: None })
+        Err(GateFailure::from(RunFailure::SystemTestFailed {
+            exit_code: None
+        }))
     );
 }
 

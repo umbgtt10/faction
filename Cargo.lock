@@ -1350,6 +1350,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "serge4rust"
+version = "0.2.1"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1971,8 +1979,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "serde",
- "serde_json",
+ "serge4rust",
 ]
 
 [[package]]

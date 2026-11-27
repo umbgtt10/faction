@@ -1,11 +1,11 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use serge4rust::process::command_outcome::CommandOutcome;
+use serge4rust::process::command_runner::CommandRunner;
+use serge4rust::process::launch_failure::LaunchFailure;
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use xtask::process::command_outcome::CommandOutcome;
-use xtask::process::command_runner::CommandRunner;
-use xtask::process::launch_failure::LaunchFailure;
 
 // The seam every gate is constructed against, faked once so the gate tests
 // share one fake rather than each growing their own.
@@ -17,7 +17,6 @@ pub struct FakeCommandRunner {
     capturing_code: Option<i32>,
     capturing_codes: RefCell<VecDeque<Option<i32>>>,
     stdout: String,
-    replies: RefCell<VecDeque<String>>,
     calls: RefCell<Vec<Vec<String>>>,
     programs: RefCell<Vec<String>>,
 }
@@ -32,7 +31,6 @@ impl FakeCommandRunner {
             capturing_code: Some(0),
             capturing_codes: RefCell::new(VecDeque::new()),
             stdout: String::new(),
-            replies: RefCell::new(VecDeque::new()),
             calls: RefCell::new(Vec::new()),
             programs: RefCell::new(Vec::new()),
         }
@@ -83,13 +81,6 @@ impl FakeCommandRunner {
         self
     }
 
-    // One stdout per capturing call, in order, for a caller that asks more than
-    // one question; once they run out, every call gets `with_stdout`'s answer.
-    pub fn with_replies(self, replies: &[&str]) -> Self {
-        *self.replies.borrow_mut() = replies.iter().map(|reply| String::from(*reply)).collect();
-        self
-    }
-
     pub fn calls(&self) -> Vec<Vec<String>> {
         self.calls.borrow().clone()
     }
@@ -134,11 +125,7 @@ impl CommandRunner for FakeCommandRunner {
         args: &[String],
     ) -> Result<CommandOutcome, LaunchFailure> {
         self.record(program, args)?;
-        let stdout = self
-            .replies
-            .borrow_mut()
-            .pop_front()
-            .unwrap_or_else(|| self.stdout.clone());
+        let stdout = self.stdout.clone();
         let code = self
             .capturing_codes
             .borrow_mut()

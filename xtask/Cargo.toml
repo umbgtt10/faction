@@ -3,7 +3,7 @@ name = "xtask"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
-description = "Gate orchestration for the faction workspace"
+description = "Gate orchestration for the faction workspace, on the gates serge4rust holds and faction's own"
 publish = false
 
 autotests = false
@@ -21,5 +21,4 @@ name = "all_tests"
 path = "tests/all_tests.rs"
 
 [dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true, features = ["std"] }
+serge4rust = { workspace = true }
