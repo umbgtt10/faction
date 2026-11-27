@@ -22,7 +22,6 @@ serde_json = { workspace = true, features = ["std"] }
 tokio.workspace = true
 tokio-stream.workspace = true
 tonic.workspace = true
-tonic-build.workspace = true
 
 [build-dependencies]
 tonic-build.workspace = true
