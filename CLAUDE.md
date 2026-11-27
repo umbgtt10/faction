@@ -78,6 +78,13 @@ on crates.io, the workspace takes it by path, `../serge4rust/crates/core`: a
 clone builds the xtask only beside a serge4rust checkout, the one place this
 repository reaches outside itself, and only until then.
 
+`just ripe` runs `cargo ripe4rust plan`: every upgrade the workspace could
+take, judged ripe, worth asking about or not yet, against the gates
+`[workspace.metadata.ripe4rust]` declares in `Cargo.toml` -- `just stage1`,
+then `just stage2`, in the order they validate a change. It prints the plan and
+applies nothing; applying an upgrade is a change of its own, on the owner's
+word.
+
 `cargo install just`
 `cargo install slotgate`
 `cargo install cargo-llvm-cov`
@@ -87,6 +94,7 @@ repository reaches outside itself, and only until then.
 `cargo install cargo-twin4rust`
 `cargo install cargo-iceberg4rust`
 `cargo install --locked cargo-deny`
+`cargo install cargo-ripe4rust`
 
 ### Every commit carries the library's scores
 
