@@ -11,24 +11,19 @@ use serge4rust::gates::iceberg_gate::IcebergGate;
 use serge4rust::gates::stage::Stage;
 use serge4rust::gates::stern_gate::SternGate;
 use serge4rust::gates::twin_gate::TwinGate;
-use serge4rust::scores::library_scorer::LibraryScorer;
-use serge4rust::scores::message_scoring::MessageScoring;
+use serge4rust::process::system_command_runner::SystemCommandRunner;
+use serge4rust::scores::hook_failure::HookFailure;
+use serge4rust::scores::scoring_hook::ScoringHook;
 use std::env::args;
-use std::env::temp_dir;
-use std::fs::read_to_string;
-use std::fs::remove_dir_all;
-use std::fs::write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::process::id;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use xtask::artifacts::run_log_directory::RunLogDirectory;
 use xtask::artifacts::run_stamp::RunStamp;
 use xtask::gates::chaos_gate::ChaosGate;
 use xtask::gates::slotgate_gate::SlotgateGate;
-use xtask::process::system_command_runner::SystemCommandRunner;
 
 const CHAOS_PACKAGE: &str = "faction-chaos";
 const CORE_PACKAGE: &str = "faction";
@@ -97,12 +92,10 @@ fn main() -> ExitCode {
 // specification's model, spec-model -- scored as staged, for the commit-msg
 // hook in .githooks/: given the message's file, the scores are written into
 // it, above its trailers; given none, they are printed.
-fn grip_braintax() -> Result<(), String> {
-    let scratch = temp_dir().join(format!("xtask-grip-braintax-{}", id()));
-    let runner = SystemCommandRunner::new(Vec::new());
-    let scored = LibraryScorer::new(
+fn grip_braintax() -> Result<(), HookFailure> {
+    let runner = SystemCommandRunner::new();
+    ScoringHook::new(
         &runner,
-        scratch.to_string_lossy().into_owned(),
         String::from(LIBRARY_DIRECTORY),
         vec![
             String::from(LIBRARY_CORE),
@@ -110,22 +103,12 @@ fn grip_braintax() -> Result<(), String> {
             String::from(LIBRARY_SPEC_MODEL),
         ],
     )
-    .score();
-    let _ = remove_dir_all(&scratch);
-    let block = scored.map_err(|failure| failure.to_string())?.render();
-    let Some(path) = args().nth(2) else {
-        println!("{block}");
-        return Ok(());
-    };
-    let message =
-        read_to_string(&path).map_err(|error| format!("could not read {path}: {error}"))?;
-    write(&path, MessageScoring::new(block).applied_to(&message))
-        .map_err(|error| format!("could not write {path}: {error}"))
+    .run(args().nth(2))
 }
 
 fn stage2() -> Result<&'static str, String> {
     let manifest_path = workspace_manifest_path();
-    let runner = SystemCommandRunner::new(Vec::new());
+    let runner = SystemCommandRunner::new();
     let parser = CrapReportParser::new();
     let every_package = vec![
         String::from(CHAOS_PACKAGE),
@@ -237,7 +220,8 @@ fn chaos() -> Result<&'static str, String> {
     let run_name = RunStamp::new(seconds_since_epoch()).to_directory_name();
     // The binary is handed the run's name, as the system tests are, and
     // writes its logs into the run's folder.
-    let runner = SystemCommandRunner::new(vec![(String::from(LOG_RUN), run_name.clone())]);
+    let runner =
+        SystemCommandRunner::with_environment(vec![(String::from(LOG_RUN), run_name.clone())]);
     let chaos = ChaosGate::new(
         &runner,
         &log_directory,
@@ -260,7 +244,8 @@ fn system_tests() -> Result<&'static str, String> {
     let run_name = RunStamp::new(seconds_since_epoch()).to_directory_name();
     // Every test process slotgate starts is handed the run's name, and its
     // scenarios write into the run's folder: one folder a run, pruned whole.
-    let runner = SystemCommandRunner::new(vec![(String::from(LOG_RUN), run_name.clone())]);
+    let runner =
+        SystemCommandRunner::with_environment(vec![(String::from(LOG_RUN), run_name.clone())]);
     let slotgate = SlotgateGate::new(
         &runner,
         &log_directory,

@@ -57,26 +57,23 @@ code. It runs, in this order:
 | `cargo iceberg4rust` | is any file's private implementation risk too high (threshold 5) |
 | `cargo deny` | do the dependencies carry an advisory, a refused licence or a foreign source, and does anything but the crates written for it take `faction` (`deny.toml`) |
 
-The gates come from `serge4rust`, the house's quality gates as a library: the
-gate trait, the stage that runs gates in order and stops at the first failure,
-the command runner's trait, a gate per tool, crap4rust's report and the commit
-scoring are its, with their tests. A gate of serge4rust's that needs changing
-is changed there, released, and taken here, never patched in place.
-`xtask/src/main.rs` keeps which gates each command runs, in what order, and
-faction's constants, passed to serge4rust's constructors: the packages, the
+The gates come from `serge4rust`, the house's quality gates as a library, from
+crates.io: the gate trait, the stage that runs gates in order and stops at the
+first failure, the command runner and its trait, a gate per tool, crap4rust's
+report and the commit scoring are its, with their tests. A gate of serge4rust's
+that needs changing is changed there, released, and taken here, never patched in
+place. `xtask/src/main.rs` keeps which gates each command runs, in what order,
+and faction's constants, passed to serge4rust's constructors: the packages, the
 thresholds, the baseline and its floor, the words the coverage failure names,
 cargo-deny's three fetch attempts, the library the scoring reads. The rest of
 `xtask/` is what faction alone has, built on serge4rust's machinery: the system
 tests' gate under slotgate and the chaos runs' gate, each a `Gate` constructed
 against the `CommandRunner` trait and run in serge4rust's `Stage`; the run log
 directory and the stamp that names it; the failures those two gates give,
-`RunFailure`, handed to the stage in their own words as `GateFailure::Own`; and
-the command runner, which hands every process it starts the run's name,
-`FACTION_LOG_RUN` -- serge4rust's runner sets no variable. Until serge4rust
-0.2.1, the release that lets a repository's own gate fail through its stage, is
-on crates.io, the workspace takes it by path, `../serge4rust/crates/core`: a
-clone builds the xtask only beside a serge4rust checkout, the one place this
-repository reaches outside itself, and only until then.
+`RunFailure`, handed to the stage in their own words as `GateFailure::Own`. The
+runner those two gates run on is serge4rust's, handed the run's name for every
+process it starts, `FACTION_LOG_RUN` (`SystemCommandRunner::with_environment`);
+the commit-msg hook is serge4rust's `ScoringHook`, one call.
 
 `just ripe` runs `cargo ripe4rust plan`: every upgrade the workspace could
 take, judged ripe, worth asking about or not yet, against the gates

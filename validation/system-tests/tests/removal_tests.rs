@@ -6,6 +6,7 @@
 // missed periods running.
 
 use crate::support::log_dir;
+use crate::support::node_binary;
 use crate::support::real_time;
 use faction::peer_state::PeerState;
 use faction::quorum::Quorum;
@@ -196,6 +197,7 @@ fn concluded(
 ) -> Cluster {
     let mut cluster = ClusterBuilder::new(size, required, real_time())
         .spawn(spawn)
+        .node_binary(node_binary())
         .transport(transport)
         .suspicion_threshold(SUSPICION_THRESHOLD)
         .probe_stretch(probe_stretch)

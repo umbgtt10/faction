@@ -5,7 +5,7 @@
 # It pins the compiler that builds and gates this repository, not the one its users need: `cargo install` builds
 # with the user's own toolchain, and `rust-version` states the minimum.
 [toolchain]
-channel = "1.99.1"
+channel = "1.100.0"
 components = ["rustfmt", "clippy", "llvm-tools"]
 # The no_std check in stage 1 builds for it: a host build of a `#![no_std]` crate
 # proves the attribute is there, not that nothing it links needs std.
