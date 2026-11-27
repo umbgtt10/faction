@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use crate::process::command_outcome::CommandOutcome;
-use crate::process::command_runner::CommandRunner;
-use crate::process::launch_failure::LaunchFailure;
+use serge4rust::process::command_outcome::CommandOutcome;
+use serge4rust::process::command_runner::CommandRunner;
+use serge4rust::process::launch_failure::LaunchFailure;
 use std::env::consts::EXE_SUFFIX;
 use std::env::split_paths;
 use std::env::var_os;

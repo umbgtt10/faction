@@ -5,9 +5,10 @@ use std::fs::write;
 use std::path::Path;
 
 use crate::artifacts::run_log_directory::RunLogDirectory;
-use crate::gates::gate::Gate;
-use crate::gates::gate_failure::GateFailure;
-use crate::process::command_runner::CommandRunner;
+use crate::gates::run_failure::RunFailure;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::command_runner::CommandRunner;
 
 // Not a cargo subcommand, unlike the four house gates: slotgate is a standalone
 // binary and is invoked as one.
@@ -79,9 +80,11 @@ impl<'a> SlotgateGate<'a> {
             .filter_map(|line| line.strip_suffix(": test"))
             .map(|name| format!("{name}\n"))
             .collect();
-        write(jobs_file, jobs).map_err(|error| GateFailure::JobsFile {
-            path: jobs_file.to_string_lossy().into_owned(),
-            reason: error.to_string(),
+        write(jobs_file, jobs).map_err(|error| {
+            GateFailure::from(RunFailure::JobsFile {
+                path: jobs_file.to_string_lossy().into_owned(),
+                reason: error.to_string(),
+            })
         })
     }
 }
@@ -98,7 +101,10 @@ impl Gate for SlotgateGate<'_> {
             });
         }
 
-        let run_directory = self.log_directory.prepare(&self.run_name)?;
+        let run_directory = self
+            .log_directory
+            .prepare(&self.run_name)
+            .map_err(RunFailure::from)?;
 
         // The job list is the test binary's own: `--list` names every test the
         // harness will run, the cases rstest expands among them, which a scan
@@ -142,7 +148,9 @@ impl Gate for SlotgateGate<'_> {
 
         match self.runner.run_streaming(BINARY, &args)? {
             Some(0) => Ok(()),
-            exit_code => Err(GateFailure::SystemTestFailed { exit_code }),
+            exit_code => Err(GateFailure::from(RunFailure::SystemTestFailed {
+                exit_code,
+            })),
         }
     }
 }

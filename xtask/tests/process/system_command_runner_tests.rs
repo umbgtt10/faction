@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-use xtask::process::command_runner::CommandRunner;
+use serge4rust::process::command_runner::CommandRunner;
 use xtask::process::system_command_runner::SystemCommandRunner;
 
 // A cargo alias defined through the environment alone: the probe runs

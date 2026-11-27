@@ -1,6 +1,18 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
+use serge4rust::crap::crap_report_parser::CrapReportParser;
+use serge4rust::gates::coverage_gate::CoverageGate;
+use serge4rust::gates::crap_gate::CrapGate;
+use serge4rust::gates::deny_gate::DenyGate;
+use serge4rust::gates::dry_gate::DryGate;
+use serge4rust::gates::gate::Gate;
+use serge4rust::gates::iceberg_gate::IcebergGate;
+use serge4rust::gates::stage::Stage;
+use serge4rust::gates::stern_gate::SternGate;
+use serge4rust::gates::twin_gate::TwinGate;
+use serge4rust::scores::library_scorer::LibraryScorer;
+use serge4rust::scores::message_scoring::MessageScoring;
 use std::env::args;
 use std::env::temp_dir;
 use std::fs::read_to_string;
@@ -15,25 +27,14 @@ use std::time::UNIX_EPOCH;
 use xtask::artifacts::run_log_directory::RunLogDirectory;
 use xtask::artifacts::run_stamp::RunStamp;
 use xtask::gates::chaos_gate::ChaosGate;
-use xtask::gates::coverage_gate::CoverageGate;
-use xtask::gates::crap_gate::CrapGate;
-use xtask::gates::deny_gate::DenyGate;
-use xtask::gates::dry_gate::DryGate;
-use xtask::gates::gate::Gate;
-use xtask::gates::gate_sequence::GateSequence;
-use xtask::gates::iceberg_gate::IcebergGate;
 use xtask::gates::slotgate_gate::SlotgateGate;
-use xtask::gates::stern_gate::SternGate;
-use xtask::gates::twin_gate::TwinGate;
 use xtask::process::system_command_runner::SystemCommandRunner;
-use xtask::reports::crap_report_parser::CrapReportParser;
-use xtask::reports::scores::library_scorer::LibraryScorer;
-use xtask::reports::scores::message_scoring::MessageScoring;
 
 const CHAOS_PACKAGE: &str = "faction-chaos";
 const CORE_PACKAGE: &str = "faction";
 const CORE_VALIDATION_PACKAGE: &str = "faction-core-validation";
 const CONFORMANCE_TIER: &str = "conformance";
+const COVERAGE_REASON: &str = "every line is one the specification asks for";
 const LADDER_PACKAGE: &str = "faction-ladder";
 const MEMORY_PACKAGE: &str = "faction-memory";
 const PROTOCOL_PACKAGE: &str = "faction-protocol";
@@ -50,6 +51,11 @@ const CRAP_THRESHOLD: &str = "15";
 const ICEBERG_THRESHOLD: &str = "5";
 const DRY_BASELINE: &str = "dry4rust-baseline.json";
 const DRY_MIN_NODES: &str = "10";
+const DENY_FETCH_ATTEMPTS: usize = 3;
+const LIBRARY_CORE: &str = "core";
+const LIBRARY_DIRECTORY: &str = "crates";
+const LIBRARY_PROTOCOL: &str = "protocol";
+const LIBRARY_SPEC_MODEL: &str = "spec-model";
 const MAX_PARALLEL: &str = "6";
 const TIMEOUT_SECS: &str = "300";
 const RUNS_TO_KEEP: usize = 50;
@@ -87,13 +93,24 @@ fn main() -> ExitCode {
     }
 }
 
-// The library's crates scored as staged, for the commit-msg hook in .githooks/:
-// given the message's file, the scores are written into it, above its
-// trailers; given none, they are printed.
+// The library's crates under crates/ -- core, protocol and the
+// specification's model, spec-model -- scored as staged, for the commit-msg
+// hook in .githooks/: given the message's file, the scores are written into
+// it, above its trailers; given none, they are printed.
 fn grip_braintax() -> Result<(), String> {
     let scratch = temp_dir().join(format!("xtask-grip-braintax-{}", id()));
     let runner = SystemCommandRunner::new(Vec::new());
-    let scored = LibraryScorer::new(&runner, scratch.to_string_lossy().into_owned()).score();
+    let scored = LibraryScorer::new(
+        &runner,
+        scratch.to_string_lossy().into_owned(),
+        String::from(LIBRARY_DIRECTORY),
+        vec![
+            String::from(LIBRARY_CORE),
+            String::from(LIBRARY_PROTOCOL),
+            String::from(LIBRARY_SPEC_MODEL),
+        ],
+    )
+    .score();
     let _ = remove_dir_all(&scratch);
     let block = scored.map_err(|failure| failure.to_string())?.render();
     let Some(path) = args().nth(2) else {
@@ -161,7 +178,14 @@ fn stage2() -> Result<&'static str, String> {
         String::from(SPEC_MODEL_PACKAGE),
         String::from(LADDER_PACKAGE),
     ];
-    let coverage = CoverageGate::new(&runner, manifest_path.clone(), measured, None);
+    let coverage = CoverageGate::new(
+        &runner,
+        manifest_path.clone(),
+        measured,
+        None,
+        String::from(CORE_PACKAGE),
+        Some(String::from(COVERAGE_REASON)),
+    );
     // faction's lines again, and the model's, over the conformance tier alone:
     // a line no vector of the specification reaches is one it does not ask for
     // (P1-ADR-NoLineTheSpecificationDoesNotAskFor). faction-protocol is not
@@ -175,6 +199,8 @@ fn stage2() -> Result<&'static str, String> {
             String::from(LADDER_PACKAGE),
         ],
         Some(String::from(CONFORMANCE_TIER)),
+        String::from(CORE_PACKAGE),
+        Some(String::from(COVERAGE_REASON)),
     );
     let twin = TwinGate::new(&runner, manifest_path.clone(), library.clone());
     let iceberg = IcebergGate::new(
@@ -184,7 +210,7 @@ fn stage2() -> Result<&'static str, String> {
         String::from(ICEBERG_THRESHOLD),
     );
     // Last: its advisories change without the code changing (see DenyGate).
-    let deny = DenyGate::new(&runner, manifest_path);
+    let deny = DenyGate::new(&runner, manifest_path, DENY_FETCH_ATTEMPTS);
 
     let gates: Vec<&dyn Gate> = vec![
         &stern,
@@ -196,7 +222,7 @@ fn stage2() -> Result<&'static str, String> {
         &iceberg,
         &deny,
     ];
-    GateSequence::new(gates)
+    Stage::new(gates)
         .run()
         .map(|()| "faction Stage 2")
         .map_err(|failure| failure.to_string())
@@ -219,7 +245,7 @@ fn chaos() -> Result<&'static str, String> {
         String::from(CHAOS_PACKAGE),
         args().skip(2).collect(),
     );
-    GateSequence::new(vec![&chaos])
+    Stage::new(vec![&chaos])
         .run()
         .map(|()| "faction chaos")
         .map_err(|failure| failure.to_string())
@@ -245,7 +271,7 @@ fn system_tests() -> Result<&'static str, String> {
         String::from(MAX_PARALLEL),
         String::from(TIMEOUT_SECS),
     );
-    GateSequence::new(vec![&slotgate])
+    Stage::new(vec![&slotgate])
         .run()
         .map(|()| "faction system tests")
         .map_err(|failure| failure.to_string())
