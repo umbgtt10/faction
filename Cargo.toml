@@ -44,3 +44,8 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync"]
 tokio-stream = "0.1"
 tonic = "0.12"
 tonic-build = "0.12"
+
+# Upgrades held back, each with its reason and when to look at it again,
+# written as `cargo ripe4rust hold` prints them.
+[workspace.metadata.ripe4rust.pins]
+rust = { reason = "stage 1 red on 1.100.0: 56 process-node system tests fail, 'failed to spawn faction-node: No such file or directory' -- cargo 1.100.0 builds test binaries under target/<profile>/build/<package>/<hash>/out/, and ClusterBuilder::node_binary looks for faction-node two folders above the test binary, where deps/ used to be", review = "2026-12-11" }
