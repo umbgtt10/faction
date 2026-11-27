@@ -38,7 +38,7 @@ serde_json = { version = "1", default-features = false, features = ["alloc"] }
 # library. By path, and only until serge4rust 0.2.1 is on crates.io: then
 # `serge4rust = "0.2"`, and the sibling checkout it needs goes away.
 serge4rust = { path = "../serge4rust/crates/core" }
-sha2 = "0.10"
+sha2 = "0.11.2"
 spin = "0.9"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync"] }
 tokio-stream = "0.1"
