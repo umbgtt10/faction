@@ -3,10 +3,12 @@
 
 use crate::artifacts::run_log_failure::RunLogFailure;
 use serge4rust::gates::gate_failure::GateFailure;
+use serge4rust::process::process_end::ProcessEnd;
 use std::fmt;
 
 // Each way faction's own gates -- the chaos run and the system tests' run --
-// fail, said exactly as they have always said it. serge4rust's stage takes
+// fail, a run's end said as serge4rust says it: exit code 1, or terminated by
+// signal. serge4rust's stage takes
 // them as a gate's own failure, in these words.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunFailure {
@@ -34,7 +36,13 @@ impl fmt::Display for RunFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ChaosFailed { exit_code } => {
-                write!(formatter, "a chaos run failed, exit code {exit_code:?}")
+                write!(
+                    formatter,
+                    "a chaos run failed, {}",
+                    ProcessEnd {
+                        exit_code: *exit_code
+                    }
+                )
             }
             Self::JobsFile { path, reason } => {
                 write!(
@@ -44,7 +52,13 @@ impl fmt::Display for RunFailure {
             }
             Self::LogDirectory(failure) => write!(formatter, "{failure}"),
             Self::SystemTestFailed { exit_code } => {
-                write!(formatter, "a system test failed, exit code {exit_code:?}")
+                write!(
+                    formatter,
+                    "a system test failed, {}",
+                    ProcessEnd {
+                        exit_code: *exit_code
+                    }
+                )
             }
         }
     }

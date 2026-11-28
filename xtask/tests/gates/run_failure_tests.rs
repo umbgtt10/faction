@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 Umberto Gotti
 // SPDX-License-Identifier: MIT
 
-// Each way faction's own gates fail, said exactly as the run has always said
-// it, and handed to serge4rust's stage in those same words.
+// Each way faction's own gates fail, a run's end said as serge4rust says it,
+// and handed to serge4rust's stage in those same words.
 
 use serge4rust::gates::gate_failure::GateFailure;
 use std::path::PathBuf;
@@ -21,7 +21,7 @@ fn from_of_a_run_failure_is_a_gate_failure_in_its_own_words() {
     assert_eq!(
         failure,
         GateFailure::Own {
-            reason: String::from("a chaos run failed, exit code Some(1)")
+            reason: String::from("a chaos run failed, exit code 1")
         }
     );
 }
@@ -50,11 +50,11 @@ fn to_string_of_a_failed_chaos_run_names_its_exit_code() {
     let shown = failure.to_string();
 
     // Assert
-    assert_eq!(shown, "a chaos run failed, exit code Some(1)");
+    assert_eq!(shown, "a chaos run failed, exit code 1");
 }
 
 #[test]
-fn to_string_of_a_failed_system_test_carries_the_exit_code() {
+fn to_string_of_a_failed_system_test_ended_by_a_signal_says_so() {
     // Arrange
     let failure = RunFailure::SystemTestFailed { exit_code: None };
 
@@ -62,7 +62,7 @@ fn to_string_of_a_failed_system_test_carries_the_exit_code() {
     let shown = failure.to_string();
 
     // Assert
-    assert_eq!(shown, "a system test failed, exit code None");
+    assert_eq!(shown, "a system test failed, terminated by signal");
 }
 
 #[test]
