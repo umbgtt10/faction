@@ -43,3 +43,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync"]
 tokio-stream = "0.1"
 tonic = "0.12"
 tonic-build = "0.12"
+
+[workspace.metadata.ripe4rust.pins]
+rstest = { reason = "the owner, 2026-11-27: wait -- 0.29 is a young line, and the move touches 73 locations", review = "2026-12-12" }
+tonic = { reason = "the owner, 2026-11-27: later, as its own piece of work -- 83 locations, prost 0.14 with it, rust-version 1.88", review = "2026-12-12" }
