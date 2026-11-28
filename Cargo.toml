@@ -36,10 +36,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 # The gates, taken by xtask from serge4rust, the house's quality gates as a
 # library, from crates.io.
-serge4rust = "0.3"
+serge4rust = "0.3.1"
 sha2 = "0.11.2"
 spin = "0.12.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync"] }
 tokio-stream = "0.1"
 tonic = "0.12"
 tonic-build = "0.12"
+
+[workspace.metadata.ripe4rust.pins]
+rstest = { reason = "the owner, 2026-11-27: wait -- 0.29 is a young line, and the move touches 73 locations", review = "2026-12-12" }
+tonic = { reason = "the owner, 2026-11-27: later, as its own piece of work -- 83 locations, prost 0.14 with it, rust-version 1.88", review = "2026-12-12" }
