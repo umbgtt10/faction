@@ -172,8 +172,10 @@ fn stage2() -> Result<&'static str, String> {
     // faction's lines again, and the model's, over the conformance tier alone:
     // a line no vector of the specification reaches is one it does not ask for
     // (P1-ADR-NoLineTheSpecificationDoesNotAskFor). faction-protocol is not
-    // the specified component, so it is measured over every tier only.
-    let conformance_coverage = CoverageGate::new(
+    // the specified component, so it is measured over every tier only. It
+    // measures on the build the first left: the same compiler made it, once
+    // the first had cleared what another left.
+    let conformance_coverage = CoverageGate::reusing_build(
         &runner,
         manifest_path.clone(),
         vec![

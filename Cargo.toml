@@ -36,7 +36,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 # The gates, taken by xtask from serge4rust, the house's quality gates as a
 # library, from crates.io.
-serge4rust = "0.3"
+serge4rust = "0.3.1"
 sha2 = "0.11.2"
 spin = "0.12.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync"] }
